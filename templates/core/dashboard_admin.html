@@ -1,62 +1,541 @@
 {% extends 'base.html' %}
 {% load humanize %}
+{% load static %}
+
+{% block title %}Yönetici Paneli - MoldPark{% endblock %}
+
 {% block content %}
-<div class="container py-4">
-    <h1 class="mb-4">Yönetici Paneli</h1>
+<div class="container-fluid py-4">
+    <!-- Header -->
     <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="card shadow-sm mb-3">
-                <div class="card-header bg-primary text-white">Merkezler</div>
-                <div class="card-body">
-                    <ul class="list-group list-group-flush">
-                        {% for center in centers %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            {{ center.name }}
-                            <span class="badge bg-secondary">{{ center.mold_limit }}</span>
-                        </li>
-                        {% empty %}
-                        <li class="list-group-item">Merkez yok.</li>
-                        {% endfor %}
-                    </ul>
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="mb-2">
+                        <i class="fas fa-cogs text-primary me-2"></i>
+                        Yönetici Paneli
+                    </h1>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item active">Sistem Yönetimi</li>
+                        </ol>
+                    </nav>
+                </div>
+                <div>
+                    <span class="badge bg-success fs-6">
+                        <i class="fas fa-shield-alt me-1"></i>Süper Yönetici
+                    </span>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card shadow-sm mb-3">
-                <div class="card-header bg-info text-white">Kalıplar</div>
+    </div>
+
+    <!-- İstatistik Kartları -->
+    <div class="row mb-4">
+        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+            <div class="card border-left-primary shadow h-100 py-2">
                 <div class="card-body">
-                    <ul class="list-group list-group-flush">
-                        {% for mold in molds|slice:':5' %}
-                        <li class="list-group-item">
-                            {{ mold.patient_name }} {{ mold.patient_surname }} - {{ mold.get_mold_type_display }}
-                            <span class="badge bg-{{ mold.status }} float-end">{{ mold.get_status_display }}</span>
-                        </li>
-                        {% empty %}
-                        <li class="list-group-item">Kalıp yok.</li>
-                        {% endfor %}
-                    </ul>
-                    <a href="#" class="btn btn-sm btn-outline-info mt-2">Tüm Kalıplar</a>
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Toplam Merkez
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.total_centers }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clinic-medical fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card shadow-sm mb-3">
-                <div class="card-header bg-success text-white">Son Mesajlar</div>
+
+        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+            <div class="card border-left-success shadow h-100 py-2">
                 <div class="card-body">
-                    <ul class="list-group list-group-flush">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Aktif Merkez
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.active_centers }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Üretici
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.total_producers }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-industry fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Doğrulu Üretici
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.verified_producers }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-certificate fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+            <div class="card border-left-secondary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">
+                                Toplam Kalıp
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.total_molds }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-cube fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                Bekleyen Kalıp
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.pending_molds }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Navigation -->
+    <div class="card shadow">
+        <div class="card-header p-0">
+            <ul class="nav nav-tabs nav-tabs-custom" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab">
+                        <i class="fas fa-chart-pie me-2"></i>Genel Bakış
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="centers-tab" data-bs-toggle="tab" data-bs-target="#centers" type="button" role="tab">
+                        <i class="fas fa-clinic-medical me-2"></i>İşitme Merkezleri
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="producers-tab" data-bs-toggle="tab" data-bs-target="#producers" type="button" role="tab">
+                        <i class="fas fa-industry me-2"></i>Üretici Merkezler
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="molds-tab" data-bs-toggle="tab" data-bs-target="#molds" type="button" role="tab">
+                        <i class="fas fa-cube me-2"></i>Kalıp Yönetimi
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="messages-tab" data-bs-toggle="tab" data-bs-target="#messages" type="button" role="tab">
+                        <i class="fas fa-envelope me-2"></i>Mesajlar
+                    </button>
+                </li>
+            </ul>
+        </div>
+        <div class="card-body">
+            <div class="tab-content">
+                <!-- Genel Bakış Sekmesi -->
+                <div class="tab-pane fade show active" id="overview" role="tabpanel">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5 class="mb-3">
+                                <i class="fas fa-chart-bar text-primary me-2"></i>Sistem Durumu
+                            </h5>
+                            <div class="table-responsive">
+                                <table class="table table-borderless">
+                                    <tbody>
+                                        <tr>
+                                            <td><i class="fas fa-clinic-medical text-primary me-2"></i>Toplam İşitme Merkezi:</td>
+                                            <td><strong>{{ stats.total_centers }}</strong></td>
+                                        </tr>
+                                        <tr>
+                                            <td><i class="fas fa-check-circle text-success me-2"></i>Aktif Merkezler:</td>
+                                            <td><strong>{{ stats.active_centers }}</strong></td>
+                                        </tr>
+                                        <tr>
+                                            <td><i class="fas fa-industry text-info me-2"></i>Toplam Üretici:</td>
+                                            <td><strong>{{ stats.total_producers }}</strong></td>
+                                        </tr>
+                                        <tr>
+                                            <td><i class="fas fa-certificate text-warning me-2"></i>Doğrulanmış Üretici:</td>
+                                            <td><strong>{{ stats.verified_producers }}</strong></td>
+                                        </tr>
+                                        <tr>
+                                            <td><i class="fas fa-cube text-secondary me-2"></i>Toplam Kalıp:</td>
+                                            <td><strong>{{ stats.total_molds }}</strong></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 class="mb-3">
+                                <i class="fas fa-tasks text-warning me-2"></i>Hızlı İşlemler
+                            </h5>
+                            <div class="d-grid gap-2">
+                                <a href="{% url 'center:admin_mold_list' %}" class="btn btn-outline-primary">
+                                    <i class="fas fa-list me-2"></i>Tüm Kalıpları Görüntüle
+                                </a>
+                                <a href="{% url 'center:admin_message_list' %}" class="btn btn-outline-success">
+                                    <i class="fas fa-envelope me-2"></i>Tüm Mesajları Görüntüle
+                                </a>
+                                <a href="/admin/" class="btn btn-outline-dark">
+                                    <i class="fas fa-cog me-2"></i>Django Admin Paneli
+                                </a>
+                                <a href="{% url 'producer:admin_producer_list' %}" class="btn btn-outline-info">
+                                    <i class="fas fa-industry me-2"></i>Üretici Yönetimi
+                                </a>
+                                <a href="{% url 'producer:admin_mold_list' %}" class="btn btn-outline-success">
+                                    <i class="fas fa-cube me-2"></i>Tüm Kalıpları Görüntüle
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- İşitme Merkezleri Sekmesi -->
+                <div class="tab-pane fade" id="centers" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0">
+                            <i class="fas fa-clinic-medical text-primary me-2"></i>İşitme Merkezleri
+                        </h5>
+                        <span class="badge bg-primary">{{ stats.total_centers }} Merkez</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Merkez Adı</th>
+                                    <th>E-posta</th>
+                                    <th>Telefon</th>
+                                    <th>Kalıp Limiti</th>
+                                    <th>Durumu</th>
+                                    <th>Kayıt Tarihi</th>
+                                    <th>İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- MoldPark Merkez Yönetimi (Özel Gösterim) -->
+                                <tr class="table-primary">
+                                    <td>
+                                        <strong><i class="fas fa-crown text-warning me-2"></i>{{ moldpark_center.name }}</strong><br>
+                                        <small class="text-muted">Sistem Yönetimi</small>
+                                    </td>
+                                    <td>{{ moldpark_center.user.email }}</td>
+                                    <td>{{ moldpark_center.phone }}</td>
+                                    <td>
+                                        <span class="badge bg-warning">∞ Sınırsız</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-shield-alt me-1"></i>Sistem Aktif
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <small>Sistem Başlangıcı</small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <span class="btn btn-sm btn-warning" title="MoldPark Yönetimi">
+                                                <i class="fas fa-crown"></i>
+                                            </span>
+                                        </div>
+                                    </td>
+                                </tr>
+                                
+                                {% for center in centers %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ center.name }}</strong><br>
+                                        <small class="text-muted">{{ center.user.get_full_name|default:center.user.username }}</small>
+                                    </td>
+                                    <td>{{ center.user.email }}</td>
+                                    <td>{{ center.phone|default:"—" }}</td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ center.mold_limit }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ center.is_active|yesno:'success,danger' }}">
+                                            {{ center.is_active|yesno:'Aktif,Devre Dışı' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <small>{{ center.created_at|date:"d M Y" }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="#" class="btn btn-outline-info" title="Detay">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="#" class="btn btn-outline-warning" title="Düzenle">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted py-4">
+                                        <i class="fas fa-inbox fa-3x mb-3"></i><br>
+                                        Henüz kayıtlı işitme merkezi bulunmuyor.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Üretici Merkezler Sekmesi -->
+                <div class="tab-pane fade" id="producers" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0">
+                            <i class="fas fa-industry text-info me-2"></i>Üretici Merkezler
+                        </h5>
+                        <div>
+                            <span class="badge bg-info me-2">{{ producers|length }} Üretici</span>
+                            <a href="{% url 'producer:admin_producer_list' %}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-cog me-1"></i>Detaylı Yönetim
+                            </a>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Firma Adı</th>
+                                    <th>Türü</th>
+                                    <th>E-posta</th>
+                                    <th>Kalıp Limiti</th>
+                                    <th>Doğrulama</th>
+                                    <th>Durumu</th>
+                                    <th>Kayıt Tarihi</th>
+                                    <th>İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for producer in producers %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ producer.company_name }}</strong><br>
+                                        {% if producer.brand_name %}
+                                            <small class="text-muted">{{ producer.brand_name }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ producer.get_producer_type_display }}</span>
+                                    </td>
+                                    <td>{{ producer.user.email }}</td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ producer.mold_limit }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ producer.is_verified|yesno:'success,warning' }}">
+                                            <i class="fas fa-{{ producer.is_verified|yesno:'check-circle,clock' }} me-1"></i>
+                                            {{ producer.is_verified|yesno:'Doğrulandı,Bekliyor' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ producer.is_active|yesno:'success,danger' }}">
+                                            {{ producer.is_active|yesno:'Aktif,Devre Dışı' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <small>{{ producer.created_at|date:"d M Y" }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'producer:admin_producer_detail' producer.pk %}" class="btn btn-outline-info" title="Detay">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            {% if not producer.is_verified %}
+                                            <a href="{% url 'producer:admin_producer_verify' producer.pk %}" class="btn btn-outline-success" title="Doğrula">
+                                                <i class="fas fa-check"></i>
+                                            </a>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="8" class="text-center text-muted py-4">
+                                        <i class="fas fa-industry fa-3x mb-3"></i><br>
+                                        Henüz kayıtlı üretici merkez bulunmuyor.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Kalıp Yönetimi Sekmesi -->
+                <div class="tab-pane fade" id="molds" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0">
+                            <i class="fas fa-cube text-secondary me-2"></i>Son Kalıplar
+                        </h5>
+                        <a href="{% url 'center:admin_mold_list' %}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-list me-1"></i>Tüm Kalıpları Görüntüle
+                        </a>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Hasta</th>
+                                    <th>Kalıp Türü</th>
+                                    <th>Merkez</th>
+                                    <th>Durum</th>
+                                    <th>Oluşturulma</th>
+                                    <th>İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for mold in molds|slice:':10' %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ mold.patient_name }} {{ mold.patient_surname }}</strong><br>
+                                        <small class="text-muted">{{ mold.patient_age }} yaş</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ mold.get_mold_type_display }}</span>
+                                    </td>
+                                    <td>{{ mold.center.name }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ mold.status }} text-white">
+                                            {{ mold.get_status_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <small>{{ mold.created_at|naturaltime }}</small>
+                                    </td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-outline-info">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted py-4">
+                                        <i class="fas fa-cube fa-3x mb-3"></i><br>
+                                        Henüz kalıp bulunmuyor.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Mesajlar Sekmesi -->
+                <div class="tab-pane fade" id="messages" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0">
+                            <i class="fas fa-envelope text-success me-2"></i>Son Mesajlar
+                        </h5>
+                        <a href="{% url 'center:admin_message_list' %}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-envelope me-1"></i>Tüm Mesajları Görüntüle
+                        </a>
+                    </div>
+                    <div class="list-group">
                         {% for message in recent_messages %}
-                        <li class="list-group-item">
-                            <strong>{{ message.subject }}</strong><br>
-                            <span class="text-muted small">{{ message.created_at|naturaltime }}</span>
-                        </li>
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="mb-1">{{ message.subject }}</h6>
+                                    <p class="mb-1 text-truncate" style="max-width: 500px;">{{ message.message }}</p>
+                                    <small class="text-muted">
+                                        <i class="fas fa-user me-1"></i>{{ message.center.name }} - 
+                                        <i class="fas fa-clock me-1"></i>{{ message.created_at|naturaltime }}
+                                    </small>
+                                </div>
+                                <div>
+                                    <span class="badge bg-{{ message.is_read|yesno:'success,warning' }}">
+                                        {{ message.is_read|yesno:'Okundu,Okunmadı' }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
                         {% empty %}
-                        <li class="list-group-item">Mesaj yok.</li>
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-inbox fa-3x mb-3"></i><br>
+                            Henüz mesaj bulunmuyor.
+                        </div>
                         {% endfor %}
-                    </ul>
-                    <a href="{% url 'center:admin_message_list' %}" class="btn btn-sm btn-outline-success mt-2">Tüm Mesajlar</a>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+.border-left-primary { border-left: 4px solid #007bff; }
+.border-left-success { border-left: 4px solid #28a745; }
+.border-left-info { border-left: 4px solid #17a2b8; }
+.border-left-warning { border-left: 4px solid #ffc107; }
+.border-left-danger { border-left: 4px solid #dc3545; }
+.border-left-secondary { border-left: 4px solid #6c757d; }
+
+.nav-tabs-custom .nav-link {
+    border-radius: 0;
+    font-weight: 500;
+}
+
+.nav-tabs-custom .nav-link.active {
+    background-color: #f8f9fa;
+    border-bottom-color: transparent;
+}
+
+.card-header {
+    background-color: #fff;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(0,123,255,.075);
+}
+</style>
 {% endblock %} 

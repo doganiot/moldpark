@@ -12,6 +12,7 @@ from django.db.models import Count, Q
 from django.db import models
 from datetime import datetime, timedelta
 from mold.models import EarMold
+from django.http import JsonResponse
 
 # Create your views here.
 
@@ -42,6 +43,13 @@ def dashboard(request):
     used_molds = total_molds
     remaining_limit = max(0, center.mold_limit - used_molds)
     
+    # Üretici ağ bilgileri
+    from producer.models import ProducerNetwork
+    producer_networks = ProducerNetwork.objects.filter(
+        center=center, 
+        status='active'
+    ).select_related('producer')
+    
     return render(request, 'center/dashboard.html', {
         'center': center,
         'molds': molds,
@@ -53,6 +61,7 @@ def dashboard(request):
         'recent_messages': recent_messages,
         'used_molds': used_molds,
         'remaining_limit': remaining_limit,
+        'producer_networks': producer_networks,
     })
 
 @login_required
@@ -420,9 +429,6 @@ def notification_list(request):
 @login_required
 def mark_notification_read(request, notification_id):
     """Tek bir bildirimi okundu olarak işaretle"""
-    from django.http import JsonResponse
-    from notifications.models import Notification
-    
     notification = get_object_or_404(Notification, id=notification_id, recipient=request.user)
     notification.mark_as_read()
     
@@ -434,8 +440,6 @@ def mark_notification_read(request, notification_id):
 @login_required
 def mark_all_notifications_read(request):
     """Tüm bildirimleri okundu olarak işaretle"""
-    from django.http import JsonResponse
-    
     request.user.notifications.unread().mark_all_as_read()
     
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -446,9 +450,6 @@ def mark_all_notifications_read(request):
 @login_required
 def delete_notification(request, notification_id):
     """Bildirimi sil"""
-    from django.http import JsonResponse
-    from notifications.models import Notification
-    
     notification = get_object_or_404(Notification, id=notification_id, recipient=request.user)
     notification.delete()
     
@@ -727,18 +728,14 @@ def admin_center_stats(request):
 @staff_member_required
 def admin_center_toggle_status(request, pk):
     """Merkez aktiflik durumunu değiştir"""
-    from django.http import JsonResponse
-    
     if request.method == 'POST':
         center = get_object_or_404(Center, pk=pk)
         center.is_active = not center.is_active
         center.save()
         
-        status_text = "aktif" if center.is_active else "pasif"
-        
         return JsonResponse({
             'success': True,
-            'message': f'{center.name} merkezi {status_text} duruma getirildi.',
+            'message': f'Merkez {"aktifleştirildi" if center.is_active else "pasifleştirildi"}.',
             'is_active': center.is_active
         })
     
@@ -771,3 +768,57 @@ def admin_center_update_limit(request, pk):
             messages.error(request, f'Geçersiz limit değeri: {new_limit}')
     
     return redirect('center:admin_center_detail', pk=center.pk)
+
+@login_required
+@center_required
+def network_management(request):
+    """Center için üretici ağ yönetimi"""
+    center = request.user.center
+    
+    # Aktif ağlar
+    from producer.models import ProducerNetwork
+    active_networks = ProducerNetwork.objects.filter(
+        center=center, 
+        status='active'
+    ).select_related('producer').order_by('-joined_at')
+    
+    # Bekleyen davetler
+    pending_networks = ProducerNetwork.objects.filter(
+        center=center,
+        status='pending'
+    ).select_related('producer').order_by('-joined_at')
+    
+    # Reddedilen/askıya alınan ağlar
+    inactive_networks = ProducerNetwork.objects.filter(
+        center=center,
+        status__in=['suspended', 'terminated']
+    ).select_related('producer').order_by('-last_activity')
+    
+    return render(request, 'center/network_management.html', {
+        'center': center,
+        'active_networks': active_networks,
+        'pending_networks': pending_networks,
+        'inactive_networks': inactive_networks,
+    })
+
+@login_required
+@center_required
+def network_leave(request, network_id):
+    """Üretici ağından ayrıl"""
+    from producer.models import ProducerNetwork
+    
+    if request.method == 'POST':
+        network = get_object_or_404(ProducerNetwork, 
+                                  id=network_id, 
+                                  center=request.user.center)
+        
+        producer_name = network.producer.company_name
+        network.status = 'terminated'
+        network.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'{producer_name} ağından ayrıldınız.'
+        })
+    
+    return JsonResponse({'success': False, 'message': 'Geçersiz istek.'})

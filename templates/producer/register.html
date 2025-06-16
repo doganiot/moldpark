@@ -1,0 +1,257 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}Üretici Merkez Kaydı - MoldPark{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center py-5">
+        <div class="col-lg-8">
+            <div class="card shadow-lg">
+                <div class="card-header bg-success text-white text-center py-4">
+                    <div class="d-flex align-items-center justify-content-center">
+                        <i class="fas fa-industry fa-2x me-3"></i>
+                        <div>
+                            <h3 class="mb-0">Üretici Merkez Kaydı</h3>
+                            <p class="mb-0 mt-2">MoldPark ağına üretici merkez olarak katılın</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-body p-4">
+                    <!-- Bilgilendirme -->
+                    <div class="alert alert-info mb-4">
+                        <h5><i class="fas fa-info-circle me-2"></i>Üretici Merkez Avantajları</h5>
+                        <ul class="mb-0">
+                            <li><strong>Ağ Oluşturma:</strong> Kendi işitme merkezi ağınızı oluşturun</li>
+                            <li><strong>3D Modelleme:</strong> Kalıpları kendi ağınızdaki merkezlere gönderin</li>
+                            <li><strong>Üretim Takibi:</strong> Üretim süreçlerini detaylı takip edin</li>
+                            <li><strong>Kargo Yönetimi:</strong> Kargo süreçlerini sistematik olarak yönetin</li>
+                            <li><strong>Limit: 100 adet/ay</strong> (Artırılabilir)</li>
+                        </ul>
+                    </div>
+
+                    <!-- Kayıt Formu -->
+                    <form method="post" enctype="multipart/form-data" novalidate>
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-12">
+                                <h5 class="text-primary border-bottom pb-2 mb-3">
+                                    <i class="fas fa-user me-2"></i>Giriş Bilgileri
+                                </h5>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ form.username|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.email|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ form.password|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.password_confirm|as_crispy_field }}
+                            </div>
+                        </div>
+
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <h5 class="text-success border-bottom pb-2 mb-3">
+                                    <i class="fas fa-building me-2"></i>Firma Bilgileri
+                                </h5>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-8">
+                                {{ form.company_name|as_crispy_field }}
+                            </div>
+                            <div class="col-md-4">
+                                {{ form.producer_type|as_crispy_field }}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ form.brand_name|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.website|as_crispy_field }}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-12">
+                                {{ form.description|as_crispy_field }}
+                            </div>
+                        </div>
+
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <h5 class="text-info border-bottom pb-2 mb-3">
+                                    <i class="fas fa-address-card me-2"></i>İletişim Bilgileri
+                                </h5>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                {{ form.phone|as_crispy_field }}
+                            </div>
+                            <div class="col-md-8">
+                                {{ form.contact_email|as_crispy_field }}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-12">
+                                {{ form.address|as_crispy_field }}
+                            </div>
+                        </div>
+
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <h5 class="text-warning border-bottom pb-2 mb-3">
+                                    <i class="fas fa-file-alt me-2"></i>İş Bilgileri (Opsiyonel)
+                                </h5>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                {{ form.tax_number|as_crispy_field }}
+                            </div>
+                            <div class="col-md-4">
+                                {{ form.trade_registry|as_crispy_field }}
+                            </div>
+                            <div class="col-md-4">
+                                {{ form.established_year|as_crispy_field }}
+                            </div>
+                        </div>
+
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <h5 class="text-secondary border-bottom pb-2 mb-3">
+                                    <i class="fas fa-upload me-2"></i>Dosyalar (Opsiyonel)
+                                </h5>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ form.logo|as_crispy_field }}
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle"></i> 
+                                    Firma logonuz (jpg, png - max 2MB)
+                                </small>
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.certificate|as_crispy_field }}
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle"></i> 
+                                    Sertifika/Belgeler (pdf, jpg - max 5MB)
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- Şartlar ve Koşullar -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="terms" required>
+                                            <label class="form-check-label" for="terms">
+                                                <a href="{% url 'core:terms' %}" target="_blank" class="text-primary">
+                                                    Hizmet Şartları ve Koşulları
+                                                </a>'nı ve 
+                                                <a href="{% url 'core:privacy' %}" target="_blank" class="text-primary">
+                                                    Gizlilik Politikası
+                                                </a>'nı okudum, anladım ve kabul ediyorum.
+                                            </label>
+                                        </div>
+                                        <small class="text-muted mt-2 d-block">
+                                            <i class="fas fa-shield-alt me-1"></i>
+                                            Verileriniz güvenlidir ve yalnızca platform hizmetleri için kullanılır.
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submit Butonları -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                    <a href="{% url 'core:home' %}" class="btn btn-outline-secondary btn-lg me-md-2">
+                                        <i class="fas fa-arrow-left me-2"></i>Geri Dön
+                                    </a>
+                                    <button type="submit" class="btn btn-success btn-lg">
+                                        <i class="fas fa-check me-2"></i>Üretici Merkez Kaydını Tamamla
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Yardım -->
+            <div class="card mt-4">
+                <div class="card-body text-center">
+                    <h5><i class="fas fa-question-circle me-2"></i>Yardıma mı ihtiyacınız var?</h5>
+                    <p class="text-muted mb-3">
+                        Üretici merkez kaydı konusunda sorularınız varsa bizimle iletişime geçin.
+                    </p>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <a href="{% url 'core:contact' %}" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-envelope me-2"></i>İletişim
+                            </a>
+                        </div>
+                        <div class="col-md-4">
+                            <a href="tel:+90-XXX-XXX-XXXX" class="btn btn-outline-success w-100">
+                                <i class="fas fa-phone me-2"></i>Telefon
+                            </a>
+                        </div>
+                        <div class="col-md-4">
+                            <a href="{% url 'account_login' %}" class="btn btn-outline-info w-100">
+                                <i class="fas fa-sign-in-alt me-2"></i>Giriş Yap
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card-header {
+    background: linear-gradient(45deg, #28a745, #20c997) !important;
+}
+
+.border-bottom {
+    border-color: #dee2e6 !important;
+}
+
+.form-check-input:checked {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+.alert-info {
+    background-color: #e8f4fd;
+    border-color: #b3d7ff;
+    color: #004085;
+}
+</style>
+{% endblock %} 

@@ -19,8 +19,32 @@
             </p>
             {% if not user.is_authenticated %}
                 <div class="d-grid gap-2 d-md-flex">
-                    <a href="{% url 'account_login' %}" class="btn btn-outline-primary btn-lg">
-                        Giriş Yapın
+                    <a href="{% url 'account_login' %}" class="btn btn-outline-primary btn-lg me-2">
+                        <i class="fas fa-sign-in-alt me-2"></i>Merkez Girişi
+                    </a>
+                    <a href="{% url 'producer:login' %}" class="btn btn-outline-info btn-lg me-2">
+                        <i class="fas fa-industry me-2"></i>Üretici Girişi
+                    </a>
+                    <a href="{% url 'producer:register' %}" class="btn btn-outline-success btn-lg">
+                        <i class="fas fa-user-plus me-2"></i>Üretici Ol
+                    </a>
+                </div>
+            {% elif is_producer %}
+                <div class="d-grid gap-2 d-md-flex">
+                    <a href="{% url 'producer:dashboard' %}" class="btn btn-success btn-lg me-2">
+                        <i class="fas fa-tachometer-alt me-2"></i>Üretici Paneli
+                    </a>
+                    <a href="{% url 'producer:order_list' %}" class="btn btn-outline-success btn-lg">
+                        <i class="fas fa-list me-2"></i>Siparişlerim
+                    </a>
+                </div>
+            {% else %}
+                <div class="d-grid gap-2 d-md-flex">
+                    <a href="{% url 'mold:mold_create' %}" class="btn btn-primary btn-lg me-2">
+                        <i class="fas fa-plus me-2"></i>Yeni Kalıp
+                    </a>
+                    <a href="{% url 'mold:mold_list' %}" class="btn btn-outline-primary btn-lg">
+                        <i class="fas fa-list me-2"></i>Kalıplarım
                     </a>
                 </div>
             {% endif %}
@@ -29,7 +53,17 @@
             {% if not user.is_authenticated %}
                 <div class="card shadow-lg">
                     <div class="card-body p-4">
-                        <h4 class="text-center mb-4">Merkez Kaydı</h4>
+                        <div class="text-center mb-4">
+                            <h4>Kayıt Türü Seçin</h4>
+                            <div class="btn-group w-100 mt-3" role="group">
+                                <a href="#" class="btn btn-primary active" id="centerTab">
+                                    <i class="fas fa-clinic-medical me-2"></i>İşitme Merkezi
+                                </a>
+                                <a href="{% url 'producer:register' %}" class="btn btn-outline-success" id="producerTab">
+                                    <i class="fas fa-industry me-2"></i>Üretici Merkez
+                                </a>
+                            </div>
+                        </div>
                         <div class="alert alert-info">
                             <i class="fas fa-info-circle me-2"></i>
                             E-posta adresiniz ile giriş yapacaksınız.
@@ -61,7 +95,7 @@
                     </div>
                 </div>
             {% else %}
-                <img src="https://via.placeholder.com/600x400" alt="Hero Image" class="img-fluid rounded shadow">
+            <img src="https://via.placeholder.com/600x400" alt="Hero Image" class="img-fluid rounded shadow">
             {% endif %}
         </div>
     </div>

@@ -1,0 +1,495 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% load static %}
+
+{% block title %}Sipariş Detayı - {{ order.order_number }} - MoldPark{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="mb-2">
+                        <i class="fas fa-clipboard-list text-primary me-2"></i>
+                        Sipariş Detayı
+                    </h1>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="{% url 'producer:dashboard' %}">Ana Panel</a></li>
+                            <li class="breadcrumb-item"><a href="{% url 'producer:order_list' %}">Siparişler</a></li>
+                            <li class="breadcrumb-item active">{{ order.order_number }}</li>
+                        </ol>
+                    </nav>
+                </div>
+                <div>
+                    <a href="{% url 'producer:order_list' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>Geri Dön
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Sol Kolon - Sipariş Bilgileri -->
+        <div class="col-lg-8">
+            <!-- Temel Sipariş Bilgileri -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Sipariş Bilgileri
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Sipariş Numarası</label>
+                                <p class="form-control-plaintext">{{ order.order_number }}</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Durum</label>
+                                <p class="form-control-plaintext">
+                                    <span class="badge bg-info fs-6">{{ order.get_status_display }}</span>
+                                </p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Öncelik</label>
+                                <p class="form-control-plaintext">
+                                    <span class="badge bg-{% if order.priority == 'urgent' %}danger{% elif order.priority == 'high' %}warning{% elif order.priority == 'normal' %}info{% else %}secondary{% endif %} fs-6">
+                                        {{ order.get_priority_display }}
+                                    </span>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Sipariş Tarihi</label>
+                                <p class="form-control-plaintext">{{ order.created_at|date:"d M Y, H:i" }}</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Son Güncelleme</label>
+                                <p class="form-control-plaintext">{{ order.updated_at|date:"d M Y, H:i" }}</p>
+                            </div>
+                            {% if order.estimated_delivery %}
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Tahmini Teslimat</label>
+                                <p class="form-control-plaintext">{{ order.estimated_delivery|date:"d M Y, H:i" }}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Merkez Bilgileri -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-clinic-medical me-2"></i>İşitme Merkezi
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Merkez Adı</label>
+                                <p class="form-control-plaintext">{{ order.center.name }}</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">E-posta</label>
+                                <p class="form-control-plaintext">
+                                    <a href="mailto:{{ order.center.user.email }}">{{ order.center.user.email }}</a>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Telefon</label>
+                                <p class="form-control-plaintext">
+                                    {% if order.center.phone %}
+                                        <a href="tel:{{ order.center.phone }}">{{ order.center.phone }}</a>
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Adres</label>
+                                <p class="form-control-plaintext">{{ order.center.address|default:"—" }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kalıp Bilgileri -->
+            {% if order.ear_mold %}
+            <div class="card shadow mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="fas fa-cube me-2"></i>Kalıp Bilgileri
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Hasta Adı</label>
+                                <p class="form-control-plaintext">{{ order.ear_mold.patient_name }}</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Yaş</label>
+                                <p class="form-control-plaintext">{{ order.ear_mold.patient_age }} yaş</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Kalıp Türü</label>
+                                <p class="form-control-plaintext">
+                                    <span class="badge bg-secondary">{{ order.ear_mold.get_mold_type_display }}</span>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Kulak</label>
+                                <p class="form-control-plaintext">{{ order.ear_mold.get_ear_side_display }}</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Renk</label>
+                                <p class="form-control-plaintext">{{ order.ear_mold.color|default:"—" }}</p>
+                            </div>
+                            {% if order.ear_mold.special_requirements %}
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Özel Gereksinimler</label>
+                                <p class="form-control-plaintext">{{ order.ear_mold.special_requirements }}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Notlar -->
+            {% if order.producer_notes or order.center_notes %}
+            <div class="card shadow mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-sticky-note me-2"></i>Notlar
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if order.center_notes %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Merkez Notları</label>
+                        <p class="form-control-plaintext">{{ order.center_notes }}</p>
+                    </div>
+                    {% endif %}
+                    {% if order.producer_notes %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Üretici Notları</label>
+                        <p class="form-control-plaintext">{{ order.producer_notes }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sağ Kolon - İşlemler ve Durum -->
+        <div class="col-lg-4">
+            <!-- Hızlı İşlemler -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-tools me-2"></i>Hızlı İşlemler
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-primary" onclick="updateOrderStatus()">
+                            <i class="fas fa-edit me-1"></i>Durum Güncelle
+                        </button>
+                        <button class="btn btn-info" onclick="addNote()">
+                            <i class="fas fa-sticky-note me-1"></i>Not Ekle
+                        </button>
+                        <a href="mailto:{{ order.center.user.email }}" class="btn btn-outline-success">
+                            <i class="fas fa-envelope me-1"></i>Merkeze E-posta
+                        </a>
+                        {% if order.center.phone %}
+                        <a href="tel:{{ order.center.phone }}" class="btn btn-outline-info">
+                            <i class="fas fa-phone me-1"></i>Merkezi Ara
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kargo Bilgileri -->
+            {% if order.shipping_company or order.tracking_number %}
+            <div class="card shadow mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-truck me-2"></i>Kargo Bilgileri
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if order.shipping_company %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Kargo Şirketi</label>
+                        <p class="form-control-plaintext">{{ order.shipping_company }}</p>
+                    </div>
+                    {% endif %}
+                    {% if order.tracking_number %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Takip Numarası</label>
+                        <p class="form-control-plaintext">
+                            <code>{{ order.tracking_number }}</code>
+                        </p>
+                    </div>
+                    {% endif %}
+                    {% if order.shipping_cost %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Kargo Ücreti</label>
+                        <p class="form-control-plaintext">{{ order.shipping_cost }} ₺</p>
+                    </div>
+                    {% endif %}
+                    {% if order.actual_delivery %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Teslimat Tarihi</label>
+                        <p class="form-control-plaintext">{{ order.actual_delivery|date:"d M Y, H:i" }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Zaman Çizelgesi -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history me-2"></i>Zaman Çizelgesi
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-primary"></div>
+                            <div class="timeline-content">
+                                <h6 class="timeline-title">Sipariş Alındı</h6>
+                                <p class="timeline-time">{{ order.created_at|date:"d M Y, H:i" }}</p>
+                            </div>
+                        </div>
+                        
+                        {% if order.updated_at != order.created_at %}
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-info"></div>
+                            <div class="timeline-content">
+                                <h6 class="timeline-title">Son Güncelleme</h6>
+                                <p class="timeline-time">{{ order.updated_at|date:"d M Y, H:i" }}</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if order.actual_delivery %}
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-success"></div>
+                            <div class="timeline-content">
+                                <h6 class="timeline-title">Teslim Edildi</h6>
+                                <p class="timeline-time">{{ order.actual_delivery|date:"d M Y, H:i" }}</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Durum Güncelleme Modal -->
+<div class="modal fade" id="statusModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Sipariş Durumu Güncelle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="statusForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="newStatus" class="form-label">Yeni Durum</label>
+                        <select class="form-select" id="newStatus" required>
+                            <option value="">Durum Seçin</option>
+                            <option value="received" {% if order.status == 'received' %}selected{% endif %}>Alındı</option>
+                            <option value="designing" {% if order.status == 'designing' %}selected{% endif %}>3D Tasarım</option>
+                            <option value="production" {% if order.status == 'production' %}selected{% endif %}>Üretimde</option>
+                            <option value="quality_check" {% if order.status == 'quality_check' %}selected{% endif %}>Kalite Kontrol</option>
+                            <option value="packaging" {% if order.status == 'packaging' %}selected{% endif %}>Paketleme</option>
+                            <option value="shipping" {% if order.status == 'shipping' %}selected{% endif %}>Kargoda</option>
+                            <option value="delivered" {% if order.status == 'delivered' %}selected{% endif %}>Teslim Edildi</option>
+                            <option value="cancelled" {% if order.status == 'cancelled' %}selected{% endif %}>İptal Edildi</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="statusNote" class="form-label">Not (Opsiyonel)</label>
+                        <textarea class="form-control" id="statusNote" rows="3" placeholder="Bu durum değişikliği hakkında not..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-primary" onclick="saveStatus()">Güncelle</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Not Ekleme Modal -->
+<div class="modal fade" id="noteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Üretici Notu Ekle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="noteForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="producerNote" class="form-label">Not</label>
+                        <textarea class="form-control" id="producerNote" rows="4" placeholder="Sipariş hakkında notunuz...">{{ order.producer_notes }}</textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-primary" onclick="saveNote()">Kaydet</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -35px;
+    top: 0;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 2px #e9ecef;
+}
+
+.timeline-item:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: -30px;
+    top: 12px;
+    bottom: -20px;
+    width: 2px;
+    background-color: #e9ecef;
+}
+
+.timeline-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.timeline-time {
+    font-size: 12px;
+    color: #6c757d;
+    margin: 0;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function updateOrderStatus() {
+    const modal = new bootstrap.Modal(document.getElementById('statusModal'));
+    modal.show();
+}
+
+function addNote() {
+    const modal = new bootstrap.Modal(document.getElementById('noteModal'));
+    modal.show();
+}
+
+function saveStatus() {
+    const newStatus = document.getElementById('newStatus').value;
+    const note = document.getElementById('statusNote').value;
+    
+    if (!newStatus) {
+        alert('Lütfen bir durum seçin.');
+        return;
+    }
+    
+    fetch(`/producer/orders/{{ order.pk }}/update-status/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            status: newStatus,
+            note: note
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Hata: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Bir hata oluştu: ' + error);
+    });
+}
+
+function saveNote() {
+    const note = document.getElementById('producerNote').value;
+    
+    fetch(`/producer/orders/{{ order.pk }}/update-note/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            note: note
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Hata: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Bir hata oluştu: ' + error);
+    });
+}
+</script>
+{% endblock %} 

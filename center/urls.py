@@ -16,6 +16,10 @@ urlpatterns = [
     path('<int:pk>/', views.center_detail, name='center_detail'),
     path('<int:pk>/limit/', views.center_limit_update, name='center_limit_update'),
     
+    # Network Management
+    path('network/', views.network_management, name='network_management'),
+    path('network/<int:network_id>/leave/', views.network_leave, name='network_leave'),
+    
     # Admin URLs
     path('admin/', views.admin_dashboard, name='admin_dashboard'),
     path('admin/centers/', views.admin_center_list, name='admin_center_list'),

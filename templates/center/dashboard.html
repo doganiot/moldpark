@@ -30,6 +30,155 @@
         </div>
     </div>
 
+    <!-- Üretici Ağları -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-network-wired me-2 text-info"></i>
+                            Bağlı Üretici Ağları ({{ producer_networks|length }})
+                        </h5>
+                        {% if producer_networks %}
+                        <small class="text-muted">Kalıp üretimi için bağlı üreticiler</small>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if producer_networks %}
+                        <div class="row">
+                            {% for network in producer_networks %}
+                            <div class="col-lg-6 col-md-12 mb-3">
+                                <div class="card border h-100" style="border-left: 4px solid #17a2b8 !important;">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div class="flex-grow-1">
+                                                <h6 class="font-weight-bold text-info mb-2">
+                                                    <i class="fas fa-industry me-1"></i>
+                                                    {{ network.producer.company_name }}
+                                                </h6>
+                                                {% if network.producer.brand_name %}
+                                                <p class="text-muted mb-1 small">
+                                                    <i class="fas fa-tag me-1"></i>
+                                                    {{ network.producer.brand_name }}
+                                                </p>
+                                                {% endif %}
+                                                <p class="text-muted mb-2 small">
+                                                    <i class="fas fa-map-marker-alt me-1"></i>
+                                                    {{ network.producer.address|truncatechars:40 }}
+                                                </p>
+                                                <div class="row text-center">
+                                                    <div class="col-6">
+                                                        <div class="text-primary small">
+                                                            <i class="fas fa-envelope me-1"></i>
+                                                            {{ network.producer.user.email|truncatechars:20 }}
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <div class="text-success small">
+                                                            <i class="fas fa-phone me-1"></i>
+                                                            {{ network.producer.phone }}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="flex-shrink-0 ms-2">
+                                                <span class="badge bg-success mb-2">Aktif</span>
+                                                <div class="text-muted small text-center">
+                                                    <i class="fas fa-calendar me-1"></i>
+                                                    {{ network.joined_at|date:"d.m.Y" }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Üretici Detayları -->
+                                        <div class="mt-3 pt-3 border-top">
+                                            <div class="row text-center">
+                                                <div class="col-4">
+                                                    <div class="text-primary">
+                                                        <small class="d-block">Türü</small>
+                                                        <strong class="small">{{ network.producer.get_producer_type_display }}</strong>
+                                                    </div>
+                                                </div>
+                                                <div class="col-4">
+                                                    <div class="text-warning">
+                                                        <small class="d-block">Öncelik</small>
+                                                        <strong class="small">{{ network.priority_level }}</strong>
+                                                    </div>
+                                                </div>
+                                                <div class="col-4">
+                                                    <div class="text-info">
+                                                        <small class="d-block">Durum</small>
+                                                        <strong class="small">
+                                                            {% if network.producer.is_verified %}
+                                                                <i class="fas fa-certificate text-success"></i> Doğrulanmış
+                                                            {% else %}
+                                                                <i class="fas fa-clock text-warning"></i> Beklemede
+                                                            {% endif %}
+                                                        </strong>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- İzinler -->
+                                        <div class="mt-3">
+                                            <div class="d-flex gap-2">
+                                                {% if network.can_receive_orders %}
+                                                <span class="badge bg-light text-dark">
+                                                    <i class="fas fa-check text-success me-1"></i>Sipariş Alabilir
+                                                </span>
+                                                {% endif %}
+                                                {% if network.can_send_messages %}
+                                                <span class="badge bg-light text-dark">
+                                                    <i class="fas fa-check text-success me-1"></i>Mesaj Gönderebilir
+                                                </span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+
+                                        <!-- İletişim Bilgileri -->
+                                        {% if network.producer.website or network.producer.contact_email %}
+                                        <div class="mt-3">
+                                            <div class="d-flex gap-2">
+                                                {% if network.producer.website %}
+                                                <a href="{{ network.producer.website }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                                                    <i class="fas fa-globe me-1"></i>Web Sitesi
+                                                </a>
+                                                {% endif %}
+                                                {% if network.producer.contact_email %}
+                                                <a href="mailto:{{ network.producer.contact_email }}" class="btn btn-outline-success btn-sm">
+                                                    <i class="fas fa-envelope me-1"></i>İletişim
+                                                </a>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-network-wired fa-3x text-muted mb-3"></i>
+                            <h6 class="text-muted">Henüz üretici ağına bağlı değilsiniz</h6>
+                            <p class="text-muted mb-3">
+                                Kalıp üretimi için üretici merkezlerin ağına katılmanız gerekmektedir.
+                            </p>
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Nasıl katılırım?</strong><br>
+                                Üretici merkezler sizi ağlarına davet edecektir. Davet aldığınızda bildirimlerde görüntüleyebilirsiniz.
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Quick Stats -->
     <div class="row mb-4">
         <div class="col-md-3">
@@ -202,6 +351,13 @@
                                 <i class="fas fa-user-cog me-2"></i>Profil Ayarları
                             </a>
                         </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'center:network_management' %}" class="btn btn-outline-info d-block">
+                                <i class="fas fa-network-wired me-2"></i>Üretici Ağları
+                            </a>
+                        </div>
+                    </div>
+                    <div class="row g-3 mt-2">
                         <div class="col-md-3">
                             <a href="{% url 'core:contact' %}" class="btn btn-outline-primary d-block">
                                 <i class="fas fa-headset me-2"></i>Destek

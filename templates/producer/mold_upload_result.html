@@ -1,0 +1,357 @@
+{% extends 'base.html' %}
+
+{% block title %}Üretilen Kalıp Yükle - {{ ear_mold.patient_name }} {{ ear_mold.patient_surname }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>
+                        <i class="fas fa-upload me-2 text-success"></i>
+                        Üretilen Kalıp Yükle
+                    </h2>
+                    <p class="text-muted mb-0">{{ ear_mold.patient_name }} {{ ear_mold.patient_surname }} - {{ ear_mold.get_mold_type_display }}</p>
+                </div>
+                <div>
+                    <a href="{% url 'producer:mold_detail' ear_mold.pk %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Geri Dön
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-file-upload me-2"></i>
+                        Dosya Yükleme
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data" id="uploadForm">
+                        {% csrf_token %}
+                        
+                        <!-- Dosya Seçimi -->
+                        <div class="mb-4">
+                            <label for="file" class="form-label">
+                                <strong>Üretilen Kalıp Dosyası</strong>
+                                <span class="text-danger">*</span>
+                            </label>
+                            <div class="upload-area" id="uploadArea">
+                                <div class="upload-icon">
+                                    <i class="fas fa-cloud-upload-alt fa-3x text-success mb-3"></i>
+                                </div>
+                                <h5>Dosyayı buraya sürükleyin veya tıklayın</h5>
+                                <p class="text-muted mb-3">STL, OBJ veya PLY formatında dosya yükleyebilirsiniz</p>
+                                <input type="file" id="file" name="file" accept=".stl,.obj,.ply" required class="form-control d-none">
+                                <button type="button" class="btn btn-success" onclick="document.getElementById('file').click()">
+                                    <i class="fas fa-folder-open me-2"></i>Dosya Seç
+                                </button>
+                            </div>
+                            <div id="fileInfo" class="mt-3 d-none">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-file me-2"></i>
+                                    <span id="fileName"></span>
+                                    <span id="fileSize" class="text-muted ms-2"></span>
+                                </div>
+                            </div>
+                            <small class="form-text text-muted">Maksimum dosya boyutu: 50MB</small>
+                        </div>
+
+                        <!-- Dosya Açıklaması -->
+                        <div class="mb-4">
+                            <label for="description" class="form-label">
+                                <strong>Açıklama</strong>
+                            </label>
+                            <textarea name="description" id="description" class="form-control" rows="4" 
+                                placeholder="Üretim sürecinde yapılan değişiklikler, kullanılan malzemeler, kalite notları vb. hakkında bilgi verin..."></textarea>
+                        </div>
+
+                        <!-- Kalite Bilgileri -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label for="quality_score" class="form-label">
+                                    <strong>Kalite Puanı</strong>
+                                </label>
+                                <div class="input-group">
+                                    <input type="number" name="quality_score" id="quality_score" 
+                                           class="form-control" min="0" max="100" placeholder="85">
+                                    <span class="input-group-text">/100</span>
+                                </div>
+                                <small class="form-text text-muted">0-100 arası kalite puanı verin</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="production_time" class="form-label">
+                                    <strong>Üretim Süresi</strong>
+                                </label>
+                                <div class="input-group">
+                                    <input type="number" name="production_time" id="production_time" 
+                                           class="form-control" min="1" placeholder="180">
+                                    <span class="input-group-text">dakika</span>
+                                </div>
+                                <small class="form-text text-muted">Toplam üretim süresi</small>
+                            </div>
+                        </div>
+
+                        <!-- Üretim Notları -->
+                        <div class="mb-4">
+                            <label class="form-label">
+                                <strong>Üretim Notları</strong>
+                            </label>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="notes[]" value="test_fit" id="testFit">
+                                        <label class="form-check-label" for="testFit">
+                                            Test için uygun
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="notes[]" value="final_product" id="finalProduct">
+                                        <label class="form-check-label" for="finalProduct">
+                                            Final ürün
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="notes[]" value="revision_needed" id="revisionNeeded">
+                                        <label class="form-check-label" for="revisionNeeded">
+                                            Revizyon gerekli
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="notes[]" value="material_changed" id="materialChanged">
+                                        <label class="form-check-label" for="materialChanged">
+                                            Malzeme değişikliği yapıldı
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="notes[]" value="size_adjusted" id="sizeAdjusted">
+                                        <label class="form-check-label" for="sizeAdjusted">
+                                            Boyut ayarlaması yapıldı
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="notes[]" value="special_process" id="specialProcess">
+                                        <label class="form-check-label" for="specialProcess">
+                                            Özel işlem uygulandı
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Progress Bar -->
+                        <div class="progress mb-3 d-none" id="uploadProgress">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                 role="progressbar" style="width: 0%" id="progressBar">0%</div>
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'producer:mold_detail' ear_mold.pk %}" class="btn btn-secondary">
+                                <i class="fas fa-times me-2"></i>İptal
+                            </a>
+                            <button type="submit" class="btn btn-success" id="submitBtn">
+                                <i class="fas fa-upload me-2"></i>Dosyayı Yükle
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Yardım Paneli -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Dosya Yükleme Rehberi
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h6>Desteklenen Formatlar:</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-check text-success me-2"></i>STL dosyaları</li>
+                            <li><i class="fas fa-check text-success me-2"></i>OBJ dosyaları</li>
+                            <li><i class="fas fa-check text-success me-2"></i>PLY dosyaları</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h6>Dosya Boyutu:</h6>
+                        <p class="text-muted mb-0">Maksimum 50MB boyutunda dosya yükleyebilirsiniz.</p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h6>Kalite Kontrolü:</h6>
+                        <p class="text-muted mb-0">Kalite puanınız merkez tarafından görüntülenecek ve değerlendirilecektir.</p>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Önemli:</strong> Dosya yüklendikten sonra merkez tarafından incelenecek ve onaylanacaktır.
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Kalıp Bilgileri -->
+            <div class="card mt-4">
+                <div class="card-header bg-secondary text-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-cube me-2"></i>
+                        Kalıp Bilgileri
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm table-borderless">
+                        <tr>
+                            <td><strong>Hasta:</strong></td>
+                            <td>{{ ear_mold.patient_name }} {{ ear_mold.patient_surname }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Tip:</strong></td>
+                            <td>{{ ear_mold.get_mold_type_display }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Merkez:</strong></td>
+                            <td>{{ ear_mold.center.name }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Vent Çapı:</strong></td>
+                            <td>{{ ear_mold.vent_diameter }} mm</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.upload-area {
+    border: 2px dashed #28a745;
+    border-radius: 10px;
+    padding: 40px;
+    text-align: center;
+    background: #f8f9fa;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.upload-area:hover {
+    background: #e9ecef;
+    border-color: #20c997;
+}
+
+.upload-area.dragover {
+    background: #d4edda;
+    border-color: #155724;
+}
+
+.upload-icon {
+    margin-bottom: 20px;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('file');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+    const form = document.getElementById('uploadForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const progressContainer = document.getElementById('uploadProgress');
+    const progressBar = document.getElementById('progressBar');
+
+    // Drag & Drop
+    uploadArea.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+    });
+
+    uploadArea.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+    });
+
+    uploadArea.addEventListener('drop', function(e) {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            fileInput.files = files;
+            displayFileInfo(files[0]);
+        }
+    });
+
+    // File input change
+    fileInput.addEventListener('change', function(e) {
+        if (e.target.files.length > 0) {
+            displayFileInfo(e.target.files[0]);
+        }
+    });
+
+    // Display file info
+    function displayFileInfo(file) {
+        fileName.textContent = file.name;
+        fileSize.textContent = '(' + formatFileSize(file.size) + ')';
+        fileInfo.classList.remove('d-none');
+    }
+
+    // Format file size
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    // Form submission with progress
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        if (!fileInput.files.length) {
+            alert('Lütfen bir dosya seçin.');
+            return;
+        }
+
+        const formData = new FormData(form);
+        submitBtn.disabled = true;
+        progressContainer.classList.remove('d-none');
+
+        // Simulate upload progress (replace with actual AJAX if needed)
+        let progress = 0;
+        const interval = setInterval(function() {
+            progress += Math.random() * 15;
+            if (progress > 90) {
+                progress = 90;
+            }
+            progressBar.style.width = progress + '%';
+            progressBar.textContent = Math.round(progress) + '%';
+        }, 200);
+
+        // Submit form
+        setTimeout(function() {
+            clearInterval(interval);
+            progressBar.style.width = '100%';
+            progressBar.textContent = '100%';
+            form.submit();
+        }, 2000);
+    });
+});
+</script>
+{% endblock %} 

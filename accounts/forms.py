@@ -1,6 +1,7 @@
 from allauth.account.forms import SignupForm
 from django import forms
 from center.models import Center
+from producer.models import Producer
 
 class CustomSignupForm(SignupForm):
     # Merkez alanları
@@ -34,6 +35,17 @@ class CustomSignupForm(SignupForm):
         })
     )
 
+    # Üretici Merkez Seçimi
+    producer_network = forms.ChoiceField(
+        label='Üretici Merkez Seçimi',
+        required=False,
+        widget=forms.Select(attrs={
+            'class': 'form-select',
+            'id': 'producer-select'
+        }),
+        help_text='İsteğe bağlı: Bir üretici ağına katılmak istiyorsanız seçiniz'
+    )
+
     # Bildirim tercihleri
     notification_preferences = forms.MultipleChoiceField(
         choices=[
@@ -49,6 +61,22 @@ class CustomSignupForm(SignupForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        
+        # Üretici seçeneklerini yükle
+        producer_choices = [('', 'Üretici ağına katılmadan devam et (MoldPark Merkez Yönetimi)')]
+        try:
+            # Aktif ve doğrulanmış üreticileri al
+            active_producers = Producer.objects.filter(is_verified=True, is_active=True)
+            
+            for producer in active_producers:
+                producer_choices.append((
+                    producer.id, 
+                    f"{producer.company_name} - {producer.get_producer_type_display()}"
+                ))
+        except Exception:
+            pass
+        
+        self.fields['producer_network'].choices = producer_choices
         
         try:
             # Mevcut alanların etiketlerini Türkçeleştir (alanlar varsa)
@@ -69,7 +97,7 @@ class CustomSignupForm(SignupForm):
             
             # Alanların sıralamasını ayarla - email'i öne al
             field_order = []
-            for field_name in ['center_name', 'phone', 'address', 'email', 'password1', 'password2', 'username', 'notification_preferences']:
+            for field_name in ['center_name', 'phone', 'address', 'producer_network', 'email', 'password1', 'password2', 'username', 'notification_preferences']:
                 if field_name in self.fields:
                     field_order.append(field_name)
             
@@ -92,6 +120,23 @@ class CustomSignupForm(SignupForm):
             center.address = self.cleaned_data['address']
             center.notification_preferences = self.cleaned_data.get('notification_preferences', [])
             center.save()
+            
+            # Üretici ağına katılım
+            producer_id = self.cleaned_data.get('producer_network')
+            if producer_id:
+                try:
+                    from producer.models import ProducerNetwork
+                    producer = Producer.objects.get(id=producer_id, is_verified=True, is_active=True)
+                    ProducerNetwork.objects.create(
+                        producer=producer,
+                        center=center,
+                        status='active'
+                    )
+                except Producer.DoesNotExist:
+                    pass  # Üretici bulunamadıysa sessizce devam et
+                except Exception:
+                    pass  # Diğer hatalar için de sessizce devam et
+                    
         except Exception as e:
             # Hata durumunda kullanıcıyı sil
             user.delete()

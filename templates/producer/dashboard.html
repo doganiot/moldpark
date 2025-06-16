@@ -1,0 +1,491 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Üretici Dashboard - {{ producer.company_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-2">
+                        <i class="fas fa-industry text-success me-2"></i>
+                        {{ producer.company_name }}
+                    </h2>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item active">Üretici Dashboard</li>
+                        </ol>
+                    </nav>
+                </div>
+                <div class="d-flex gap-2">
+                    <span class="badge bg-{{ producer.is_verified|yesno:'success,warning' }} fs-6">
+                        <i class="fas fa-{{ producer.is_verified|yesno:'check-circle,clock' }} me-1"></i>
+                        {{ producer.is_verified|yesno:'Doğrulanmış,Doğrulama Bekliyor' }}
+                    </span>
+                    <span class="badge bg-{{ producer.is_active|yesno:'success,danger' }} fs-6">
+                        <i class="fas fa-{{ producer.is_active|yesno:'play,pause' }} me-1"></i>
+                        {{ producer.is_active|yesno:'Aktif,Devre Dışı' }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ana İstatistikler -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Toplam Sipariş
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_orders }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-shopping-cart fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Aktif Sipariş
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ active_orders }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-cogs fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Tamamlanan
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ completed_orders }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Ağ Merkezleri
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ network_centers }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-network-wired fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Limit Durumu -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-gradient-primary text-white">
+                    <h6 class="m-0 font-weight-bold">
+                        <i class="fas fa-chart-pie me-2"></i>Aylık Limit Durumu
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-lg-6">
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between">
+                                    <span class="font-weight-bold">Bu Ay Kullanılan:</span>
+                                    <span>{{ monthly_orders }}/{{ producer.mold_limit }}</span>
+                                </div>
+                                <div class="progress">
+                                    <div class="progress-bar {% if usage_percentage > 80 %}bg-danger{% elif usage_percentage > 60 %}bg-warning{% else %}bg-success{% endif %}" 
+                                         role="progressbar" 
+                                         style="width: {{ usage_percentage }}%"
+                                         aria-valuenow="{{ usage_percentage }}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="100">
+                                        {{ usage_percentage }}%
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row text-center">
+                                <div class="col-6">
+                                    <div class="text-primary">
+                                        <strong>{{ remaining_limit }}</strong><br>
+                                        <small>Kalan Limit</small>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="text-success">
+                                        <strong>{{ producer.mold_limit }}</strong><br>
+                                        <small>Toplam Limit</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="text-center">
+                                <i class="fas fa-chart-bar fa-4x text-gray-300 mb-3"></i>
+                                <p class="text-muted mb-0">
+                                    {% if remaining_limit <= 10 %}
+                                        <span class="text-danger">
+                                            <i class="fas fa-exclamation-triangle"></i>
+                                            Limitiniz tükenmek üzere!
+                                        </span>
+                                    {% elif remaining_limit <= 30 %}
+                                        <span class="text-warning">
+                                            <i class="fas fa-info-circle"></i>
+                                            Limit kontrolü yapmanız önerilir.
+                                        </span>
+                                    {% else %}
+                                        <span class="text-success">
+                                            <i class="fas fa-check-circle"></i>
+                                            Limit durumunuz iyidir.
+                                        </span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hızlı Aksiyonlar -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-bolt me-2"></i>Hızlı Aksiyonlar
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <a href="{% url 'producer:order_list' %}" class="btn btn-outline-primary w-100 h-100 d-flex flex-column justify-content-center">
+                                <i class="fas fa-list fa-2x mb-2"></i>
+                                <span>Tüm Siparişler</span>
+                            </a>
+                        </div>
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <a href="{% url 'producer:mold_list' %}" class="btn btn-outline-success w-100 h-100 d-flex flex-column justify-content-center">
+                                <i class="fas fa-cube fa-2x mb-2"></i>
+                                <span>Kalıp Yönetimi</span>
+                            </a>
+                        </div>
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <a href="{% url 'producer:message_create' %}" class="btn btn-outline-success w-100 h-100 d-flex flex-column justify-content-center">
+                                <i class="fas fa-plus fa-2x mb-2"></i>
+                                <span>Yeni Mesaj</span>
+                            </a>
+                        </div>
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <a href="{% url 'producer:network_list' %}" class="btn btn-outline-info w-100 h-100 d-flex flex-column justify-content-center">
+                                <i class="fas fa-network-wired fa-2x mb-2"></i>
+                                <span>Ağ Yönetimi</span>
+                            </a>
+                        </div>
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <a href="{% url 'producer:profile' %}" class="btn btn-outline-secondary w-100 h-100 d-flex flex-column justify-content-center">
+                                <i class="fas fa-cog fa-2x mb-2"></i>
+                                <span>Profil Ayarları</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ağ Merkezleri -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-network-wired me-2"></i>Ağ Merkezleri ({{ network_centers }})
+                    </h6>
+                    <a href="{% url 'producer:network_list' %}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-cog me-1"></i>Ağ Yönetimi
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if network_centers_list %}
+                        <div class="row">
+                            {% for network in network_centers_list %}
+                            <div class="col-lg-6 col-md-12 mb-3">
+                                <div class="card border-left-info h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div class="flex-grow-1">
+                                                <h6 class="font-weight-bold text-info mb-1">
+                                                    {{ network.center.name }}
+                                                </h6>
+                                                <p class="text-muted mb-2 small">
+                                                    <i class="fas fa-map-marker-alt me-1"></i>
+                                                    {{ network.center.address|truncatechars:50 }}
+                                                </p>
+                                                <div class="row text-center">
+                                                    <div class="col-4">
+                                                        <div class="text-primary">
+                                                            <i class="fas fa-envelope me-1"></i>
+                                                            <small>{{ network.center.user.email|truncatechars:15 }}</small>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-4">
+                                                        <div class="text-success">
+                                                            <i class="fas fa-phone me-1"></i>
+                                                            <small>{{ network.center.phone }}</small>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-4">
+                                                        <div class="text-info">
+                                                            <i class="fas fa-calendar me-1"></i>
+                                                            <small>{{ network.created_at|date:"d.m.Y" }}</small>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="flex-shrink-0 ms-2">
+                                                <span class="badge bg-{{ network.get_status_color }} mb-1">
+                                                    {{ network.get_status_display }}
+                                                </span>
+                                                <div class="dropdown">
+                                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                                        İşlemler
+                                                    </button>
+                                                    <ul class="dropdown-menu">
+                                                        <li>
+                                                            <a class="dropdown-item" href="{% url 'producer:admin_mold_list' %}?center={{ network.center.id }}&producer={{ producer.id }}">
+                                                                <i class="fas fa-cube me-1"></i>Kalıpları Görüntüle
+                                                            </a>
+                                                        </li>
+                                                        <li>
+                                                            <a class="dropdown-item" href="{% url 'producer:order_list' %}?center={{ network.center.id }}">
+                                                                <i class="fas fa-list me-1"></i>Siparişleri Görüntüle
+                                                            </a>
+                                                        </li>
+                                                        <li>
+                                                            <a class="dropdown-item" href="{% url 'producer:message_create' %}?center={{ network.center.id }}">
+                                                                <i class="fas fa-envelope me-1"></i>Mesaj Gönder
+                                                            </a>
+                                                        </li>
+                                                        <li><hr class="dropdown-divider"></li>
+                                                        <li>
+                                                            <a class="dropdown-item text-danger" href="#" onclick="removeFromNetwork({{ network.center.id }})">
+                                                                <i class="fas fa-times me-1"></i>Ağdan Çıkar
+                                                            </a>
+                                                        </li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        {% if network_centers_list|length > 4 %}
+                        <div class="text-center mt-3">
+                            <a href="{% url 'producer:network_list' %}" class="btn btn-outline-primary">
+                                <i class="fas fa-eye me-1"></i>Tüm Merkezleri Görüntüle
+                            </a>
+                        </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-network-wired fa-3x text-gray-300 mb-3"></i>
+                            <h6 class="text-muted">Henüz ağınızda merkez bulunmuyor</h6>
+                            <p class="text-muted mb-3">Merkezleri ağınıza davet ederek işbirliği yapabilirsiniz.</p>
+                            <a href="{% url 'producer:network_invite' %}" class="btn btn-primary">
+                                <i class="fas fa-plus me-1"></i>Merkez Davet Et
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Son Siparişler ve Mesajlar -->
+    <div class="row">
+        <!-- Son Siparişler -->
+        <div class="col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Son Siparişler</h6>
+                    <a href="{% url 'producer:order_list' %}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-eye me-1"></i>Tümünü Gör
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if recent_orders %}
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Sipariş No</th>
+                                        <th>Merkez</th>
+                                        <th>Durum</th>
+                                        <th>Tarih</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for order in recent_orders %}
+                                    <tr>
+                                        <td>
+                                            <a href="{% url 'producer:order_detail' order.pk %}" class="text-decoration-none">
+                                                {{ order.order_number }}
+                                            </a>
+                                        </td>
+                                        <td>{{ order.center.name }}</td>
+                                        <td>
+                                            <span class="badge bg-{{ order.get_status_color }}">
+                                                {{ order.get_status_display }}
+                                            </span>
+                                        </td>
+                                        <td>{{ order.created_at|date:"d.m.Y" }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-shopping-cart fa-3x text-gray-300 mb-3"></i>
+                            <p class="text-muted">Henüz sipariş yok</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Son Mesajlar -->
+        <div class="col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Okunmamış Mesajlar</h6>
+                    <a href="{% url 'producer:message_list' %}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-envelope me-1"></i>Tümünü Gör
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if recent_messages %}
+                        {% for message in recent_messages %}
+                        <div class="d-flex align-items-center mb-3 p-2 border rounded">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-envelope text-primary fa-lg"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <div class="fw-bold">
+                                    <a href="{% url 'producer:message_detail' message.pk %}" class="text-decoration-none">
+                                        {{ message.subject }}
+                                    </a>
+                                </div>
+                                <div class="text-muted small">
+                                    {{ message.center.name }} • {{ message.created_at|timesince }} önce
+                                </div>
+                            </div>
+                            {% if message.is_urgent %}
+                            <div class="flex-shrink-0">
+                                <span class="badge bg-danger">Acil</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-envelope-open fa-3x text-gray-300 mb-3"></i>
+                            <p class="text-muted">Okunmamış mesaj yok</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.border-left-primary {
+    border-left: 0.25rem solid #4e73df !important;
+}
+
+.border-left-success {
+    border-left: 0.25rem solid #1cc88a !important;
+}
+
+.border-left-info {
+    border-left: 0.25rem solid #36b9cc !important;
+}
+
+.border-left-warning {
+    border-left: 0.25rem solid #f6c23e !important;
+}
+
+.text-xs {
+    font-size: .7rem;
+}
+
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+</style>
+
+<script>
+function removeFromNetwork(centerId) {
+    if (confirm('Bu merkezi ağınızdan çıkarmak istediğinizden emin misiniz?')) {
+        fetch(`/producer/network/remove/${centerId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Hata: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Bir hata oluştu: ' + error);
+        });
+    }
+}
+</script>
+{% endblock %} 

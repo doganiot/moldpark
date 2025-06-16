@@ -60,6 +60,8 @@ INSTALLED_APPS = [
     'core',
     'center',
     'mold',
+    'accounts',
+    'producer',
 ]
 
 MIDDLEWARE = [
@@ -162,12 +164,19 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 SITE_ID = 1
-ACCOUNT_EMAIL_REQUIRED = False
+ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = False
-ACCOUNT_AUTHENTICATION_METHOD = "username"
+ACCOUNT_AUTHENTICATION_METHOD = "email"
 ACCOUNT_EMAIL_VERIFICATION = "none"
-LOGIN_REDIRECT_URL = 'core:home'
+ACCOUNT_SIGNUP_PASSWORD_ENTER_TWICE = True
+ACCOUNT_USERNAME_MIN_LENGTH = 4
+LOGIN_REDIRECT_URL = 'center:dashboard'
 ACCOUNT_LOGOUT_REDIRECT_URL = 'core:home'
+
+# AllAuth Form Customization
+ACCOUNT_FORMS = {
+    'signup': 'accounts.forms.CustomSignupForm',
+}
 
 # Email
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"

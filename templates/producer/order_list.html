@@ -1,0 +1,470 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% load static %}
+
+{% block title %}Sipariş Listesi - MoldPark{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="mb-2">
+                        <i class="fas fa-clipboard-list text-primary me-2"></i>
+                        Sipariş Listesi
+                    </h1>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="{% url 'producer:dashboard' %}">Ana Panel</a></li>
+                            <li class="breadcrumb-item active">Siparişler</li>
+                        </ol>
+                    </nav>
+                </div>
+                <div>
+                    <span class="badge bg-primary fs-6">
+                        {% if orders %}{{ orders.count }}{% else %}0{% endif %} Sipariş
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtreler -->
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="status" class="form-label">Durum</label>
+                    <select name="status" id="status" class="form-select">
+                        <option value="">Tüm Durumlar</option>
+                        <option value="received" {% if request.GET.status == 'received' %}selected{% endif %}>Alındı</option>
+                        <option value="designing" {% if request.GET.status == 'designing' %}selected{% endif %}>3D Tasarım</option>
+                        <option value="production" {% if request.GET.status == 'production' %}selected{% endif %}>Üretimde</option>
+                        <option value="quality_check" {% if request.GET.status == 'quality_check' %}selected{% endif %}>Kalite Kontrol</option>
+                        <option value="packaging" {% if request.GET.status == 'packaging' %}selected{% endif %}>Paketleme</option>
+                        <option value="shipping" {% if request.GET.status == 'shipping' %}selected{% endif %}>Kargoda</option>
+                        <option value="delivered" {% if request.GET.status == 'delivered' %}selected{% endif %}>Teslim Edildi</option>
+                        <option value="cancelled" {% if request.GET.status == 'cancelled' %}selected{% endif %}>İptal Edildi</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="priority" class="form-label">Öncelik</label>
+                    <select name="priority" id="priority" class="form-select">
+                        <option value="">Tüm Öncelikler</option>
+                        <option value="urgent" {% if request.GET.priority == 'urgent' %}selected{% endif %}>Acil</option>
+                        <option value="high" {% if request.GET.priority == 'high' %}selected{% endif %}>Yüksek</option>
+                        <option value="normal" {% if request.GET.priority == 'normal' %}selected{% endif %}>Normal</option>
+                        <option value="low" {% if request.GET.priority == 'low' %}selected{% endif %}>Düşük</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="search" class="form-label">Arama</label>
+                    <input type="text" name="search" id="search" class="form-control" 
+                           value="{{ request.GET.search }}" placeholder="Sipariş no, merkez adı...">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">&nbsp;</label>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search me-1"></i>Filtrele
+                        </button>
+                        <a href="{% url 'producer:order_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-times me-1"></i>Temizle
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Sipariş İstatistikleri -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Toplam Sipariş
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ orders.count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Beklemede
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ orders|dictsort:"status"|slice:":3"|length }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Üretimde
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ orders|dictsort:"status"|slice:"3:6"|length }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-cogs fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Tamamlanan
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ orders|dictsort:"status"|slice:"6:"|length }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sipariş Listesi -->
+    <div class="card shadow">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-list me-2"></i>Siparişler
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Sipariş No</th>
+                            <th>Merkez</th>
+                            <th>Hasta</th>
+                            <th>Kalıp Türü</th>
+                            <th>Durum</th>
+                            <th>Öncelik</th>
+                            <th>Tarih</th>
+                            <th>İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr>
+                            <td>
+                                <strong>{{ order.order_number }}</strong>
+                            </td>
+                            <td>
+                                <div>
+                                    <strong>{{ order.center.name }}</strong><br>
+                                    <small class="text-muted">{{ order.center.user.email }}</small>
+                                </div>
+                            </td>
+                            <td>
+                                {% if order.ear_mold %}
+                                    <div>
+                                        <strong>{{ order.ear_mold.patient_name }}</strong><br>
+                                        <small class="text-muted">{{ order.ear_mold.patient_age }} yaş</small>
+                                    </div>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if order.ear_mold %}
+                                    <span class="badge bg-secondary">{{ order.ear_mold.get_mold_type_display }}</span>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-info">
+                                    {{ order.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-{% if order.priority == 'urgent' %}danger{% elif order.priority == 'high' %}warning{% elif order.priority == 'normal' %}info{% else %}secondary{% endif %}">
+                                    {{ order.get_priority_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <small>{{ order.created_at|date:"d M Y" }}<br>{{ order.created_at|time:"H:i" }}</small>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'producer:order_detail' order.pk %}" class="btn btn-outline-info" title="Detay">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <button class="btn btn-outline-primary" title="Durum Güncelle">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">
+                                <i class="fas fa-inbox fa-3x mb-3"></i><br>
+                                {% if request.GET.status or request.GET.priority or request.GET.search %}
+                                    Arama kriterlerinize uygun sipariş bulunamadı.
+                                {% else %}
+                                    Henüz sipariş bulunmuyor.
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sayfalama -->
+    {% if is_paginated %}
+    <div class="d-flex justify-content-center mt-4">
+        <nav aria-label="Sayfa navigasyonu">
+            <ul class="pagination">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.priority %}&priority={{ request.GET.priority }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">İlk</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.priority %}&priority={{ request.GET.priority }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Önceki</a>
+                    </li>
+                {% endif %}
+
+                <li class="page-item active">
+                    <span class="page-link">
+                        {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+                    </span>
+                </li>
+
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.priority %}&priority={{ request.GET.priority }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Sonraki</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.priority %}&priority={{ request.GET.priority }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Son</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Durum Güncelleme Modal -->
+<div class="modal fade" id="statusModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Sipariş Durumu Güncelle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="statusForm">
+                    {% csrf_token %}
+                    <input type="hidden" id="orderId">
+                    <div class="mb-3">
+                        <label for="newStatus" class="form-label">Yeni Durum</label>
+                        <select class="form-select" id="newStatus" required>
+                            <option value="">Durum Seçin</option>
+                            <option value="received">Alındı</option>
+                            <option value="designing">3D Tasarım</option>
+                            <option value="production">Üretimde</option>
+                            <option value="quality_check">Kalite Kontrol</option>
+                            <option value="packaging">Paketleme</option>
+                            <option value="shipping">Kargoda</option>
+                            <option value="delivered">Teslim Edildi</option>
+                            <option value="cancelled">İptal Edildi</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="statusNote" class="form-label">Not (Opsiyonel)</label>
+                        <textarea class="form-control" id="statusNote" rows="3" placeholder="Bu durum değişikliği hakkında not..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-primary" onclick="saveStatus()">Güncelle</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- İlerleme Ekleme Modal -->
+<div class="modal fade" id="progressModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">İlerleme Kaydı Ekle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="progressForm">
+                    {% csrf_token %}
+                    <input type="hidden" id="progressOrderId">
+                    <div class="mb-3">
+                        <label for="progressStage" class="form-label">Aşama</label>
+                        <select class="form-select" id="progressStage" required>
+                            <option value="">Aşama Seçin</option>
+                            <option value="design_start">Tasarım Başladı</option>
+                            <option value="design_complete">Tasarım Tamamlandı</option>
+                            <option value="production_start">Üretim Başladı</option>
+                            <option value="production_complete">Üretim Tamamlandı</option>
+                            <option value="quality_start">Kalite Kontrol Başladı</option>
+                            <option value="quality_complete">Kalite Kontrol Tamamlandı</option>
+                            <option value="packaging_complete">Paketleme Tamamlandı</option>
+                            <option value="shipping_start">Kargo Hazırlık</option>
+                            <option value="shipped">Kargoya Verildi</option>
+                            <option value="delivered">Teslim Edildi</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="progressDescription" class="form-label">Açıklama</label>
+                        <textarea class="form-control" id="progressDescription" rows="3" placeholder="Bu aşama hakkında detay..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="progressOperator" class="form-label">Operatör</label>
+                        <input type="text" class="form-control" id="progressOperator" placeholder="İşlemi yapan kişi">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-primary" onclick="saveProgress()">Kaydet</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function updateStatus(orderId) {
+    document.getElementById('orderId').value = orderId;
+    const modal = new bootstrap.Modal(document.getElementById('statusModal'));
+    modal.show();
+}
+
+function addProgress(orderId) {
+    document.getElementById('progressOrderId').value = orderId;
+    const modal = new bootstrap.Modal(document.getElementById('progressModal'));
+    modal.show();
+}
+
+function saveStatus() {
+    const orderId = document.getElementById('orderId').value;
+    const newStatus = document.getElementById('newStatus').value;
+    const note = document.getElementById('statusNote').value;
+    
+    if (!newStatus) {
+        alert('Lütfen bir durum seçin.');
+        return;
+    }
+    
+    fetch(`/producer/orders/${orderId}/update-status/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            status: newStatus,
+            note: note
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Hata: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Bir hata oluştu: ' + error);
+    });
+}
+
+function saveProgress() {
+    const orderId = document.getElementById('progressOrderId').value;
+    const stage = document.getElementById('progressStage').value;
+    const description = document.getElementById('progressDescription').value;
+    const operator = document.getElementById('progressOperator').value;
+    
+    if (!stage) {
+        alert('Lütfen bir aşama seçin.');
+        return;
+    }
+    
+    fetch(`/producer/orders/${orderId}/add-progress/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            stage: stage,
+            description: description,
+            operator: operator
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Hata: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Bir hata oluştu: ' + error);
+    });
+}
+
+// Auto-refresh for active orders (every 30 seconds)
+setInterval(function() {
+    const hasActiveOrders = document.querySelectorAll('.badge.bg-info, .badge.bg-warning').length > 0;
+    if (hasActiveOrders) {
+        // Silent refresh için AJAX kullanabilirsiniz
+        // location.reload();
+    }
+}, 30000);
+</script>
+{% endblock %} 

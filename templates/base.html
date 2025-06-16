@@ -79,6 +79,12 @@
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'center:admin_dashboard' %}"><i class="fas fa-tools me-1"></i>Yönetim Paneli</a>
                             </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'producer:admin_producer_list' %}"><i class="fas fa-industry me-1"></i>Üretici Yönetimi</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'producer:admin_mold_list' %}"><i class="fas fa-cube me-1"></i>Tüm Kalıplar</a>
+                            </li>
                         {% endif %}
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'center:dashboard' %}">Panel</a>
@@ -89,6 +95,13 @@
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'center:message_list' %}">Mesajlar</a>
                         </li>
+                        {% if not user.is_staff and not user.is_superuser %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'center:network_management' %}">
+                                <i class="fas fa-network-wired me-1"></i>Üretici Ağları
+                            </a>
+                        </li>
+                        {% endif %}
                     {% endif %}
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'core:contact' %}">İletişim</a>

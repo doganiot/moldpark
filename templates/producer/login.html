@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}Üretici Girişi - MoldPark{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow-lg border-0 mt-5">
+                <div class="card-header bg-success text-white text-center py-4">
+                    <div class="mb-3">
+                        <i class="fas fa-industry fa-3x"></i>
+                    </div>
+                    <h3 class="mb-0">Üretici Girişi</h3>
+                    <p class="mb-0">Üretici merkez hesabınızla giriş yapın</p>
+                </div>
+                <div class="card-body p-5">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <label for="email" class="form-label">
+                                <i class="fas fa-envelope me-2"></i>E-posta Adresi
+                            </label>
+                            <input type="email" 
+                                   class="form-control form-control-lg" 
+                                   id="email" 
+                                   name="email" 
+                                   placeholder="ornek@firma.com"
+                                   required>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="password" class="form-label">
+                                <i class="fas fa-lock me-2"></i>Şifre
+                            </label>
+                            <input type="password" 
+                                   class="form-control form-control-lg" 
+                                   id="password" 
+                                   name="password" 
+                                   placeholder="••••••••"
+                                   required>
+                        </div>
+                        
+                        <div class="d-grid mb-4">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-sign-in-alt me-2"></i>Giriş Yap
+                            </button>
+                        </div>
+                        
+                        <div class="text-center">
+                            <hr class="my-4">
+                            <p class="text-muted mb-3">Henüz üretici hesabınız yok mu?</p>
+                            <a href="{% url 'producer:register' %}" class="btn btn-outline-success">
+                                <i class="fas fa-user-plus me-2"></i>Üretici Merkez Ol
+                            </a>
+                        </div>
+                        
+                        <div class="text-center mt-4">
+                            <small class="text-muted">
+                                İşitme merkezi misiniz? 
+                                <a href="{% url 'account_login' %}" class="text-primary">Buradan giriş yapın</a>
+                            </small>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Bilgilendirme Kartı -->
+            <div class="card border-0 shadow-sm mt-4">
+                <div class="card-body">
+                    <h6 class="card-title text-success">
+                        <i class="fas fa-info-circle me-2"></i>Üretici Merkez Özellikleri
+                    </h6>
+                    <ul class="list-unstyled mb-0 small text-muted">
+                        <li><i class="fas fa-check text-success me-2"></i>3D kalıp modelleme sistemi</li>
+                        <li><i class="fas fa-check text-success me-2"></i>İşitme merkezi ağı yönetimi</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Sipariş takip ve yönetim</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Kargo entegrasyonu</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Mesajlaşma sistemi</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Üretim süreci takibi</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    border-radius: 15px;
+}
+
+.card-header {
+    border-radius: 15px 15px 0 0 !important;
+}
+
+.form-control:focus {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+.btn-success {
+    background: linear-gradient(45deg, #28a745, #20c997);
+    border: none;
+}
+
+.btn-success:hover {
+    background: linear-gradient(45deg, #218838, #1e7e34);
+    transform: translateY(-1px);
+}
+
+.list-unstyled li {
+    padding: 2px 0;
+}
+</style>
+{% endblock %} 

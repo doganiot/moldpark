@@ -31,12 +31,14 @@ INSTALLED_APPS = [
     'allauth.account',
     'allauth.socialaccount',
     'django_cleanup.apps.CleanupConfig',
+    'notifications',
     
     # Local apps
     'core.apps.CoreConfig',
     'center.apps.CenterConfig',
     'mold.apps.MoldConfig',
     'accounts.apps.AccountsConfig',
+    'producer.apps.ProducerConfig',
 ]
 
 MIDDLEWARE = [
@@ -50,7 +52,7 @@ MIDDLEWARE = [
     'allauth.account.middleware.AccountMiddleware',
 ]
 
-ROOT_URLCONF = 'moldpark.urls'
+ROOT_URLCONF = 'backend.urls'
 
 TEMPLATES = [
     {
