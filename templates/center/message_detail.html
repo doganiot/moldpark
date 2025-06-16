@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'center:message_list' %}">Mesajlar</a></li>
+                    <li class="breadcrumb-item active">{{ message.subject }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Message -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">{{ message.subject }}</h5>
+                        <div class="btn-group">
+                            <a href="{% url 'center:message_create' %}?reply_to={{ message.id }}" 
+                               class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-reply me-1"></i>Yanıtla
+                            </a>
+                            <button type="button" 
+                                    class="btn btn-sm btn-outline-primary dropdown-toggle dropdown-toggle-split" 
+                                    data-bs-toggle="dropdown">
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'center:message_create' %}?forward={{ message.id }}">
+                                        <i class="fas fa-share me-2"></i>İlet
+                                    </a>
+                                </li>
+                                {% if message.is_archived %}
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'center:message_unarchive' message.id %}">
+                                        <i class="fas fa-box-open me-2"></i>Arşivden Çıkar
+                                    </a>
+                                </li>
+                                {% else %}
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'center:message_archive' message.id %}">
+                                        <i class="fas fa-archive me-2"></i>Arşivle
+                                    </a>
+                                </li>
+                                {% endif %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item text-danger" 
+                                       href="{% url 'center:message_delete' message.id %}"
+                                       onclick="return confirm('Bu mesajı silmek istediğinize emin misiniz?')">
+                                        <i class="fas fa-trash me-2"></i>Sil
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex mb-4">
+                        <div class="flex-shrink-0">
+                            <div class="bg-light rounded-circle p-3">
+                                <i class="fas fa-user"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">
+                                        {{ message.sender.name }}
+                                        {% if message.sender.user.is_staff %}
+                                            <span class="badge bg-primary ms-2">Yönetici</span>
+                                        {% endif %}
+                                    </h6>
+                                    <p class="text-muted mb-0">
+                                        <small>Kime: {{ message.receiver.name }}</small>
+                                    </p>
+                                </div>
+                                <small class="text-muted">{{ message.created_at|naturaltime }}</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="message-content mb-4">
+                        {{ message.message|linebreaks }}
+                    </div>
+
+                    {% if message.attachment %}
+                        <div class="message-attachment">
+                            <h6 class="mb-3">Ekler</h6>
+                            <div class="d-flex align-items-center p-3 bg-light rounded">
+                                <i class="fas fa-paperclip fa-lg text-primary me-3"></i>
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-0">{{ message.attachment.name|cut:"attachments/" }}</h6>
+                                    <small class="text-muted">
+                                        {{ message.attachment.size|filesizeformat }}
+                                    </small>
+                                </div>
+                                <a href="{{ message.attachment.url }}" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-download me-1"></i>İndir
+                                </a>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Message Thread -->
+            {% if thread %}
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white border-0">
+                        <h5 class="mb-0">Mesaj Geçmişi</h5>
+                    </div>
+                    <div class="card-body">
+                        {% for thread_message in thread %}
+                            <div class="message-thread-item {% if not forloop.last %}mb-4{% endif %}">
+                                <div class="d-flex">
+                                    <div class="flex-shrink-0">
+                                        <div class="bg-light rounded-circle p-2">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                    </div>
+                                    <div class="flex-grow-1 ms-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <h6 class="mb-0">{{ thread_message.sender.name }}</h6>
+                                            <small class="text-muted">{{ thread_message.created_at|naturaltime }}</small>
+                                        </div>
+                                        <p class="mb-0">{{ thread_message.message|linebreaks }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="col-md-4">
+            <!-- Quick Reply -->
+            {% if message.receiver == request.user.center %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-0">
+                    <h5 class="mb-0">Hızlı Yanıt</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'center:message_quick_reply' message.id %}">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <textarea name="message" class="form-control" rows="3" required placeholder="Yanıtınızı buraya yazın..."></textarea>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane me-2"></i>Gönder
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Related Molds -->
+            {% if related_molds %}
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white border-0">
+                        <h5 class="mb-0">İlgili Kalıplar</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="list-group list-group-flush">
+                            {% for mold in related_molds %}
+                                <a href="{% url 'mold:mold_detail' mold.id %}" 
+                                   class="list-group-item list-group-item-action">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1">{{ mold.patient_name }}</h6>
+                                            <small class="text-muted">{{ mold.get_mold_type_display }}</small>
+                                        </div>
+                                        <span class="badge bg-{{ mold.get_status_color }}">
+                                            {{ mold.get_status_display }}
+                                        </span>
+                                    </div>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% block extra_css %}
+<style>
+    .message-thread-item {
+        position: relative;
+    }
+
+    .message-thread-item::after {
+        content: '';
+        position: absolute;
+        left: 1.5rem;
+        top: 3rem;
+        height: calc(100% - 1rem);
+        width: 2px;
+        background: #e9ecef;
+    }
+
+    .message-thread-item:last-child::after {
+        display: none;
+    }
+</style>
+{% endblock %}
+{% endblock %} 

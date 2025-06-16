@@ -1,0 +1,31 @@
+Proje pyhon Django ve next.js fremwork ile yapılsın.
+
+Tanmış kulak kalıplarını tarama ve takip etme uygulaması.
+
+Taranmış kulak kalıplarını tarama ve takip etme uygulaması.
+Sistemin amacı işitme merkezlerinin taramış oldukları kulak kalıplarını kaydetmek ve bir modelleme uzmanına göndermek için ve bu süreci tek bir merkezden takip etmek için kurulmuştur. 
+
+Sistemin özellikleri her işitme merkezinin bir kullanıcı hesabı olacak.
+
+İşitme merkezleri kulak kalıbını sisteme yükleyerek ana merkez olan modelleme merkezine gönderir. Gönderilen kulak kalıpları merkeze iletildiğinde bir uyarı ile merkez bilgilendirilir.
+
+Kullanıcı modeli yüklenirken bir form şeklinde bazı bilgiler eklenmeli.
+1. Kalıp isim ve soy ismi.
+2. Yaşı. 
+3. Cinsiyeti. 
+4. Kulak kalıbının modeli. (tam konga,yarım konga, iskelet, prop) bu seçilerek belirtilmeli. 
+5. Vent açıklığı çapı.
+
+Bu bilgiler ekledikten sonra model merkeze gönderilir. Merkez modeli indirip, modeli tekrar modelledikten sonra sisteme yükler ve ilgili kullanıcıya gönderir. Kullanıcı hem sistem üzerinden hem de bir e-postayla bilgilendirilir. 
+Kullanıcı modeli alır ve model üzerinde değişiklik yapmak isteyebilir. Bu istekleri,talepleri açıklama kısmına ekler ve tekrar ana merkeze gönderir. 
+
+Kullanıcı bu sayede modellerini tek bir merkezden ve tek bir ekrandan görür ve takip eder.
+
+Ana merkez kullanıcı tüm izinlere sahiptir. Modelleri silebilir, tekrar düzenleyebilir,Merkezlere seçip tek mesaj gönderebilir yada tüm kayıtlı merkezlere mesaj gönderebilir.
+
+Her merkeze bir limit kalıp gönderim limiti koyulacak. 10,20,30,40,50,100 şeklinde bu limiti ana merkez kullanıcısı belirler.
+
+Ana sayfada kulak kalıbı yapmanın kolay ve zahmet bir yolunun sisteme kayıt olmaktan geçtiği; bu sayade kalıplarınız hızlıca sorunsuz ve bir uzmana danışarak temiz yapma olanağı elde edilmiş olur.
+
+Site modern bir görünümü olsun renkleri gökyüzü mavisi ve açık mat yeşil ağırlıklı olsun. 
+

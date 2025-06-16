@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <h2 class="mb-0">Tüm Kalıplar</h2>
+            <a href="{% url 'center:admin_dashboard' %}" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>Yönetim Paneli</a>
+        </div>
+    </div>
+    <form method="get" class="row g-3 mb-4">
+        <div class="col-md-3">
+            <select name="center" class="form-select">
+                <option value="">Tüm Merkezler</option>
+                {% for center in centers %}
+                    <option value="{{ center.id }}" {% if center.id|stringformat:'s' == selected_center %}selected{% endif %}>{{ center.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <select name="status" class="form-select">
+                <option value="">Tüm Durumlar</option>
+                {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if value == selected_status %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <select name="mold_type" class="form-select">
+                <option value="">Tüm Kalıp Tipleri</option>
+                {% for value, label in mold_type_choices %}
+                    <option value="{{ value }}" {% if value == selected_mold_type %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <button type="submit" class="btn btn-primary w-100"><i class="fas fa-filter me-2"></i>Filtrele</button>
+        </div>
+    </form>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-primary">
+                <tr>
+                    <th>#</th>
+                    <th>Merkez</th>
+                    <th>Hasta Adı</th>
+                    <th>Kalıp Tipi</th>
+                    <th>Durum</th>
+                    <th>Oluşturulma</th>
+                    <th>İşlemler</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for mold in molds %}
+                <tr>
+                    <td>{{ mold.id }}</td>
+                    <td>{{ mold.center.name }}</td>
+                    <td>{{ mold.patient_name }}</td>
+                    <td>{{ mold.get_mold_type_display }}</td>
+                    <td>
+                        <span class="badge {% if mold.status == 'waiting' %}bg-info{% elif mold.status == 'processing' %}bg-warning text-dark{% elif mold.status == 'completed' %}bg-success{% elif mold.status == 'delivered' %}bg-secondary{% elif mold.status == 'revision' %}bg-danger{% elif mold.status == 'shipping' %}bg-primary{% else %}bg-light text-dark{% endif %}">
+                            {{ mold.get_status_display }}
+                        </span>
+                    </td>
+                    <td>{{ mold.created_at|date:'d.m.Y H:i' }}</td>
+                    <td>
+                        <div class="btn-group">
+                            <a href="{% url 'center:admin_mold_detail' mold.id %}" class="btn btn-sm btn-outline-primary" title="Detay">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            {% if mold.scan_file %}
+                            <a href="{{ mold.scan_file.url }}" class="btn btn-sm btn-outline-secondary" title="Tarama Dosyası İndir" download>
+                                <i class="fas fa-download"></i>
+                            </a>
+                            {% endif %}
+                            {% if mold.status != 'completed' and mold.status != 'delivered' %}
+                            <a href="{% url 'center:admin_upload_model' mold.id %}" class="btn btn-sm btn-outline-success" title="Model Yükle">
+                                <i class="fas fa-upload"></i>
+                            </a>
+                            {% else %}
+                            <span class="btn btn-sm btn-success disabled" title="Model Yüklendi">
+                                <i class="fas fa-check"></i>
+                            </span>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center">Kayıt bulunamadı.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %} 

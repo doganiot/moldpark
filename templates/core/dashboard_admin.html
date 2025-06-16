@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block content %}
+<div class="container py-4">
+    <h1 class="mb-4">Yönetici Paneli</h1>
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-primary text-white">Merkezler</div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        {% for center in centers %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ center.name }}
+                            <span class="badge bg-secondary">{{ center.mold_limit }}</span>
+                        </li>
+                        {% empty %}
+                        <li class="list-group-item">Merkez yok.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-info text-white">Kalıplar</div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        {% for mold in molds|slice:':5' %}
+                        <li class="list-group-item">
+                            {{ mold.patient_name }} {{ mold.patient_surname }} - {{ mold.get_mold_type_display }}
+                            <span class="badge bg-{{ mold.status }} float-end">{{ mold.get_status_display }}</span>
+                        </li>
+                        {% empty %}
+                        <li class="list-group-item">Kalıp yok.</li>
+                        {% endfor %}
+                    </ul>
+                    <a href="#" class="btn btn-sm btn-outline-info mt-2">Tüm Kalıplar</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-success text-white">Son Mesajlar</div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        {% for message in recent_messages %}
+                        <li class="list-group-item">
+                            <strong>{{ message.subject }}</strong><br>
+                            <span class="text-muted small">{{ message.created_at|naturaltime }}</span>
+                        </li>
+                        {% empty %}
+                        <li class="list-group-item">Mesaj yok.</li>
+                        {% endfor %}
+                    </ul>
+                    <a href="{% url 'center:admin_message_list' %}" class="btn btn-sm btn-outline-success mt-2">Tüm Mesajlar</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

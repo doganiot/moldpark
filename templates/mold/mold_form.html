@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'mold:mold_list' %}">Kalıplarım</a></li>
+                    <li class="breadcrumb-item active">
+                        {% if object %}
+                            {{ object.patient_name }} - Düzenle
+                        {% else %}
+                            Yeni Kalıp
+                        {% endif %}
+                    </li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0">
+                    <h5 class="mb-0">
+                        {% if object %}
+                            Kalıp Düzenle
+                        {% else %}
+                            Yeni Kalıp Oluştur
+                        {% endif %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data" class="row g-3">
+                        {% csrf_token %}
+
+                        <!-- Patient Information -->
+                        <div class="col-12">
+                            <h6 class="mb-3">Hasta Bilgileri</h6>
+                        </div>
+                        <div class="col-md-4">
+                            {{ form.patient_name|as_crispy_field }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ form.patient_surname|as_crispy_field }}
+                        </div>
+                        <div class="col-md-2">
+                            {{ form.patient_age|as_crispy_field }}
+                        </div>
+                        <div class="col-md-2">
+                            {{ form.patient_gender|as_crispy_field }}
+                        </div>
+
+                        <!-- Mold Information -->
+                        <div class="col-12">
+                            <h6 class="mb-3 mt-4">Kalıp Bilgileri</h6>
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.mold_type|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.vent_diameter|as_crispy_field }}
+                        </div>
+
+                        <!-- File Upload -->
+                        <div class="col-12">
+                            <h6 class="mb-3 mt-4">Dosya Yükleme</h6>
+                        </div>
+                        <div class="col-12">
+                            {% if object and object.scan_file %}
+                                <div class="alert alert-info">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-info-circle fa-2x me-3"></i>
+                                        <div>
+                                            <h6 class="mb-1">Mevcut Dosya</h6>
+                                            <p class="mb-0">
+                                                {{ object.scan_file.name|cut:"scans/" }}
+                                                <small class="text-muted">
+                                                    ({{ object.scan_file.size|filesizeformat }})
+                                                </small>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                            {{ form.scan_file|as_crispy_field }}
+                            <small class="text-muted">
+                                Desteklenen formatlar: STL, OBJ, PLY<br>
+                                Maksimum dosya boyutu: 50MB
+                            </small>
+                        </div>
+
+                        <!-- Notes -->
+                        <div class="col-12">
+                            <h6 class="mb-3 mt-4">Notlar</h6>
+                        </div>
+                        <div class="col-12">
+                            {{ form.notes|as_crispy_field }}
+                        </div>
+
+                        <!-- Submit -->
+                        <div class="col-12 mt-4">
+                            <div class="d-flex justify-content-between">
+                                <a href="{% url 'mold:mold_list' %}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Geri
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>Kaydet
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Help Card -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0">
+                    <h5 class="mb-0">Yardım</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <h6>Kalıp Tipleri</h6>
+                        <ul class="list-unstyled mb-0">
+                            <li><i class="fas fa-check-circle text-success me-2"></i>Tam Konka</li>
+                            <li><i class="fas fa-check-circle text-success me-2"></i>Yarım Konka</li>
+                            <li><i class="fas fa-check-circle text-success me-2"></i>İskelet Tip</li>
+                            <li><i class="fas fa-check-circle text-success me-2"></i>Probe</li>
+                            <li><i class="fas fa-check-circle text-success me-2"></i>CIC</li>
+                            <li><i class="fas fa-check-circle text-success me-2"></i>ITE</li>
+                            <li><i class="fas fa-check-circle text-success me-2"></i>ITC</li>
+                        </ul>
+                    </div>
+                    <div class="mb-4">
+                        <h6>Vent Çapı</h6>
+                        <p class="text-muted small mb-0">
+                            Vent çapı, kalıbın havalandırma deliğinin çapını milimetre cinsinden belirtir.
+                            Genellikle 1-3mm arasında olur.
+                        </p>
+                    </div>
+                    <div>
+                        <h6>Dosya Gereksinimleri</h6>
+                        <p class="text-muted small mb-0">
+                            Tarama dosyanızın STL, OBJ veya PLY formatında olması gerekir.
+                            Dosya boyutu 50MB'ı geçmemelidir.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // File input validation
+    document.querySelector('input[type="file"]').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            // Check file size
+            if (file.size > 52428800) { // 50MB in bytes
+                alert('Dosya boyutu 50MB\'ı geçemez.');
+                e.target.value = '';
+                return;
+            }
+
+            // Check file extension
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (!['stl', 'obj', 'ply'].includes(ext)) {
+                alert('Sadece STL, OBJ ve PLY dosyaları yüklenebilir.');
+                e.target.value = '';
+                return;
+            }
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %}

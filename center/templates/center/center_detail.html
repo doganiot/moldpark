@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2>Merkez Detayları</h2>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">{{ center.name }}</h5>
+                    <p><strong>Adres:</strong> {{ center.address }}</p>
+                    <p><strong>Telefon:</strong> {{ center.phone }}</p>
+                    <p><strong>Kayıt Tarihi:</strong> {{ center.created_at|date:'d.m.Y H:i' }}</p>
+                    <p><strong>Kalıp Gönderim Limiti:</strong> <span class="badge bg-success">{{ center.mold_limit }}</span></p>
+                    <p><strong>Aktiflik:</strong> {% if center.is_active %}<span class="text-success">Aktif</span>{% else %}<span class="text-danger">Pasif</span>{% endif %}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            {% if is_admin_user %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-0">
+                    <h5 class="mb-0">Kalıp Limiti Güncelle</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'center:center_limit_update' center.pk %}">
+                        {% csrf_token %}
+                        {{ limit_form|crispy }}
+                        <button type="submit" class="btn btn-primary mt-2">Güncelle</button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

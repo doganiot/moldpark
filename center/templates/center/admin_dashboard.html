@@ -1,0 +1,226 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="mb-3">
+                <i class="fas fa-tachometer-alt me-2"></i>Yönetim Paneli
+            </h2>
+            <p class="lead">Tüm merkez ve kalıp süreçlerini buradan yönetebilirsiniz.</p>
+        </div>
+    </div>
+    
+    <!-- İstatistik Kartları -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title">Toplam Merkez</h5>
+                            <p class="display-4 fw-bold mb-0">{{ total_centers }}</p>
+                        </div>
+                        <i class="fas fa-building fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm" style="background-color: #6fdcbf; color: #fff;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title">Toplam Kalıp</h5>
+                            <p class="display-4 fw-bold mb-0">{{ total_molds }}</p>
+                        </div>
+                        <i class="fas fa-cube fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title">Bekleyen Modelleme</h5>
+                            <p class="display-4 fw-bold mb-0">{{ waiting_models }}</p>
+                        </div>
+                        <i class="fas fa-clock fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm bg-warning text-dark">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title">İşleniyor</h5>
+                            <p class="display-4 fw-bold mb-0">{{ in_progress }}</p>
+                        </div>
+                        <i class="fas fa-cog fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title">Tamamlandı</h5>
+                            <p class="display-4 fw-bold mb-0">{{ completed }}</p>
+                        </div>
+                        <i class="fas fa-check-circle fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm bg-secondary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title">Teslim Edildi</h5>
+                            <p class="display-4 fw-bold mb-0">{{ delivered }}</p>
+                        </div>
+                        <i class="fas fa-truck fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Yönetim Butonları -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <a href="{% url 'center:admin_center_list' %}" class="btn btn-primary w-100 py-3">
+                <i class="fas fa-building me-2"></i>
+                <div>
+                    <strong>Merkez Yönetimi</strong>
+                    <small class="d-block">Tüm merkezleri yönet</small>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a href="{% url 'center:admin_center_stats' %}" class="btn btn-info w-100 py-3">
+                <i class="fas fa-chart-bar me-2"></i>
+                <div>
+                    <strong>İstatistikler</strong>
+                    <small class="d-block">Detaylı raporlar</small>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a href="{% url 'center:admin_mold_list' %}" class="btn btn-success w-100 py-3">
+                <i class="fas fa-cubes me-2"></i>
+                <div>
+                    <strong>Kalıp Yönetimi</strong>
+                    <small class="d-block">Tüm kalıpları yönet</small>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a href="{% url 'center:admin_message_list' %}" class="btn btn-warning w-100 py-3">
+                <i class="fas fa-envelope me-2"></i>
+                <div>
+                    <strong>Mesaj Yönetimi</strong>
+                    <small class="d-block">Merkez mesajları</small>
+                </div>
+            </a>
+        </div>
+    </div>
+    
+    <!-- Hızlı Erişim -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <a href="{% url 'center:admin_revision_list' %}" class="btn btn-outline-danger w-100 py-2">
+                <i class="fas fa-undo-alt me-2"></i>Revizyon Talepleri
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="#" class="btn btn-outline-secondary w-100 py-2">
+                <i class="fas fa-download me-2"></i>Raporları İndir
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="#" class="btn btn-outline-info w-100 py-2">
+                <i class="fas fa-cogs me-2"></i>Sistem Ayarları
+            </a>
+        </div>
+    </div>
+    
+    <!-- Son Aktiviteler -->
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history me-2"></i>Son Aktiviteler
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        {% for center in center_stats|slice:":5" %}
+                        <div class="list-group-item border-0 px-0">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">{{ center.name }}</h6>
+                                    <p class="mb-1 text-muted small">
+                                        {{ center.total_molds }} kalıp • 
+                                        {{ center.waiting_molds }} bekliyor • 
+                                        {{ center.completed_molds }} tamamlandı
+                                    </p>
+                                </div>
+                                <a href="{% url 'center:admin_center_detail' center.pk %}" class="btn btn-sm btn-outline-primary">
+                                    Detay
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bell me-2"></i>Sistem Durumu
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Sistem Sağlığı</span>
+                            <span class="badge bg-success">İyi</span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Aktif Merkezler</span>
+                            <span class="badge bg-primary">{{ total_centers }}</span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Bekleyen İşlemler</span>
+                            <span class="badge bg-warning">{{ waiting_models }}</span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Son Mesajlar</span>
+                            <span class="badge bg-info">{{ recent_messages|length }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

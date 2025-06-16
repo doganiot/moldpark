@@ -1,0 +1,404 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block content %}
+<div class="container">
+    <!-- Hero Section -->
+    <div class="row align-items-center py-5">
+        <div class="col-md-6">
+            <div class="d-flex align-items-center mb-4">
+                <img src="{% static 'images/moldpark_logo.jpg' %}" alt="MoldPark Logo" height="60" class="me-3 hero-logo">
+                <div>
+                    <h1 class="display-4 mb-2">Kulak Kalıbı Üretiminde<br>Dijital Dönüşüm</h1>
+                </div>
+            </div>
+            <p class="lead mb-4">
+                MoldPark ile kulak kalıbı üretim süreçlerinizi dijitalleştirin, 
+                tek bir platformdan yönetin ve kaliteyi artırın.
+            </p>
+            {% if not user.is_authenticated %}
+                <div class="d-grid gap-2 d-md-flex">
+                    <a href="{% url 'account_login' %}" class="btn btn-outline-primary btn-lg">
+                        Giriş Yapın
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+        <div class="col-md-6">
+            {% if not user.is_authenticated %}
+                <div class="card shadow-lg">
+                    <div class="card-body p-4">
+                        <h4 class="text-center mb-4">Merkez Kaydı</h4>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            E-posta adresiniz ile giriş yapacaksınız.
+                        </div>
+                        {% if signup_form %}
+                            <form method="post" novalidate>
+                                {% csrf_token %}
+                                {{ signup_form|crispy }}
+                                <div class="d-grid mt-4">
+                                    <button type="submit" class="btn btn-primary btn-lg">
+                                        <i class="fas fa-user-plus me-2"></i>Kaydı Tamamla
+                                    </button>
+                                </div>
+                            </form>
+                        {% else %}
+                            <div class="text-center">
+                                <p class="text-muted mb-3">Form yüklenirken bir sorun oluştu.</p>
+                                <a href="{% url 'account_signup' %}" class="btn btn-primary">
+                                    Kayıt Sayfasına Git
+                                </a>
+                            </div>
+                        {% endif %}
+                        <div class="text-center mt-3">
+                            <small class="text-muted">
+                                Zaten hesabınız var mı? 
+                                <a href="{% url 'account_login' %}" class="text-primary">Giriş Yapın</a>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <img src="https://via.placeholder.com/600x400" alt="Hero Image" class="img-fluid rounded shadow">
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Features -->
+    <div class="row py-5">
+        <div class="col-12 text-center mb-5">
+            <h2>Özellikler</h2>
+            <p class="lead text-muted">MoldPark ile neler yapabilirsiniz?</p>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-upload fa-3x mb-3 text-primary"></i>
+                    <h4>Kolay Yükleme</h4>
+                    <p>Taranmış kulak kalıplarınızı kolayca yükleyin ve takip edin.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-comments fa-3x mb-3 text-primary"></i>
+                    <h4>Anlık İletişim</h4>
+                    <p>Modelleme uzmanlarıyla doğrudan iletişim kurun.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-chart-line fa-3x mb-3 text-primary"></i>
+                    <h4>Detaylı Takip</h4>
+                    <p>Kalıp durumlarını ve kalite metriklerini anlık takip edin.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kalıp Modelleri -->
+    <div class="row py-5 bg-light">
+        <div class="col-12 text-center mb-5">
+            <h2>Üretilebilir Kalıp Modelleri</h2>
+            <p class="lead text-muted">Her işitme kaybı seviyesi için özel tasarlanmış kalıp çözümleri</p>
+        </div>
+        
+        <!-- Tam Konka Kalıbı -->
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100 border-0 shadow-sm mold-type-card">
+                <div class="row g-0">
+                    <div class="col-md-4">
+                        <div class="position-relative overflow-hidden h-100" style="min-height: 200px;">
+                            <img src="{% static 'images/tam-konka-kalip.jpg' %}" 
+                                 alt="Tam Konka Kalıbı" 
+                                 class="img-fluid w-100 h-100 object-fit-cover">
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="card-body">
+                            <h5 class="card-title text-primary">
+                                <i class="fas fa-circle me-2"></i>Tam Konka Kalıbı
+                            </h5>
+                            <p class="card-text">Kulak kepçesinin tamamı boyutunda kalıp. Güçlü performans ve maksimum ses yalıtımı sağlar.</p>
+                            <div class="mb-2">
+                                <span class="badge bg-warning text-dark me-1">Orta işitme kaybı</span>
+                                <span class="badge bg-danger me-1">İleri işitme kaybı</span>
+                                <span class="badge bg-dark me-1">Çok ileri işitme kaybı</span>
+                            </div>
+                            <small class="text-success">
+                                <i class="fas fa-shield-alt me-1"></i>Maksimum yalıtım
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Yarım Konka Kalıbı -->
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100 border-0 shadow-sm mold-type-card">
+                <div class="row g-0">
+                    <div class="col-md-4">
+                        <div class="position-relative overflow-hidden h-100" style="min-height: 200px;">
+                            <img src="{% static 'images/yarim-konka-kalip.jpg' %}" 
+                                 alt="Yarım Konka Kalıbı" 
+                                 class="img-fluid w-100 h-100 object-fit-cover">
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="card-body">
+                            <h5 class="card-title text-success">
+                                <i class="fas fa-adjust me-2"></i>Yarım Konka Kalıbı
+                            </h5>
+                            <p class="card-text">Kulak kepçesinin yarısı boyutunda, daha az görünür ve konforlu bir kulak kalıbı çözümü.</p>
+                            <div class="mb-2">
+                                <span class="badge bg-info me-1">Hafif işitme kaybı</span>
+                                <span class="badge bg-warning text-dark me-1">Orta işitme kaybı</span>
+                            </div>
+                            <small class="text-success">
+                                <i class="fas fa-heart me-1"></i>Konforlu kullanım
+                                <i class="fas fa-eye me-1 ms-2"></i>Estetik görünüm
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Probe Kalıbı -->
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100 border-0 shadow-sm mold-type-card">
+                <div class="row g-0">
+                    <div class="col-md-4">
+                        <div class="position-relative overflow-hidden h-100" style="min-height: 200px;">
+                            <img src="{% static 'images/probe-kalip.jpg' %}" 
+                                 alt="Probe Kalıbı" 
+                                 class="img-fluid w-100 h-100 object-fit-cover">
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="card-body">
+                            <h5 class="card-title text-info">
+                                <i class="fas fa-dot-circle me-2"></i>Probe Kalıbı
+                            </h5>
+                            <p class="card-text">Kulak kanalı izi alınarak üretilen, minimum görünürlük sağlayan özel tasarım kalıp.</p>
+                            <div class="mb-2">
+                                <span class="badge bg-info me-1">Hafif işitme kaybı</span>
+                                <span class="badge bg-warning text-dark me-1">Orta işitme kaybı</span>
+                            </div>
+                            <small class="text-success">
+                                <i class="fas fa-eye-slash me-1"></i>Görünmez tasarım
+                                <i class="fas fa-heart me-1 ms-2"></i>Kanal içi konfor
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- İskelet Tip Kalıp -->
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100 border-0 shadow-sm mold-type-card">
+                <div class="row g-0">
+                    <div class="col-md-4">
+                        <div class="position-relative overflow-hidden h-100" style="min-height: 200px;">
+                            <img src="{% static 'images/iskelet-kalip.jpg' %}" 
+                                 alt="İskelet Tip Kalıp" 
+                                 class="img-fluid w-100 h-100 object-fit-cover">
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="card-body">
+                            <h5 class="card-title text-secondary">
+                                <i class="fas fa-bone me-2"></i>İskelet Tip Kalıp
+                            </h5>
+                            <p class="card-text">Kulak arkası işitme cihazlarında kullanılan popüler kalıp. Hafif ve kozmetik açıdan üstün.</p>
+                            <div class="mb-2">
+                                <span class="badge bg-info me-1">Hafif işitme kaybı</span>
+                                <span class="badge bg-warning text-dark me-1">Orta işitme kaybı</span>
+                            </div>
+                            <small class="text-success">
+                                <i class="fas fa-feather me-1"></i>Hafif yapı
+                                <i class="fas fa-star me-1 ms-2"></i>Kozmetik görünüm
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- How It Works -->
+    <div class="row py-5">
+        <div class="col-12 text-center mb-5">
+            <h2>Nasıl Çalışır?</h2>
+            <p class="lead text-muted">4 basit adımda kalıp üretim süreci</p>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="text-center">
+                <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                    <span class="text-white fw-bold">1</span>
+                </div>
+                <h5>Kayıt Olun</h5>
+                <p>Merkezinizi sisteme kaydedin ve hemen başlayın.</p>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="text-center">
+                <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                    <span class="text-white fw-bold">2</span>
+                </div>
+                <h5>Kalıp Yükleyin</h5>
+                <p>Taranmış kalıplarınızı sisteme yükleyin.</p>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="text-center">
+                <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                    <span class="text-white fw-bold">3</span>
+                </div>
+                <h5>Takip Edin</h5>
+                <p>Üretim sürecini anlık olarak takip edin.</p>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="text-center">
+                <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                    <span class="text-white fw-bold">4</span>
+                </div>
+                <h5>Teslim Alın</h5>
+                <p>Kaliteli ve hızlı üretilmiş kalıplarınızı alın.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- İstatistikler -->
+    <div class="row py-5 bg-primary text-white">
+        <div class="col-12 text-center mb-5">
+            <h2>Güvenilir Çözüm Ortağınız</h2>
+            <p class="lead">Rakamlarla MoldPark başarısı</p>
+        </div>
+        <div class="col-md-3 text-center mb-4">
+            <div class="display-4 fw-bold mb-2 stat-counter">
+                <i class="fas fa-building me-2"></i>50+
+            </div>
+            <h5>Aktif Merkez</h5>
+            <p class="mb-0">Türkiye genelinde hizmet veren merkezler</p>
+        </div>
+        <div class="col-md-3 text-center mb-4">
+            <div class="display-4 fw-bold mb-2 stat-counter">
+                <i class="fas fa-cube me-2"></i>1000+
+            </div>
+            <h5>Üretilen Kalıp</h5>
+            <p class="mb-0">Başarıyla tamamlanan kalıp siparişleri</p>
+        </div>
+        <div class="col-md-3 text-center mb-4">
+            <div class="display-4 fw-bold mb-2 stat-counter">
+                <i class="fas fa-clock me-2"></i>24
+            </div>
+            <h5>Saat İçinde</h5>
+            <p class="mb-0">Ortalama kalıp teslim süresi</p>
+        </div>
+        <div class="col-md-3 text-center mb-4">
+            <div class="display-4 fw-bold mb-2 stat-counter">
+                <i class="fas fa-star me-2"></i>4.8
+            </div>
+            <h5>Müşteri Memnuniyeti</h5>
+            <p class="mb-0">5 üzerinden ortalama kalite puanı</p>
+        </div>
+    </div>
+
+    <!-- Avantajlar -->
+    <div class="row py-5">
+        <div class="col-12 text-center mb-5">
+            <h2>Neden MoldPark?</h2>
+            <p class="lead text-muted">Dijital dönüşümün avantajlarını keşfedin</p>
+        </div>
+        <div class="col-md-6 mb-4">
+            <div class="d-flex">
+                <div class="flex-shrink-0">
+                    <div class="bg-success rounded-circle d-flex align-items-center justify-content-center advantage-icon" style="width: 50px; height: 50px;">
+                        <i class="fas fa-rocket text-white"></i>
+                    </div>
+                </div>
+                <div class="flex-grow-1 ms-3">
+                    <h5>Hızlı Üretim</h5>
+                    <p class="text-muted">Geleneksel yöntemlere göre %70 daha hızlı kalıp üretimi. Dijital süreçler sayesinde bekleme sürelerini minimize ediyoruz.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-4">
+            <div class="d-flex">
+                <div class="flex-shrink-0">
+                    <div class="bg-info rounded-circle d-flex align-items-center justify-content-center advantage-icon" style="width: 50px; height: 50px;">
+                        <i class="fas fa-shield-alt text-white"></i>
+                    </div>
+                </div>
+                <div class="flex-grow-1 ms-3">
+                    <h5>Yüksek Kalite</h5>
+                    <p class="text-muted">Profesyonel kalite kontrol süreçleri ve deneyimli uzman kadromuz ile %99.5 müşteri memnuniyeti garantisi.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-4">
+            <div class="d-flex">
+                <div class="flex-shrink-0">
+                    <div class="bg-warning rounded-circle d-flex align-items-center justify-content-center advantage-icon" style="width: 50px; height: 50px;">
+                        <i class="fas fa-eye text-white"></i>
+                    </div>
+                </div>
+                <div class="flex-grow-1 ms-3">
+                    <h5>Şeffaf Süreç</h5>
+                    <p class="text-muted">Kalıbınızın üretim aşamalarını anlık takip edin. Her adımda bilgilendirilir, süreçte aktif rol alırsınız.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-4">
+            <div class="d-flex">
+                <div class="flex-shrink-0">
+                    <div class="bg-danger rounded-circle d-flex align-items-center justify-content-center advantage-icon" style="width: 50px; height: 50px;">
+                        <i class="fas fa-headset text-white"></i>
+                    </div>
+                </div>
+                <div class="flex-grow-1 ms-3">
+                    <h5>7/24 Destek</h5>
+                    <p class="text-muted">Teknik destek ekibimiz her zaman yanınızda. Sorularınız için canlı destek hattımızdan ulaşabilirsiniz.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="row py-5">
+        <div class="col-12 text-center">
+            <div class="bg-light p-5 rounded">
+                <h2>Hemen Başlayın</h2>
+                <p class="lead mb-4">
+                    Kulak kalıbı üretim süreçlerinizi dijitalleştirmek için<br>
+                    MoldPark'a katılın ve farkı yaşayın.
+                </p>
+                {% if not user.is_authenticated %}
+                    <a href="{% url 'account_signup' %}" class="btn btn-primary btn-lg me-3">
+                        <i class="fas fa-user-plus me-2"></i>Ücretsiz Kayıt Ol
+                    </a>
+                    <a href="{% url 'core:contact' %}" class="btn btn-outline-primary btn-lg">
+                        <i class="fas fa-phone me-2"></i>İletişime Geç
+                    </a>
+                {% else %}
+                    <a href="{% url 'mold:mold_create' %}" class="btn btn-primary btn-lg me-3">
+                        <i class="fas fa-plus me-2"></i>Yeni Kalıp Oluştur
+                    </a>
+                    <a href="{% url 'mold:mold_list' %}" class="btn btn-outline-primary btn-lg">
+                        <i class="fas fa-list me-2"></i>Kalıplarım
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

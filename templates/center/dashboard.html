@@ -1,0 +1,216 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="container">
+    <!-- Welcome Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 bg-primary text-white">
+                <div class="card-body p-4">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h2 class="mb-0">Hoş Geldiniz, {{ user.center.name }}</h2>
+                            <p class="mb-0 opacity-75">Son giriş: {{ user.last_login|naturaltime }}</p>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <p class="mb-0">
+                                Kalan Kalıp Hakkı: 
+                                <span class="badge bg-white text-primary">
+                                    {{ remaining_limit }} / {{ user.center.mold_limit }}
+                                </span>
+                            </p>
+                            <p class="mb-0 opacity-75">
+                                Kullanılan: {{ used_molds }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-cube fa-2x text-primary"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="mb-0">Toplam Kalıp</h6>
+                            <h3 class="mb-0">{{ total_molds }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-clock fa-2x text-warning"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="mb-0">Bekleyen</h6>
+                            <h3 class="mb-0">{{ pending_molds }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-cog fa-2x text-info"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="mb-0">İşleniyor</h6>
+                            <h3 class="mb-0">{{ processing_molds }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-check-circle fa-2x text-success"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="mb-0">Tamamlanan</h6>
+                            <h3 class="mb-0">{{ completed_molds }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Molds -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Son Kalıplar</h5>
+                        <a href="{% url 'mold:mold_list' %}" class="btn btn-sm btn-outline-primary">
+                            Tümünü Gör
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Hasta</th>
+                                    <th>Tip</th>
+                                    <th>Durum</th>
+                                    <th>Tarih</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for mold in recent_molds %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'mold:mold_detail' mold.id %}" class="text-decoration-none">
+                                            {{ mold.patient_name }}
+                                        </a>
+                                    </td>
+                                    <td>{{ mold.get_mold_type_display }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ mold.get_status_color }}">
+                                            {{ mold.get_status_display }}
+                                        </span>
+                                    </td>
+                                    <td>{{ mold.created_at|naturaltime }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-4">
+                                        <p class="text-muted mb-0">Henüz kalıp yok.</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Messages -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Son Mesajlar</h5>
+                        <a href="{% url 'center:message_list' %}" class="btn btn-sm btn-outline-primary">
+                            Tümünü Gör
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% for message in recent_messages %}
+                    <div class="d-flex align-items-start {% if not forloop.last %}mb-3{% endif %}">
+                        <div class="flex-shrink-0">
+                            <div class="bg-light rounded-circle p-2">
+                                <i class="fas fa-envelope"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="mb-1">{{ message.subject }}</h6>
+                            <p class="mb-1 text-muted small">{{ message.message|truncatechars:50 }}</p>
+                            <small class="text-muted">{{ message.created_at|naturaltime }}</small>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted text-center mb-0">Henüz mesaj yok.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Hızlı İşlemler</h5>
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <a href="{% url 'mold:mold_create' %}" class="btn btn-primary d-block">
+                                <i class="fas fa-plus me-2"></i>Yeni Kalıp
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'center:message_create' %}" class="btn btn-outline-primary d-block">
+                                <i class="fas fa-envelope me-2"></i>Mesaj Gönder
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'center:profile' %}" class="btn btn-outline-primary d-block">
+                                <i class="fas fa-user-cog me-2"></i>Profil Ayarları
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'core:contact' %}" class="btn btn-outline-primary d-block">
+                                <i class="fas fa-headset me-2"></i>Destek
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

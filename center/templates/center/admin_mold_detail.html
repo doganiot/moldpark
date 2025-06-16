@@ -1,0 +1,235 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <h2 class="mb-0">Kalıp Detayı</h2>
+            <a href="{% url 'center:admin_mold_list' %}" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>Tüm Kalıplar</a>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">{{ mold.patient_name }} {{ mold.patient_surname }}</h5>
+                    <p><strong>Merkez:</strong> {{ mold.center.name }}</p>
+                    <p><strong>Kalıp Tipi:</strong> {{ mold.get_mold_type_display }}</p>
+                    <p><strong>Vent Çapı:</strong> {{ mold.vent_diameter }} mm</p>
+                    <p><strong>Durum:</strong> 
+                        <span class="badge {% if mold.status == 'waiting' %}bg-info{% elif mold.status == 'processing' %}bg-warning text-dark{% elif mold.status == 'completed' %}bg-success{% elif mold.status == 'delivered' %}bg-secondary{% elif mold.status == 'revision' %}bg-danger{% elif mold.status == 'shipping' %}bg-primary{% else %}bg-light text-dark{% endif %} fs-6">
+                            {{ mold.get_status_display }}
+                        </span>
+                        {% if mold.status == 'completed' %}
+                        <br>
+                        <small class="text-success mt-1">
+                            <i class="fas fa-check-circle me-1"></i>
+                            İşlenmiş model merkeze gönderildi
+                        </small>
+                        {% endif %}
+                    </p>
+                    <p><strong>Oluşturulma:</strong> {{ mold.created_at|date:'d.m.Y H:i' }}</p>
+                    <p><strong>Notlar:</strong> {{ mold.notes|default:'-' }}</p>
+                    <p><strong>Tarama Dosyası:</strong>
+                        {% if mold.scan_file %}
+                            <a href="{{ mold.scan_file.url }}" class="btn btn-sm btn-outline-secondary ms-2" download>
+                                <i class="fas fa-download me-1"></i>İndir
+                            </a>
+                        {% else %}
+                            <span class="text-muted">Yok</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-0">
+                    <h5 class="mb-0">Durum Güncelle</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'center:admin_mold_update_status' mold.id %}">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">Yeni Durum</label>
+                            <select name="status" class="form-select text-dark">
+                                {% for value, label in status_choices %}
+                                    <option value="{{ value }}" {% if value == mold.status %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Güncelle ve Bildir</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modellenmiş Kalıplar Bölümü -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-cube me-2"></i>İşlenmiş Modeller</h5>
+                        {% if mold.status != 'completed' and mold.status != 'delivered' %}
+                        <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#uploadModelModal">
+                            <i class="fas fa-upload me-2"></i>Model Yükle
+                        </button>
+                        {% else %}
+                        <span class="btn btn-success btn-sm disabled">
+                            <i class="fas fa-check me-2"></i>Tamamlandı
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if mold.modeled_files.exists %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Dosya</th>
+                                    <th>Durum</th>
+                                    <th>Notlar</th>
+                                    <th>Yüklenme Tarihi</th>
+                                    <th>İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for model in mold.modeled_files.all %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-file-download text-primary me-2"></i>
+                                            <div>
+                                                <a href="{{ model.file.url }}" class="text-decoration-none fw-medium" download>
+                                                    {{ model.file.name|cut:"modeled/"|truncatechars:40 }}
+                                                </a>
+                                                <br>
+                                                <small class="text-muted">{{ model.file.size|filesizeformat }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                                                         <td>
+                                         <span class="badge {% if model.status == 'approved' %}bg-success{% elif model.status == 'rejected' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+                                             {{ model.get_status_display }}
+                                         </span>
+                                         {% if model.status == 'approved' %}
+                                         <br>
+                                         <small class="text-success">
+                                             <i class="fas fa-paper-plane me-1"></i>
+                                             Merkeze gönderildi
+                                         </small>
+                                         {% endif %}
+                                     </td>
+                                    <td>
+                                        {% if model.notes %}
+                                            <span data-bs-toggle="tooltip" title="{{ model.notes }}">
+                                                {{ model.notes|truncatechars:30 }}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div>
+                                            <strong>{{ model.created_at|date:"d.m.Y" }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ model.created_at|date:"H:i" }}</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <a href="{{ model.file.url }}" class="btn btn-sm btn-outline-primary" title="İndir" download>
+                                                <i class="fas fa-download"></i>
+                                            </a>
+                                            <form method="post" action="{% url 'center:admin_delete_model' model.id %}" class="d-inline" 
+                                                  onsubmit="return confirm('Bu modeli silmek istediğinizden emin misiniz?')">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Sil">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-cube fa-4x text-muted mb-3"></i>
+                        <h6 class="text-muted">Henüz işlenmiş model yok</h6>
+                        <p class="text-muted mb-0">Kalıbı işledikten sonra modeli buradan merkeze gönderebilirsiniz.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Model Yükleme Modal -->
+<div class="modal fade" id="uploadModelModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'center:admin_upload_model' mold.id %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-upload me-2"></i>İşlenmiş Model Yükle ve Gönder
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>{{ mold.patient_name }} {{ mold.patient_surname }}</strong> için işlenmiş modeli yükleyip otomatik olarak onaylayıp merkeze gönderebilirsiniz.
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">
+                            <i class="fas fa-file me-1"></i>Model Dosyası
+                        </label>
+                        {{ model_form.file }}
+                        <div class="form-text">
+                            <i class="fas fa-check-circle text-success me-1"></i>
+                            Desteklenen formatlar: STL, OBJ, PLY (Maksimum 50MB)
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">
+                            <i class="fas fa-sticky-note me-1"></i>Notlar
+                        </label>
+                        {{ model_form.notes }}
+                        <div class="form-text">İsteğe bağlı: Modelle ilgili özel notlarınızı ekleyebilirsiniz.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>İptal
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check-double me-1"></i>Yükle, Onayla ve Gönder
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Tooltip'leri etkinleştir
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+
+{% endblock %} 

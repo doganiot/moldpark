@@ -1,0 +1,191 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'center:message_list' %}">Mesajlar</a></li>
+                    <li class="breadcrumb-item active">
+                        {% if object %}
+                            Mesaj Düzenle
+                        {% else %}
+                            Yeni Mesaj
+                        {% endif %}
+                    </li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0">
+                    <h5 class="mb-0">
+                        {% if object %}
+                            Mesaj Düzenle
+                        {% else %}
+                            Yeni Mesaj
+                        {% endif %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+
+                        {% if reply_to or forward %}
+                            <div class="alert alert-info mb-4">
+                                <div class="d-flex">
+                                    <div class="flex-shrink-0">
+                                        <i class="fas {% if reply_to %}fa-reply{% else %}fa-share{% endif %} fa-2x me-3"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="alert-heading mb-1">
+                                            {% if reply_to %}
+                                                Yanıtlanıyor:
+                                            {% else %}
+                                                İletiliyor:
+                                            {% endif %}
+                                        </h6>
+                                        <p class="mb-0">{{ original_message.subject }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        <!-- Recipient -->
+                        <div class="mb-4">
+                            <label class="form-label">Alıcı</label>
+                            {% if user.is_staff %}
+                                {{ form.recipient|as_crispy_field }}
+                            {% else %}
+                                <div class="alert alert-light mb-0">
+                                    <div class="d-flex align-items-center">
+                                        <div class="flex-shrink-0">
+                                            <div class="bg-light rounded-circle p-2">
+                                                <i class="fas fa-user"></i>
+                                            </div>
+                                        </div>
+                                        <div class="flex-grow-1 ms-3">
+                                            <h6 class="mb-0">Yönetici</h6>
+                                            <small class="text-muted">Sistem Yöneticisi</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Subject -->
+                        <div class="mb-4">
+                            {{ form.subject|as_crispy_field }}
+                        </div>
+
+                        <!-- Message -->
+                        <div class="mb-4">
+                            {{ form.message|as_crispy_field }}
+                        </div>
+
+                        <!-- Attachment -->
+                        <div class="mb-4">
+                            <label class="form-label">Dosya Ekle</label>
+                            {% if object and object.attachment %}
+                                <div class="alert alert-info">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-paperclip fa-2x me-3"></i>
+                                        <div>
+                                            <h6 class="mb-1">Mevcut Dosya</h6>
+                                            <p class="mb-0">
+                                                {{ object.attachment.name|cut:"attachments/" }}
+                                                <small class="text-muted">
+                                                    ({{ object.attachment.size|filesizeformat }})
+                                                </small>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                            {{ form.attachment|as_crispy_field }}
+                            <small class="text-muted">
+                                Maksimum dosya boyutu: 10MB
+                            </small>
+                        </div>
+
+                        <!-- Submit -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'center:message_list' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i>İptal
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane me-2"></i>Gönder
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Help Card -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0">
+                    <h5 class="mb-0">Yardım</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <h6>Mesaj Yazarken</h6>
+                        <ul class="list-unstyled mb-0">
+                            <li class="mb-2">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                Açık ve net bir konu başlığı seçin
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                Mesajınızı detaylı yazın
+                            </li>
+                            <li>
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                Gerekirse dosya ekleyin
+                            </li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h6>Dosya Gereksinimleri</h6>
+                        <p class="text-muted small mb-0">
+                            Dosya boyutu 10MB'ı geçmemelidir.
+                            Desteklenen formatlar: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // File input validation
+    document.querySelector('input[type="file"]').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            // Check file size
+            if (file.size > 10485760) { // 10MB in bytes
+                alert('Dosya boyutu 10MB\'ı geçemez.');
+                e.target.value = '';
+                return;
+            }
+
+            // Check file extension
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (!['pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png'].includes(ext)) {
+                alert('Desteklenmeyen dosya formatı.');
+                e.target.value = '';
+                return;
+            }
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %} 

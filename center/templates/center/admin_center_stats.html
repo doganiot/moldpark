@@ -1,0 +1,337 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Merkez İstatistikleri{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Başlık -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2><i class="fas fa-chart-line me-2"></i>Merkez İstatistikleri</h2>
+                    <p class="text-muted mb-0">Sistem geneli performans ve kullanım analizi</p>
+                </div>
+                <a href="{% url 'center:admin_center_list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Merkez Listesi
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Genel İstatistikler -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ stats.total_centers }}</h4>
+                            <p class="mb-0">Toplam Merkez</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-building fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ stats.active_centers }}</h4>
+                            <p class="mb-0">Aktif Merkez</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-check-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ stats.total_molds }}</h4>
+                            <p class="mb-0">Toplam Kalıp</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-cube fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ stats.avg_quality|floatformat:1 }}</h4>
+                            <p class="mb-0">Ort. Kalite</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-star fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grafikler -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Kalıp Durumları</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="statusChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Kalıp Tipleri</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="typeChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Aylık Trend -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Aylık Kalıp Trendi</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="trendChart" width="400" height="100"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- En Aktif Merkezler -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-trophy me-2"></i>En Aktif Merkezler</h5>
+                </div>
+                <div class="card-body">
+                    {% if top_active_centers %}
+                        <div class="list-group list-group-flush">
+                            {% for center in top_active_centers %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ center.name }}</strong><br>
+                                    <small class="text-muted">{{ center.user.email }}</small>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-primary rounded-pill">{{ center.mold_count }} kalıp</span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted text-center">Veri bulunamadı.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-star me-2"></i>En Kaliteli Merkezler</h5>
+                </div>
+                <div class="card-body">
+                    {% if top_quality_centers %}
+                        <div class="list-group list-group-flush">
+                            {% for center in top_quality_centers %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ center.name }}</strong><br>
+                                    <small class="text-muted">{{ center.user.email }}</small>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-success rounded-pill">{{ center.avg_quality|floatformat:1 }}/10</span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted text-center">Veri bulunamadı.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detaylı İstatistikler -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-table me-2"></i>Merkez Performans Tablosu</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Merkez</th>
+                                    <th>Durum</th>
+                                    <th>Toplam Kalıp</th>
+                                    <th>Tamamlanan</th>
+                                    <th>Ort. Kalite</th>
+                                    <th>Aylık Kullanım</th>
+                                    <th>Son Aktivite</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for center in center_performance %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ center.name }}</strong><br>
+                                        <small class="text-muted">{{ center.user.email }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge {% if center.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                                            {% if center.is_active %}Aktif{% else %}Pasif{% endif %}
+                                        </span>
+                                    </td>
+                                    <td>{{ center.total_molds }}</td>
+                                    <td>{{ center.completed_molds }}</td>
+                                    <td>
+                                        {% if center.avg_quality %}
+                                            {{ center.avg_quality|floatformat:1 }}/10
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <span class="me-2">{{ center.monthly_usage }}/{{ center.monthly_limit }}</span>
+                                            <div class="progress" style="width: 60px; height: 8px;">
+                                                <div class="progress-bar {% if center.usage_percentage > 80 %}bg-danger{% elif center.usage_percentage > 60 %}bg-warning{% else %}bg-success{% endif %}" 
+                                                     style="width: {{ center.usage_percentage }}%"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if center.last_activity %}
+                                            {{ center.last_activity|date:"d.m.Y" }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Kalıp Durumları Grafiği
+const statusCtx = document.getElementById('statusChart').getContext('2d');
+new Chart(statusCtx, {
+    type: 'doughnut',
+    data: {
+        labels: {{ status_labels|safe }},
+        datasets: [{
+            data: {{ status_data|safe }},
+            backgroundColor: [
+                '#ffc107', // Bekliyor - Warning
+                '#17a2b8', // İşleniyor - Info  
+                '#28a745', // Tamamlandı - Success
+                '#dc3545', // Revizyon - Danger
+                '#6f42c1', // Kargoda - Purple
+                '#20c997'  // Teslim Edildi - Teal
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+// Kalıp Tipleri Grafiği
+const typeCtx = document.getElementById('typeChart').getContext('2d');
+new Chart(typeCtx, {
+    type: 'bar',
+    data: {
+        labels: {{ type_labels|safe }},
+        datasets: [{
+            label: 'Kalıp Sayısı',
+            data: {{ type_data|safe }},
+            backgroundColor: '#007bff'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+// Aylık Trend Grafiği
+const trendCtx = document.getElementById('trendChart').getContext('2d');
+new Chart(trendCtx, {
+    type: 'line',
+    data: {
+        labels: {{ trend_labels|safe }},
+        datasets: [{
+            label: 'Aylık Kalıp Sayısı',
+            data: {{ trend_data|safe }},
+            borderColor: '#28a745',
+            backgroundColor: 'rgba(40, 167, 69, 0.1)',
+            tension: 0.4
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+</script>
+{% endblock %} 

@@ -1,0 +1,286 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2>Raporlar</h2>
+                <div class="btn-group">
+                    <button type="button" 
+                            class="btn btn-outline-primary dropdown-toggle" 
+                            data-bs-toggle="dropdown">
+                        <i class="fas fa-download me-2"></i>Dışa Aktar
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                            <a class="dropdown-item" href="{% url 'center:export_report' format='pdf' %}">
+                                <i class="fas fa-file-pdf me-2"></i>PDF
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{% url 'center:export_report' format='excel' %}">
+                                <i class="fas fa-file-excel me-2"></i>Excel
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Summary Cards -->
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="bg-primary bg-opacity-10 rounded-circle p-3">
+                                <i class="fas fa-cube fa-2x text-primary"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="mb-1">Toplam Kalıp</h6>
+                            <h3 class="mb-0">{{ total_molds }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="bg-success bg-opacity-10 rounded-circle p-3">
+                                <i class="fas fa-check-circle fa-2x text-success"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="mb-1">Tamamlanan</h6>
+                            <h3 class="mb-0">{{ completed_molds }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="bg-warning bg-opacity-10 rounded-circle p-3">
+                                <i class="fas fa-redo fa-2x text-warning"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="mb-1">Revizyon</h6>
+                            <h3 class="mb-0">{{ revision_count }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="bg-info bg-opacity-10 rounded-circle p-3">
+                                <i class="fas fa-star fa-2x text-info"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="mb-1">Ortalama Puan</h6>
+                            <h3 class="mb-0">{{ average_rating|floatformat:1 }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Kalıp İstatistikleri</h5>
+                        <div class="btn-group">
+                            <button type="button" 
+                                    class="btn btn-sm btn-outline-secondary active" 
+                                    data-chart-period="month">
+                                Aylık
+                            </button>
+                            <button type="button" 
+                                    class="btn btn-sm btn-outline-secondary" 
+                                    data-chart-period="year">
+                                Yıllık
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <canvas id="moldsChart" height="300"></canvas>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-0">
+                    <h5 class="mb-0">Kalıp Tipleri Dağılımı</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="moldTypesChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <!-- Quality Distribution -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-0">
+                    <h5 class="mb-0">Kalite Dağılımı</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="qualityChart" height="300"></canvas>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0">
+                    <h5 class="mb-0">Son Aktiviteler</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% for activity in recent_activities %}
+                            <div class="list-group-item">
+                                <div class="d-flex">
+                                    <div class="flex-shrink-0">
+                                        <div class="bg-light rounded-circle p-2">
+                                            <i class="fas fa-{{ activity.get_icon }}"></i>
+                                        </div>
+                                    </div>
+                                    <div class="flex-grow-1 ms-3">
+                                        <p class="mb-1">{{ activity.description }}</p>
+                                        <small class="text-muted">{{ activity.created_at|naturaltime }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        {% empty %}
+                            <div class="text-center py-4">
+                                <p class="text-muted mb-0">Henüz aktivite yok.</p>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Molds Chart
+    const moldsCtx = document.getElementById('moldsChart').getContext('2d');
+    new Chart(moldsCtx, {
+        type: 'line',
+        data: {
+            labels: {{ chart_labels|safe }},
+            datasets: [
+                {
+                    label: 'Toplam Kalıp',
+                    data: {{ molds_data|safe }},
+                    borderColor: '#0d6efd',
+                    tension: 0.4
+                },
+                {
+                    label: 'Tamamlanan',
+                    data: {{ completed_data|safe }},
+                    borderColor: '#198754',
+                    tension: 0.4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+
+    // Mold Types Chart
+    const typesCtx = document.getElementById('moldTypesChart').getContext('2d');
+    new Chart(typesCtx, {
+        type: 'doughnut',
+        data: {
+            labels: {{ type_labels|safe }},
+            datasets: [{
+                data: {{ type_data|safe }},
+                backgroundColor: [
+                    '#0d6efd',
+                    '#6610f2',
+                    '#6f42c1',
+                    '#d63384',
+                    '#dc3545'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+
+    // Quality Chart
+    const qualityCtx = document.getElementById('qualityChart').getContext('2d');
+    new Chart(qualityCtx, {
+        type: 'bar',
+        data: {
+            labels: ['1', '2', '3', '4', '5'],
+            datasets: [{
+                label: 'Kalıp Sayısı',
+                data: {{ quality_data|safe }},
+                backgroundColor: '#0d6efd'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+
+    // Chart Period Buttons
+    document.querySelectorAll('[data-chart-period]').forEach(button => {
+        button.addEventListener('click', function() {
+            // Remove active class from all buttons
+            this.parentElement.querySelectorAll('.btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            // Add active class to clicked button
+            this.classList.add('active');
+            
+            // Update chart data based on period
+            const period = this.dataset.chartPeriod;
+            fetch(`{% url 'center:chart_data' %}?period=${period}`)
+                .then(response => response.json())
+                .then(data => {
+                    moldsChart.data.labels = data.labels;
+                    moldsChart.data.datasets[0].data = data.molds;
+                    moldsChart.data.datasets[1].data = data.completed;
+                    moldsChart.update();
+                });
+        });
+    });
+</script>
+{% endblock %}
+{% endblock %} 

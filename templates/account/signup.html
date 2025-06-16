@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <h2 class="text-center mb-4">{% trans "Merkez Kaydı" %}</h2>
+                    
+                    <form class="signup" id="signup_form" method="post" action="{% url 'account_signup' %}">
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {{ form.non_field_errors }}
+                            </div>
+                        {% endif %}
+
+                        {{ form|crispy }}
+
+                        {% if redirect_field_value %}
+                            <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+                        {% endif %}
+                        
+                        <div class="d-grid mt-4">
+                            <button class="btn btn-primary btn-lg" type="submit">{% trans "Kaydı Tamamla" %}</button>
+                        </div>
+                    </form>
+                    
+                    <p class="text-center mt-3">
+                        {% trans "Zaten hesabınız var mı?" %}
+                        <a href="{{ login_url }}" class="text-primary">{% trans "Giriş Yapın" %}</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background-color: #f8f9fa;
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+    .form-control {
+        border-radius: 0.5rem;
+        border: 1px solid #ced4da;
+        padding: 0.75rem 1rem;
+    }
+
+    .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(135, 206, 235, 0.25);
+    }
+
+    .form-label {
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-text {
+        color: #6c757d;
+        font-size: 0.875rem;
+    }
+
+    .invalid-feedback {
+        font-size: 0.875rem;
+    }
+
+    .btn-primary {
+        padding: 0.75rem 1.5rem;
+        font-weight: 500;
+        border-radius: 0.5rem;
+    }
+
+    .card {
+        border-radius: 1rem;
+    }
+
+    .card-body {
+        padding: 2rem;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Form elements
+        const termsCheckbox = document.getElementById('terms');
+        const submitButton = document.getElementById('submitBtn');
+        const phoneInput = document.querySelector('input[name="phone"]');
+        const password1Input = document.querySelector('input[name="password1"]');
+
+        // Terms checkbox validation
+        termsCheckbox.addEventListener('change', function(e) {
+            submitButton.disabled = !e.target.checked;
+        });
+
+        // Phone number formatting
+        if (phoneInput) {
+            phoneInput.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.length > 0) {
+                    if (value.length <= 3) {
+                        value = `(${value}`;
+                    } else if (value.length <= 6) {
+                        value = `(${value.slice(0, 3)}) ${value.slice(3)}`;
+                    } else {
+                        value = `(${value.slice(0, 3)}) ${value.slice(3, 6)}-${value.slice(6, 10)}`;
+                    }
+                }
+                e.target.value = value;
+            });
+        }
+
+        // Password strength indicator
+        if (password1Input) {
+            const strengthMeter = document.createElement('div');
+            strengthMeter.className = 'progress mt-2';
+            strengthMeter.style.height = '5px';
+            strengthMeter.innerHTML = '<div class="progress-bar" role="progressbar"></div>';
+            password1Input.parentNode.appendChild(strengthMeter);
+
+            const progressBar = strengthMeter.querySelector('.progress-bar');
+
+            password1Input.addEventListener('input', function(e) {
+                const password = e.target.value;
+                let strength = 0;
+
+                if (password.length >= 8) strength += 25;
+                if (password.match(/[a-z]/)) strength += 25;
+                if (password.match(/[A-Z]/)) strength += 25;
+                if (password.match(/[0-9]/)) strength += 25;
+
+                progressBar.style.width = `${strength}%`;
+                
+                if (strength <= 25) {
+                    progressBar.className = 'progress-bar bg-danger';
+                } else if (strength <= 50) {
+                    progressBar.className = 'progress-bar bg-warning';
+                } else if (strength <= 75) {
+                    progressBar.className = 'progress-bar bg-info';
+                } else {
+                    progressBar.className = 'progress-bar bg-success';
+                }
+            });
+        }
+    });
+</script>
+{% endblock %} 

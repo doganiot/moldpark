@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2>Merkez Profili Oluştur</h2>
+            <p class="text-muted">Sistemi kullanabilmek için merkez bilgilerinizi girmeniz gerekmektedir.</p>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0">
+                    <h5 class="mb-0">Merkez Bilgileri</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" class="row g-3">
+                        {% csrf_token %}
+                        
+                        <div class="col-md-6">
+                            {{ form.name|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.phone|as_crispy_field }}
+                        </div>
+                        <div class="col-12">
+                            {{ form.address|as_crispy_field }}
+                        </div>
+                        <div class="col-12">
+                            {{ form.notification_preferences|as_crispy_field }}
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Merkez Profilini Oluştur
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

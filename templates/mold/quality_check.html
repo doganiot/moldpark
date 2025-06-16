@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'mold:mold_list' %}">Kalıplar</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'mold:mold_detail' mold.id %}">{{ mold.patient_name }}</a></li>
+                    <li class="breadcrumb-item active">Kalite Kontrol</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Quality Check Form -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0">
+                    <h5 class="mb-0">Kalite Kontrol Formu</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <!-- Mold Information -->
+                        <div class="alert alert-light mb-4">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <dl class="row mb-0">
+                                        <dt class="col-sm-4">Hasta</dt>
+                                        <dd class="col-sm-8">{{ mold.patient_name }}</dd>
+
+                                        <dt class="col-sm-4">Kalıp Tipi</dt>
+                                        <dd class="col-sm-8">{{ mold.get_mold_type_display }}</dd>
+                                    </dl>
+                                </div>
+                                <div class="col-md-6">
+                                    <dl class="row mb-0">
+                                        <dt class="col-sm-4">Vent Çapı</dt>
+                                        <dd class="col-sm-8">{{ mold.vent_size }} mm</dd>
+
+                                        <dt class="col-sm-4">Durum</dt>
+                                        <dd class="col-sm-8">
+                                            <span class="badge bg-{{ mold.get_status_color }}">
+                                                {{ mold.get_status_display }}
+                                            </span>
+                                        </dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Checklist -->
+                        <div class="mb-4">
+                            <h6 class="mb-3">Kontrol Listesi</h6>
+                            {% for item in form.checklist %}
+                                <div class="card mb-3 {% if item.value %}border-success{% endif %}">
+                                    <div class="card-body">
+                                        <div class="form-check">
+                                            <input type="checkbox" 
+                                                   name="{{ item.name }}" 
+                                                   id="{{ item.id_for_label }}" 
+                                                   class="form-check-input"
+                                                   {% if item.value %}checked{% endif %}>
+                                            <label class="form-check-label" for="{{ item.id_for_label }}">
+                                                {{ item.label }}
+                                            </label>
+                                        </div>
+                                        {% if item.help_text %}
+                                            <small class="text-muted d-block mt-1">{{ item.help_text }}</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Rating -->
+                        <div class="mb-4">
+                            <h6 class="mb-3">Kalite Puanı</h6>
+                            <div class="rating-container">
+                                {% for i in "12345" %}
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" 
+                                               type="radio" 
+                                               name="rating" 
+                                               id="rating{{ i }}" 
+                                               value="{{ i }}"
+                                               {% if form.rating.value == i %}checked{% endif %}>
+                                        <label class="form-check-label" for="rating{{ i }}">
+                                            {{ i }}
+                                        </label>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <div class="rating-labels d-flex justify-content-between mt-2">
+                                <small class="text-muted">Yetersiz</small>
+                                <small class="text-muted">Mükemmel</small>
+                            </div>
+                        </div>
+
+                        <!-- Notes -->
+                        <div class="mb-4">
+                            {{ form.notes|as_crispy_field }}
+                        </div>
+
+                        <!-- Submit -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'mold:mold_detail' mold.id %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Geri
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-check me-2"></i>Kaydet
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <!-- Previous Quality Checks -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0">
+                    <h5 class="mb-0">Önceki Kontroller</h5>
+                </div>
+                <div class="card-body">
+                    {% for check in previous_checks %}
+                        <div class="quality-check-item {% if not forloop.last %}mb-4{% endif %}">
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="flex-shrink-0">
+                                    <div class="bg-light rounded-circle p-2">
+                                        <i class="fas fa-clipboard-check"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-0">Kontrol #{{ check.id }}</h6>
+                                        <span class="badge bg-primary">{{ check.rating }}/5</span>
+                                    </div>
+                                    <small class="text-muted">{{ check.created_at|naturaltime }}</small>
+                                </div>
+                            </div>
+                            {% if check.notes %}
+                                <p class="mb-0 ms-5 ps-2">{{ check.notes }}</p>
+                            {% endif %}
+                        </div>
+                    {% empty %}
+                        <p class="text-muted text-center mb-0">Henüz kalite kontrolü yapılmamış.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_css %}
+<style>
+    .rating-container {
+        display: flex;
+        justify-content: space-between;
+        max-width: 300px;
+    }
+
+    .quality-check-item {
+        position: relative;
+    }
+
+    .quality-check-item::after {
+        content: '';
+        position: absolute;
+        left: 1.5rem;
+        top: 3rem;
+        height: calc(100% - 1rem);
+        width: 2px;
+        background: #e9ecef;
+    }
+
+    .quality-check-item:last-child::after {
+        display: none;
+    }
+</style>
+{% endblock %}
+{% endblock %} 

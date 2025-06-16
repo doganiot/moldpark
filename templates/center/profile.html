@@ -1,0 +1,276 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2>Profil Ayarları</h2>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4">
+            <!-- Profile Card -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body text-center">
+                    <div class="mb-4">
+                        <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center" 
+                             style="width: 100px; height: 100px;">
+                            <i class="fas fa-user fa-3x text-primary"></i>
+                        </div>
+                    </div>
+                    <h5 class="mb-1">{{ user.center.name }}</h5>
+                    <p class="text-muted mb-3">
+                        {% if user.is_staff %}
+                            Yönetici
+                        {% else %}
+                            İşitme Merkezi
+                        {% endif %}
+                    </p>
+                    <div class="d-grid">
+                        <button type="button" 
+                                class="btn btn-outline-primary"
+                                data-bs-toggle="modal"
+                                data-bs-target="#avatarModal">
+                            <i class="fas fa-camera me-2"></i>Profil Fotoğrafı Değiştir
+                        </button>
+                    </div>
+                </div>
+                <div class="card-footer bg-white border-0">
+                    <div class="row text-center">
+                        <div class="col">
+                            <h5 class="mb-0">{{ total_molds }}</h5>
+                            <small class="text-muted">Kalıp</small>
+                        </div>
+                        <div class="col">
+                            <h5 class="mb-0">{{ mold_limit }}</h5>
+                            <small class="text-muted">Limit</small>
+                        </div>
+                        <div class="col">
+                            <h5 class="mb-0">{{ rating }}</h5>
+                            <small class="text-muted">Puan</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0">
+                    <h5 class="mb-0">İstatistikler</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Kalıp Kullanımı</span>
+                            <span>{{ mold_usage }}%</span>
+                        </div>
+                        <div class="progress" style="height: 5px;">
+                            <div class="progress-bar" style="width: {{ mold_usage }}%"></div>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Revizyon Oranı</span>
+                            <span>{{ revision_rate }}%</span>
+                        </div>
+                        <div class="progress" style="height: 5px;">
+                            <div class="progress-bar bg-warning" style="width: {{ revision_rate }}%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Memnuniyet</span>
+                            <span>{{ satisfaction_rate }}%</span>
+                        </div>
+                        <div class="progress" style="height: 5px;">
+                            <div class="progress-bar bg-success" style="width: {{ satisfaction_rate }}%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <!-- Center Information -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-0">
+                    <h5 class="mb-0">Merkez Bilgileri</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" class="row g-3">
+                        {% csrf_token %}
+                        
+                        <div class="col-md-6">
+                            {{ form.name|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.phone|as_crispy_field }}
+                        </div>
+                        <div class="col-12">
+                            {{ form.address|as_crispy_field }}
+                        </div>
+                        <div class="col-12">
+                            {{ form.notification_preferences|as_crispy_field }}
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Değişiklikleri Kaydet
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Account Settings -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-0">
+                    <h5 class="mb-0">Hesap Ayarları</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'account_change_password' %}" class="row g-3">
+                        {% csrf_token %}
+                        <div class="col-md-12">
+                            {{ password_form.old_password|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ password_form.new_password1|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ password_form.new_password2|as_crispy_field }}
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-key me-2"></i>Şifre Değiştir
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Danger Zone -->
+            <div class="card border-0 shadow-sm border-danger">
+                <div class="card-header bg-white border-0">
+                    <h5 class="mb-0 text-danger">Tehlikeli Bölge</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-4">
+                        Bu bölgedeki işlemler geri alınamaz. Lütfen dikkatli olun.
+                    </p>
+                    <button type="button" 
+                            class="btn btn-outline-danger"
+                            data-bs-toggle="modal"
+                            data-bs-target="#deleteAccountModal">
+                        <i class="fas fa-trash me-2"></i>Hesabı Sil
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Avatar Modal -->
+<div class="modal fade" id="avatarModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Profil Fotoğrafı Değiştir</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'center:change_avatar' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Yeni Fotoğraf</label>
+                        <input type="file" name="avatar" class="form-control" accept="image/*" required>
+                        <small class="text-muted">
+                            Maksimum dosya boyutu: 2MB<br>
+                            Desteklenen formatlar: JPG, PNG
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-primary">Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Account Modal -->
+<div class="modal fade" id="deleteAccountModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Hesap Silme Onayı</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-4">
+                    <i class="fas fa-exclamation-triangle fa-3x text-warning"></i>
+                </div>
+                <p>
+                    Hesabınızı silmek istediğinize emin misiniz? Bu işlem geri alınamaz ve:
+                </p>
+                <ul class="text-danger">
+                    <li>Tüm kalıplarınız silinecek</li>
+                    <li>Tüm mesajlarınız silinecek</li>
+                    <li>Profil bilgileriniz silinecek</li>
+                </ul>
+                <div class="alert alert-warning">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="confirmDelete" required>
+                        <label class="form-check-label" for="confirmDelete">
+                            Bu işlemin geri alınamayacağını anlıyorum
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <form method="post" action="{% url 'center:delete_account' %}">
+                    {% csrf_token %}
+                    <button type="submit" 
+                            class="btn btn-danger" 
+                            id="deleteAccountBtn" 
+                            disabled>
+                        Hesabı Sil
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // Avatar validation
+    document.querySelector('input[name="avatar"]').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            // Check file size
+            if (file.size > 2097152) { // 2MB in bytes
+                alert('Dosya boyutu 2MB\'ı geçemez.');
+                e.target.value = '';
+                return;
+            }
+
+            // Check file extension
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (!['jpg', 'jpeg', 'png'].includes(ext)) {
+                alert('Sadece JPG ve PNG dosyaları yüklenebilir.');
+                e.target.value = '';
+                return;
+            }
+        }
+    });
+
+    // Delete account confirmation
+    document.getElementById('confirmDelete').addEventListener('change', function(e) {
+        document.getElementById('deleteAccountBtn').disabled = !e.target.checked;
+    });
+</script>
+{% endblock %}
+{% endblock %} 

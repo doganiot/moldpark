@@ -1,0 +1,300 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ center.name }} - Merkez Detayı{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Başlık ve Geri Dön -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2><i class="fas fa-building me-2"></i>{{ center.name }}</h2>
+                    <p class="text-muted mb-0">Merkez Detayları ve İstatistikler</p>
+                </div>
+                <a href="{% url 'center:admin_center_list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Geri Dön
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Merkez Bilgileri -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Merkez Bilgileri</h5>
+                    <span class="badge {% if center.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                        {% if center.is_active %}Aktif{% else %}Pasif{% endif %}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Merkez Adı:</strong> {{ center.name }}</p>
+                            <p><strong>E-posta:</strong> {{ center.user.email }}</p>
+                            <p><strong>Telefon:</strong> {{ center.phone|default:"Belirtilmemiş" }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Adres:</strong> {{ center.address|default:"Belirtilmemiş" }}</p>
+                            <p><strong>Kayıt Tarihi:</strong> {{ center.user.date_joined|date:"d.m.Y H:i" }}</p>
+                            <p><strong>Son Giriş:</strong> {{ center.user.last_login|date:"d.m.Y H:i"|default:"Hiç giriş yapmamış" }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-cogs me-2"></i>Hızlı İşlemler</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn {% if center.is_active %}btn-warning{% else %}btn-success{% endif %}" 
+                                onclick="toggleCenterStatus({{ center.id }})">
+                            <i class="fas {% if center.is_active %}fa-pause{% else %}fa-play{% endif %} me-2"></i>
+                            {% if center.is_active %}Pasif Yap{% else %}Aktif Yap{% endif %}
+                        </button>
+                        
+                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#limitModal">
+                            <i class="fas fa-edit me-2"></i>Limit Güncelle
+                        </button>
+                        
+                        <a href="mailto:{{ center.user.email }}" class="btn btn-outline-primary">
+                            <i class="fas fa-envelope me-2"></i>E-posta Gönder
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- İstatistikler -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ stats.total_molds }}</h4>
+                            <p class="mb-0">Toplam Kalıp</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-cube fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ stats.completed_molds }}</h4>
+                            <p class="mb-0">Tamamlanan</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-check-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ stats.active_molds }}</h4>
+                            <p class="mb-0">Aktif Kalıp</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-clock fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ stats.avg_quality|floatformat:1 }}</h4>
+                            <p class="mb-0">Ort. Kalite</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-star fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kullanım Durumu -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Kalıp Kullanım Durumu</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Kalıp Limiti:</strong> {{ center.mold_limit }} kalıp</p>
+                            <p><strong>Kullanılan:</strong> {{ stats.total_molds }} kalıp</p>
+                            <p><strong>Kalan:</strong> {{ stats.remaining_limit }} kalıp</p>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="progress" style="height: 25px;">
+                                <div class="progress-bar {% if stats.usage_percentage > 80 %}bg-danger{% elif stats.usage_percentage > 60 %}bg-warning{% else %}bg-success{% endif %}" 
+                                     role="progressbar" 
+                                     style="width: {{ stats.usage_percentage }}%"
+                                     aria-valuenow="{{ stats.usage_percentage }}" 
+                                     aria-valuemin="0" 
+                                     aria-valuemax="100">
+                                    %{{ stats.usage_percentage|floatformat:0 }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Son Kalıplar -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-list me-2"></i>Son Kalıplar</h5>
+                    <a href="{% url 'center:admin_mold_list' %}?center={{ center.id }}" class="btn btn-sm btn-outline-primary">
+                        Tümünü Gör
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if recent_molds %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Hasta</th>
+                                        <th>Tip</th>
+                                        <th>Durum</th>
+                                        <th>Kalite</th>
+                                        <th>Tarih</th>
+                                        <th>İşlemler</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for mold in recent_molds %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ mold.patient_name }}</strong><br>
+                                            <small class="text-muted">{{ mold.patient_age }} yaş, {{ mold.get_patient_gender_display }}</small>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-secondary">{{ mold.get_mold_type_display }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge {{ mold.get_status_color }}">{{ mold.get_status_display }}</span>
+                                        </td>
+                                        <td>
+                                            {% if mold.quality_score %}
+                                                <div class="d-flex align-items-center">
+                                                    <span class="me-2">{{ mold.quality_score }}/10</span>
+                                                    <div class="progress" style="width: 60px; height: 8px;">
+                                                        <div class="progress-bar bg-success" style="width: {{ mold.quality_score }}0%"></div>
+                                                    </div>
+                                                </div>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ mold.created_at|date:"d.m.Y" }}</td>
+                                        <td>
+                                            <a href="{% url 'center:admin_mold_detail' mold.id %}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">Henüz kalıp bulunmuyor.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Limit Güncelleme Modal -->
+<div class="modal fade" id="limitModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Kalıp Limiti Güncelle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'center:admin_center_update_limit' center.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="mold_limit" class="form-label">Kalıp Limiti</label>
+                        <input type="number" class="form-control" id="mold_limit" name="mold_limit" 
+                               value="{{ center.mold_limit }}" min="1" max="1000" required>
+                        <div class="form-text">Merkezin gönderebileceği maksimum kalıp sayısı (1-1000 arası)</div>
+                        <small class="text-muted">Mevcut değer: {{ center.mold_limit }}</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-primary">Güncelle</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleCenterStatus(centerId) {
+    if (confirm('Merkez durumunu değiştirmek istediğinizden emin misiniz?')) {
+        fetch(`/center/admin/centers/${centerId}/toggle-status/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Bir hata oluştu: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Bir hata oluştu.');
+        });
+    }
+}
+</script>
+{% endblock %} 

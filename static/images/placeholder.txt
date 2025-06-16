@@ -1,0 +1,9 @@
+Bu klasöre aşağıdaki kalıp fotoğraflarını ekleyebilirsiniz:
+
+1. tam-konka-kalip.jpg - Tam konka kalıbı fotoğrafı
+2. yarim-konka-kalip.jpg - Yarım konka kalıbı fotoğrafı  
+3. probe-kalip.jpg - Probe kalıbı fotoğrafı
+4. iskelet-kalip.jpg - İskelet tip kalıp fotoğrafı
+
+Önerilen boyutlar: 400x300 piksel
+Desteklenen formatlar: JPG, PNG, WebP 

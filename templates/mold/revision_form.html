@@ -1,0 +1,244 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'mold:mold_list' %}">Kalıplar</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'mold:mold_detail' mold.id %}">{{ mold.patient_name }}</a></li>
+                    <li class="breadcrumb-item active">Revizyon Talebi</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Revision Form -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0">
+                    <h5 class="mb-0">Revizyon Talebi</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+
+                        <!-- Mold Information -->
+                        <div class="alert alert-light mb-4">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <dl class="row mb-0">
+                                        <dt class="col-sm-4">Hasta</dt>
+                                        <dd class="col-sm-8">{{ mold.patient_name }}</dd>
+
+                                        <dt class="col-sm-4">Kalıp Tipi</dt>
+                                        <dd class="col-sm-8">{{ mold.get_mold_type_display }}</dd>
+                                    </dl>
+                                </div>
+                                <div class="col-md-6">
+                                    <dl class="row mb-0">
+                                        <dt class="col-sm-4">Vent Çapı</dt>
+                                        <dd class="col-sm-8">{{ mold.vent_size }} mm</dd>
+
+                                        <dt class="col-sm-4">Durum</dt>
+                                        <dd class="col-sm-8">
+                                            <span class="badge bg-{{ mold.get_status_color }}">
+                                                {{ mold.get_status_display }}
+                                            </span>
+                                        </dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Revision Type -->
+                        <div class="mb-4">
+                            {{ form.revision_type|as_crispy_field }}
+                        </div>
+
+                        <!-- Description -->
+                        <div class="mb-4">
+                            {{ form.description|as_crispy_field }}
+                        </div>
+
+                        <!-- Images -->
+                        <div class="mb-4">
+                            <label class="form-label">Fotoğraflar</label>
+                            {% if object and object.images.all %}
+                                <div class="row mb-3">
+                                    {% for image in object.images.all %}
+                                        <div class="col-md-4 mb-3">
+                                            <div class="card">
+                                                <img src="{{ image.file.url }}" class="card-img-top" alt="Revizyon fotoğrafı">
+                                                <div class="card-body p-2">
+                                                    <small class="text-muted">{{ image.file.name|cut:"revision_images/" }}</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            {{ form.images|as_crispy_field }}
+                            <small class="text-muted">
+                                Maksimum dosya boyutu: 5MB<br>
+                                Desteklenen formatlar: JPG, PNG<br>
+                                En fazla 5 fotoğraf yükleyebilirsiniz
+                            </small>
+                        </div>
+
+                        <!-- Submit -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'mold:mold_detail' mold.id %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Geri
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane me-2"></i>Revizyon Talebi Gönder
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <!-- Previous Revisions -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0">
+                    <h5 class="mb-0">Önceki Revizyonlar</h5>
+                </div>
+                <div class="card-body">
+                    {% for revision in previous_revisions %}
+                        <div class="revision-item {% if not forloop.last %}mb-4{% endif %}">
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="flex-shrink-0">
+                                    <div class="bg-light rounded-circle p-2">
+                                        <i class="fas fa-redo"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-0">Revizyon #{{ revision.id }}</h6>
+                                        <span class="badge bg-{{ revision.get_status_color }}">
+                                            {{ revision.get_status_display }}
+                                        </span>
+                                    </div>
+                                    <small class="text-muted">{{ revision.created_at|naturaltime }}</small>
+                                </div>
+                            </div>
+                            <div class="ms-5 ps-2">
+                                <p class="mb-2">
+                                    <span class="badge bg-light text-dark">
+                                        {{ revision.get_revision_type_display }}
+                                    </span>
+                                </p>
+                                <p class="mb-0">{{ revision.description }}</p>
+                                {% if revision.images.exists %}
+                                    <div class="mt-2">
+                                        <a href="#" 
+                                           class="btn btn-sm btn-link text-decoration-none p-0"
+                                           data-bs-toggle="modal"
+                                           data-bs-target="#revisionModal{{ revision.id }}">
+                                            <i class="fas fa-images me-1"></i>
+                                            {{ revision.images.count }} fotoğraf
+                                        </a>
+                                    </div>
+
+                                    <!-- Revision Images Modal -->
+                                    <div class="modal fade" id="revisionModal{{ revision.id }}" tabindex="-1">
+                                        <div class="modal-dialog modal-lg">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title">Revizyon Fotoğrafları</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <div class="row">
+                                                        {% for image in revision.images.all %}
+                                                            <div class="col-md-6 mb-3">
+                                                                <img src="{{ image.file.url }}" 
+                                                                     class="img-fluid rounded" 
+                                                                     alt="Revizyon fotoğrafı">
+                                                            </div>
+                                                        {% endfor %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% empty %}
+                        <p class="text-muted text-center mb-0">Henüz revizyon talebi yok.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_css %}
+<style>
+    .revision-item {
+        position: relative;
+    }
+
+    .revision-item::after {
+        content: '';
+        position: absolute;
+        left: 1.5rem;
+        top: 3rem;
+        height: calc(100% - 1rem);
+        width: 2px;
+        background: #e9ecef;
+    }
+
+    .revision-item:last-child::after {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Image validation
+    document.querySelector('input[type="file"]').addEventListener('change', function(e) {
+        const files = e.target.files;
+        let valid = true;
+
+        // Check number of files
+        if (files.length > 5) {
+            alert('En fazla 5 fotoğraf yükleyebilirsiniz.');
+            valid = false;
+        }
+
+        // Check each file
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+
+            // Check file size
+            if (file.size > 5242880) { // 5MB in bytes
+                alert(`${file.name} dosyası 5MB'dan büyük.`);
+                valid = false;
+                break;
+            }
+
+            // Check file extension
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (!['jpg', 'jpeg', 'png'].includes(ext)) {
+                alert(`${file.name} desteklenmeyen bir dosya formatı.`);
+                valid = false;
+                break;
+            }
+        }
+
+        if (!valid) {
+            e.target.value = '';
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %} 

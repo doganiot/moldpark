@@ -1,0 +1,338 @@
+:root {
+    --primary-color: #87CEEB; /* Gökyüzü mavisi */
+    --secondary-color: #98FB98; /* Açık mat yeşil */
+}
+
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.navbar {
+    background-color: var(--primary-color);
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-secondary {
+    background-color: var(--secondary-color);
+    border-color: var(--secondary-color);
+    color: #000;
+}
+
+.footer {
+    margin-top: auto;
+    background-color: var(--primary-color);
+    color: white;
+    padding: 1rem 0;
+}
+
+.content {
+    flex: 1;
+    padding: 2rem 0;
+}
+
+/* Timeline Styles */
+.timeline {
+    position: relative;
+    padding-left: 3rem;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 1rem;
+    top: 0;
+    height: 100%;
+    width: 2px;
+    background: #e9ecef;
+}
+
+.timeline-item {
+    position: relative;
+    padding-bottom: 1.5rem;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -2rem;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50%;
+}
+
+.timeline-content {
+    padding-left: 0.5rem;
+}
+
+/* Revision Styles */
+.revision-item {
+    position: relative;
+}
+
+.revision-item::after {
+    content: '';
+    position: absolute;
+    left: 1.5rem;
+    top: 3rem;
+    height: calc(100% - 1rem);
+    width: 2px;
+    background: #e9ecef;
+}
+
+.revision-item:last-child::after {
+    display: none;
+}
+
+/* Card Hover Effects */
+.card {
+    transition: transform 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+}
+
+/* Badge Styles */
+.badge {
+    font-size: 0.75em;
+}
+
+/* Progress Bar Animations */
+.progress-bar {
+    transition: width 0.6s ease;
+}
+
+/* Button Hover Effects */
+.btn {
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+/* Table Responsive */
+.table-responsive {
+    border-radius: 0.375rem;
+}
+
+/* Modal Enhancements */
+.modal-content {
+    border: none;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+/* Alert Styles */
+.alert {
+    border: none;
+    border-radius: 0.5rem;
+}
+
+/* Form Enhancements */
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(135, 206, 235, 0.25);
+}
+
+/* Notification Badge */
+.notification-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #dc3545;
+    color: white;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Loading Spinner */
+.spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #5bc0de;
+}
+
+/* Kalıp Modelleri Stilleri */
+.mold-type-card {
+    transition: all 0.3s ease;
+    border: none !important;
+    overflow: hidden;
+}
+
+.mold-type-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 1rem 2rem rgba(0,0,0,0.15) !important;
+}
+
+.mold-type-icon {
+    transition: transform 0.3s ease;
+}
+
+.mold-type-card:hover .mold-type-icon {
+    transform: scale(1.1);
+}
+
+/* Kalıp Fotoğrafları */
+.mold-type-card img {
+    transition: transform 0.3s ease;
+    object-fit: cover;
+}
+
+.mold-type-card:hover img {
+    transform: scale(1.05);
+}
+
+/* Object-fit polyfill for older browsers */
+.object-fit-cover {
+    object-fit: cover;
+    object-position: center;
+}
+
+/* Fallback for browsers that don't support object-fit */
+@supports not (object-fit: cover) {
+    .object-fit-cover {
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+    }
+}
+
+/* İstatistik Sayaçları */
+.stat-counter {
+    animation: countUp 2s ease-out;
+}
+
+@keyframes countUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Avantaj İkonları */
+.advantage-icon {
+    transition: all 0.3s ease;
+}
+
+.advantage-icon:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
+}
+
+/* Ana Sayfa Hero Section */
+.hero-section {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    color: white;
+}
+
+/* Logo Stilleri */
+.navbar-brand img {
+    transition: transform 0.3s ease;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.navbar-brand:hover img {
+    transform: scale(1.05);
+}
+
+.footer img {
+    border-radius: 6px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+}
+
+/* Hero section logo */
+.hero-logo {
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    transition: transform 0.3s ease;
+}
+
+.hero-logo:hover {
+    transform: scale(1.02);
+}
+
+/* Utility Classes */
+.text-shadow {
+    text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.border-radius-lg {
+    border-radius: 1rem !important;
+}
+
+.shadow-hover {
+    transition: box-shadow 0.3s ease;
+}
+
+.shadow-hover:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15) !important;
+}
+
+/* Responsive Düzenlemeler */
+@media (max-width: 768px) {
+    .mold-type-card .row {
+        flex-direction: column;
+    }
+    
+    .mold-type-card .col-md-4 {
+        min-height: 100px;
+    }
+    
+    .display-4 {
+        font-size: 2rem !important;
+    }
+    
+    .hero-section h1 {
+        font-size: 2.5rem !important;
+    }
+    
+    /* Mobil logo boyutları */
+    .navbar-brand img {
+        height: 30px !important;
+    }
+    
+    .hero-logo {
+        height: 45px !important;
+    }
+    
+    .footer img {
+        height: 25px !important;
+    }
+    
+    /* Hero section mobil düzenleme */
+    .hero-section .d-flex {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .hero-section .me-3 {
+        margin-right: 0 !important;
+        margin-bottom: 1rem;
+    }
+} 
