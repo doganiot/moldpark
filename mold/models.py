@@ -71,7 +71,14 @@ class EarMold(models.Model):
         return dict(self.STATUS_CHOICES).get(self.status, self.status)
 
 class Revision(models.Model):
+    REVISION_TYPE_CHOICES = [
+        ('minor', 'Küçük Düzeltme'),
+        ('major', 'Büyük Değişiklik'),
+        ('remake', 'Yeniden Yapım'),
+    ]
+    
     mold = models.ForeignKey(EarMold, on_delete=models.CASCADE, related_name='revisions', verbose_name='Kalıp')
+    revision_type = models.CharField('Revizyon Türü', max_length=10, choices=REVISION_TYPE_CHOICES, default='minor')
     description = models.TextField('Açıklama')
     created_at = models.DateTimeField('Oluşturulma Tarihi', auto_now_add=True)
 
@@ -81,7 +88,7 @@ class Revision(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f'{self.mold} - Revizyon {self.created_at}'
+        return f'{self.mold} - {self.get_revision_type_display()} Revizyon {self.created_at}'
 
 class ModeledMold(models.Model):
     ear_mold = models.ForeignKey(EarMold, on_delete=models.CASCADE, related_name='modeled_files')

@@ -2,6 +2,9 @@ from allauth.account.forms import SignupForm
 from django import forms
 from center.models import Center
 from producer.models import Producer
+from notifications.signals import notify
+from django.contrib.auth.models import User
+from django.utils import timezone
 
 class CustomSignupForm(SignupForm):
     # Merkez alanları
@@ -35,51 +38,54 @@ class CustomSignupForm(SignupForm):
         })
     )
 
-    # Üretici Merkez Seçimi
+    # Üretici Merkez Seçimi - ZORUNLU
     producer_network = forms.ChoiceField(
-        label='Üretici Merkez Seçimi',
-        required=False,
+        label='Üretici Merkez Seçimi *',
+        required=True,
         widget=forms.Select(attrs={
             'class': 'form-select',
             'id': 'producer-select'
         }),
-        help_text='İsteğe bağlı: Bir üretici ağına katılmak istiyorsanız seçiniz'
+        help_text='Zorunlu: Kalıp üretimi için bir üretici merkez seçmelisiniz'
     )
 
     # Bildirim tercihleri
     notification_preferences = forms.MultipleChoiceField(
         choices=[
-            ('new_mold', 'Yeni Kalıp Bildirimleri'),
-            ('status_update', 'Durum Güncellemeleri'),
-            ('revision', 'Revizyon Bildirimleri'),
-            ('message', 'Yeni Mesaj Bildirimleri'),
+            ('new_order', 'Yeni Sipariş Bildirimleri'),
+            ('revision', 'Revizyon Bildirimleri'), 
+            ('completed', 'Tamamlanan Sipariş'),
+            ('urgent', 'Acil Durum'),
+            ('system', 'Sistem Bildirimleri'),
         ],
         widget=forms.CheckboxSelectMultiple,
         label='Bildirim Tercihleri',
-        required=False
+        required=False,
+        initial=['system', 'completed', 'revision']
     )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
         # Üretici seçeneklerini yükle
-        producer_choices = [('', 'Üretici ağına katılmadan devam et (MoldPark Merkez Yönetimi)')]
+        producer_choices = [('', 'Lütfen bir üretici merkez seçiniz')]
         try:
             # Aktif ve doğrulanmış üreticileri al
-            active_producers = Producer.objects.filter(is_verified=True, is_active=True)
+            active_producers = Producer.objects.filter(is_verified=True, is_active=True).order_by('company_name')
             
             for producer in active_producers:
+                network_count = producer.network_centers.filter(status='active').count()
                 producer_choices.append((
                     producer.id, 
-                    f"{producer.company_name} - {producer.get_producer_type_display()}"
+                    f"{producer.company_name} - {producer.get_producer_type_display()} ({network_count} aktif ağ)"
                 ))
         except Exception:
-            pass
+            producer_choices.append(('', 'Üretici merkezler yüklenemedi'))
         
         self.fields['producer_network'].choices = producer_choices
         
         try:
-            # Mevcut alanların etiketlerini Türkçeleştir (alanlar varsa)
+            # Mevcut alanların etiketlerini Türkçeleştir
             if 'username' in self.fields:
                 self.fields['username'].label = 'Kullanıcı Adı (Opsiyonel)'
                 self.fields['username'].required = False
@@ -95,48 +101,73 @@ class CustomSignupForm(SignupForm):
                 self.fields['password2'].label = 'Şifre (Tekrar)'
                 self.fields['password2'].widget.attrs.update({'class': 'form-control'})
             
-            # Alanların sıralamasını ayarla - email'i öne al
-            field_order = []
-            for field_name in ['center_name', 'phone', 'address', 'producer_network', 'email', 'password1', 'password2', 'username', 'notification_preferences']:
-                if field_name in self.fields:
-                    field_order.append(field_name)
-            
-            if field_order:
-                self.order_fields(field_order)
+            # Alanların sıralamasını ayarla
+            field_order = ['center_name', 'phone', 'address', 'producer_network', 'email', 'password1', 'password2', 'username', 'notification_preferences']
+            self.order_fields(field_order)
                 
-        except Exception as e:
-            # Hata durumunda sessizce devam et
+        except Exception:
             pass
+
+    def clean_producer_network(self):
+        producer_id = self.cleaned_data.get('producer_network')
+        if not producer_id:
+            raise forms.ValidationError('Üretici merkez seçimi zorunludur.')
+        
+        try:
+            producer = Producer.objects.get(id=producer_id, is_verified=True, is_active=True)
+            return producer_id
+        except Producer.DoesNotExist:
+            raise forms.ValidationError('Seçilen üretici merkez geçerli değil.')
 
     def save(self, request):
         # Önce kullanıcıyı kaydet
         user = super().save(request)
         
         try:
-            # Merkez modelini oluştur veya güncelle
-            center, created = Center.objects.get_or_create(user=user)
-            center.name = self.cleaned_data['center_name']
-            center.phone = self.cleaned_data['phone']
-            center.address = self.cleaned_data['address']
-            center.notification_preferences = self.cleaned_data.get('notification_preferences', [])
-            center.save()
+            # Merkez modelini oluştur
+            center = Center.objects.create(
+                user=user,
+                name=self.cleaned_data['center_name'],
+                phone=self.cleaned_data['phone'],
+                address=self.cleaned_data['address'],
+                notification_preferences=self.cleaned_data.get('notification_preferences', ['system'])
+            )
             
-            # Üretici ağına katılım
+            # OTOMATIK ÜRETİCİ AĞ BAĞLANTISI OLUŞTUR
             producer_id = self.cleaned_data.get('producer_network')
             if producer_id:
-                try:
-                    from producer.models import ProducerNetwork
-                    producer = Producer.objects.get(id=producer_id, is_verified=True, is_active=True)
-                    ProducerNetwork.objects.create(
-                        producer=producer,
-                        center=center,
-                        status='active'
-                    )
-                except Producer.DoesNotExist:
-                    pass  # Üretici bulunamadıysa sessizce devam et
-                except Exception:
-                    pass  # Diğer hatalar için de sessizce devam et
-                    
+                from producer.models import ProducerNetwork
+                producer = Producer.objects.get(id=producer_id)
+                
+                # Network bağlantısı oluştur
+                network = ProducerNetwork.objects.create(
+                    producer=producer,
+                    center=center,
+                    status='active',  # Direkt aktif olarak başla
+                    activated_at=timezone.now(),
+                    last_activity=timezone.now()
+                )
+                
+                # ÜRETİCİYE BİLDİRİM GÖNDER
+                notify.send(
+                    sender=center,
+                    recipient=producer.user,
+                    verb=f'yeni işitme merkezi ağa katıldı',
+                    action_object=center,
+                    description=f'{center.name} adlı işitme merkezi ağınıza katıldı. Artık kalıp siparişleri alabilirsiniz.',
+                    target=network
+                )
+                
+                # MERKEZE BİLDİRİM GÖNDER  
+                notify.send(
+                    sender=producer,
+                    recipient=user,
+                    verb=f'üretici ağına başarıyla katıldınız',
+                    action_object=producer,
+                    description=f'{producer.company_name} üretici ağına başarıyla katıldınız. Artık kalıp siparişleri verebilirsiniz.',
+                    target=network
+                )
+                
         except Exception as e:
             # Hata durumunda kullanıcıyı sil
             user.delete()

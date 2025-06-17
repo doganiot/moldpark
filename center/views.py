@@ -232,37 +232,113 @@ def center_limit_update(request, pk):
 
 @staff_member_required
 def admin_dashboard(request):
-    from mold.models import EarMold
-    from django.db.models import Count
+    # Temel istatistikler
+    total_centers = Center.objects.count()
+    active_centers = Center.objects.filter(is_active=True).count()
+    total_molds = EarMold.objects.count()
     
-    # İstatistikler
-    total_centers = Center.objects.filter(is_active=True).count()
-    total_molds = EarMold.objects.all().count()
-    waiting_models = EarMold.objects.filter(status='waiting').count()
-    in_progress = EarMold.objects.filter(status='processing').count()
-    completed = EarMold.objects.filter(status='completed').count()
-    delivered = EarMold.objects.filter(status='delivered').count()
+    # Kalıp durumları
+    mold_status_counts = EarMold.objects.values('status').annotate(count=Count('id'))
+    mold_stats = {item['status']: item['count'] for item in mold_status_counts}
+    
+    # ÜRETİCİ İSTATİSTİKLERİ
+    from producer.models import Producer, ProducerOrder, ProducerNetwork
+    total_producers = Producer.objects.count()
+    active_producers = Producer.objects.filter(is_active=True, is_verified=True).count()
+    total_networks = ProducerNetwork.objects.count()
+    active_networks = ProducerNetwork.objects.filter(status='active').count()
+    
+    # Sipariş istatistikleri
+    total_orders = ProducerOrder.objects.count()
+    order_status_counts = ProducerOrder.objects.values('status').annotate(count=Count('id'))
+    order_stats = {item['status']: item['count'] for item in order_status_counts}
+    
+    # Son aktiviteler (birleştirilmiş)
+    from datetime import timedelta
+    from django.utils import timezone
+    
+    last_week = timezone.now() - timedelta(days=7)
+    
+    # Son kalıplar
+    recent_molds = EarMold.objects.filter(created_at__gte=last_week).order_by('-created_at')[:5]
+    
+    # Son siparişler
+    recent_orders = ProducerOrder.objects.filter(created_at__gte=last_week).order_by('-created_at')[:5]
+    
+    # Son network katılımları
+    recent_networks = ProducerNetwork.objects.filter(joined_at__gte=last_week).order_by('-joined_at')[:5]
+    
+    # Aylık trendler
+    from django.utils.timezone import now
+    import calendar
+    
+    current_month = now().month
+    current_year = now().year
+    
+    monthly_molds = EarMold.objects.filter(
+        created_at__year=current_year,
+        created_at__month=current_month
+    ).count()
+    
+    monthly_orders = ProducerOrder.objects.filter(
+        created_at__year=current_year,
+        created_at__month=current_month
+    ).count()
+    
+    # Sorunlu durumlar
+    pending_orders = ProducerOrder.objects.filter(status='received').count()
+    revision_molds = EarMold.objects.filter(status='revision').count()
+    overdue_orders = ProducerOrder.objects.filter(
+        estimated_delivery__lt=timezone.now(),
+        status__in=['received', 'designing', 'production', 'quality_check']
+    ).count()
+    
+    # Chart verileri
+    mold_chart_data = {
+        'labels': [dict(EarMold.STATUS_CHOICES).get(k, k) for k in mold_stats.keys()],
+        'data': list(mold_stats.values())
+    }
+    
+    order_chart_data = {
+        'labels': [dict(ProducerOrder.STATUS_CHOICES).get(k, k) for k in order_stats.keys()],
+        'data': list(order_stats.values())
+    }
     
     # Son mesajlar
     recent_messages = CenterMessage.objects.all().order_by('-created_at')[:5]
     
-    # Merkez bazlı kalıp istatistikleri
-    center_stats = Center.objects.annotate(
-        total_molds=Count('molds'),
-        waiting_molds=Count('molds', filter=models.Q(molds__status='waiting')),
-        processing_molds=Count('molds', filter=models.Q(molds__status='processing')),
-        completed_molds=Count('molds', filter=models.Q(molds__status='completed'))
-    ).filter(is_active=True)
+    # Kritik uyarılar
+    warnings = []
+    if overdue_orders > 0:
+        warnings.append(f'{overdue_orders} adet gecikmiş sipariş')
+    if revision_molds > 0:
+        warnings.append(f'{revision_molds} adet revizyon bekleyen kalıp')
+    if pending_orders > 5:
+        warnings.append(f'{pending_orders} adet beklemede olan sipariş')
     
     return render(request, 'center/admin_dashboard.html', {
         'total_centers': total_centers,
+        'active_centers': active_centers,
         'total_molds': total_molds,
-        'waiting_models': waiting_models,
-        'in_progress': in_progress,
-        'completed': completed,
-        'delivered': delivered,
+        'total_producers': total_producers,
+        'active_producers': active_producers,
+        'total_networks': total_networks,
+        'active_networks': active_networks,
+        'total_orders': total_orders,
+        'monthly_molds': monthly_molds,
+        'monthly_orders': monthly_orders,
+        'pending_orders': pending_orders,
+        'revision_molds': revision_molds,
+        'overdue_orders': overdue_orders,
+        'mold_stats': mold_stats,
+        'order_stats': order_stats,
+        'mold_chart_data': mold_chart_data,
+        'order_chart_data': order_chart_data,
+        'recent_molds': recent_molds,
+        'recent_orders': recent_orders,
+        'recent_networks': recent_networks,
         'recent_messages': recent_messages,
-        'center_stats': center_stats
+        'warnings': warnings,
     })
 
 @staff_member_required

@@ -6,6 +6,7 @@ app_name = 'producer'
 urlpatterns = [
     # Üretici Kayıt ve Dashboard
     path('login/', views.producer_login, name='login'),
+    path('logout/', views.producer_logout, name='logout'),
     path('register/', views.producer_register, name='register'),
     path('', views.producer_dashboard, name='dashboard'),
     path('profile/', views.producer_profile, name='profile'),
@@ -15,12 +16,12 @@ urlpatterns = [
     path('orders/<int:pk>/', views.order_detail, name='order_detail'),
     path('orders/<int:pk>/update/', views.order_update, name='order_update'),
     
-    # Kalıp Yönetimi
-    path('molds/', views.mold_list, name='mold_list'),
-    path('molds/<int:pk>/', views.mold_detail, name='mold_detail'),
-    path('molds/<int:pk>/download/', views.mold_download, name='mold_download'),
-    path('molds/<int:pk>/download/<int:file_id>/', views.mold_download, name='mold_download_file'),
-    path('molds/<int:pk>/upload-result/', views.mold_upload_result, name='mold_upload_result'),
+    # Güvenli Kalıp Yönetimi (Sipariş-based)
+    path('molds/', views.mold_list, name='mold_list'),  # Artık producer_orders listesi
+    path('molds/<int:pk>/', views.mold_detail, name='mold_detail'),  # pk = order.id
+    path('molds/<int:pk>/download/', views.mold_download, name='mold_download'),  # pk = order.id
+    path('molds/<int:pk>/download/<int:file_id>/', views.mold_download, name='mold_download_file'),  # pk = order.id
+    path('molds/<int:pk>/upload-result/', views.mold_upload_result, name='mold_upload_result'),  # pk = order.id
     
     # Mesaj Sistemi
     path('messages/', views.message_list, name='message_list'),
@@ -32,7 +33,7 @@ urlpatterns = [
     path('network/invite/', views.network_invite, name='network_invite'),
     path('network/remove/<int:center_id>/', views.network_remove, name='network_remove'),
     
-    # Admin URLs (Ana yönetim paneli için)
+    # Admin URLs (Ana yönetim paneli için - sadece superuser erişimi)
     path('admin/', views.admin_producer_list, name='admin_producer_list'),
     path('admin/<int:pk>/', views.admin_producer_detail, name='admin_producer_detail'),
     path('admin/<int:pk>/verify/', views.admin_producer_verify, name='admin_producer_verify'),

@@ -1,13 +1,17 @@
 from django.contrib import admin
-from .models import Producer, ProducerNetwork, ProducerOrder, ProducerMessage, ProducerProductionLog
+from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.models import User
+from django.utils.html import format_html
+from django.urls import reverse
+from .models import Producer, ProducerOrder, ProducerMessage, ProducerNetwork, ProducerProductionLog
 
 
 @admin.register(Producer)
 class ProducerAdmin(admin.ModelAdmin):
-    list_display = ('company_name', 'producer_type', 'is_active', 'is_verified', 'get_network_centers_count', 'created_at')
-    list_filter = ('producer_type', 'is_active', 'is_verified', 'created_at')
-    search_fields = ('company_name', 'brand_name', 'contact_email', 'phone')
-    readonly_fields = ('created_at', 'updated_at', 'verification_date')
+    list_display = ('company_name', 'tax_number', 'phone', 'is_active', 'is_verified', 'get_orders_count', 'created_at')
+    list_filter = ('is_active', 'is_verified', 'producer_type', 'created_at')
+    search_fields = ('company_name', 'tax_number', 'contact_email', 'brand_name')
+    readonly_fields = ('created_at', 'updated_at', 'last_activity', 'get_orders_count', 'get_network_centers_count')
     
     fieldsets = (
         ('Temel Bilgiler', {
@@ -23,53 +27,64 @@ class ProducerAdmin(admin.ModelAdmin):
             'fields': ('mold_limit', 'monthly_limit', 'notification_preferences')
         }),
         ('Durum ve Kontrol', {
-            'fields': ('is_active', 'is_verified', 'verification_date')
+            'fields': ('is_active', 'is_verified')
         }),
         ('Dosyalar', {
             'fields': ('logo', 'certificate')
         }),
-        ('Tarihler', {
-            'fields': ('created_at', 'updated_at'),
+        ('Zaman Bilgileri', {
+            'fields': ('created_at', 'updated_at', 'last_activity'),
             'classes': ('collapse',)
         }),
+        ('İstatistikler', {
+            'fields': ('get_orders_count', 'get_network_centers_count'),
+            'classes': ('collapse',)
+        })
     )
-
-    def get_network_centers_count(self, obj):
-        return obj.get_network_centers_count()
-    get_network_centers_count.short_description = 'Ağdaki Merkez Sayısı'
-
-
-@admin.register(ProducerNetwork)
-class ProducerNetworkAdmin(admin.ModelAdmin):
-    list_display = ('producer', 'center', 'status', 'can_receive_orders', 'priority_level', 'joined_at')
-    list_filter = ('status', 'can_receive_orders', 'can_send_messages', 'joined_at')
-    search_fields = ('producer__company_name', 'center__name')
-    readonly_fields = ('joined_at', 'activated_at', 'last_activity')
     
-    fieldsets = (
-        ('İlişki', {
-            'fields': ('producer', 'center', 'status')
-        }),
-        ('İzinler', {
-            'fields': ('can_receive_orders', 'can_send_messages', 'priority_level')
-        }),
-        ('Tarihler', {
-            'fields': ('joined_at', 'activated_at', 'last_activity'),
-            'classes': ('collapse',)
-        }),
-    )
+    def get_orders_count(self, obj):
+        """Toplam sipariş sayısı"""
+        count = obj.orders.count()
+        return format_html(
+            '<a href="{}?producer={}">{} sipariş</a>',
+            reverse('admin:producer_producerorder_changelist'),
+            obj.pk,
+            count
+        )
+    get_orders_count.short_description = 'Siparişler'
+    
+    def get_network_centers_count(self, obj):
+        """Ağdaki merkez sayısı"""
+        count = obj.network_centers.filter(status='active').count()
+        return format_html(
+            '<span class="badge bg-success">{} aktif merkez</span>',
+            count
+        )
+    get_network_centers_count.short_description = 'Ağ Merkezleri'
+    
+    def save_model(self, request, obj, form, change):
+        """Model kaydederken güvenlik kontrolü"""
+        # Üretici user'ınının admin yetkilerini kaldır
+        if obj.user:
+            obj.user.is_staff = False
+            obj.user.is_superuser = False
+            obj.user.save()
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(ProducerOrder)
 class ProducerOrderAdmin(admin.ModelAdmin):
-    list_display = ('order_number', 'producer', 'center', 'status', 'priority', 'created_at')
-    list_filter = ('status', 'priority', 'created_at', 'shipping_company')
-    search_fields = ('order_number', 'producer__company_name', 'center__name', 'tracking_number')
+    list_display = ('order_number', 'producer', 'center', 'ear_mold', 'status', 'priority', 'created_at')
+    list_filter = ('status', 'priority', 'created_at')
+    search_fields = ('order_number', 'producer__company_name', 'center__name', 'ear_mold__patient_name')
     readonly_fields = ('order_number', 'created_at', 'updated_at')
     
     fieldsets = (
         ('Sipariş Bilgileri', {
-            'fields': ('order_number', 'producer', 'center', 'ear_mold', 'status', 'priority')
+            'fields': ('order_number', 'producer', 'center', 'ear_mold')
+        }),
+        ('Sipariş Detayları', {
+            'fields': ('status', 'priority')
         }),
         ('Zaman Bilgileri', {
             'fields': ('estimated_delivery', 'actual_delivery')
@@ -80,35 +95,27 @@ class ProducerOrderAdmin(admin.ModelAdmin):
         ('Notlar', {
             'fields': ('producer_notes', 'center_notes')
         }),
-        ('Tarihler', {
+        ('Zaman Bilgileri', {
             'fields': ('created_at', 'updated_at'),
             'classes': ('collapse',)
-        }),
+        })
     )
 
 
 @admin.register(ProducerMessage)
 class ProducerMessageAdmin(admin.ModelAdmin):
     list_display = ('subject', 'producer', 'center', 'sender_is_producer', 'message_type', 'is_read', 'created_at')
-    list_filter = ('message_type', 'is_read', 'is_archived', 'is_urgent', 'sender_is_producer', 'created_at')
+    list_filter = ('message_type', 'sender_is_producer', 'is_read', 'is_urgent', 'created_at')
     search_fields = ('subject', 'message', 'producer__company_name', 'center__name')
     readonly_fields = ('created_at', 'read_at')
-    
-    fieldsets = (
-        ('Mesaj Bilgileri', {
-            'fields': ('producer', 'center', 'sender_is_producer', 'message_type', 'subject', 'message')
-        }),
-        ('Ek Bilgiler', {
-            'fields': ('attachment', 'related_order')
-        }),
-        ('Durum', {
-            'fields': ('is_read', 'is_archived', 'is_urgent')
-        }),
-        ('Tarihler', {
-            'fields': ('created_at', 'read_at'),
-            'classes': ('collapse',)
-        }),
-    )
+
+
+@admin.register(ProducerNetwork)
+class ProducerNetworkAdmin(admin.ModelAdmin):
+    list_display = ('producer', 'center', 'status', 'can_receive_orders', 'priority_level', 'joined_at')
+    list_filter = ('status', 'can_receive_orders', 'can_send_messages', 'joined_at')
+    search_fields = ('producer__company_name', 'center__name')
+    readonly_fields = ('joined_at', 'activated_at', 'last_activity')
 
 
 @admin.register(ProducerProductionLog)
@@ -117,16 +124,3 @@ class ProducerProductionLogAdmin(admin.ModelAdmin):
     list_filter = ('stage', 'created_at')
     search_fields = ('order__order_number', 'operator', 'description')
     readonly_fields = ('created_at',)
-    
-    fieldsets = (
-        ('Temel Bilgiler', {
-            'fields': ('order', 'stage', 'description', 'operator', 'duration_minutes')
-        }),
-        ('Ek Bilgiler', {
-            'fields': ('photo', 'notes')
-        }),
-        ('Tarih', {
-            'fields': ('created_at',),
-            'classes': ('collapse',)
-        }),
-    )

@@ -2,7 +2,7 @@
 {% load static %}
 {% load humanize %}
 
-{% block title %}Kalıplarım - {{ producer.company_name }}{% endblock %}
+{% block title %}Siparişlerim - {{ producer.company_name }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4">
@@ -12,21 +12,39 @@
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <h2 class="mb-2">
-                        <i class="fas fa-cube text-primary me-2"></i>
-                        Üretim Kalıplarım
+                        <i class="fas fa-shopping-cart text-primary me-2"></i>
+                        Üretim Siparişlerim
                     </h2>
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb">
                             <li class="breadcrumb-item"><a href="{% url 'producer:dashboard' %}">Dashboard</a></li>
-                            <li class="breadcrumb-item active">Kalıplar</li>
+                            <li class="breadcrumb-item active">Siparişler</li>
                         </ol>
                     </nav>
                 </div>
-                <div>
-                    <span class="badge bg-primary fs-6">
-                        <i class="fas fa-cube me-1"></i>{{ total_molds }} Kalıp
+                <div class="d-flex align-items-center">
+                    <span class="badge bg-primary fs-6 me-3">
+                        <i class="fas fa-shopping-cart me-1"></i>{{ total_orders }} Sipariş
                     </span>
+                    <div class="text-end">
+                        <small class="text-muted d-block">Bu Ay: {{ monthly_orders }}/{{ producer.mold_limit }}</small>
+                        <div class="progress" style="width: 120px; height: 8px;">
+                            <div class="progress-bar bg-{% if usage_percentage > 80 %}danger{% elif usage_percentage > 60 %}warning{% else %}success{% endif %}" 
+                                 style="width: {{ usage_percentage }}%"></div>
+                        </div>
+                    </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Güvenlik Uyarısı -->
+    <div class="alert alert-info border-0 shadow-sm mb-4">
+        <div class="d-flex align-items-center">
+            <i class="fas fa-shield-alt fa-2x text-info me-3"></i>
+            <div>
+                <h6 class="mb-1">Güvenli Üretici Sistemi</h6>
+                <small class="mb-0">Sadece size gönderilen siparişleri görebilirsiniz. Veri tabanına direkt erişim yoktur.</small>
             </div>
         </div>
     </div>
@@ -39,12 +57,12 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                Toplam Kalıp
+                                Toplam Sipariş
                             </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_molds }}</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_orders }}</div>
                         </div>
                         <div class="col-auto">
-                            <i class="fas fa-cube fa-2x text-gray-300"></i>
+                            <i class="fas fa-shopping-cart fa-2x text-gray-300"></i>
                         </div>
                     </div>
                 </div>
@@ -57,9 +75,27 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                İşlemde
+                                Bekleyen
                             </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ processing_molds }}</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ pending_orders }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Üretimde
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ production_orders }}</div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-cogs fa-2x text-gray-300"></i>
@@ -77,28 +113,10 @@
                             <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
                                 Tamamlandı
                             </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ completed_molds }}</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ completed_orders }}</div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-check-circle fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card border-left-info shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                Teslim Edildi
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ delivered_molds }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-truck fa-2x text-gray-300"></i>
                         </div>
                     </div>
                 </div>
@@ -116,20 +134,20 @@
         <div class="card-body">
             <form method="get" class="row g-3">
                 <div class="col-md-2">
-                    <label class="form-label">Durum</label>
+                    <label class="form-label">Kalıp Durumu</label>
                     <select name="status" class="form-select">
                         <option value="">Tümü</option>
-                        {% for value, label in status_choices %}
+                        {% for value, label in mold_status_choices %}
                             <option value="{{ value }}" {% if value == current_filters.status %}selected{% endif %}>{{ label }}</option>
                         {% endfor %}
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label">Kalıp Türü</label>
-                    <select name="mold_type" class="form-select">
+                    <label class="form-label">Sipariş Durumu</label>
+                    <select name="order_status" class="form-select">
                         <option value="">Tümü</option>
-                        {% for value, label in mold_type_choices %}
-                            <option value="{{ value }}" {% if value == current_filters.mold_type %}selected{% endif %}>{{ label }}</option>
+                        {% for value, label in order_status_choices %}
+                            <option value="{{ value }}" {% if value == current_filters.order_status %}selected{% endif %}>{{ label }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -137,14 +155,14 @@
                     <label class="form-label">Merkez</label>
                     <select name="center" class="form-select">
                         <option value="">Tümü</option>
-                        {% for center in network_centers %}
-                            <option value="{{ center.center.id }}" {% if center.center.id|stringformat:'s' == current_filters.center %}selected{% endif %}>{{ center.center.name }}</option>
+                        {% for network in network_centers %}
+                            <option value="{{ network.center.id }}" {% if network.center.id|stringformat:'s' == current_filters.center %}selected{% endif %}>{{ network.center.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Arama</label>
-                    <input type="text" name="search" class="form-control" placeholder="Hasta adı, soyadı, merkez..." value="{{ current_filters.search }}">
+                    <input type="text" name="search" class="form-control" placeholder="Hasta adı, sipariş no, merkez..." value="{{ current_filters.search }}">
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">&nbsp;</label>
@@ -158,95 +176,98 @@
         </div>
     </div>
 
-    <!-- Kalıp Listesi -->
+    <!-- Sipariş Listesi -->
     <div class="card shadow">
         <div class="card-header py-3 d-flex justify-content-between align-items-center">
             <h6 class="m-0 font-weight-bold text-primary">
-                <i class="fas fa-list me-2"></i>Kalıp Listesi
+                <i class="fas fa-list me-2"></i>Sipariş Listesi
             </h6>
             <div>
-                <a href="{% url 'producer:order_list' %}" class="btn btn-sm btn-success me-2">
-                    <i class="fas fa-shopping-cart me-1"></i>Siparişler
+                <a href="{% url 'producer:message_list' %}" class="btn btn-sm btn-info me-2">
+                    <i class="fas fa-envelope me-1"></i>Mesajlar
                 </a>
-                <a href="#" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#exportModal">
-                    <i class="fas fa-file-export me-1"></i>Dışa Aktar
+                <a href="{% url 'producer:network_list' %}" class="btn btn-sm btn-success">
+                    <i class="fas fa-network-wired me-1"></i>Ağ Yönetimi
                 </a>
             </div>
         </div>
         <div class="card-body">
-            {% if molds %}
+            {% if producer_orders %}
             <div class="table-responsive">
                 <table class="table table-striped table-hover">
                     <thead class="table-dark">
                         <tr>
+                            <th>Sipariş No</th>
                             <th>Hasta</th>
                             <th>Kalıp Türü</th>
                             <th>Merkez</th>
-                            <th>Durum</th>
-                            <th>Oluşturulma</th>
-                            <th>Güncellenme</th>
+                            <th>Sipariş Durumu</th>
+                            <th>Kalıp Durumu</th>
+                            <th>Tarih</th>
                             <th>İşlemler</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for mold in molds %}
+                        {% for order in producer_orders %}
                         <tr>
+                            <td>
+                                <strong class="text-primary">{{ order.order_number }}</strong>
+                                {% if order.priority != 'normal' %}
+                                    <span class="badge bg-{% if order.priority == 'urgent' %}danger{% elif order.priority == 'high' %}warning{% else %}info{% endif %} ms-1">
+                                        {{ order.get_priority_display }}
+                                    </span>
+                                {% endif %}
+                            </td>
                             <td>
                                 <div class="d-flex align-items-center">
                                     <div class="avatar-circle bg-primary text-white me-2">
                                         <i class="fas fa-user"></i>
                                     </div>
                                     <div>
-                                        <strong>{{ mold.patient_name }} {{ mold.patient_surname }}</strong>
-                                        {% if mold.notes %}
-                                        <br><small class="text-muted">{{ mold.notes|truncatechars:50 }}</small>
-                                        {% endif %}
+                                        <strong>{{ order.ear_mold.patient_name }} {{ order.ear_mold.patient_surname }}</strong>
+                                        <br><small class="text-muted">{{ order.ear_mold.get_ear_side_display }} Kulak</small>
                                     </div>
                                 </div>
                             </td>
                             <td>
-                                <span class="badge bg-info">{{ mold.get_mold_type_display }}</span>
-                                <br><small class="text-muted">{{ mold.ear_side|capfirst }} kulak</small>
+                                <span class="badge bg-info">{{ order.ear_mold.get_mold_type_display }}</span>
                             </td>
                             <td>
-                                <strong>{{ mold.center.name }}</strong>
-                                <br><small class="text-muted">{{ mold.center.city }}</small>
+                                <div>
+                                    <strong>{{ order.center.name }}</strong>
+                                    <br><small class="text-muted">{{ order.center.city }}</small>
+                                </div>
                             </td>
                             <td>
-                                {% if mold.status == 'pending' %}
-                                    <span class="badge bg-warning">{{ mold.get_status_display }}</span>
-                                {% elif mold.status == 'processing' %}
-                                    <span class="badge bg-info">{{ mold.get_status_display }}</span>
-                                {% elif mold.status == 'completed' %}
-                                    <span class="badge bg-success">{{ mold.get_status_display }}</span>
-                                {% elif mold.status == 'delivered' %}
-                                    <span class="badge bg-primary">{{ mold.get_status_display }}</span>
-                                {% elif mold.status == 'revision_requested' %}
-                                    <span class="badge bg-danger">{{ mold.get_status_display }}</span>
-                                {% else %}
-                                    <span class="badge bg-secondary">{{ mold.get_status_display }}</span>
-                                {% endif %}
+                                <span class="badge bg-{% if order.status == 'delivered' %}success{% elif order.status == 'shipping' %}warning{% elif order.status == 'cancelled' %}danger{% else %}primary{% endif %}">
+                                    {{ order.get_status_display }}
+                                </span>
                             </td>
                             <td>
-                                <small>{{ mold.created_at|date:"d M Y H:i" }}</small>
+                                <span class="badge bg-{% if order.ear_mold.status == 'completed' %}success{% elif order.ear_mold.status == 'processing' %}warning{% elif order.ear_mold.status == 'revision' %}danger{% else %}secondary{% endif %}">
+                                    {{ order.ear_mold.get_status_display }}
+                                </span>
                             </td>
                             <td>
-                                <small>{{ mold.updated_at|date:"d M Y H:i" }}</small>
+                                <div>
+                                    <strong>{{ order.created_at|date:"d.m.Y" }}</strong>
+                                    <br><small class="text-muted">{{ order.created_at|time:"H:i" }}</small>
+                                </div>
                             </td>
                             <td>
-                                <div class="btn-group btn-group-sm">
-                                    <a href="{% url 'producer:mold_detail' mold.pk %}" class="btn btn-outline-primary" title="Detay">
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'producer:mold_detail' order.id %}" class="btn btn-sm btn-primary" title="Detay">
                                         <i class="fas fa-eye"></i>
                                     </a>
-                                    {% if mold.stl_file %}
-                                    <a href="{{ mold.stl_file.url }}" class="btn btn-outline-success" title="STL İndir" download>
-                                        <i class="fas fa-download"></i>
-                                    </a>
+                                    {% if order.ear_mold.scan_file %}
+                                        <a href="{% url 'producer:mold_download' order.id %}" class="btn btn-sm btn-success" title="Dosya İndir">
+                                            <i class="fas fa-download"></i>
+                                        </a>
                                     {% endif %}
-                                    {% if mold.image %}
-                                    <a href="{{ mold.image.url }}" class="btn btn-outline-info" title="Resim Görüntüle" target="_blank">
-                                        <i class="fas fa-image"></i>
-                                    </a>
+                                    {% if order.tracking_number %}
+                                        <button class="btn btn-sm btn-warning" title="Kargo: {{ order.tracking_number }}" data-bs-toggle="tooltip">
+                                            <i class="fas fa-truck"></i>
+                                        </button>
                                     {% endif %}
                                 </div>
                             </td>
@@ -257,11 +278,11 @@
             </div>
             {% else %}
             <div class="text-center py-5">
-                <i class="fas fa-cube fa-4x text-muted mb-3"></i>
-                <h5 class="text-muted">Kalıp bulunamadı</h5>
-                <p class="text-muted">Belirtilen kriterlere uygun kalıp bulunmuyor.</p>
-                <a href="?" class="btn btn-primary">
-                    <i class="fas fa-refresh me-1"></i>Filtreleri Temizle
+                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">Henüz sipariş bulunmuyor</h5>
+                <p class="text-muted">İşitme merkezlerinden gelen siparişler burada görünecektir.</p>
+                <a href="{% url 'producer:network_invite' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i>Ağ Davet Gönder
                 </a>
             </div>
             {% endif %}
@@ -269,50 +290,12 @@
     </div>
 </div>
 
-<!-- Dışa Aktarma Modal -->
-<div class="modal fade" id="exportModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="fas fa-file-export me-2"></i>Dışa Aktarma
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p>Kalıp verilerini dışa aktarmak için format seçin:</p>
-                <div class="d-grid gap-2">
-                    <a href="?export=excel" class="btn btn-success">
-                        <i class="fas fa-file-excel me-2"></i>Excel (XLSX)
-                    </a>
-                    <a href="?export=csv" class="btn btn-primary">
-                        <i class="fas fa-file-csv me-2"></i>CSV
-                    </a>
-                    <a href="?export=pdf" class="btn btn-danger">
-                        <i class="fas fa-file-pdf me-2"></i>PDF Raporu
-                    </a>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <style>
-.border-left-primary {
-    border-left: .25rem solid #4e73df!important;
-}
-.border-left-success {
-    border-left: .25rem solid #1cc88a!important;
-}
-.border-left-info {
-    border-left: .25rem solid #36b9cc!important;
-}
-.border-left-warning {
-    border-left: .25rem solid #f6c23e!important;
-}
+.border-left-primary { border-left: 0.25rem solid #4e73df !important; }
+.border-left-success { border-left: 0.25rem solid #1cc88a !important; }
+.border-left-info { border-left: 0.25rem solid #36b9cc !important; }
+.border-left-warning { border-left: 0.25rem solid #f6c23e !important; }
+
 .avatar-circle {
     width: 40px;
     height: 40px;
@@ -320,7 +303,24 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
+}
+
+.progress {
+    border-radius: 10px;
+}
+
+.alert {
+    border-radius: 10px;
 }
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Tooltip'leri aktifleştir
+var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl)
+})
+</script>
 {% endblock %} 

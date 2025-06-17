@@ -16,6 +16,10 @@
                         {{ ear_mold.patient_name }} {{ ear_mold.patient_surname }}
                     </h2>
                     <p class="text-muted mb-0">{{ ear_mold.get_mold_type_display }} - {{ ear_mold.center.name }}</p>
+                    <small class="text-success">
+                        <i class="fas fa-clock me-1"></i>
+                        Dosya işlemleri için süre kısıtlaması bulunmamaktadır
+                    </small>
                 </div>
                 <div>
                     <a href="{% url 'producer:mold_list' %}" class="btn btn-outline-secondary">
@@ -95,33 +99,83 @@
                 </div>
             </div>
 
+            <!-- Network Durumu Uyarısı -->
+            {% if network_relation and network_relation.status != 'active' %}
+            <div class="alert alert-{% if network_relation.status == 'suspended' %}warning{% elif network_relation.status == 'terminated' %}danger{% else %}info{% endif %} mb-4">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-network-wired fa-2x me-3"></i>
+                    <div>
+                        <h6 class="mb-1">Ağ Bağlantısı Durumu</h6>
+                        <p class="mb-0">
+                            <strong>{{ network_relation.get_status_display }}</strong> - 
+                            {% if network_relation.status == 'suspended' %}
+                                Ağ bağlantınız askıya alınmış. Dosya indirme ve yükleme işlemleri çalışır ancak dikkatli olun.
+                            {% elif network_relation.status == 'pending' %}
+                                Ağ bağlantınız henüz onaylanmamış. Merkez yöneticisi ile iletişime geçin.
+                            {% elif network_relation.status == 'terminated' %}
+                                Ağ bağlantınız sonlandırılmış. Bu sayfaya erişim sınırlı.
+                            {% endif %}
+                        </p>
+                        <small class="text-muted">
+                            Son aktivite: {{ network_relation.last_activity|date:"d.m.Y H:i"|default:"Bilinmiyor" }}
+                        </small>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Dosyalar -->
             <div class="card mb-4">
                 <div class="card-header bg-info text-white">
-                    <h5 class="mb-0">
-                        <i class="fas fa-file-download me-2"></i>
-                        Kalıp Dosyaları
-                    </h5>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-file-download me-2"></i>
+                            Kalıp Dosyaları
+                        </h5>
+                        {% if network_relation %}
+                        <small class="badge bg-{% if network_relation.status == 'active' %}success{% elif network_relation.status == 'suspended' %}warning{% else %}danger{% endif %}">
+                            {{ network_relation.get_status_display }}
+                        </small>
+                        {% endif %}
+                    </div>
                 </div>
                 <div class="card-body">
                     <!-- Ana Tarama Dosyası -->
-                    {% if ear_mold.scan_file %}
-                    <div class="alert alert-primary">
+                    <div class="alert alert-{% if ear_mold.scan_file %}primary{% else %}secondary{% endif %}">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <i class="fas fa-file-image fa-2x me-3"></i>
                                 <strong>Ana Tarama Dosyası</strong>
                                 <br>
+                                {% if ear_mold.scan_file %}
                                 <small class="text-muted">{{ ear_mold.scan_file.name|cut:"scans/" }}</small>
+                                {% else %}
+                                <small class="text-muted">Dosya henüz yüklenmemiş</small>
+                                {% endif %}
                             </div>
                             <div>
-                                <a href="{% url 'producer:mold_download' ear_mold.pk %}" class="btn btn-primary">
-                                    <i class="fas fa-download me-2"></i>İndir
+                                {% if network_relation.status == 'terminated' %}
+                                <button class="btn btn-danger" disabled title="Ağ bağlantısı sonlandırılmış">
+                                    <i class="fas fa-ban me-2"></i>Erişim Yok
+                                </button>
+                                {% else %}
+                                <a href="{% url 'producer:mold_download' producer_order.pk %}" class="btn btn-{% if ear_mold.scan_file or mold_files %}primary{% else %}outline-secondary{% endif %}{% if network_relation.status == 'suspended' %} btn-warning{% endif %}" 
+                                   {% if network_relation.status == 'suspended' %}title="Ağ bağlantısı askıya alınmış - dikkatli olun"{% endif %}
+                                   {% if not ear_mold.scan_file and not mold_files %}title="Henüz dosya yok - tıklayınca bilgi alırsınız"{% elif not ear_mold.scan_file %}title="Modellenen dosyaları indir"{% endif %}>
+                                    <i class="fas fa-{% if ear_mold.scan_file or mold_files %}download{% else %}search{% endif %} me-2"></i>
+                                    {% if ear_mold.scan_file %}
+                                        İndir
+                                    {% elif mold_files %}
+                                        Dosyaları İndir
+                                    {% else %}
+                                        Dosya Durumu
+                                    {% endif %}
+                                    {% if network_relation.status == 'suspended' %}<i class="fas fa-exclamation-triangle ms-1"></i>{% endif %}
                                 </a>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
-                    {% endif %}
 
                     <!-- Modellenen Dosyalar -->
                     {% if mold_files %}
@@ -140,9 +194,18 @@
                             </small>
                         </div>
                         <div>
-                            <a href="{% url 'producer:mold_download_file' ear_mold.pk file.pk %}" class="btn btn-sm btn-outline-primary">
+                            {% if network_relation.status == 'terminated' %}
+                            <button class="btn btn-sm btn-danger" disabled title="Ağ bağlantısı sonlandırılmış">
+                                <i class="fas fa-ban"></i>
+                            </button>
+                            {% else %}
+                            <a href="{% url 'producer:mold_download_file' producer_order.pk file.pk %}" 
+                               class="btn btn-sm btn-outline-primary{% if network_relation.status == 'suspended' %} btn-outline-warning{% endif %}"
+                               {% if network_relation.status == 'suspended' %}title="Ağ bağlantısı askıya alınmış - dikkatli olun"{% endif %}>
                                 <i class="fas fa-download"></i>
+                                {% if network_relation.status == 'suspended' %}<i class="fas fa-exclamation-triangle ms-1"></i>{% endif %}
                             </a>
+                            {% endif %}
                         </div>
                     </div>
                     {% endfor %}
@@ -150,11 +213,24 @@
                     <p class="text-muted">Henüz modellenen dosya yok.</p>
                     {% endif %}
 
-                    <!-- Dosya Yükleme -->
+                    <!-- Dosya Yükleme - Her zaman erişilebilir -->
                     <div class="mt-3">
-                        <a href="{% url 'producer:mold_upload_result' ear_mold.pk %}" class="btn btn-success">
+                        {% if network_relation.status == 'terminated' %}
+                        <button class="btn btn-danger" disabled title="Ağ bağlantısı sonlandırılmış">
+                            <i class="fas fa-ban me-2"></i>Yükleme Yapılamaz
+                        </button>
+                        {% else %}
+                        <a href="{% url 'producer:mold_upload_result' producer_order.pk %}" 
+                           class="btn btn-success{% if network_relation.status == 'suspended' %} btn-warning{% endif %}"
+                           {% if network_relation.status == 'suspended' %}title="Ağ bağlantısı askıya alınmış - dikkatli olun"{% else %}title="Ürettiğiniz kalıp dosyasını yükleyin - zaman kısıtlaması yok"{% endif %}>
                             <i class="fas fa-upload me-2"></i>Üretilen Kalıp Yükle
+                            {% if network_relation.status == 'suspended' %}<i class="fas fa-exclamation-triangle ms-1"></i>{% endif %}
                         </a>
+                        <small class="d-block text-muted mt-1">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Dosya yükleme işlemi için süre kısıtlaması yoktur. İstediğiniz zaman yükleyebilirsiniz.
+                        </small>
+                        {% endif %}
                     </div>
                 </div>
             </div>

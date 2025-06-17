@@ -38,7 +38,7 @@
                         <div class="col-md-6">
                             <dl class="row">
                                 <dt class="col-sm-4">Hasta Adı</dt>
-                                <dd class="col-sm-8">{{ mold.patient_name }}</dd>
+                                <dd class="col-sm-8">{{ mold.patient_name }} {{ mold.patient_surname }}</dd>
 
                                 <dt class="col-sm-4">Yaş</dt>
                                 <dd class="col-sm-8">{{ mold.patient_age }}</dd>
@@ -77,13 +77,98 @@
                             </dl>
                         </div>
                     </div>
+                    
+                    {% if mold.notes %}
+                    <div class="mt-3">
+                        <strong>Notlar:</strong>
+                        <p class="text-muted">{{ mold.notes }}</p>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
+
+            <!-- SİPARİŞ TAKİBİ BÖLÜMÜ -->
+            {% if producer_orders %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-industry me-2"></i>Üretici Sipariş Takibi</h5>
+                        <span class="badge bg-light text-primary">{{ producer_orders.count }} Sipariş</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% for order in producer_orders %}
+                    <div class="card bg-light mb-3">
+                        <div class="card-header">
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-hashtag me-1"></i>{{ order.order_number }}
+                                    </h6>
+                                    <small class="text-muted">{{ order.producer.company_name }}</small>
+                                </div>
+                                <div class="col-md-6 text-md-end">
+                                    <span class="badge bg-{{ order.get_status_color }} fs-6">
+                                        {{ order.get_status_display }}
+                                    </span>
+                                    {% if order.priority != 'normal' %}
+                                    <br>
+                                    <small class="badge bg-warning text-dark">
+                                        <i class="fas fa-exclamation me-1"></i>{{ order.get_priority_display }}
+                                    </small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <small class="text-muted">
+                                        <i class="fas fa-calendar me-1"></i>
+                                        <strong>Sipariş:</strong> {{ order.created_at|date:"d.m.Y H:i" }}
+                                    </small>
+                                    {% if order.estimated_delivery %}
+                                    <br>
+                                    <small class="text-info">
+                                        <i class="fas fa-clock me-1"></i>
+                                        <strong>Tahmini Teslimat:</strong> {{ order.estimated_delivery|date:"d.m.Y" }}
+                                    </small>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    {% if order.tracking_number %}
+                                    <small class="text-success">
+                                        <i class="fas fa-truck me-1"></i>
+                                        <strong>Takip No:</strong> {{ order.tracking_number }}
+                                    </small>
+                                    <br>
+                                    {% endif %}
+                                    {% if order.shipping_company %}
+                                    <small class="text-primary">
+                                        <i class="fas fa-shipping-fast me-1"></i>
+                                        {{ order.shipping_company }}
+                                    </small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            {% if order.producer_notes %}
+                            <div class="mt-2">
+                                <small><strong>Üretici Notları:</strong></small>
+                                <p class="small text-muted mb-0">{{ order.producer_notes }}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
 
             <!-- Files -->
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-header bg-white border-0">
-                    <h5 class="mb-0">Dosyalar</h5>
+                    <h5 class="mb-0"><i class="fas fa-folder me-2"></i>Dosyalar</h5>
                 </div>
                 <div class="card-body">
                     <div class="row">
@@ -93,26 +178,30 @@
                                 <div class="d-flex align-items-center">
                                     <i class="fas fa-file-alt fa-2x text-primary me-3"></i>
                                     <div>
-                                        <a href="{{ mold.scan_file.url }}" class="text-decoration-none">
+                                        <a href="{{ mold.scan_file.url }}" class="text-decoration-none fw-medium">
                                             {{ mold.scan_file.name|cut:"scans/" }}
                                         </a>
                                         <br>
                                         <small class="text-muted">
+                                            <i class="fas fa-download me-1"></i>
                                             Yüklenme: {{ mold.created_at|naturaltime }}
                                         </small>
                                     </div>
                                 </div>
                             {% else %}
-                                <p class="text-muted">Henüz tarama dosyası yüklenmemiş.</p>
+                                <div class="text-center py-4">
+                                    <i class="fas fa-file-upload fa-3x text-muted mb-2"></i>
+                                    <p class="text-muted">Henüz tarama dosyası yüklenmemiş.</p>
+                                </div>
                             {% endif %}
                         </div>
                         <div class="col-md-6">
                             <h6>İşlenmiş Modeller</h6>
                             {% if mold.modeled_files.exists %}
                                 {% for model in mold.modeled_files.all %}
-                                <div class="d-flex align-items-center mb-2">
+                                <div class="d-flex align-items-center mb-2 p-2 bg-light rounded">
                                     <i class="fas fa-file-download fa-2x text-success me-3"></i>
-                                    <div>
+                                    <div class="flex-grow-1">
                                         <a href="{{ model.file.url }}" class="text-decoration-none fw-medium" download>
                                             {{ model.file.name|cut:"modeled/"|truncatechars:25 }}
                                         </a>
@@ -134,253 +223,141 @@
                                 </div>
                                 {% endfor %}
                             {% else %}
-                                <p class="text-muted">Henüz işlenmiş model yok.</p>
+                                <div class="text-center py-4">
+                                    <i class="fas fa-cube fa-3x text-muted mb-2"></i>
+                                    <p class="text-muted">Henüz işlenmiş model yok.</p>
+                                    <small class="text-info">Üretici işlemi tamamladıktan sonra burada görünecek.</small>
+                                </div>
                             {% endif %}
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- İşlenmiş Modeller Bölümü -->
+            <!-- REVİZYON GEÇMİŞİ -->
+            {% if mold.revisions.exists %}
             <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-white">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0"><i class="fas fa-cube me-2"></i>İşlenmiş Modeller</h5>
-                        {% if mold.modeled_files.exists %}
-                        <span class="badge bg-success">{{ mold.modeled_files.count }} Model</span>
-                        {% endif %}
-                    </div>
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="fas fa-history me-2"></i>Revizyon Geçmişi</h5>
                 </div>
                 <div class="card-body">
-                    {% if mold.modeled_files.exists %}
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Dosya</th>
-                                    <th>Durum</th>
-                                    <th>Notlar</th>
-                                    <th>Tarih</th>
-                                    <th>İşlem</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for model in mold.modeled_files.all %}
-                                <tr>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <i class="fas fa-file-download text-primary me-2"></i>
-                                            <div>
-                                                <strong>{{ model.file.name|cut:"modeled/"|truncatechars:30 }}</strong>
-                                                <br>
-                                                <small class="text-muted">{{ model.file.size|filesizeformat }}</small>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <span class="badge {% if model.status == 'approved' %}bg-success{% elif model.status == 'rejected' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
-                                            {{ model.get_status_display }}
-                                        </span>
-                                        {% if model.status == 'approved' %}
-                                        <br>
-                                        <small class="text-success">
-                                            <i class="fas fa-check-double me-1"></i>
-                                            Hazır
-                                        </small>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if model.notes %}
-                                            <span data-bs-toggle="tooltip" title="{{ model.notes }}">
-                                                {{ model.notes|truncatechars:30 }}
-                                            </span>
-                                        {% else %}
-                                            <span class="text-muted">-</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <div>
-                                            <strong>{{ model.created_at|date:"d.m.Y" }}</strong>
-                                            <br>
-                                            <small class="text-muted">{{ model.created_at|date:"H:i" }}</small>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <a href="{{ model.file.url }}" class="btn btn-sm btn-success" title="İndir" download>
-                                            <i class="fas fa-download me-1"></i>İndir
-                                        </a>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% else %}
-                    <div class="text-center py-5">
-                        <i class="fas fa-cube fa-4x text-muted mb-3"></i>
-                        <h6 class="text-muted">Henüz işlenmiş model yok</h6>
-                        <p class="text-muted mb-0">Ana merkez kalıbınızı işlediğinde modeller burada görünecek.</p>
-                        <div class="mt-3">
-                            <div class="alert alert-info">
-                                <i class="fas fa-info-circle me-2"></i>
-                                <strong>Bilgi:</strong> İşlenmiş modeller hazır olduğunda size bildirim gönderilecek.
+                    {% for revision in mold.revisions.all %}
+                    <div class="timeline-item">
+                        <div class="d-flex">
+                            <div class="flex-shrink-0">
+                                <div class="timeline-marker bg-warning border-warning"></div>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6 class="card-title">Revizyon Talebi</h6>
+                                        <p class="card-text">{{ revision.description }}</p>
+                                        <small class="text-muted">{{ revision.created_at|naturaltime }}</small>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    {% endif %}
+                    {% endfor %}
                 </div>
             </div>
+            {% endif %}
         </div>
 
         <!-- Sidebar -->
         <div class="col-md-4">
-            <!-- Status Timeline -->
+            <!-- Hızlı İşlemler -->
             <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-white border-0">
-                    <h5 class="mb-0">Durum Geçmişi</h5>
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="fas fa-bolt me-2"></i>Hızlı İşlemler</h6>
                 </div>
                 <div class="card-body">
-                    <div class="timeline">
-                        {% for status in mold.status_history.all %}
-                        <div class="timeline-item">
-                            <div class="timeline-marker bg-{{ status.get_status_color }}"></div>
-                            <div class="timeline-content">
-                                <h6 class="mb-0">{{ status.get_status_display }}</h6>
-                                <small class="text-muted">{{ status.created_at|naturaltime }}</small>
+                    {% if mold.status != 'completed' and mold.status != 'delivered' %}
+                    <a href="{% url 'mold:revision_create' mold.id %}" class="btn btn-warning btn-sm w-100 mb-2">
+                        <i class="fas fa-redo me-1"></i>Revizyon Talep Et
+                    </a>
+                    {% endif %}
+                    
+                    {% if mold.modeled_files.exists %}
+                    <button class="btn btn-success btn-sm w-100 mb-2" data-bs-toggle="modal" data-bs-target="#downloadModal">
+                        <i class="fas fa-download me-1"></i>Tüm Dosyaları İndir
+                    </button>
+                    {% endif %}
+                    
+                    <a href="{% url 'center:message_create' %}" class="btn btn-info btn-sm w-100">
+                        <i class="fas fa-envelope me-1"></i>Mesaj Gönder
+                    </a>
+                </div>
+            </div>
+
+            <!-- Kalıp İstatistikleri -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>İstatistikler</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6 border-end">
+                            <div class="text-primary">
+                                <i class="fas fa-clock fa-2x"></i>
+                                <p class="mb-0 mt-2"><strong>{{ mold.created_at|timesince }}</strong></p>
+                                <small class="text-muted">Yaşı</small>
                             </div>
                         </div>
-                        {% empty %}
-                        <p class="text-muted">Henüz durum değişikliği yok.</p>
-                        {% endfor %}
+                        <div class="col-6">
+                            <div class="text-success">
+                                <i class="fas fa-file fa-2x"></i>
+                                <p class="mb-0 mt-2"><strong>{{ mold.modeled_files.count }}</strong></p>
+                                <small class="text-muted">Model</small>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Revisions -->
+            {% if mold.quality_score %}
+            <!-- Kalite Puanı -->
             <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-white border-0">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Revizyonlar</h5>
-                        <button type="button" 
-                                class="btn btn-sm btn-primary" 
-                                data-bs-toggle="modal" 
-                                data-bs-target="#revisionModal">
-                            <i class="fas fa-plus me-1"></i>Revizyon Talep Et
-                        </button>
-                    </div>
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="fas fa-star me-2"></i>Kalite Puanı</h6>
                 </div>
-                <div class="card-body">
-                    {% for revision in mold.revisions.all %}
-                    <div class="revision-item {% if not forloop.last %}mb-3{% endif %}">
-                        <div class="d-flex">
-                            <div class="flex-shrink-0">
-                                <div class="bg-light rounded-circle p-2">
-                                    <i class="fas fa-redo"></i>
-                                </div>
-                            </div>
-                            <div class="flex-grow-1 ms-3">
-                                <p class="mb-1">{{ revision.description }}</p>
-                                <small class="text-muted">{{ revision.created_at|naturaltime }}</small>
-                            </div>
+                <div class="card-body text-center">
+                    <div class="display-4 text-primary">{{ mold.quality_score }}/100</div>
+                    <div class="progress mt-2">
+                        <div class="progress-bar bg-primary" role="progressbar" 
+                             style="width: {{ mold.quality_score }}%" 
+                             aria-valuenow="{{ mold.quality_score }}" aria-valuemin="0" aria-valuemax="100">
                         </div>
                     </div>
-                    {% empty %}
-                    <p class="text-muted">Henüz revizyon talebi yok.</p>
-                    {% endfor %}
                 </div>
             </div>
+            {% endif %}
         </div>
     </div>
 </div>
 
-<!-- Revision Modal -->
-<div class="modal fade" id="revisionModal" tabindex="-1">
+<!-- Download Modal -->
+<div class="modal fade" id="downloadModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Revizyon Talebi</h5>
+                <h5 class="modal-title">Dosya İndirme</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form method="post" action="{% url 'mold:revision_create' mold.id %}">
-                {% csrf_token %}
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Revizyon Açıklaması</label>
-                        <textarea name="description" class="form-control" rows="3" required></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
-                    <button type="submit" class="btn btn-primary">Gönder</button>
-                </div>
-            </form>
+            <div class="modal-body">
+                <h6>Mevcut Dosyalar:</h6>
+                <ul class="list-group">
+                    {% for model in mold.modeled_files.all %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        {{ model.file.name|cut:"modeled/" }}
+                        <a href="{{ model.file.url }}" class="btn btn-sm btn-outline-primary" download>
+                            <i class="fas fa-download"></i>
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
         </div>
     </div>
 </div>
-
-{% block extra_css %}
-<style>
-    .timeline {
-        position: relative;
-        padding-left: 3rem;
-    }
-
-    .timeline::before {
-        content: '';
-        position: absolute;
-        left: 1rem;
-        top: 0;
-        height: 100%;
-        width: 2px;
-        background: #e9ecef;
-    }
-
-    .timeline-item {
-        position: relative;
-        padding-bottom: 1.5rem;
-    }
-
-    .timeline-marker {
-        position: absolute;
-        left: -2rem;
-        width: 1rem;
-        height: 1rem;
-        border-radius: 50%;
-    }
-
-    .timeline-content {
-        padding-left: 0.5rem;
-    }
-
-    .revision-item {
-        position: relative;
-    }
-
-    .revision-item::after {
-        content: '';
-        position: absolute;
-        left: 1.5rem;
-        top: 3rem;
-        height: calc(100% - 1rem);
-        width: 2px;
-        background: #e9ecef;
-    }
-
-    .revision-item:last-child::after {
-        display: none;
-    }
-</style>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-// Tooltip'leri etkinleştir
-document.addEventListener('DOMContentLoaded', function() {
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
-});
-</script>
-{% endblock %}
 {% endblock %} 

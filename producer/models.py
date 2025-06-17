@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator
 from center.models import Center
+from django.utils import timezone
 
 
 class Producer(models.Model):
@@ -23,55 +24,66 @@ class Producer(models.Model):
     )
     
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='producer')
-    company_name = models.CharField('Firma Adı', max_length=150)
+    company_name = models.CharField("Firma Adı", max_length=200)
     brand_name = models.CharField('Marka Adı', max_length=100, blank=True)
     description = models.TextField('Firma Açıklaması', blank=True)
     producer_type = models.CharField('Üretici Türü', max_length=20, choices=PRODUCER_TYPE_CHOICES, default='manufacturer')
     
     # İletişim Bilgileri
-    address = models.TextField('Adres')
-    phone = models.CharField('Telefon', max_length=20)
+    address = models.TextField("Adres")
+    phone = models.CharField("Telefon", max_length=20)
     contact_email = models.EmailField('İletişim E-posta', blank=True)
-    website = models.URLField('Web Sitesi', blank=True)
+    website = models.URLField("Website", blank=True, null=True)
     
     # İş Bilgileri
-    tax_number = models.CharField('Vergi Numarası', max_length=20, blank=True)
+    tax_number = models.CharField("Vergi Numarası", max_length=20, unique=True)
     trade_registry = models.CharField('Ticaret Sicil No', max_length=30, blank=True)
     established_year = models.IntegerField('Kuruluş Yılı', blank=True, null=True)
     
     # Sistem Ayarları
-    mold_limit = models.IntegerField('Kalıp Limiti', validators=[MinValueValidator(0)], default=100)
+    mold_limit = models.PositiveIntegerField("Aylık Kalıp Limiti", default=100)
     monthly_limit = models.IntegerField('Aylık Kalıp Limiti', validators=[MinValueValidator(1)], default=500)
     notification_preferences = models.CharField('Bildirim Tercihleri', max_length=200, default='system')
     
     # Durum ve Kontrol
-    is_active = models.BooleanField('Aktif', default=True)
-    is_verified = models.BooleanField('Doğrulanmış', default=False)
-    verification_date = models.DateTimeField('Doğrulama Tarihi', blank=True, null=True)
+    is_active = models.BooleanField("Aktif", default=True)
+    is_verified = models.BooleanField("Doğrulanmış", default=False)  # Admin onayı gerekli
     
     # Dosyalar
     logo = models.ImageField('Logo', upload_to='producer_logos/', blank=True, null=True)
     certificate = models.FileField('Sertifika', upload_to='producer_certificates/', blank=True, null=True)
     
     # Tarihler
-    created_at = models.DateTimeField('Oluşturulma Tarihi', auto_now_add=True)
-    updated_at = models.DateTimeField('Güncellenme Tarihi', auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    last_activity = models.DateTimeField(auto_now=True)
 
     class Meta:
-        verbose_name = 'Üretici Merkez'
-        verbose_name_plural = 'Üretici Merkezler'
+        verbose_name = "Üretici Merkez"
+        verbose_name_plural = "Üretici Merkezler"
         ordering = ['-created_at']
 
     def __str__(self):
-        return self.company_name
+        return f"{self.company_name} - {self.tax_number}"
 
-    def get_network_centers_count(self):
-        """Ağındaki merkez sayısını döndürür"""
-        return self.network_centers.filter(status='active').count()
+    def save(self, *args, **kwargs):
+        """Model kaydederken güvenlik kontrolü"""
+        # ÖNEMLİ GÜVENLİK: User'a admin yetkisi verme
+        if self.user:
+            self.user.is_staff = False
+            self.user.is_superuser = False
+            self.user.save()
+        
+        # Aktivite zamanını güncelle
+        self.last_activity = timezone.now()
+        super().save(*args, **kwargs)
+
+    def get_active_centers(self):
+        """Aktif işitme merkezleri"""
+        return self.network_centers.filter(status='active')
 
     def get_current_month_orders(self):
-        """Bu ayki sipariş sayısını döndürür"""
-        from django.utils import timezone
+        """Bu ayki sipariş sayısı"""
         now = timezone.now()
         return self.orders.filter(
             created_at__year=now.year,
@@ -79,8 +91,19 @@ class Producer(models.Model):
         ).count()
 
     def get_remaining_limit(self):
-        """Kalan limit sayısını döndürür"""
-        return self.mold_limit - self.get_current_month_orders()
+        """Kalan kalıp limiti"""
+        current_month_orders = self.get_current_month_orders()
+        return max(0, self.mold_limit - current_month_orders)
+
+    def can_accept_order(self):
+        """Yeni sipariş alabilir mi?"""
+        if not self.is_active or not self.is_verified:
+            return False
+        return self.get_remaining_limit() > 0
+
+    def is_admin_user(self):
+        """Güvenlik kontrolü: Üretici asla admin olamaz"""
+        return False
 
 
 class ProducerNetwork(models.Model):
@@ -115,6 +138,33 @@ class ProducerNetwork(models.Model):
 
     def __str__(self):
         return f'{self.producer.company_name} - {self.center.name}'
+    
+    def save(self, *args, **kwargs):
+        """Network durumu değiştiğinde otomatik aktivasyon tarihi güncelle"""
+        if self.status == 'active' and not self.activated_at:
+            from django.utils import timezone
+            self.activated_at = timezone.now()
+        super().save(*args, **kwargs)
+    
+    def is_active_and_healthy(self):
+        """Network'ün aktif ve sağlıklı olup olmadığını kontrol et"""
+        return self.status == 'active' and self.can_receive_orders
+    
+    def update_activity(self):
+        """Network aktivitesini güncelle"""
+        from django.utils import timezone
+        self.last_activity = timezone.now()
+        self.save(update_fields=['last_activity'])
+    
+    def get_status_color(self):
+        """Bootstrap renk sınıfı döndür"""
+        color_map = {
+            'pending': 'warning',
+            'active': 'success',
+            'suspended': 'warning',
+            'terminated': 'danger',
+        }
+        return color_map.get(self.status, 'secondary')
 
 
 class ProducerOrder(models.Model):

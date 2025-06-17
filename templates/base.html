@@ -86,21 +86,40 @@
                                 <a class="nav-link" href="{% url 'producer:admin_mold_list' %}"><i class="fas fa-cube me-1"></i>Tüm Kalıplar</a>
                             </li>
                         {% endif %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'center:dashboard' %}">Panel</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'mold:mold_list' %}">Kalıplarım</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'center:message_list' %}">Mesajlar</a>
-                        </li>
-                        {% if not user.is_staff and not user.is_superuser %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'center:network_management' %}">
-                                <i class="fas fa-network-wired me-1"></i>Üretici Ağları
-                            </a>
-                        </li>
+                        
+                        <!-- Üretici Kontrolü -->
+                        {% if user.producer %}
+                            <!-- ÜRETİCİ NAV MENÜSÜ -->
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'producer:dashboard' %}"><i class="fas fa-industry me-1"></i>Üretici Panel</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'producer:order_list' %}"><i class="fas fa-shopping-cart me-1"></i>Siparişlerim</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'producer:mold_list' %}"><i class="fas fa-cube me-1"></i>Kalıplar</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'producer:message_list' %}"><i class="fas fa-envelope me-1"></i>Mesajlar</a>
+                            </li>
+                        {% elif user.center %}
+                            <!-- MERKEZ NAV MENÜSÜ -->
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'center:dashboard' %}">Panel</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'mold:mold_list' %}">Kalıplarım</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'center:message_list' %}">Mesajlar</a>
+                            </li>
+                            {% if not user.is_staff and not user.is_superuser %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'center:network_management' %}">
+                                    <i class="fas fa-network-wired me-1"></i>Üretici Ağları
+                                </a>
+                            </li>
+                            {% endif %}
                         {% endif %}
                     {% endif %}
                     <li class="nav-item">
@@ -109,6 +128,8 @@
                 </ul>
                 <ul class="navbar-nav">
                     {% if user.is_authenticated %}
+                        <!-- Bildirimler - sadece merkez ve admin kullanıcıları için -->
+                        {% if user.center or user.is_staff or user.is_superuser %}
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
                                 <i class="fas fa-bell me-1"></i>
@@ -146,22 +167,52 @@
                                 <li><a class="dropdown-item text-center" href="{% url 'center:notification_list' %}">Tüm Bildirimler</a></li>
                             </ul>
                         </li>
+                        {% endif %}
+                        
+                        <!-- Kullanıcı Menüsü -->
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-user me-1"></i>{{ user.center.name }}
+                                <i class="fas fa-user me-1"></i>
+                                {% if user.producer %}
+                                    {{ user.producer.company_name }}
+                                {% elif user.center %}
+                                    {{ user.center.name }}
+                                {% else %}
+                                    {{ user.email }}
+                                {% endif %}
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" href="{% url 'center:profile' %}">Profil</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="{% url 'account_logout' %}">Çıkış</a></li>
+                                {% if user.producer %}
+                                    <!-- ÜRETİCİ DROPDOWN -->
+                                    <li><a class="dropdown-item" href="{% url 'producer:profile' %}"><i class="fas fa-user me-2"></i>Profil</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'producer:network_list' %}"><i class="fas fa-network-wired me-2"></i>Ağ Yönetimi</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="{% url 'producer:logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Çıkış</a></li>
+                                {% elif user.center %}
+                                    <!-- MERKEZ DROPDOWN -->
+                                    <li><a class="dropdown-item" href="{% url 'center:profile' %}"><i class="fas fa-user me-2"></i>Profil</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="{% url 'account_logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Çıkış</a></li>
+                                {% else %}
+                                    <!-- ADMİN DROPDOWN -->
+                                    <li><a class="dropdown-item" href="{% url 'center:profile' %}"><i class="fas fa-user me-2"></i>Profil</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="{% url 'account_logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Çıkış</a></li>
+                                {% endif %}
                             </ul>
                         </li>
                     {% else %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'account_login' %}">Giriş</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'account_signup' %}">Kayıt</a>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="loginDropdown" role="button" data-bs-toggle="dropdown">
+                                Giriş
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="{% url 'account_login' %}"><i class="fas fa-building me-2"></i>Merkez Girişi</a></li>
+                                <li><a class="dropdown-item" href="{% url 'producer:login' %}"><i class="fas fa-industry me-2"></i>Üretici Girişi</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'account_signup' %}"><i class="fas fa-user-plus me-2"></i>Merkez Kaydı</a></li>
+                                <li><a class="dropdown-item" href="{% url 'producer:register' %}"><i class="fas fa-plus me-2"></i>Üretici Kaydı</a></li>
+                            </ul>
                         </li>
                     {% endif %}
                 </ul>

@@ -1,0 +1,474 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Ana Yönetim Paneli - MoldPark{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-0">Ana Yönetim Paneli</h1>
+                    <p class="text-muted">Sistem geneli takip ve yönetim</p>
+                </div>
+                <div>
+                    <span class="badge bg-success fs-6">{{ active_centers }} Aktif Merkez</span>
+                    <span class="badge bg-primary fs-6">{{ active_producers }} Aktif Üretici</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kritik Uyarılar -->
+    {% if warnings %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-warning">
+                <h5><i class="fas fa-exclamation-triangle me-2"></i>Dikkat Gereken Durumlar</h5>
+                <ul class="mb-0">
+                    {% for warning in warnings %}
+                    <li>{{ warning }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Ana İstatistikler -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title text-muted mb-2">Toplam Merkezler</h6>
+                            <h2 class="mb-0">{{ total_centers }}</h2>
+                            <small class="text-success">{{ active_centers }} aktif</small>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-building fa-2x text-primary"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title text-muted mb-2">Üretici Merkezler</h6>
+                            <h2 class="mb-0">{{ total_producers }}</h2>
+                            <small class="text-success">{{ active_producers }} doğrulanmış</small>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-industry fa-2x text-success"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title text-muted mb-2">Toplam Kalıplar</h6>
+                            <h2 class="mb-0">{{ total_molds }}</h2>
+                            <small class="text-info">{{ monthly_molds }} bu ay</small>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-cube fa-2x text-info"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title text-muted mb-2">Üretici Siparişler</h6>
+                            <h2 class="mb-0">{{ total_orders }}</h2>
+                            <small class="text-warning">{{ pending_orders }} beklemede</small>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-shopping-cart fa-2x text-warning"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Network ve Süreç İstatistikleri -->
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="fas fa-network-wired me-2"></i>Network Durumu</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <h4 class="text-success">{{ active_networks }}</h4>
+                            <small class="text-muted">Aktif Bağlantı</small>
+                        </div>
+                        <div class="col-6">
+                            <h4 class="text-info">{{ total_networks }}</h4>
+                            <small class="text-muted">Toplam Network</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="fas fa-exclamation-circle me-2"></i>Sorunlu Durumlar</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <h4 class="text-danger">{{ overdue_orders }}</h4>
+                            <small class="text-muted">Geciken Sipariş</small>
+                        </div>
+                        <div class="col-6">
+                            <h4 class="text-warning">{{ revision_molds }}</h4>
+                            <small class="text-muted">Revizyon</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="fas fa-calendar me-2"></i>Bu Ay</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <h4 class="text-primary">{{ monthly_molds }}</h4>
+                            <small class="text-muted">Yeni Kalıp</small>
+                        </div>
+                        <div class="col-6">
+                            <h4 class="text-success">{{ monthly_orders }}</h4>
+                            <small class="text-muted">Yeni Sipariş</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="row mb-4">
+        <div class="col-md-6 mb-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Kalıp Durumları</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="moldStatusChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 mb-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Sipariş Durumları</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="orderStatusChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Son Aktiviteler -->
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="fas fa-cube me-2"></i>Son Kalıplar</h6>
+                </div>
+                <div class="card-body p-0">
+                    {% if recent_molds %}
+                    <div class="list-group list-group-flush">
+                        {% for mold in recent_molds %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="mb-1">{{ mold.patient_name }} {{ mold.patient_surname }}</h6>
+                                    <p class="mb-1 small">{{ mold.get_mold_type_display }} - {{ mold.center.name }}</p>
+                                    <small class="text-muted">{{ mold.created_at|naturaltime }}</small>
+                                </div>
+                                <span class="badge bg-{{ mold.get_status_color }}">{{ mold.get_status_display }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-3">
+                        <p class="text-muted mb-0">Henüz kalıp yok</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="fas fa-shopping-cart me-2"></i>Son Siparişler</h6>
+                </div>
+                <div class="card-body p-0">
+                    {% if recent_orders %}
+                    <div class="list-group list-group-flush">
+                        {% for order in recent_orders %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="mb-1">{{ order.order_number }}</h6>
+                                    <p class="mb-1 small">{{ order.producer.company_name }} → {{ order.center.name }}</p>
+                                    <small class="text-muted">{{ order.created_at|naturaltime }}</small>
+                                </div>
+                                <span class="badge bg-{{ order.get_status_color }}">{{ order.get_status_display }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-3">
+                        <p class="text-muted mb-0">Henüz sipariş yok</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="fas fa-network-wired me-2"></i>Son Network Katılımları</h6>
+                </div>
+                <div class="card-body p-0">
+                    {% if recent_networks %}
+                    <div class="list-group list-group-flush">
+                        {% for network in recent_networks %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="mb-1">{{ network.center.name }}</h6>
+                                    <p class="mb-1 small">{{ network.producer.company_name }} ağına katıldı</p>
+                                    <small class="text-muted">{{ network.joined_at|naturaltime }}</small>
+                                </div>
+                                <span class="badge bg-{{ network.status|default:'primary' }}">{{ network.get_status_display }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-3">
+                        <p class="text-muted mb-0">Henüz network katılımı yok</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Son Mesajlar -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0"><i class="fas fa-envelope me-2"></i>Son Mesajlar</h6>
+                        <a href="{% url 'center:admin_message_list' %}" class="btn btn-sm btn-outline-primary">
+                            Tümünü Gör
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    {% if recent_messages %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Gönderen</th>
+                                    <th>Alıcı</th>
+                                    <th>Konu</th>
+                                    <th>Tarih</th>
+                                    <th>Durum</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for message in recent_messages %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-user-circle fa-lg text-muted me-2"></i>
+                                            <div>
+                                                <div class="fw-medium">{{ message.sender.name }}</div>
+                                                <small class="text-muted">{{ message.sender.user.email }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-user-circle fa-lg text-muted me-2"></i>
+                                            <div>
+                                                <div class="fw-medium">{{ message.receiver.name }}</div>
+                                                <small class="text-muted">{{ message.receiver.user.email }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="fw-medium">{{ message.subject|truncatechars:40 }}</div>
+                                        <small class="text-muted">{{ message.message|truncatechars:60 }}</small>
+                                    </td>
+                                    <td>
+                                        <div>{{ message.created_at|date:"d.m.Y" }}</div>
+                                        <small class="text-muted">{{ message.created_at|date:"H:i" }}</small>
+                                    </td>
+                                    <td>
+                                        {% if message.is_read %}
+                                            <span class="badge bg-success">Okundu</span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">Okunmadı</span>
+                                        {% endif %}
+                                        {% if message.is_archived %}
+                                            <br><small class="text-muted">Arşivlendi</small>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-envelope fa-3x text-muted mb-2"></i>
+                        <p class="text-muted mb-0">Henüz mesaj yok</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hızlı Erişim -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="fas fa-bolt me-2"></i>Hızlı Erişim</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-2">
+                            <a href="{% url 'center:admin_center_list' %}" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-building me-2"></i>Merkezleri Yönet
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{% url 'producer:admin_producer_list' %}" class="btn btn-outline-success w-100">
+                                <i class="fas fa-industry me-2"></i>Üreticileri Yönet
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{% url 'center:admin_mold_list' %}" class="btn btn-outline-info w-100">
+                                <i class="fas fa-cube me-2"></i>Tüm Kalıplar
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{% url 'producer:admin_mold_list' %}" class="btn btn-outline-warning w-100">
+                                <i class="fas fa-shopping-cart me-2"></i>Tüm Siparişler
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Kalıp Durumları Chart
+    const moldCtx = document.getElementById('moldStatusChart').getContext('2d');
+    new Chart(moldCtx, {
+        type: 'doughnut',
+        data: {
+            labels: {{ mold_chart_data.labels|safe }},
+            datasets: [{
+                data: {{ mold_chart_data.data|safe }},
+                backgroundColor: [
+                    '#ffc107', '#17a2b8', '#28a745', '#dc3545', '#007bff', '#6c757d'
+                ],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+
+    // Sipariş Durumları Chart
+    const orderCtx = document.getElementById('orderStatusChart').getContext('2d');
+    new Chart(orderCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ order_chart_data.labels|safe }},
+            datasets: [{
+                data: {{ order_chart_data.data|safe }},
+                backgroundColor: [
+                    '#17a2b8', '#ffc107', '#007bff', '#6c757d', '#17a2b8', '#ffc107', '#28a745', '#dc3545'
+                ],
+                borderWidth: 1,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %} 

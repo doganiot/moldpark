@@ -190,3 +190,13 @@ DEFAULT_FROM_EMAIL = 'MoldPark <noreply@moldpark.com>'
 SECURE_SSL_REDIRECT = False
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
+
+# Admin Panel Güvenlik
+ADMIN_ENABLED = True  # Admin paneli aktif/pasif kontrolü
+
+# GÜVENLİK KONTROLÜ: Producer'ların admin erişimini engelle
+def admin_login_check(request):
+    """Admin paneline sadece superuser erişimi"""
+    if hasattr(request.user, 'producer') and request.user.producer:
+        return False  # Üreticiler admin paneline erişemez
+    return True

@@ -8,7 +8,18 @@
 <div class="container">
     <div class="row justify-content-center">
         <div class="col-md-6 col-lg-5">
-            <div class="card shadow-lg border-0 mt-5">
+            <!-- Güvenlik Uyarısı -->
+            <div class="alert alert-info border-0 shadow-sm mt-3">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-shield-alt fa-2x text-info me-3"></i>
+                    <div>
+                        <h6 class="mb-1">Güvenli Üretici Paneli</h6>
+                        <small class="mb-0">Bu panel sadece doğrulanmış üretici merkezler içindir. Admin paneline erişim yoktur.</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card shadow-lg border-0 mt-3">
                 <div class="card-header bg-success text-white text-center py-4">
                     <div class="mb-3">
                         <i class="fas fa-industry fa-3x"></i>
@@ -75,6 +86,8 @@
                         <i class="fas fa-info-circle me-2"></i>Üretici Merkez Özellikleri
                     </h6>
                     <ul class="list-unstyled mb-0 small text-muted">
+                        <li><i class="fas fa-check text-success me-2"></i>Güvenli üretici dashboard</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Sadece kendi ağ verilerine erişim</li>
                         <li><i class="fas fa-check text-success me-2"></i>3D kalıp modelleme sistemi</li>
                         <li><i class="fas fa-check text-success me-2"></i>İşitme merkezi ağı yönetimi</li>
                         <li><i class="fas fa-check text-success me-2"></i>Sipariş takip ve yönetim</li>
@@ -82,6 +95,19 @@
                         <li><i class="fas fa-check text-success me-2"></i>Mesajlaşma sistemi</li>
                         <li><i class="fas fa-check text-success me-2"></i>Üretim süreci takibi</li>
                     </ul>
+                </div>
+            </div>
+            
+            <!-- Güvenlik Bilgisi -->
+            <div class="card border-warning bg-light mt-4">
+                <div class="card-body">
+                    <h6 class="text-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Önemli Güvenlik Bilgisi
+                    </h6>
+                    <small class="text-muted">
+                        Üretici hesaplarının sistem veritabanına direkt erişimi yoktur. 
+                        Sadece size ait sipariş ve ağ verilerine güvenli erişim sağlanır.
+                    </small>
                 </div>
             </div>
         </div>
@@ -114,6 +140,10 @@
 
 .list-unstyled li {
     padding: 2px 0;
+}
+
+.alert {
+    border-radius: 10px;
 }
 </style>
 {% endblock %} 
