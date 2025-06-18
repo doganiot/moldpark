@@ -946,37 +946,37 @@ def mold_upload_result(request, pk):
                 ear_mold=ear_mold,
                 file=uploaded_file,
                 notes=description,
-                status='waiting'  # Admin onayı beklesin
+                status='approved'  # Otomatik olarak onaylanmış duruma getir
             )
             
             # Üretim logu ekle
             ProducerProductionLog.objects.create(
                 order=producer_order,
-                stage='production_complete',
-                description=f'Üretilen kalıp dosyası yüklendi: {uploaded_file.name}',
+                stage='delivered',
+                description=f'Kalıp üretimi tamamlandı ve dosya yüklendi: {uploaded_file.name}. Sipariş teslim edildi.',
                 operator=request.user.get_full_name() or request.user.username
             )
             
-            # Siparişin durumunu güncelle
-            if producer_order.status in ['received', 'designing', 'production']:
-                producer_order.status = 'quality_check'
+            # Siparişin durumunu güncelle - hangi durumda olursa olsun dosya yüklendiğinde tamamla
+            if producer_order.status in ['received', 'designing', 'production', 'quality_check', 'packaging']:
+                producer_order.status = 'delivered'  # Dosya yüklendiğinde direkt tamamlandı olarak işaretle
+                producer_order.actual_delivery = timezone.now()  # Gerçek teslimat zamanını kaydet
                 producer_order.save()
                 
-                # Kalıp durumunu da güncelle
-                if ear_mold.status != 'processing':
-                    ear_mold.status = 'processing'
-                    ear_mold.save()
+                # Kalıp durumunu da "tamamlandı" olarak güncelle
+                ear_mold.status = 'completed'
+                ear_mold.save()
             
             # Merkeze bildirim gönder
             notify.send(
                 sender=request.user,
                 recipient=ear_mold.center.user,
-                verb='üretilen kalıp yüklendi',
-                description=f'{ear_mold.patient_name} için üretilen kalıp dosyası yüklendi.',
+                verb='kalıp üretimi tamamlandı',
+                description=f'{ear_mold.patient_name} {ear_mold.patient_surname} için kalıp üretimi tamamlandı ve dosya yüklendi. Sipariş teslim edildi.',
                 action_object=producer_order
             )
             
-            messages.success(request, 'Üretilen kalıp dosyası başarıyla yüklendi ve kalite kontrole gönderildi.')
+            messages.success(request, 'Üretilen kalıp dosyası başarıyla yüklendi. Kalıp durumu "Tamamlandı" olarak güncellendi ve sipariş teslim edildi.')
             return redirect('producer:mold_detail', pk=pk)
         else:
             messages.error(request, 'Lütfen bir dosya seçin.')

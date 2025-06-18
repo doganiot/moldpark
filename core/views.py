@@ -75,6 +75,12 @@ def admin_dashboard(request):
             company_name='MoldPark Üretim Merkezi'
         ).first()
         
+        # DEBUG: Print etmek için
+        print(f"DEBUG - MoldPark Producer: {moldpark_producer}")
+        print(f"DEBUG - Producer count: {producers.count()}")
+        if moldpark_producer:
+            print(f"DEBUG - MoldPark Company: {moldpark_producer.company_name}")
+        
         # MoldPark siparişlerini al
         moldpark_orders = []
         if moldpark_producer:
@@ -82,7 +88,13 @@ def admin_dashboard(request):
                 producer=moldpark_producer
             ).select_related('center', 'ear_mold').order_by('-created_at')[:10]
             
-    except ImportError:
+    except ImportError as e:
+        print(f"DEBUG - Import Error: {e}")
+        producers = []
+        moldpark_producer = None
+        moldpark_orders = []
+    except Exception as e:
+        print(f"DEBUG - Other Error: {e}")
         producers = []
         moldpark_producer = None
         moldpark_orders = []
@@ -90,6 +102,37 @@ def admin_dashboard(request):
     centers = Center.objects.all()
     molds = EarMold.objects.all()
     messages = CenterMessage.objects.order_by('-created_at')[:5]
+    
+    # Kullanıcı bilgileri için center ve producer verilerini hazırla
+    center_users = []
+    for center in centers:
+        center_users.append({
+            'type': 'center',
+            'name': center.name,
+            'company': center.name,
+            'username': center.user.username,
+            'email': center.user.email,
+            'password_display': '••••••••',  # Güvenlik için maskelenmiş
+            'is_active': center.is_active,
+            'created_at': center.created_at,
+            'user_id': center.user.id,
+            'profile_id': center.id
+        })
+    
+    producer_users = []
+    for producer in producers:
+        producer_users.append({
+            'type': 'producer',
+            'name': producer.company_name,
+            'company': producer.company_name,
+            'username': producer.user.username,
+            'email': producer.user.email,
+            'password_display': '••••••••',  # Güvenlik için maskelenmiş
+            'is_active': producer.is_active,
+            'created_at': producer.created_at,
+            'user_id': producer.user.id,
+            'profile_id': producer.id
+        })
     
     # MoldPark merkez yönetimi bilgisi
     moldpark_center = {
@@ -112,6 +155,7 @@ def admin_dashboard(request):
         'pending_molds': molds.filter(status='pending').count(),
         'moldpark_orders': len(moldpark_orders),
         'moldpark_active_orders': len([o for o in moldpark_orders if o.status in ['received', 'designing', 'production', 'quality_check']]),
+        'total_users': len(center_users) + len(producer_users),
     }
     
     context = {
@@ -122,6 +166,8 @@ def admin_dashboard(request):
         'moldpark_orders': moldpark_orders,
         'molds': molds,
         'recent_messages': messages,
+        'center_users': center_users,
+        'producer_users': producer_users,
         'stats': stats,
     }
     return render(request, 'core/dashboard_admin.html', context)

@@ -92,7 +92,7 @@
                                     <span id="fileSize" class="text-muted ms-2"></span>
                                 </div>
                             </div>
-                            <small class="form-text text-muted">Dosya güvenlik kontrolünden geçecek ve admin onayı bekleyecektir.</small>
+                            <small class="form-text text-muted">Dosya güvenlik kontrolünden geçecek ve otomatik olarak onaylanacaktır.</small>
                         </div>
 
                         <!-- Dosya Açıklaması -->
@@ -101,8 +101,8 @@
                                 <strong>Üretim Açıklaması</strong>
                             </label>
                             <textarea name="description" id="description" class="form-control" rows="4" 
-                                placeholder="Üretim sürecinde yapılan işlemler, kullanılan malzemeler, kalite notları, özel durumlar vb. hakkında bilgi verin..." required></textarea>
-                            <small class="form-text text-muted">Bu bilgiler merkez tarafından görüntülenecektir.</small>
+                                placeholder="Üretim sürecinde yapılan işlemler, kullanılan malzemeler, kalite notları, özel durumlar vb. hakkında bilgi verin. Bu dosya ile kalıp tamamlanmış olacaktır." required></textarea>
+                            <small class="form-text text-muted">Bu bilgiler merkez tarafından görüntülenecektir ve kalıp otomatik olarak tamamlanacaktır.</small>
                         </div>
 
                         <!-- Progress Bar -->
@@ -117,7 +117,7 @@
                                 <i class="fas fa-times me-2"></i>İptal
                             </a>
                             <button type="submit" class="btn btn-success" id="submitBtn">
-                                <i class="fas fa-upload me-2"></i>Dosyayı Yükle ve Kalite Kontrole Gönder
+                                <i class="fas fa-upload me-2"></i>Dosyayı Yükle ve Siparişi Tamamla
                             </button>
                         </div>
                     </form>
@@ -158,15 +158,15 @@
                         <h6>Süreç:</h6>
                         <ol class="list-unstyled">
                             <li><i class="fas fa-upload text-info me-2"></i>1. Dosya yükleme</li>
-                            <li><i class="fas fa-search text-warning me-2"></i>2. Kalite kontrolü</li>
-                            <li><i class="fas fa-check text-success me-2"></i>3. Admin onayı</li>
-                            <li><i class="fas fa-bell text-primary me-2"></i>4. Merkeze bildirim</li>
+                            <li><i class="fas fa-check text-success me-2"></i>2. Otomatik tamamlama</li>
+                            <li><i class="fas fa-bell text-primary me-2"></i>3. Merkeze bildirim</li>
+                            <li><i class="fas fa-truck text-warning me-2"></i>4. Sipariş teslim edildi</li>
                         </ol>
                     </div>
                     
-                    <div class="alert alert-warning">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        <small>Yüklediğiniz dosya admin onayından sonra merkeze ulaşacaktır.</small>
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <small>Dosya yüklediğinizde kalıp otomatik olarak "Tamamlandı" durumuna geçer ve sipariş teslim edilir.</small>
                     </div>
                 </div>
             </div>
@@ -359,7 +359,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Hata durumu
                 alert('Dosya yükleme hatası! Lütfen tekrar deneyin.');
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-upload me-2"></i>Dosyayı Yükle ve Kalite Kontrole Gönder';
+                submitBtn.innerHTML = '<i class="fas fa-upload me-2"></i>Dosyayı Yükle ve Siparişi Tamamla';
                 uploadProgress.classList.add('d-none');
             }
         });
@@ -367,7 +367,7 @@ document.addEventListener('DOMContentLoaded', function() {
         xhr.addEventListener('error', function() {
             alert('Ağ hatası! Lütfen internet bağlantınızı kontrol edin.');
             submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="fas fa-upload me-2"></i>Dosyayı Yükle ve Kalite Kontrole Gönder';
+            submitBtn.innerHTML = '<i class="fas fa-upload me-2"></i>Dosyayı Yükle ve Siparişi Tamamla';
             uploadProgress.classList.add('d-none');
         });
         

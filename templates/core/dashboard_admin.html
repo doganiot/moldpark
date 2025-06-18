@@ -253,6 +253,13 @@
                         <i class="fas fa-envelope me-2"></i>Mesajlar
                     </button>
                 </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="user-credentials-tab" data-bs-toggle="tab" data-bs-target="#user-credentials" type="button" role="tab">
+                        <i class="fas fa-users-cog me-2"></i>Kullanıcı Bilgileri
+                        <span class="badge bg-info ms-1">{{ stats.total_users }}</span>
+                    </button>
+                </li>
+                <!-- DEBUG: MoldPark Producer: {{ moldpark_producer|default:"None" }} -->
                 {% if moldpark_producer %}
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="moldpark-orders-tab" data-bs-toggle="tab" data-bs-target="#moldpark-orders" type="button" role="tab">
@@ -262,6 +269,8 @@
                         {% endif %}
                     </button>
                 </li>
+                {% else %}
+                <!-- DEBUG: MoldPark producer bulunamadı -->
                 {% endif %}
             </ul>
         </div>
@@ -297,6 +306,10 @@
                                             <td><i class="fas fa-cube text-secondary me-2"></i>Toplam Kalıp:</td>
                                             <td><strong>{{ stats.total_molds }}</strong></td>
                                         </tr>
+                                        <tr>
+                                            <td><i class="fas fa-users-cog text-info me-2"></i>Toplam Kullanıcı:</td>
+                                            <td><strong>{{ stats.total_users }}</strong></td>
+                                        </tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -321,6 +334,9 @@
                                 <a href="{% url 'producer:admin_mold_list' %}" class="btn btn-outline-success">
                                     <i class="fas fa-cube me-2"></i>Tüm Kalıpları Görüntüle
                                 </a>
+                                <button class="btn btn-outline-info" onclick="document.getElementById('user-credentials-tab').click()">
+                                    <i class="fas fa-users-cog me-2"></i>Kullanıcı Bilgileri
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -709,6 +725,234 @@
                     {% endif %}
                 </div>
                 {% endif %}
+
+                <!-- Kullanıcı Bilgileri Sekmesi -->
+                <div class="tab-pane fade" id="user-credentials" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="mb-0">
+                            <i class="fas fa-users-cog text-info me-2"></i>Sistem Kullanıcı Bilgileri
+                        </h5>
+                        <div>
+                            <span class="badge bg-primary me-2">{{ center_users|length }} İşitme Merkezi</span>
+                            <span class="badge bg-info">{{ producer_users|length }} Üretici Merkez</span>
+                        </div>
+                    </div>
+
+                    <!-- Uyarı Mesajı -->
+                    <div class="alert alert-warning" role="alert">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Güvenlik Uyarısı:</strong> Bu bilgiler sadece sistem yöneticisi tarafından görüntülenebilir. 
+                        Şifreler güvenlik amacıyla maskelenmiştir. Gerçek şifreleri görüntülemek için Django admin panelini kullanın.
+                    </div>
+
+                    <!-- İşitme Merkezleri Kullanıcı Bilgileri -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h6 class="mb-0">
+                                <i class="fas fa-clinic-medical me-2"></i>İşitme Merkezleri Kullanıcı Bilgileri
+                                <span class="badge bg-light text-dark ms-2">{{ center_users|length }}</span>
+                            </h6>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Merkez Adı</th>
+                                            <th>Kullanıcı Adı</th>
+                                            <th>E-posta</th>
+                                            <th>Şifre</th>
+                                            <th>Durum</th>
+                                            <th>Kayıt Tarihi</th>
+                                            <th>İşlemler</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for user in center_users %}
+                                        <tr>
+                                            <td>
+                                                <strong class="text-primary">{{ user.name }}</strong><br>
+                                                <small class="text-muted">İşitme Merkezi</small>
+                                            </td>
+                                            <td>
+                                                <code class="bg-light p-1 rounded">{{ user.username }}</code>
+                                            </td>
+                                            <td>
+                                                <span class="text-info">{{ user.email }}</span>
+                                            </td>
+                                            <td>
+                                                <span class="text-muted font-monospace">{{ user.password_display }}</span>
+                                                <small class="text-warning d-block">
+                                                    <i class="fas fa-shield-alt me-1"></i>Güvenlik amacıyla maskelenmiş
+                                                </small>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-{{ user.is_active|yesno:'success,danger' }}">
+                                                    <i class="fas fa-{{ user.is_active|yesno:'check-circle,times-circle' }} me-1"></i>
+                                                    {{ user.is_active|yesno:'Aktif,Devre Dışı' }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <small>{{ user.created_at|date:"d.m.Y H:i" }}</small>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <a href="/admin/auth/user/{{ user.user_id }}/change/" class="btn btn-outline-primary" title="Django Admin'de Düzenle" target="_blank">
+                                                        <i class="fas fa-cog"></i>
+                                                    </a>
+                                                    <a href="/admin/center/center/{{ user.profile_id }}/change/" class="btn btn-outline-info" title="Profil Düzenle" target="_blank">
+                                                        <i class="fas fa-user-edit"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr>
+                                            <td colspan="7" class="text-center text-muted py-4">
+                                                <i class="fas fa-inbox fa-3x mb-3"></i><br>
+                                                Henüz kayıtlı işitme merkezi bulunmuyor.
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Üretici Merkezleri Kullanıcı Bilgileri -->
+                    <div class="card">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="mb-0">
+                                <i class="fas fa-industry me-2"></i>Üretici Merkezleri Kullanıcı Bilgileri
+                                <span class="badge bg-light text-dark ms-2">{{ producer_users|length }}</span>
+                            </h6>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Firma Adı</th>
+                                            <th>Kullanıcı Adı</th>
+                                            <th>E-posta</th>
+                                            <th>Şifre</th>
+                                            <th>Durum</th>
+                                            <th>Kayıt Tarihi</th>
+                                            <th>İşlemler</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for user in producer_users %}
+                                        <tr {% if user.name == 'MoldPark Üretim Merkezi' %}class="table-warning"{% endif %}>
+                                            <td>
+                                                {% if user.name == 'MoldPark Üretim Merkezi' %}
+                                                <strong class="text-warning">
+                                                    <i class="fas fa-star me-1"></i>{{ user.name }}
+                                                </strong><br>
+                                                <small class="text-muted">MoldPark Resmi Üretim Merkezi</small>
+                                                {% else %}
+                                                <strong class="text-info">{{ user.name }}</strong><br>
+                                                <small class="text-muted">Üretici Merkez</small>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <code class="bg-light p-1 rounded">{{ user.username }}</code>
+                                            </td>
+                                            <td>
+                                                <span class="text-info">{{ user.email }}</span>
+                                            </td>
+                                            <td>
+                                                <span class="text-muted font-monospace">{{ user.password_display }}</span>
+                                                <small class="text-warning d-block">
+                                                    <i class="fas fa-shield-alt me-1"></i>Güvenlik amacıyla maskelenmiş
+                                                </small>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-{{ user.is_active|yesno:'success,danger' }}">
+                                                    <i class="fas fa-{{ user.is_active|yesno:'check-circle,times-circle' }} me-1"></i>
+                                                    {{ user.is_active|yesno:'Aktif,Devre Dışı' }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <small>{{ user.created_at|date:"d.m.Y H:i" }}</small>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <a href="/admin/auth/user/{{ user.user_id }}/change/" class="btn btn-outline-primary" title="Django Admin'de Düzenle" target="_blank">
+                                                        <i class="fas fa-cog"></i>
+                                                    </a>
+                                                    <a href="/admin/producer/producer/{{ user.profile_id }}/change/" class="btn btn-outline-info" title="Profil Düzenle" target="_blank">
+                                                        <i class="fas fa-user-edit"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr>
+                                            <td colspan="7" class="text-center text-muted py-4">
+                                                <i class="fas fa-inbox fa-3x mb-3"></i><br>
+                                                Henüz kayıtlı üretici merkez bulunmuyor.
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Hızlı İşlemler -->
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <div class="card border-primary">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-tools me-2"></i>Kullanıcı Yönetimi
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-grid gap-2">
+                                        <a href="/admin/auth/user/" class="btn btn-outline-primary" target="_blank">
+                                            <i class="fas fa-users me-2"></i>Tüm Kullanıcıları Yönet
+                                        </a>
+                                        <a href="/admin/center/center/" class="btn btn-outline-info" target="_blank">
+                                            <i class="fas fa-clinic-medical me-2"></i>İşitme Merkezlerini Yönet
+                                        </a>
+                                        <a href="/admin/producer/producer/" class="btn btn-outline-success" target="_blank">
+                                            <i class="fas fa-industry me-2"></i>Üretici Merkezleri Yönet
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card border-warning">
+                                <div class="card-header bg-warning text-dark">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-info-circle me-2"></i>Bilgi
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <p class="mb-2">
+                                        <strong>Toplam Kullanıcı:</strong> {{ stats.total_users }}
+                                    </p>
+                                    <p class="mb-2">
+                                        <strong>İşitme Merkezi:</strong> {{ center_users|length }}
+                                    </p>
+                                    <p class="mb-2">
+                                        <strong>Üretici Merkez:</strong> {{ producer_users|length }}
+                                    </p>
+                                    <hr>
+                                    <small class="text-muted">
+                                        <i class="fas fa-shield-alt me-1"></i>
+                                        Şifre değişikliği için Django admin panelini kullanın.
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- Mesajlar Sekmesi -->
                 <div class="tab-pane fade" id="messages" role="tabpanel">
