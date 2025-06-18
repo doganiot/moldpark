@@ -67,10 +67,25 @@ class PrivacyView(TemplateView):
 def admin_dashboard(request):
     # Import Producer modeli burada yapalım
     try:
-        from producer.models import Producer
+        from producer.models import Producer, ProducerOrder
         producers = Producer.objects.all()
+        
+        # MoldPark üretim merkezini bul
+        moldpark_producer = Producer.objects.filter(
+            company_name='MoldPark Üretim Merkezi'
+        ).first()
+        
+        # MoldPark siparişlerini al
+        moldpark_orders = []
+        if moldpark_producer:
+            moldpark_orders = ProducerOrder.objects.filter(
+                producer=moldpark_producer
+            ).select_related('center', 'ear_mold').order_by('-created_at')[:10]
+            
     except ImportError:
         producers = []
+        moldpark_producer = None
+        moldpark_orders = []
     
     centers = Center.objects.all()
     molds = EarMold.objects.all()
@@ -95,12 +110,16 @@ def admin_dashboard(request):
         'verified_producers': len([p for p in producers if hasattr(p, 'is_verified') and p.is_verified]),
         'total_molds': molds.count(),
         'pending_molds': molds.filter(status='pending').count(),
+        'moldpark_orders': len(moldpark_orders),
+        'moldpark_active_orders': len([o for o in moldpark_orders if o.status in ['received', 'designing', 'production', 'quality_check']]),
     }
     
     context = {
         'centers': centers,
         'moldpark_center': moldpark_center,
         'producers': producers,
+        'moldpark_producer': moldpark_producer,
+        'moldpark_orders': moldpark_orders,
         'molds': molds,
         'recent_messages': messages,
         'stats': stats,

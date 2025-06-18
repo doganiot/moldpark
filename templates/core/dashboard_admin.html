@@ -141,6 +141,89 @@
         </div>
     </div>
 
+    <!-- MoldPark Siparişleri İstatistik Kartları -->
+    {% if moldpark_producer %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <h5 class="text-warning mb-3">
+                <i class="fas fa-star me-2"></i>MoldPark Üretim Merkezi İstatistikleri
+            </h5>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                MoldPark Siparişleri
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.moldpark_orders }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-star fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Aktif Siparişler
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.moldpark_active_orders }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-cog fa-spin fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Aylık Limit
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ moldpark_producer.mold_limit }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Durum
+                            </div>
+                            <div class="h6 mb-0 font-weight-bold text-success">Aktif & Doğrulanmış</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    </div>
+
     <!-- Tab Navigation -->
     <div class="card shadow">
         <div class="card-header p-0">
@@ -170,6 +253,16 @@
                         <i class="fas fa-envelope me-2"></i>Mesajlar
                     </button>
                 </li>
+                {% if moldpark_producer %}
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="moldpark-orders-tab" data-bs-toggle="tab" data-bs-target="#moldpark-orders" type="button" role="tab">
+                        <i class="fas fa-star text-warning me-2"></i>MoldPark Siparişleri
+                        {% if stats.moldpark_active_orders > 0 %}
+                        <span class="badge bg-warning text-dark ms-1">{{ stats.moldpark_active_orders }}</span>
+                        {% endif %}
+                    </button>
+                </li>
+                {% endif %}
             </ul>
         </div>
         <div class="card-body">
@@ -468,6 +561,154 @@
                         </table>
                     </div>
                 </div>
+
+                <!-- MoldPark Siparişleri Sekmesi -->
+                {% if moldpark_producer %}
+                <div class="tab-pane fade" id="moldpark-orders" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0">
+                            <i class="fas fa-star text-warning me-2"></i>MoldPark Üretim Merkezi Siparişleri
+                        </h5>
+                        <div class="btn-group">
+                            <span class="badge bg-info fs-6 me-2">
+                                <i class="fas fa-box me-1"></i>Toplam: {{ stats.moldpark_orders }}
+                            </span>
+                            <span class="badge bg-warning fs-6">
+                                <i class="fas fa-clock me-1"></i>Aktif: {{ stats.moldpark_active_orders }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    {% if moldpark_orders %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-warning">
+                                <tr>
+                                    <th>Sipariş No</th>
+                                    <th>Hasta</th>
+                                    <th>Kalıp Türü</th>
+                                    <th>Merkez</th>
+                                    <th>Durum</th>
+                                    <th>Öncelik</th>
+                                    <th>Tarih</th>
+                                    <th>İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in moldpark_orders %}
+                                <tr>
+                                    <td>
+                                        <strong class="text-primary">{{ order.order_number }}</strong>
+                                    </td>
+                                    <td>
+                                        <strong>{{ order.ear_mold.patient_name }} {{ order.ear_mold.patient_surname }}</strong><br>
+                                        <small class="text-muted">{{ order.ear_mold.patient_age }} yaş, {{ order.ear_mold.get_patient_gender_display }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ order.ear_mold.get_mold_type_display }}</span>
+                                    </td>
+                                    <td>
+                                        <strong>{{ order.center.name }}</strong><br>
+                                        <small class="text-muted">{{ order.center.phone }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{% if order.status == 'delivered' %}success{% elif order.status == 'cancelled' %}danger{% elif order.status in 'received,designing,production' %}warning{% elif order.status == 'quality_check' %}info{% else %}secondary{% endif %}">
+                                            {{ order.get_status_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{% if order.priority == 'urgent' %}danger{% elif order.priority == 'high' %}warning{% else %}secondary{% endif %}">
+                                            {{ order.get_priority_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <small>{{ order.created_at|date:"d.m.Y H:i" }}</small>
+                                        {% if order.estimated_delivery %}
+                                        <br><small class="text-muted">Tahmini: {{ order.estimated_delivery|date:"d.m.Y" }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'producer:mold_detail' order.pk %}" class="btn btn-outline-primary" title="Detay">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            {% if order.ear_mold.scan_file %}
+                                            <a href="{% url 'producer:permanent_scan_download' order.ear_mold.pk %}" class="btn btn-outline-success" title="Dosya İndir">
+                                                <i class="fas fa-download"></i>
+                                            </a>
+                                            {% endif %}
+                                            {% if order.status not in 'delivered,cancelled' %}
+                                            <a href="{% url 'producer:mold_upload_result' order.pk %}" class="btn btn-outline-warning" title="Dosya Yükle">
+                                                <i class="fas fa-upload"></i>
+                                            </a>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- MoldPark Üretim Merkezi Bilgileri -->
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <div class="card border-warning">
+                                <div class="card-header bg-warning text-dark">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-info-circle me-2"></i>MoldPark Üretim Merkezi
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>Firma:</strong> {{ moldpark_producer.company_name }}</p>
+                                    <p><strong>Tür:</strong> {{ moldpark_producer.get_producer_type_display }}</p>
+                                    <p><strong>E-posta:</strong> {{ moldpark_producer.contact_email }}</p>
+                                    <p><strong>Telefon:</strong> {{ moldpark_producer.phone }}</p>
+                                    <p><strong>Aylık Limit:</strong> {{ moldpark_producer.mold_limit }} kalıp</p>
+                                    <p class="mb-0"><strong>Durum:</strong> 
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check-circle me-1"></i>Aktif & Doğrulanmış
+                                        </span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card border-info">
+                                <div class="card-header bg-info text-white">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-chart-bar me-2"></i>Sipariş İstatistikleri
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row text-center">
+                                        <div class="col-4">
+                                            <h4 class="text-primary">{{ stats.moldpark_orders }}</h4>
+                                            <small class="text-muted">Toplam</small>
+                                        </div>
+                                        <div class="col-4">
+                                            <h4 class="text-warning">{{ stats.moldpark_active_orders }}</h4>
+                                            <small class="text-muted">Aktif</small>
+                                        </div>
+                                        <div class="col-4">
+                                            <h4 class="text-success">{{ stats.moldpark_orders|add:"-"|add:stats.moldpark_active_orders }}</h4>
+                                            <small class="text-muted">Tamamlanan</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% else %}
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-star fa-4x mb-3 text-warning"></i><br>
+                        <h5>Henüz MoldPark siparişi bulunmuyor</h5>
+                        <p>Kullanıcılar MoldPark Üretim Merkezi'ni seçtiklerinde siparişler burada görünecek.</p>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
 
                 <!-- Mesajlar Sekmesi -->
                 <div class="tab-pane fade" id="messages" role="tabpanel">
