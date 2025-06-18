@@ -304,4 +304,56 @@ def system_alerts():
 def moldpark_version():
     """MoldPark versiyonu"""
     from django.conf import settings
-    return getattr(settings, 'MOLDPARK_VERSION', '2.0.0') 
+    return getattr(settings, 'MOLDPARK_VERSION', '2.0.0')
+
+
+# Mesajlaşma sistemi için filter'lar
+@register.filter
+def basename(value):
+    """Dosya yolundan sadece dosya adını döndürür"""
+    import os
+    if value:
+        return os.path.basename(str(value))
+    return value
+
+
+@register.filter
+def file_size(value):
+    """Dosya boyutunu human-readable format'ta döndürür"""
+    if not value:
+        return "0 B"
+    
+    try:
+        size = value.size
+        for unit in ['B', 'KB', 'MB', 'GB']:
+            if size < 1024.0:
+                return f"{size:.1f} {unit}"
+            size /= 1024.0
+        return f"{size:.1f} TB"
+    except:
+        return "Bilinmiyor"
+
+
+@register.filter
+def message_type_icon(message_type):
+    """Mesaj türüne göre ikon döndürür"""
+    icons = {
+        'center_to_admin': 'fas fa-building',
+        'producer_to_admin': 'fas fa-industry', 
+        'admin_to_center': 'fas fa-crown',
+        'admin_to_producer': 'fas fa-crown',
+        'admin_broadcast': 'fas fa-bullhorn',
+    }
+    return icons.get(message_type, 'fas fa-envelope')
+
+
+@register.filter
+def priority_color(priority):
+    """Öncelik seviyesine göre renk döndürür"""
+    colors = {
+        'urgent': 'danger',
+        'high': 'warning',
+        'normal': 'info',
+        'low': 'secondary',
+    }
+    return colors.get(priority, 'info') 

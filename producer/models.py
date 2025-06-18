@@ -104,6 +104,70 @@ class Producer(models.Model):
     def is_admin_user(self):
         """Güvenlik kontrolü: Üretici asla admin olamaz"""
         return False
+    
+    def get_average_rating(self):
+        """Ortalama değerlendirme puanını hesaplar"""
+        from mold.models import MoldEvaluation
+        evaluations = MoldEvaluation.objects.filter(
+            mold__producer_orders__producer=self
+        ).distinct()
+        
+        if not evaluations.exists():
+            return 0
+        
+        total_quality = sum(eval.quality_score for eval in evaluations)
+        total_speed = sum(eval.speed_score for eval in evaluations)
+        total_evaluations = evaluations.count()
+        
+        avg_quality = total_quality / total_evaluations
+        avg_speed = total_speed / total_evaluations
+        
+        return round((avg_quality + avg_speed) / 2, 1)
+    
+    def get_quality_rating(self):
+        """Ortalama kalite puanını hesaplar"""
+        from mold.models import MoldEvaluation
+        evaluations = MoldEvaluation.objects.filter(
+            mold__producer_orders__producer=self
+        ).distinct()
+        
+        if not evaluations.exists():
+            return 0
+        
+        total_quality = sum(eval.quality_score for eval in evaluations)
+        return round(total_quality / evaluations.count(), 1)
+    
+    def get_speed_rating(self):
+        """Ortalama hız puanını hesaplar"""
+        from mold.models import MoldEvaluation
+        evaluations = MoldEvaluation.objects.filter(
+            mold__producer_orders__producer=self
+        ).distinct()
+        
+        if not evaluations.exists():
+            return 0
+        
+        total_speed = sum(eval.speed_score for eval in evaluations)
+        return round(total_speed / evaluations.count(), 1)
+    
+    def get_total_evaluations(self):
+        """Toplam değerlendirme sayısını döndürür"""
+        from mold.models import MoldEvaluation
+        return MoldEvaluation.objects.filter(
+            mold__producer_orders__producer=self
+        ).distinct().count()
+    
+    def get_rating_color(self):
+        """Puan rengi döndürür"""
+        avg_rating = self.get_average_rating()
+        if avg_rating >= 8:
+            return 'success'
+        elif avg_rating >= 6:
+            return 'warning'
+        elif avg_rating > 0:
+            return 'danger'
+        else:
+            return 'secondary'
 
 
 class ProducerNetwork(models.Model):

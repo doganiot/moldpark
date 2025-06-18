@@ -5,8 +5,8 @@ from django.core.exceptions import PermissionDenied
 from django.contrib.auth.models import User
 from notifications.signals import notify
 from django.utils import timezone
-from .models import EarMold, Revision, ModeledMold, QualityCheck
-from .forms import EarMoldForm, RevisionForm, ModeledMoldForm, QualityCheckForm
+from .models import EarMold, Revision, ModeledMold, QualityCheck, RevisionRequest, MoldEvaluation
+from .forms import EarMoldForm, RevisionForm, ModeledMoldForm, QualityCheckForm, RevisionRequestForm, MoldEvaluationForm
 from center.decorators import center_required
 from django.contrib.auth.decorators import permission_required
 from producer.models import ProducerNetwork, ProducerOrder
@@ -189,10 +189,14 @@ def mold_detail(request, pk):
     producer_orders = mold.producer_orders.all().order_by('-created_at')
     model_form = ModeledMoldForm()
     
+    # Onaylanmış kalıp dosyası var mı kontrol et
+    has_approved_files = mold.modeled_files.filter(status='approved').exists()
+    
     return render(request, 'mold/mold_detail.html', {
         'mold': mold,
         'model_form': model_form,
-        'producer_orders': producer_orders
+        'producer_orders': producer_orders,
+        'has_approved_files': has_approved_files,
     })
 
 @login_required
@@ -342,3 +346,207 @@ def quality_check(request, pk):
         form = QualityCheckForm()
     
     return render(request, 'mold/quality_form.html', {'form': form, 'mold': mold})
+
+
+# YENİ VİEW'LAR - REVİZYON VE DEĞERLENDİRME SİSTEMİ
+
+@login_required
+@center_required
+def revision_request_create(request, mold_id=None):
+    """Revizyon talebi oluşturma"""
+    mold = None
+    if mold_id:
+        mold = get_object_or_404(EarMold, pk=mold_id)
+        # Sadece kalıbın sahibi revizyon talep edebilir
+        if mold.center != request.user.center:
+            raise PermissionDenied("Bu kalıp için revizyon talep etme yetkiniz yok.")
+    
+    if request.method == 'POST':
+        form = RevisionRequestForm(request.POST, request.FILES, center=request.user.center)
+        if form.is_valid():
+            revision_request = form.save(commit=False)
+            revision_request.center = request.user.center
+            # modeled_mold seçildiğinde mold otomatik olarak belirlenir
+            revision_request.mold = revision_request.modeled_mold.ear_mold
+            revision_request.save()
+            
+            # Kalıp durumunu revizyon olarak güncelle
+            mold = revision_request.mold
+            mold.status = 'revision'
+            mold.save()
+            
+            # Admin'lere bildirim gönder
+            admin_users = User.objects.filter(is_superuser=True)
+            for admin in admin_users:
+                notify.send(
+                    sender=request.user,
+                    recipient=admin,
+                    verb='revizyon talebi oluşturdu',
+                    action_object=revision_request,
+                    description=f'{mold.patient_name} {mold.patient_surname} - {revision_request.get_revision_type_display()}',
+                    target=mold
+                )
+            
+            # İlgili üreticiye bildirim gönder
+            producer_orders = mold.producer_orders.filter(status='delivered')
+            for order in producer_orders:
+                notify.send(
+                    sender=request.user,
+                    recipient=order.producer.user,
+                    verb='revizyon talebi oluşturdu',
+                    action_object=revision_request,
+                    description=f'Sipariş: {order.order_number} - {revision_request.title}',
+                    target=mold
+                )
+            
+            messages.success(request, 'Revizyon talebiniz başarıyla oluşturuldu ve ilgili taraflara bildirildi.')
+            return redirect('mold:mold_detail', pk=mold.pk)
+    else:
+        form = RevisionRequestForm(center=request.user.center)
+    
+    return render(request, 'mold/revision_request_form.html', {
+        'form': form,
+        'mold': mold
+    })
+
+
+@login_required
+@center_required
+def revision_request_list(request):
+    """Revizyon talepleri listesi"""
+    revision_requests = RevisionRequest.objects.filter(
+        center=request.user.center
+    ).order_by('-created_at')
+    
+    # Filtreleme
+    status_filter = request.GET.get('status')
+    if status_filter:
+        revision_requests = revision_requests.filter(status=status_filter)
+    
+    return render(request, 'mold/revision_request_list.html', {
+        'revision_requests': revision_requests,
+        'status_filter': status_filter,
+        'status_choices': RevisionRequest.STATUS_CHOICES
+    })
+
+
+@login_required
+@center_required
+def revision_request_detail(request, pk):
+    """Revizyon talebi detayı"""
+    revision_request = get_object_or_404(RevisionRequest, pk=pk)
+    
+    # Sadece kendi taleplerini görebilir
+    if revision_request.center != request.user.center and not request.user.is_superuser:
+        raise PermissionDenied
+    
+    return render(request, 'mold/revision_request_detail.html', {
+        'revision_request': revision_request
+    })
+
+
+@login_required
+@center_required
+def mold_evaluation_create(request, mold_id):
+    """Kalıp değerlendirmesi oluşturma"""
+    mold = get_object_or_404(EarMold, pk=mold_id)
+    
+    # Sadece kalıbın sahibi değerlendirme yapabilir
+    if mold.center != request.user.center:
+        raise PermissionDenied("Bu kalıp için değerlendirme yapma yetkiniz yok.")
+    
+    # Kalıp teslim edilmiş olmalı
+    if mold.status != 'delivered':
+        messages.error(request, 'Değerlendirme sadece teslim edilmiş kalıplar için yapılabilir.')
+        return redirect('mold:mold_detail', pk=mold_id)
+    
+    # Daha önce değerlendirme yapılmış mı kontrol et
+    existing_evaluation = MoldEvaluation.objects.filter(
+        mold=mold,
+        center=request.user.center
+    ).first()
+    
+    if existing_evaluation:
+        messages.info(request, 'Bu kalıp için zaten bir değerlendirme yapmışsınız. Mevcut değerlendirmenizi güncelleyebilirsiniz.')
+        return redirect('mold:mold_evaluation_edit', pk=existing_evaluation.pk)
+    
+    if request.method == 'POST':
+        form = MoldEvaluationForm(request.POST)
+        if form.is_valid():
+            evaluation = form.save(commit=False)
+            evaluation.mold = mold
+            evaluation.center = request.user.center
+            evaluation.save()
+            
+            # İlgili üreticiye bildirim gönder
+            producer_orders = mold.producer_orders.filter(status='delivered')
+            for order in producer_orders:
+                notify.send(
+                    sender=request.user,
+                    recipient=order.producer.user,
+                    verb='kalıp değerlendirmesi yaptı',
+                    action_object=evaluation,
+                    description=f'Kalite: {evaluation.quality_score}/10, Hız: {evaluation.speed_score}/10',
+                    target=mold
+                )
+            
+            # Admin'lere bildirim gönder
+            admin_users = User.objects.filter(is_superuser=True)
+            for admin in admin_users:
+                notify.send(
+                    sender=request.user,
+                    recipient=admin,
+                    verb='kalıp değerlendirmesi yaptı',
+                    action_object=evaluation,
+                    description=f'{mold.patient_name} {mold.patient_surname} - Genel: {evaluation.overall_satisfaction}/10',
+                    target=mold
+                )
+            
+            messages.success(request, 'Değerlendirmeniz başarıyla kaydedildi. Geri bildiriminiz için teşekkürler!')
+            return redirect('mold:mold_detail', pk=mold_id)
+    else:
+        form = MoldEvaluationForm()
+    
+    return render(request, 'mold/mold_evaluation_form.html', {
+        'form': form,
+        'mold': mold
+    })
+
+
+@login_required
+@center_required
+def mold_evaluation_edit(request, pk):
+    """Kalıp değerlendirmesi düzenleme"""
+    evaluation = get_object_or_404(MoldEvaluation, pk=pk)
+    
+    # Sadece kendi değerlendirmelerini düzenleyebilir
+    if evaluation.center != request.user.center:
+        raise PermissionDenied("Bu değerlendirmeyi düzenleme yetkiniz yok.")
+    
+    if request.method == 'POST':
+        form = MoldEvaluationForm(request.POST, instance=evaluation)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Değerlendirmeniz başarıyla güncellendi.')
+            return redirect('mold:mold_detail', pk=evaluation.mold.pk)
+    else:
+        form = MoldEvaluationForm(instance=evaluation)
+    
+    return render(request, 'mold/mold_evaluation_form.html', {
+        'form': form,
+        'mold': evaluation.mold,
+        'evaluation': evaluation
+    })
+
+
+@login_required
+@center_required
+def mold_evaluation_list(request):
+    """Kalıp değerlendirmeleri listesi"""
+    evaluations = MoldEvaluation.objects.filter(
+        center=request.user.center
+    ).select_related('mold').order_by('-created_at')
+    
+    return render(request, 'mold/mold_evaluation_list.html', {
+        'evaluations': evaluations
+    })

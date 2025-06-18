@@ -272,18 +272,38 @@
                     <h6 class="mb-0"><i class="fas fa-bolt me-2"></i>Hızlı İşlemler</h6>
                 </div>
                 <div class="card-body">
+                    <!-- Revizyon Talebi -->
+                    {% if has_approved_files %}
+                    <a href="{% url 'mold:revision_request_create' %}" class="btn btn-warning btn-sm w-100 mb-2">
+                        <i class="fas fa-edit me-1"></i>Revizyon Talebi Oluştur
+                    </a>
+                    {% endif %}
+                    
+                    <!-- Kalıp Değerlendirmesi -->
+                    {% if mold.status == 'delivered' %}
+                        {% if not mold.evaluations.exists %}
+                        <a href="{% url 'mold:mold_evaluation_create' mold.id %}" class="btn btn-success btn-sm w-100 mb-2">
+                            <i class="fas fa-star me-1"></i>Kalıp Değerlendirmesi Yap
+                        </a>
+                        {% else %}
+                        <a href="{% url 'mold:mold_evaluation_edit' mold.evaluations.first.id %}" class="btn btn-outline-success btn-sm w-100 mb-2">
+                            <i class="fas fa-edit me-1"></i>Değerlendirmeyi Düzenle
+                        </a>
+                        {% endif %}
+                    {% endif %}
+                    
+                    <!-- Eski Revizyon Butonu (Eski sistem için) -->
                     {% if mold.status != 'completed' and mold.status != 'delivered' %}
-                    <a href="{% url 'mold:revision_create' mold.id %}" class="btn btn-warning btn-sm w-100 mb-2">
-                        <i class="fas fa-redo me-1"></i>Revizyon Talep Et
+                    <a href="{% url 'mold:revision_create' mold.id %}" class="btn btn-outline-warning btn-sm w-100 mb-2">
+                        <i class="fas fa-redo me-1"></i>Eski Revizyon Sistemi
                     </a>
                     {% endif %}
                     
                     {% if mold.modeled_files.exists %}
-                    <button class="btn btn-success btn-sm w-100 mb-2" data-bs-toggle="modal" data-bs-target="#downloadModal">
+                    <button class="btn btn-primary btn-sm w-100 mb-2" data-bs-toggle="modal" data-bs-target="#downloadModal">
                         <i class="fas fa-download me-1"></i>Tüm Dosyaları İndir
                     </button>
                     {% endif %}
-                    
 
                 </div>
             </div>

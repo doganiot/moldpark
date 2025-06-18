@@ -102,21 +102,29 @@
 
                         {% elif user.center %}
                             <!-- MERKEZ NAV MENÜSÜ -->
-                            <li class="nav-item">
-                                <a class="nav-link" href="{% url 'center:dashboard' %}">Panel</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{% url 'mold:mold_list' %}">Kalıplarım</a>
-                            </li>
-
                             {% if not user.is_staff and not user.is_superuser %}
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'center:network_management' %}">
                                     <i class="fas fa-network-wired me-1"></i>Üretici Ağları
                                 </a>
                             </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'mold:revision_request_create' %}">
+                                    <i class="fas fa-edit me-1"></i>Revizyon Talebi
+                                </a>
+                            </li>
                             {% endif %}
                         {% endif %}
+                        
+                        <!-- Mesajlaşma - Tüm giriş yapmış kullanıcılar için -->
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'core:message_list' %}">
+                                <i class="fas fa-envelope me-1"></i>Mesajlar
+                                {% if unread_message_count > 0 %}
+                                    <span class="badge bg-danger ms-1">{{ unread_message_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
                     {% endif %}
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'core:contact' %}">İletişim</a>

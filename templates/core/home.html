@@ -407,6 +407,107 @@
         </div>
     </div>
 
+    <!-- En İyi Üreticiler -->
+    {% if top_producers %}
+    <div class="row py-5 bg-light">
+        <div class="col-12 text-center mb-5">
+            <h2>En İyi Puanlı Üretici Merkezler</h2>
+            <p class="lead text-muted">Müşteri değerlendirmelerine göre en başarılı üretici ortaklarımız</p>
+        </div>
+        {% for producer_data in top_producers %}
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card h-100 border-0 shadow-sm producer-card">
+                <div class="card-body text-center">
+                    {% if producer_data.producer.logo %}
+                        <img src="{{ producer_data.producer.logo.url }}" alt="{{ producer_data.producer.company_name }}" 
+                             class="rounded-circle mb-3" style="width: 80px; height: 80px; object-fit: cover;">
+                    {% else %}
+                        <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" 
+                             style="width: 80px; height: 80px;">
+                            <i class="fas fa-industry text-white fa-2x"></i>
+                        </div>
+                    {% endif %}
+                    
+                    <h5 class="card-title">{{ producer_data.producer.company_name }}</h5>
+                    <p class="text-muted small mb-3">{{ producer_data.producer.get_producer_type_display }}</p>
+                    
+                    <!-- Genel Puan -->
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-center align-items-center mb-2">
+                            <span class="badge bg-{{ producer_data.rating_color }} fs-6 me-2">
+                                {{ producer_data.avg_rating }}/10
+                            </span>
+                                                         <div class="text-warning">
+                                 {% for i in "12345"|make_list %}
+                                     {% if producer_data.avg_rating >= i|add:"0" %}
+                                         <i class="fas fa-star"></i>
+                                     {% else %}
+                                         <i class="far fa-star"></i>
+                                     {% endif %}
+                                 {% endfor %}
+                             </div>
+                        </div>
+                        <small class="text-muted">{{ producer_data.total_evaluations }} değerlendirme</small>
+                    </div>
+                    
+                    <!-- Detay Puanlar -->
+                    <div class="row text-center mb-3">
+                        <div class="col-6">
+                            <div class="border-end">
+                                <div class="fw-bold text-{{ producer_data.producer.get_rating_color }}">
+                                    {{ producer_data.quality_rating }}/10
+                                </div>
+                                <small class="text-muted">Kalite</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="fw-bold text-{{ producer_data.producer.get_rating_color }}">
+                                {{ producer_data.speed_rating }}/10
+                            </div>
+                            <small class="text-muted">Hız</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Özellikler -->
+                    <div class="d-flex justify-content-center flex-wrap gap-1 mb-3">
+                        {% if producer_data.producer.is_verified %}
+                            <span class="badge bg-success">
+                                <i class="fas fa-check-circle me-1"></i>Doğrulanmış
+                            </span>
+                        {% endif %}
+                        {% if producer_data.avg_rating >= 8 %}
+                            <span class="badge bg-warning text-dark">
+                                <i class="fas fa-trophy me-1"></i>Önerilenler
+                            </span>
+                        {% endif %}
+                        {% if producer_data.total_evaluations >= 10 %}
+                            <span class="badge bg-info">
+                                <i class="fas fa-medal me-1"></i>Deneyimli
+                            </span>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- İletişim -->
+                    <div class="text-muted small">
+                        <i class="fas fa-map-marker-alt me-1"></i>
+                        {{ producer_data.producer.address|truncatechars:30 }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        
+        {% if top_producers|length >= 6 %}
+        <div class="col-12 text-center mt-4">
+            <p class="text-muted">
+                <i class="fas fa-info-circle me-1"></i>
+                Puanlamalar gerçek müşteri değerlendirmelerine dayanmaktadır
+            </p>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
     <!-- CTA -->
     <div class="row py-5">
         <div class="col-12 text-center">

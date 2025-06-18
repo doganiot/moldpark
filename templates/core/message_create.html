@@ -1,0 +1,251 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Yeni Mesaj - MoldPark{% endblock %}
+
+{% block extra_css %}
+<style>
+.message-form {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    padding: 30px;
+}
+
+.form-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.recipient-info {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border-left: 4px solid #007bff;
+}
+
+.admin-features {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.priority-help {
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-top: 5px;
+}
+
+.file-upload-info {
+    background: #e3f2fd;
+    padding: 10px;
+    border-radius: 5px;
+    margin-top: 10px;
+    font-size: 0.9rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="message-form">
+                <!-- Başlık -->
+                <div class="form-header">
+                    <h3 class="mb-0">
+                        <i class="fas fa-paper-plane me-2"></i>
+                        {% if is_admin %}
+                            Yeni Mesaj Gönder
+                        {% else %}
+                            Admin'e Mesaj Gönder
+                        {% endif %}
+                    </h3>
+                </div>
+
+                <!-- Bilgilendirme -->
+                {% if not is_admin %}
+                <div class="recipient-info">
+                    <h6><i class="fas fa-info-circle me-2"></i>Mesaj Bilgileri</h6>
+                    <p class="mb-0">
+                        Mesajınız sistem yöneticilerine iletilecektir. 
+                        Mümkün olan en kısa sürede size dönüş yapılacaktır.
+                    </p>
+                </div>
+                {% else %}
+                <div class="admin-features">
+                    <h6><i class="fas fa-crown me-2"></i>Admin Özellikleri</h6>
+                    <ul class="mb-0">
+                        <li>Belirli kullanıcılara mesaj gönderebilirsiniz</li>
+                        <li>Tüm işitme merkezlerine toplu mesaj gönderebilirsiniz</li>
+                        <li>Tüm üretici merkezlere toplu mesaj gönderebilirsiniz</li>
+                        <li>Acil öncelik seviyesi belirleyebilirsiniz</li>
+                    </ul>
+                </div>
+                {% endif %}
+
+                <!-- Form -->
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    {% if is_admin %}
+                        <!-- Admin için özel alanlar -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                {{ form.recipient_type|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.specific_recipient|as_crispy_field }}
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <!-- Konu -->
+                    <div class="mb-3">
+                        {{ form.subject|as_crispy_field }}
+                    </div>
+
+                    <!-- İçerik -->
+                    <div class="mb-3">
+                        {{ form.content|as_crispy_field }}
+                    </div>
+
+                    <!-- Öncelik ve Ek Dosya -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            {{ form.priority|as_crispy_field }}
+                            <div class="priority-help">
+                                <strong>Normal:</strong> Standart mesajlar<br>
+                                <strong>Yüksek:</strong> Önemli konular<br>
+                                {% if is_admin %}
+                                <strong>Acil:</strong> Hemen yanıt gerektiren durumlar
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.attachment|as_crispy_field }}
+                            <div class="file-upload-info">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Maksimum dosya boyutu: 10MB<br>
+                                Desteklenen formatlar: PDF, DOC, DOCX, JPG, PNG
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Butonlar -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'core:message_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Geri Dön
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane me-2"></i>Mesajı Gönder
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    {% if is_admin %}
+    const recipientTypeSelect = document.querySelector('select[name="recipient_type"]');
+    const specificRecipientSelect = document.querySelector('select[name="specific_recipient"]');
+    
+    function toggleSpecificRecipient() {
+        const selectedType = recipientTypeSelect.value;
+        const specificDiv = specificRecipientSelect.closest('.mb-3');
+        
+        if (selectedType === 'single_center' || selectedType === 'single_producer') {
+            specificDiv.style.display = 'block';
+            specificRecipientSelect.required = true;
+            
+            // Kullanıcı listesini filtrele
+            const options = specificRecipientSelect.querySelectorAll('option');
+            options.forEach(option => {
+                if (option.value === '') return; // Empty option
+                
+                const optionText = option.textContent.toLowerCase();
+                if (selectedType === 'single_center') {
+                    option.style.display = optionText.includes('merkez') ? 'block' : 'none';
+                } else if (selectedType === 'single_producer') {
+                    option.style.display = optionText.includes('üretici') ? 'block' : 'none';
+                }
+            });
+        } else {
+            specificDiv.style.display = 'none';
+            specificRecipientSelect.required = false;
+        }
+    }
+    
+    recipientTypeSelect.addEventListener('change', toggleSpecificRecipient);
+    toggleSpecificRecipient(); // İlk yükleme
+    {% endif %}
+    
+    // Form validasyonu
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        const subject = document.querySelector('input[name="subject"]').value.trim();
+        const content = document.querySelector('textarea[name="content"]').value.trim();
+        
+        if (!subject || !content) {
+            e.preventDefault();
+            alert('Lütfen konu ve mesaj içeriğini doldurun.');
+            return false;
+        }
+        
+        if (subject.length < 5) {
+            e.preventDefault();
+            alert('Konu en az 5 karakter olmalıdır.');
+            return false;
+        }
+        
+        if (content.length < 10) {
+            e.preventDefault();
+            alert('Mesaj içeriği en az 10 karakter olmalıdır.');
+            return false;
+        }
+        
+        // Gönderme butonunu devre dışı bırak
+        const submitBtn = form.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Gönderiliyor...';
+    });
+    
+    // Karakter sayacı
+    const contentTextarea = document.querySelector('textarea[name="content"]');
+    if (contentTextarea) {
+        const charCounter = document.createElement('div');
+        charCounter.className = 'text-muted text-end mt-1';
+        charCounter.style.fontSize = '0.85rem';
+        contentTextarea.parentNode.appendChild(charCounter);
+        
+        function updateCharCounter() {
+            const length = contentTextarea.value.length;
+            charCounter.textContent = `${length} karakter`;
+            
+            if (length > 1000) {
+                charCounter.className = 'text-warning text-end mt-1';
+            } else if (length > 1500) {
+                charCounter.className = 'text-danger text-end mt-1';
+            } else {
+                charCounter.className = 'text-muted text-end mt-1';
+            }
+        }
+        
+        contentTextarea.addEventListener('input', updateCharCounter);
+        updateCharCounter();
+    }
+});
+</script>
+{% endblock %} 

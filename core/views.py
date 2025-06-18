@@ -1,14 +1,46 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from .models import ContactMessage
-from .forms import ContactForm
+from .models import ContactMessage, Message, MessageRecipient
+from .forms import ContactForm, MessageForm, AdminMessageForm, MessageReplyForm
 from django.views.generic import TemplateView
-from django.contrib.auth.decorators import user_passes_test
+from django.contrib.auth.decorators import user_passes_test, login_required
 from center.models import Center, CenterMessage
 from mold.models import EarMold
 from accounts.forms import CustomSignupForm
+from django.db.models import Q, Count
+from django.contrib.auth.models import User
+from producer.models import Producer
+from notifications.signals import notify
+from django.http import JsonResponse
 
 def home(request):
+    # En iyi puanlı üreticileri al
+    top_producers = []
+    try:
+        from producer.models import Producer
+        producers = Producer.objects.filter(is_active=True, is_verified=True)
+        
+        # Puanlarına göre sırala
+        producer_ratings = []
+        for producer in producers:
+            avg_rating = producer.get_average_rating()
+            if avg_rating > 0:  # Sadece değerlendirme almış üreticiler
+                producer_ratings.append({
+                    'producer': producer,
+                    'avg_rating': avg_rating,
+                    'quality_rating': producer.get_quality_rating(),
+                    'speed_rating': producer.get_speed_rating(),
+                    'total_evaluations': producer.get_total_evaluations(),
+                    'rating_color': producer.get_rating_color()
+                })
+        
+        # Puanlarına göre sırala (en yüksek önce)
+        top_producers = sorted(producer_ratings, key=lambda x: x['avg_rating'], reverse=True)[:10]
+        
+    except Exception as e:
+        print(f"DEBUG - Üretici puanları alınırken hata: {e}")
+        top_producers = []
+    
     if request.user.is_authenticated:
         # Kullanıcının üretici olup olmadığını kontrol et
         is_producer = False
@@ -17,7 +49,10 @@ def home(request):
         except:
             is_producer = False
         
-        return render(request, 'core/home.html', {'is_producer': is_producer})
+        return render(request, 'core/home.html', {
+            'is_producer': is_producer,
+            'top_producers': top_producers
+        })
     
     # Giriş yapmamış kullanıcılar için kayıt formu
     if request.method == 'POST':
@@ -43,7 +78,10 @@ def home(request):
             form = None
             messages.error(request, 'Form yüklenirken bir hata oluştu. Lütfen kayıt sayfasını kullanın.')
     
-    return render(request, 'core/home.html', {'signup_form': form})
+    return render(request, 'core/home.html', {
+        'signup_form': form,
+        'top_producers': top_producers
+    })
 
 def contact(request):
     if request.method == 'POST':
@@ -188,3 +226,321 @@ def admin_dashboard(request):
         'stats': stats,
     }
     return render(request, 'core/dashboard_admin.html', context)
+
+@login_required
+def message_list(request):
+    """Mesaj Listesi"""
+    user = request.user
+    
+    # Gelen mesajlar
+    if user.is_superuser:
+        # Admin tüm mesajları görebilir
+        received_messages = Message.objects.filter(
+            Q(recipient=user) | 
+            Q(is_broadcast=True) |
+            Q(message_type__in=['center_to_admin', 'producer_to_admin'])
+        ).select_related('sender', 'recipient').prefetch_related('recipients')
+    else:
+        # Merkez ve üreticiler sadece kendilerine gelen mesajları görebilir
+        received_messages = Message.objects.filter(
+            Q(recipient=user) | 
+            Q(recipients__recipient=user)
+        ).select_related('sender', 'recipient').distinct()
+    
+    # Gönderilen mesajlar
+    sent_messages = Message.objects.filter(
+        sender=user
+    ).select_related('recipient').prefetch_related('recipients')
+    
+    # Filtreleme
+    message_filter = request.GET.get('filter', 'received')
+    search_query = request.GET.get('search', '')
+    
+    if message_filter == 'sent':
+        messages_list = sent_messages
+    else:
+        messages_list = received_messages
+    
+    # Arama
+    if search_query:
+        messages_list = messages_list.filter(
+            Q(subject__icontains=search_query) |
+            Q(content__icontains=search_query) |
+            Q(sender__first_name__icontains=search_query) |
+            Q(sender__last_name__icontains=search_query)
+        )
+    
+    # Sayfalama
+    from django.core.paginator import Paginator
+    paginator = Paginator(messages_list, 20)
+    page_number = request.GET.get('page')
+    messages_page = paginator.get_page(page_number)
+    
+    # İstatistikler
+    stats = {
+        'total_received': received_messages.count(),
+        'unread_received': received_messages.filter(is_read=False).count(),
+        'total_sent': sent_messages.count(),
+        'urgent_messages': received_messages.filter(priority='urgent', is_read=False).count(),
+    }
+    
+    context = {
+        'messages': messages_page,
+        'message_filter': message_filter,
+        'search_query': search_query,
+        'stats': stats,
+    }
+    
+    return render(request, 'core/message_list.html', context)
+
+@login_required
+def message_detail(request, pk):
+    """Mesaj Detayı"""
+    user = request.user
+    
+    # Mesajı al
+    message = get_object_or_404(Message, pk=pk)
+    
+    # Yetki kontrolü
+    can_view = False
+    if user.is_superuser:
+        can_view = True
+    elif message.recipient == user or message.sender == user:
+        can_view = True
+    elif message.is_broadcast and message.recipients.filter(recipient=user).exists():
+        can_view = True
+    
+    if not can_view:
+        messages.error(request, 'Bu mesajı görüntüleme yetkiniz yok.')
+        return redirect('core:message_list')
+    
+    # Mesajı okundu olarak işaretle
+    if message.recipient == user and not message.is_read:
+        message.mark_as_read()
+    elif message.is_broadcast:
+        recipient_obj = message.recipients.filter(recipient=user).first()
+        if recipient_obj and not recipient_obj.is_read:
+            recipient_obj.mark_as_read()
+    
+    # Cevap formu
+    reply_form = None
+    if message.can_reply(user):
+        if request.method == 'POST':
+            reply_form = MessageReplyForm(
+                request.POST, 
+                request.FILES,
+                original_message=message,
+                user=user
+            )
+            if reply_form.is_valid():
+                reply = reply_form.save()
+                
+                # Bildirim gönder
+                notify.send(
+                    sender=user,
+                    recipient=reply.recipient,
+                    verb='mesajınıza cevap verdi',
+                    action_object=reply,
+                    description=f'Konu: {reply.subject}'
+                )
+                
+                messages.success(request, 'Cevabınız gönderildi.')
+                return redirect('core:message_detail', pk=message.pk)
+        else:
+            reply_form = MessageReplyForm(original_message=message, user=user)
+    
+    # Cevapları al
+    replies = message.replies.select_related('sender', 'recipient').order_by('created_at')
+    
+    # Toplu mesaj istatistikleri
+    broadcast_stats = None
+    if message.is_broadcast:
+        recipients = message.recipients.all()
+        broadcast_stats = {
+            'total_recipients': recipients.count(),
+            'read_count': recipients.filter(is_read=True).count(),
+            'unread_count': recipients.filter(is_read=False).count(),
+        }
+    
+    context = {
+        'message': message,
+        'replies': replies,
+        'reply_form': reply_form,
+        'can_reply': message.can_reply(user),
+        'broadcast_stats': broadcast_stats,
+    }
+    
+    return render(request, 'core/message_detail.html', context)
+
+@login_required
+def message_create(request):
+    """Mesaj Oluştur"""
+    user = request.user
+    
+    if user.is_superuser:
+        # Admin için özel form
+        if request.method == 'POST':
+            form = AdminMessageForm(request.POST, request.FILES)
+            if form.is_valid():
+                message = form.save(commit=False)
+                message.sender = user
+                
+                recipient_type = form.cleaned_data['recipient_type']
+                specific_recipient = form.cleaned_data.get('specific_recipient')
+                
+                if recipient_type == 'single_center':
+                    message.recipient = specific_recipient
+                    message.message_type = 'admin_to_center'
+                elif recipient_type == 'single_producer':
+                    message.recipient = specific_recipient
+                    message.message_type = 'admin_to_producer'
+                else:
+                    # Toplu mesaj
+                    message.is_broadcast = True
+                    message.message_type = 'admin_broadcast'
+                    
+                    if recipient_type == 'all_centers':
+                        message.broadcast_to_centers = True
+                    elif recipient_type == 'all_producers':
+                        message.broadcast_to_producers = True
+                    elif recipient_type == 'all_users':
+                        message.broadcast_to_centers = True
+                        message.broadcast_to_producers = True
+                
+                message.save()
+                
+                # Toplu mesaj ise alıcıları oluştur
+                if message.is_broadcast:
+                    recipients = []
+                    
+                    if message.broadcast_to_centers:
+                        center_users = User.objects.filter(center__isnull=False)
+                        recipients.extend(center_users)
+                    
+                    if message.broadcast_to_producers:
+                        producer_users = User.objects.filter(producer__isnull=False)
+                        recipients.extend(producer_users)
+                    
+                    # MessageRecipient objelerini oluştur
+                    for recipient in recipients:
+                        MessageRecipient.objects.create(
+                            message=message,
+                            recipient=recipient
+                        )
+                        
+                        # Bildirim gönder
+                        notify.send(
+                            sender=user,
+                            recipient=recipient,
+                            verb='size mesaj gönderdi',
+                            action_object=message,
+                            description=f'Konu: {message.subject}'
+                        )
+                else:
+                    # Tekil mesaj için bildirim
+                    notify.send(
+                        sender=user,
+                        recipient=message.recipient,
+                        verb='size mesaj gönderdi',
+                        action_object=message,
+                        description=f'Konu: {message.subject}'
+                    )
+                
+                messages.success(request, 'Mesajınız gönderildi.')
+                return redirect('core:message_list')
+        else:
+            form = AdminMessageForm()
+    else:
+        # Merkez ve üreticiler için basit form
+        if request.method == 'POST':
+            form = MessageForm(request.POST, request.FILES, user=user)
+            if form.is_valid():
+                message = form.save(commit=False)
+                message.sender = user
+                
+                # Admin'e gönder
+                admin_user = User.objects.filter(is_superuser=True).first()
+                message.recipient = admin_user
+                
+                # Mesaj tipini belirle
+                if hasattr(user, 'center'):
+                    message.message_type = 'center_to_admin'
+                elif hasattr(user, 'producer'):
+                    message.message_type = 'producer_to_admin'
+                
+                message.save()
+                
+                # Admin'e bildirim gönder
+                if admin_user:
+                    notify.send(
+                        sender=user,
+                        recipient=admin_user,
+                        verb='size mesaj gönderdi',
+                        action_object=message,
+                        description=f'Konu: {message.subject}'
+                    )
+                
+                messages.success(request, 'Mesajınız admin\'e gönderildi.')
+                return redirect('core:message_list')
+        else:
+            form = MessageForm(user=user)
+    
+    context = {
+        'form': form,
+        'is_admin': user.is_superuser,
+    }
+    
+    return render(request, 'core/message_create.html', context)
+
+@login_required
+def message_mark_read(request, pk):
+    """Mesajı Okundu Olarak İşaretle"""
+    user = request.user
+    message = get_object_or_404(Message, pk=pk)
+    
+    # Yetki kontrolü
+    if message.recipient == user:
+        message.mark_as_read()
+    elif message.is_broadcast:
+        recipient_obj = message.recipients.filter(recipient=user).first()
+        if recipient_obj:
+            recipient_obj.mark_as_read()
+    
+    return JsonResponse({'success': True})
+
+@login_required
+def message_archive(request, pk):
+    """Mesajı Arşivle"""
+    user = request.user
+    message = get_object_or_404(Message, pk=pk)
+    
+    # Yetki kontrolü
+    if message.recipient == user or message.sender == user:
+        message.is_archived = True
+        message.save()
+        messages.success(request, 'Mesaj arşivlendi.')
+    
+    return redirect('core:message_list')
+
+@login_required
+def message_delete(request, pk):
+    """Mesajı Sil"""
+    user = request.user
+    message = get_object_or_404(Message, pk=pk)
+    
+    # Sadece gönderen silebilir
+    if message.sender == user:
+        message.delete()
+        messages.success(request, 'Mesaj silindi.')
+    else:
+        messages.error(request, 'Bu mesajı silme yetkiniz yok.')
+    
+    return redirect('core:message_list')
+
+def terms_of_service(request):
+    """Kullanım Şartları"""
+    return render(request, 'core/terms.html')
+
+def privacy_policy(request):
+    """Gizlilik Politikası"""
+    return render(request, 'core/privacy.html')

@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+    {% if evaluation %}Değerlendirme Düzenle{% else %}Kalıp Değerlendirmesi{% endif %} - MoldPark
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-star me-2"></i>
+                        {% if evaluation %}Değerlendirme Düzenle{% else %}Kalıp Değerlendirmesi{% endif %}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <!-- Kalıp Bilgileri -->
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle me-1"></i>Kalıp Bilgileri</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Hasta:</strong> {{ mold.patient_name }} {{ mold.patient_surname }}<br>
+                                <strong>Kalıp Türü:</strong> {{ mold.get_mold_type_display }}<br>
+                                <strong>Durum:</strong> 
+                                <span class="badge bg-{{ mold.get_status_color }}">
+                                    {{ mold.get_status_display }}
+                                </span>
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Teslim Tarihi:</strong> {{ mold.updated_at|date:"d.m.Y H:i" }}<br>
+                                <strong>Vent Çapı:</strong> {{ mold.vent_diameter }}mm<br>
+                                {% if mold.quality_score %}
+                                    <strong>Üretici Kalite Puanı:</strong> {{ mold.quality_score }}/100
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Değerlendirme Formu -->
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <h5 class="mb-3"><i class="fas fa-clipboard-check me-1"></i>Temel Değerlendirme</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.quality_score.id_for_label }}" class="form-label">
+                                    {{ form.quality_score.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.quality_score }}
+                                <div class="form-text">{{ form.quality_score.help_text }}</div>
+                                {% if form.quality_score.errors %}
+                                    <div class="text-danger small">{{ form.quality_score.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.speed_score.id_for_label }}" class="form-label">
+                                    {{ form.speed_score.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.speed_score }}
+                                <div class="form-text">{{ form.speed_score.help_text }}</div>
+                                {% if form.speed_score.errors %}
+                                    <div class="text-danger small">{{ form.speed_score.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <h5 class="mb-3 mt-4"><i class="fas fa-plus-circle me-1"></i>Ek Değerlendirmeler (Opsiyonel)</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.communication_score.id_for_label }}" class="form-label">
+                                    {{ form.communication_score.label }}
+                                </label>
+                                {{ form.communication_score }}
+                                <div class="form-text">{{ form.communication_score.help_text }}</div>
+                                {% if form.communication_score.errors %}
+                                    <div class="text-danger small">{{ form.communication_score.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.packaging_score.id_for_label }}" class="form-label">
+                                    {{ form.packaging_score.label }}
+                                </label>
+                                {{ form.packaging_score }}
+                                <div class="form-text">{{ form.packaging_score.help_text }}</div>
+                                {% if form.packaging_score.errors %}
+                                    <div class="text-danger small">{{ form.packaging_score.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <h5 class="mb-3 mt-4"><i class="fas fa-comments me-1"></i>Geri Bildirimler</h5>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.positive_feedback.id_for_label }}" class="form-label">
+                                {{ form.positive_feedback.label }}
+                            </label>
+                            {{ form.positive_feedback }}
+                            {% if form.positive_feedback.errors %}
+                                <div class="text-danger small">{{ form.positive_feedback.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.negative_feedback.id_for_label }}" class="form-label">
+                                {{ form.negative_feedback.label }}
+                            </label>
+                            {{ form.negative_feedback }}
+                            {% if form.negative_feedback.errors %}
+                                <div class="text-danger small">{{ form.negative_feedback.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.suggestions.id_for_label }}" class="form-label">
+                                {{ form.suggestions.label }}
+                            </label>
+                            {{ form.suggestions }}
+                            {% if form.suggestions.errors %}
+                                <div class="text-danger small">{{ form.suggestions.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <h5 class="mb-3 mt-4"><i class="fas fa-heart me-1"></i>Genel Değerlendirme</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.overall_satisfaction.id_for_label }}" class="form-label">
+                                    {{ form.overall_satisfaction.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.overall_satisfaction }}
+                                <div class="form-text">{{ form.overall_satisfaction.help_text }}</div>
+                                {% if form.overall_satisfaction.errors %}
+                                    <div class="text-danger small">{{ form.overall_satisfaction.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.would_recommend.id_for_label }}" class="form-label">
+                                    {{ form.would_recommend.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.would_recommend }}
+                                {% if form.would_recommend.errors %}
+                                    <div class="text-danger small">{{ form.would_recommend.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Bilgilendirme -->
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-lightbulb me-1"></i>Değerlendirme Hakkında</h6>
+                            <ul class="mb-0 small">
+                                <li>Değerlendirmeniz üretici firmaya gönderilecek ve hizmet kalitesinin artırılmasına yardımcı olacaktır</li>
+                                <li>Puanlamalar 1-10 arasında olup, 10 en yüksek puandır</li>
+                                <li>Geri bildirimleriniz anonim olarak paylaşılabilir</li>
+                                <li>Değerlendirmenizi daha sonra düzenleyebilirsiniz</li>
+                            </ul>
+                        </div>
+
+                        <!-- Form Butonları -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'mold:mold_detail' mold.pk %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-1"></i>Geri Dön
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save me-1"></i>
+                                {% if evaluation %}Değerlendirmeyi Güncelle{% else %}Değerlendirmeyi Kaydet{% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.form-select option[value=""] {
+    color: #6c757d;
+}
+</style>
+{% endblock %} 

@@ -1,0 +1,191 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Revizyon Talebi Oluştur - MoldPark{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="mb-0">
+                        <i class="fas fa-edit me-2"></i>Revizyon Talebi Oluştur
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <!-- Açıklayıcı Bilgi -->
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle me-1"></i>Revizyon Talebi Hakkında</h6>
+                        <p class="mb-0">
+                            Üretici merkezden aldığınız bir kalıp dosyasında sorun varsa bu formu kullanarak revizyon talep edebilirsiniz. 
+                            Önce hangi kalıp dosyası için revizyon istediğinizi seçin, ardından detayları belirtin.
+                        </p>
+                    </div>
+
+                    <!-- Revizyon Formu -->
+                    <form method="post" enctype="multipart/form-data" id="revisionForm">
+                        {% csrf_token %}
+                        
+                        <!-- Kalıp Dosyası Seçimi -->
+                        <div class="mb-4">
+                            <label for="{{ form.modeled_mold.id_for_label }}" class="form-label">
+                                {{ form.modeled_mold.label }} <span class="text-danger">*</span>
+                            </label>
+                            {{ form.modeled_mold }}
+                            {% if form.modeled_mold.help_text %}
+                                <div class="form-text">{{ form.modeled_mold.help_text }}</div>
+                            {% endif %}
+                            {% if form.modeled_mold.errors %}
+                                <div class="text-danger small">{{ form.modeled_mold.errors.0 }}</div>
+                            {% endif %}
+                            
+                            <!-- Seçilen kalıp bilgileri burada gösterilecek -->
+                            <div id="moldInfo" class="mt-3" style="display: none;">
+                                <div class="alert alert-secondary">
+                                    <h6><i class="fas fa-file-alt me-1"></i>Seçilen Kalıp Dosyası Bilgileri</h6>
+                                    <div id="moldDetails"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.revision_type.id_for_label }}" class="form-label">
+                                    {{ form.revision_type.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.revision_type }}
+                                {% if form.revision_type.errors %}
+                                    <div class="text-danger small">{{ form.revision_type.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.priority.id_for_label }}" class="form-label">
+                                    {{ form.priority.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.priority }}
+                                {% if form.priority.errors %}
+                                    <div class="text-danger small">{{ form.priority.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.title.id_for_label }}" class="form-label">
+                                {{ form.title.label }} <span class="text-danger">*</span>
+                            </label>
+                            {{ form.title }}
+                            {% if form.title.errors %}
+                                <div class="text-danger small">{{ form.title.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.description.id_for_label }}" class="form-label">
+                                {{ form.description.label }} <span class="text-danger">*</span>
+                            </label>
+                            {{ form.description }}
+                            <div class="form-text">
+                                Revizyon talebinizi mümkün olduğunca detaylı açıklayın. 
+                                Bu bilgiler üreticinin sorunu daha iyi anlamasına yardımcı olacaktır.
+                            </div>
+                            {% if form.description.errors %}
+                                <div class="text-danger small">{{ form.description.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.reference_image.id_for_label }}" class="form-label">
+                                    {{ form.reference_image.label }}
+                                </label>
+                                {{ form.reference_image }}
+                                <div class="form-text">
+                                    Sorunu gösteren bir görsel ekleyebilirsiniz (Maks. 10MB)
+                                </div>
+                                {% if form.reference_image.errors %}
+                                    <div class="text-danger small">{{ form.reference_image.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.attachment.id_for_label }}" class="form-label">
+                                    {{ form.attachment.label }}
+                                </label>
+                                {{ form.attachment }}
+                                <div class="form-text">
+                                    Ek dosya ekleyebilirsiniz (Maks. 50MB)
+                                </div>
+                                {% if form.attachment.errors %}
+                                    <div class="text-danger small">{{ form.attachment.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Uyarı Mesajı -->
+                        <div class="alert alert-warning">
+                            <h6><i class="fas fa-exclamation-triangle me-1"></i>Önemli Bilgiler</h6>
+                            <ul class="mb-0">
+                                <li>Revizyon talebi oluşturduktan sonra admin onayı beklenir</li>
+                                <li>Talep kabul edilirse üretici ile iletişime geçilir</li>
+                                <li>Revizyon süreci kalıp türüne göre 2-5 iş günü sürebilir</li>
+                                <li>Ek maliyetler varsa size bildirilecektir</li>
+                            </ul>
+                        </div>
+
+                        <!-- Form Butonları -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{% if mold %}{% url 'mold:mold_detail' mold.pk %}{% else %}{% url 'mold:mold_list' %}{% endif %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-1"></i>Geri Dön
+                            </a>
+                            <button type="submit" class="btn btn-warning">
+                                <i class="fas fa-paper-plane me-1"></i>Revizyon Talebi Gönder
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const moldSelect = document.getElementById('{{ form.modeled_mold.id_for_label }}');
+    const moldInfo = document.getElementById('moldInfo');
+    const moldDetails = document.getElementById('moldDetails');
+    
+    // Kalıp dosyası seçildiğinde bilgileri göster
+    moldSelect.addEventListener('change', function() {
+        if (this.value) {
+            // AJAX ile kalıp bilgilerini al
+            fetch(`/api/modeled-mold/${this.value}/`)
+                .then(response => response.json())
+                .then(data => {
+                    moldDetails.innerHTML = `
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Hasta:</strong> ${data.patient_name} ${data.patient_surname}<br>
+                                <strong>Kalıp Türü:</strong> ${data.mold_type}<br>
+                                <strong>Dosya:</strong> ${data.filename}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Yüklenme:</strong> ${data.created_at}<br>
+                                <strong>Durum:</strong> <span class="badge bg-success">${data.status}</span><br>
+                                <strong>Vent Çapı:</strong> ${data.vent_diameter}mm
+                            </div>
+                        </div>
+                    `;
+                    moldInfo.style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('Kalıp bilgileri alınamadı:', error);
+                });
+        } else {
+            moldInfo.style.display = 'none';
+        }
+    });
+});
+</script>
+{% endblock %} 

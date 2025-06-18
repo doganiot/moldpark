@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import EarMold, Revision, ModeledMold, QualityCheck
+from .models import EarMold, Revision, ModeledMold, QualityCheck, RevisionRequest, MoldEvaluation
 
 @admin.register(EarMold)
 class EarMoldAdmin(admin.ModelAdmin):
@@ -46,3 +46,57 @@ class QualityCheckAdmin(admin.ModelAdmin):
     search_fields = ('mold__patient_name', 'mold__patient_surname', 'notes')
     readonly_fields = ('created_at',)
     ordering = ('-created_at',)
+
+
+@admin.register(RevisionRequest)
+class RevisionRequestAdmin(admin.ModelAdmin):
+    list_display = ('mold', 'center', 'revision_type', 'status', 'priority', 'created_at')
+    list_filter = ('status', 'revision_type', 'priority', 'created_at')
+    search_fields = ('mold__patient_name', 'mold__patient_surname', 'center__name', 'title', 'description')
+    readonly_fields = ('created_at', 'updated_at')
+    ordering = ('-created_at',)
+    
+    fieldsets = (
+        ('Kalıp ve Merkez Bilgileri', {
+            'fields': ('mold', 'center')
+        }),
+        ('Revizyon Detayları', {
+            'fields': ('revision_type', 'title', 'description', 'priority')
+        }),
+        ('Durum Bilgileri', {
+            'fields': ('status', 'admin_notes', 'producer_response')
+        }),
+        ('Ek Dosyalar', {
+            'fields': ('reference_image', 'attachment')
+        }),
+        ('Zaman Bilgileri', {
+            'fields': ('created_at', 'updated_at', 'resolved_at')
+        }),
+    )
+
+
+@admin.register(MoldEvaluation)
+class MoldEvaluationAdmin(admin.ModelAdmin):
+    list_display = ('mold', 'center', 'quality_score', 'speed_score', 'overall_satisfaction', 'would_recommend', 'created_at')
+    list_filter = ('quality_score', 'speed_score', 'overall_satisfaction', 'would_recommend', 'created_at')
+    search_fields = ('mold__patient_name', 'mold__patient_surname', 'center__name', 'positive_feedback', 'negative_feedback')
+    readonly_fields = ('created_at', 'updated_at')
+    ordering = ('-created_at',)
+    
+    fieldsets = (
+        ('Kalıp ve Merkez Bilgileri', {
+            'fields': ('mold', 'center')
+        }),
+        ('Puanlama', {
+            'fields': ('quality_score', 'speed_score', 'communication_score', 'packaging_score', 'overall_satisfaction')
+        }),
+        ('Geri Bildirimler', {
+            'fields': ('positive_feedback', 'negative_feedback', 'suggestions')
+        }),
+        ('Genel Değerlendirme', {
+            'fields': ('would_recommend',)
+        }),
+        ('Zaman Bilgileri', {
+            'fields': ('created_at', 'updated_at')
+        }),
+    )

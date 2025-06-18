@@ -1,0 +1,374 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% load crispy_forms_tags %}
+{% load moldpark_extras %}
+
+{% block title %}{{ message.subject }} - Mesajlar - MoldPark{% endblock %}
+
+{% block extra_css %}
+<style>
+.message-detail {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.message-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 25px;
+}
+
+.message-meta {
+    background: #f8f9fa;
+    padding: 15px 25px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.message-content {
+    padding: 25px;
+}
+
+.message-actions {
+    padding: 15px 25px;
+    background: #f8f9fa;
+    border-top: 1px solid #e9ecef;
+}
+
+.reply-section {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    margin-top: 20px;
+    overflow: hidden;
+}
+
+.reply-header {
+    background: #28a745;
+    color: white;
+    padding: 15px 25px;
+}
+
+.reply-item {
+    border-left: 4px solid #007bff;
+    margin: 15px 0;
+    padding: 15px;
+    background: #f8f9ff;
+    border-radius: 8px;
+}
+
+.priority-badge {
+    font-size: 0.75rem;
+    padding: 4px 8px;
+}
+
+.attachment-item {
+    background: #e3f2fd;
+    padding: 10px;
+    border-radius: 8px;
+    margin: 10px 0;
+    border-left: 4px solid #2196f3;
+}
+
+.message-thread {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.sender-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sender-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #007bff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+}
+
+.broadcast-info {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <!-- Geri Dön Butonu -->
+            <div class="mb-3">
+                <a href="{% url 'core:message_list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Mesaj Listesine Dön
+                </a>
+            </div>
+
+            <!-- Ana Mesaj -->
+            <div class="message-detail">
+                <!-- Başlık -->
+                <div class="message-header">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h3 class="mb-2">
+                                {% if message.is_broadcast %}
+                                    <i class="fas fa-bullhorn me-2"></i>
+                                {% endif %}
+                                {{ message.subject }}
+                            </h3>
+                            <div class="sender-info">
+                                <div class="sender-avatar">
+                                    {{ message.sender.first_name|first|default:message.sender.username|first|upper }}
+                                </div>
+                                <div>
+                                    <strong>{{ message.sender.get_full_name|default:message.sender.username }}</strong>
+                                    <br>
+                                    <small class="opacity-75">
+                                        {% if message.get_sender_type == 'admin' %}
+                                            <i class="fas fa-crown me-1"></i>Sistem Yöneticisi
+                                        {% elif message.get_sender_type == 'center' %}
+                                            <i class="fas fa-building me-1"></i>İşitme Merkezi
+                                        {% elif message.get_sender_type == 'producer' %}
+                                            <i class="fas fa-industry me-1"></i>Üretici Merkez
+                                        {% endif %}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            {% if message.priority == 'urgent' %}
+                                <span class="badge bg-danger priority-badge mb-2">ACİL</span>
+                            {% elif message.priority == 'high' %}
+                                <span class="badge bg-warning priority-badge mb-2">YÜKSEK</span>
+                            {% elif message.priority == 'low' %}
+                                <span class="badge bg-secondary priority-badge mb-2">DÜŞÜK</span>
+                            {% else %}
+                                <span class="badge bg-info priority-badge mb-2">NORMAL</span>
+                            {% endif %}
+                            <br>
+                            <small class="opacity-75">{{ message.created_at|date:"d.m.Y H:i" }}</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Meta Bilgiler -->
+                <div class="message-meta">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Alıcı:</strong>
+                            {% if message.is_broadcast %}
+                                <span class="text-info">
+                                    <i class="fas fa-bullhorn me-1"></i>
+                                    Toplu Mesaj
+                                    {% if message.broadcast_to_centers and message.broadcast_to_producers %}
+                                        (Tüm Kullanıcılar)
+                                    {% elif message.broadcast_to_centers %}
+                                        (İşitme Merkezleri)
+                                    {% elif message.broadcast_to_producers %}
+                                        (Üretici Merkezler)
+                                    {% endif %}
+                                </span>
+                            {% else %}
+                                {{ message.recipient.get_full_name|default:message.recipient.username }}
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <strong>Mesaj Türü:</strong>
+                            <span class="badge bg-secondary">{{ message.get_message_type_display }}</span>
+                        </div>
+                    </div>
+                    
+                    {% if message.is_broadcast %}
+                    <div class="broadcast-info mt-3">
+                        <h6><i class="fas fa-info-circle me-2"></i>Toplu Mesaj Bilgileri</h6>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <strong>Toplam Alıcı:</strong> {{ broadcast_stats.total_recipients }}
+                            </div>
+                            <div class="col-md-4">
+                                <strong>Okuyan:</strong> {{ broadcast_stats.read_count }}
+                            </div>
+                            <div class="col-md-4">
+                                <strong>Okunmayan:</strong> {{ broadcast_stats.unread_count }}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Mesaj İçeriği -->
+                <div class="message-content">
+                    <div class="message-text">
+                        {{ message.content|linebreaks }}
+                    </div>
+
+                    <!-- Ek Dosya -->
+                    {% if message.attachment %}
+                    <div class="attachment-item">
+                        <h6><i class="fas fa-paperclip me-2"></i>Ek Dosya</h6>
+                        <a href="{{ message.attachment.url }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-download me-2"></i>{{ message.attachment.name|basename }}
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Mesaj Eylemleri -->
+                <div class="message-actions">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            {% if message.read_at %}
+                                <small class="text-muted">
+                                    <i class="fas fa-eye me-1"></i>
+                                    {{ message.read_at|date:"d.m.Y H:i" }} tarihinde okundu
+                                </small>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <a href="{% url 'core:message_archive' message.pk %}" class="btn btn-outline-warning btn-sm">
+                                <i class="fas fa-archive me-1"></i>Arşivle
+                            </a>
+                            {% if message.sender == request.user %}
+                                <a href="{% url 'core:message_delete' message.pk %}" class="btn btn-outline-danger btn-sm" 
+                                   onclick="return confirm('Bu mesajı silmek istediğinizden emin misiniz?')">
+                                    <i class="fas fa-trash me-1"></i>Sil
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cevaplar -->
+            {% if replies %}
+            <div class="reply-section">
+                <div class="reply-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-reply me-2"></i>
+                        Cevaplar ({{ replies.count }})
+                    </h5>
+                </div>
+                <div class="p-3">
+                    <div class="message-thread">
+                        {% for reply in replies %}
+                        <div class="reply-item">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div class="sender-info">
+                                    <div class="sender-avatar" style="width: 30px; height: 30px; font-size: 0.8rem;">
+                                        {{ reply.sender.first_name|first|default:reply.sender.username|first|upper }}
+                                    </div>
+                                    <div>
+                                        <strong>{{ reply.sender.get_full_name|default:reply.sender.username }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ reply.created_at|naturaltime }}</small>
+                                    </div>
+                                </div>
+                                {% if reply.priority != 'normal' %}
+                                    <span class="badge bg-{% if reply.priority == 'urgent' %}danger{% elif reply.priority == 'high' %}warning{% else %}secondary{% endif %} priority-badge">
+                                        {{ reply.get_priority_display|upper }}
+                                    </span>
+                                {% endif %}
+                            </div>
+                            <div class="reply-content">
+                                {{ reply.content|linebreaks }}
+                            </div>
+                            {% if reply.attachment %}
+                            <div class="mt-2">
+                                <a href="{{ reply.attachment.url }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-paperclip me-1"></i>{{ reply.attachment.name|basename }}
+                                </a>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Cevap Formu -->
+            {% if can_reply %}
+            <div class="reply-section">
+                <div class="reply-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-reply me-2"></i>
+                        Cevap Yaz
+                    </h5>
+                </div>
+                <div class="p-3">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        {{ reply_form|crispy }}
+                        <div class="d-flex justify-content-end mt-3">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-reply me-2"></i>Cevap Gönder
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% else %}
+                {% if not request.user.is_superuser %}
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Bu mesaja cevap verebilmek için admin yetkisine sahip olmanız gerekmektedir.
+                </div>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Otomatik mesaj okundu işaretleme
+document.addEventListener('DOMContentLoaded', function() {
+    // Mesajı okundu olarak işaretle
+    {% if message.recipient == request.user and not message.is_read %}
+    fetch('{% url "core:message_mark_read" message.pk %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        },
+    });
+    {% endif %}
+    
+    // Form validasyonu
+    const replyForm = document.querySelector('form');
+    if (replyForm) {
+        replyForm.addEventListener('submit', function(e) {
+            const content = document.querySelector('textarea[name="content"]').value.trim();
+            
+            if (!content) {
+                e.preventDefault();
+                alert('Lütfen cevap içeriğini yazın.');
+                return false;
+            }
+            
+            if (content.length < 5) {
+                e.preventDefault();
+                alert('Cevap en az 5 karakter olmalıdır.');
+                return false;
+            }
+            
+            // Gönder butonunu devre dışı bırak
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Gönderiliyor...';
+        });
+    }
+});
+</script>
+{% endblock %} 

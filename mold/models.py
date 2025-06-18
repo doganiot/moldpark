@@ -137,3 +137,152 @@ class QualityCheck(models.Model):
 
     def __str__(self):
         return f'{self.mold} - Kalite Kontrol {self.created_at}'
+
+
+class RevisionRequest(models.Model):
+    """İşitme merkezlerinin kalıp revizyonu talepleri"""
+    
+    REVISION_TYPE_CHOICES = [
+        ('size_adjustment', 'Boyut Ayarlaması'),
+        ('shape_modification', 'Şekil Değişikliği'),
+        ('vent_adjustment', 'Vent Ayarlaması'),
+        ('surface_improvement', 'Yüzey İyileştirmesi'),
+        ('fitting_issue', 'Oturma Sorunu'),
+        ('comfort_issue', 'Konfor Sorunu'),
+        ('quality_issue', 'Kalite Sorunu'),
+        ('remake', 'Yeniden Yapım'),
+        ('other', 'Diğer'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('pending', 'Beklemede'),
+        ('accepted', 'Kabul Edildi'),
+        ('rejected', 'Reddedildi'),
+        ('in_progress', 'İşlemde'),
+        ('completed', 'Tamamlandı'),
+    ]
+    
+    PRIORITY_CHOICES = [
+        ('low', 'Düşük'),
+        ('normal', 'Normal'),
+        ('high', 'Yüksek'),
+        ('urgent', 'Acil'),
+    ]
+    
+    # Üretici merkezden gelen kalıp dosyasına referans
+    modeled_mold = models.ForeignKey(ModeledMold, on_delete=models.CASCADE, related_name='revision_requests', verbose_name='Kalıp Dosyası')
+    mold = models.ForeignKey(EarMold, on_delete=models.CASCADE, related_name='revision_requests', verbose_name='Kalıp')
+    center = models.ForeignKey(Center, on_delete=models.CASCADE, related_name='revision_requests', verbose_name='Merkez')
+    
+    # Revizyon Detayları
+    revision_type = models.CharField('Revizyon Türü', max_length=20, choices=REVISION_TYPE_CHOICES)
+    title = models.CharField('Başlık', max_length=200)
+    description = models.TextField('Detaylı Açıklama')
+    priority = models.CharField('Öncelik', max_length=10, choices=PRIORITY_CHOICES, default='normal')
+    
+    # Durum Bilgileri
+    status = models.CharField('Durum', max_length=15, choices=STATUS_CHOICES, default='pending')
+    admin_notes = models.TextField('Admin Notları', blank=True)
+    producer_response = models.TextField('Üretici Yanıtı', blank=True)
+    
+    # Ek Dosyalar
+    reference_image = models.ImageField('Referans Görsel', upload_to='revision_requests/', blank=True, null=True)
+    attachment = models.FileField('Ek Dosya', upload_to='revision_requests/', blank=True, null=True)
+    
+    # Tarihler
+    created_at = models.DateTimeField('Oluşturulma Tarihi', auto_now_add=True)
+    updated_at = models.DateTimeField('Güncellenme Tarihi', auto_now=True)
+    resolved_at = models.DateTimeField('Çözülme Tarihi', blank=True, null=True)
+    
+    class Meta:
+        verbose_name = 'Revizyon Talebi'
+        verbose_name_plural = 'Revizyon Talepleri'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f'{self.modeled_mold.ear_mold.patient_name} - {self.get_revision_type_display()} ({self.get_status_display()})'
+    
+    def get_status_color(self):
+        """Bootstrap renk sınıfı döndürür"""
+        color_map = {
+            'pending': 'warning',
+            'accepted': 'info',
+            'rejected': 'danger',
+            'in_progress': 'primary',
+            'completed': 'success',
+        }
+        return color_map.get(self.status, 'secondary')
+    
+    def get_priority_color(self):
+        """Öncelik için Bootstrap renk sınıfı döndürür"""
+        color_map = {
+            'low': 'secondary',
+            'normal': 'primary',
+            'high': 'warning',
+            'urgent': 'danger',
+        }
+        return color_map.get(self.priority, 'primary')
+
+
+class MoldEvaluation(models.Model):
+    """İşitme merkezlerinin kalıp değerlendirmeleri"""
+    
+    mold = models.ForeignKey(EarMold, on_delete=models.CASCADE, related_name='evaluations', verbose_name='Kalıp')
+    center = models.ForeignKey(Center, on_delete=models.CASCADE, related_name='mold_evaluations', verbose_name='Merkez')
+    
+    # Değerlendirme Puanları (1-10 arası)
+    quality_score = models.IntegerField('Kalite Puanı', validators=[MinValueValidator(1), MaxValueValidator(10)])
+    speed_score = models.IntegerField('Hız Puanı', validators=[MinValueValidator(1), MaxValueValidator(10)])
+    
+    # Ek Değerlendirmeler
+    communication_score = models.IntegerField('İletişim Puanı', validators=[MinValueValidator(1), MaxValueValidator(10)], blank=True, null=True)
+    packaging_score = models.IntegerField('Paketleme Puanı', validators=[MinValueValidator(1), MaxValueValidator(10)], blank=True, null=True)
+    
+    # Yorum ve Notlar
+    positive_feedback = models.TextField('Olumlu Geri Bildirim', blank=True)
+    negative_feedback = models.TextField('Olumsuz Geri Bildirim', blank=True)
+    suggestions = models.TextField('Öneriler', blank=True)
+    
+    # Genel Değerlendirme
+    overall_satisfaction = models.IntegerField('Genel Memnuniyet', validators=[MinValueValidator(1), MaxValueValidator(10)])
+    would_recommend = models.BooleanField('Tavsiye Eder misiniz?', default=True)
+    
+    # Tarihler
+    created_at = models.DateTimeField('Değerlendirme Tarihi', auto_now_add=True)
+    updated_at = models.DateTimeField('Güncellenme Tarihi', auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Kalıp Değerlendirmesi'
+        verbose_name_plural = 'Kalıp Değerlendirmeleri'
+        ordering = ['-created_at']
+        unique_together = ('mold', 'center')  # Her kalıp için bir merkez sadece bir değerlendirme yapabilir
+    
+    def __str__(self):
+        return f'{self.mold} - Kalite: {self.quality_score}/10, Hız: {self.speed_score}/10'
+    
+    def get_average_score(self):
+        """Ortalama puanı hesaplar"""
+        scores = [self.quality_score, self.speed_score]
+        if self.communication_score:
+            scores.append(self.communication_score)
+        if self.packaging_score:
+            scores.append(self.packaging_score)
+        return round(sum(scores) / len(scores), 1)
+    
+    def get_quality_color(self):
+        """Kalite puanına göre renk döndürür"""
+        if self.quality_score >= 8:
+            return 'success'
+        elif self.quality_score >= 6:
+            return 'warning'
+        else:
+            return 'danger'
+    
+    def get_speed_color(self):
+        """Hız puanına göre renk döndürür"""
+        if self.speed_score >= 8:
+            return 'success'
+        elif self.speed_score >= 6:
+            return 'warning'
+        else:
+            return 'danger'
