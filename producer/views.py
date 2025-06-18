@@ -1255,3 +1255,197 @@ def admin_mold_download(request, pk):
         return response
     except Exception as e:
         return HttpResponse(f"Dosya indirme hatası: {str(e)}", status=500)
+
+
+@producer_required
+def mold_download_file(request, pk, file_id):
+    """Belirli modeled dosya indirme"""
+    return mold_download(request, pk, file_id)
+
+
+@producer_required 
+def permanent_scan_download(request, mold_id):
+    """
+    Sabit Ana Tarama Dosyası İndirme Linki
+    Bu link kalıcıdır ve süre kısıtlaması yoktur
+    """
+    producer = request.user.producer
+    
+    try:
+        # Kalıbı bul
+        ear_mold = get_object_or_404(EarMold, pk=mold_id)
+        
+        # Bu kalıp için üreticinin siparişi var mı kontrol et
+        producer_order = ProducerOrder.objects.filter(
+            ear_mold=ear_mold,
+            producer=producer
+        ).first()
+        
+        if not producer_order:
+            messages.error(request, 'Bu kalıba erişim yetkiniz bulunmamaktadır.')
+            return redirect('producer:mold_list')
+        
+        # Ağ kontrolü
+        network_relation = producer.network_centers.filter(center=ear_mold.center).first()
+        if not network_relation:
+            messages.error(request, 'Bu merkez sizin ağınızda bulunmamaktadır.')
+            return redirect('producer:mold_list')
+        
+        # Sadece terminated durumunda erişimi engelle
+        if network_relation.status == 'terminated':
+            messages.error(request, 'Bu merkez ile ağ bağlantınız sonlandırılmış.')
+            return redirect('producer:mold_list')
+        
+        # Ana tarama dosyası kontrolü
+        if not ear_mold.scan_file:
+            messages.info(request, 'Bu kalıp için ana tarama dosyası henüz yüklenmemiş.')
+            return redirect('producer:mold_detail', pk=producer_order.pk)
+        
+        file_path = ear_mold.scan_file.path
+        
+        # Dosya varlığını kontrol et
+        if not os.path.exists(file_path):
+            messages.error(request, 'Dosya bulunamadı veya erişilemez.')
+            return redirect('producer:mold_detail', pk=producer_order.pk)
+        
+        # Network aktivitesini güncelle
+        network_relation.last_activity = timezone.now()
+        network_relation.save(update_fields=['last_activity'])
+        
+        # Dosya indirme log'u ekle
+        ProducerProductionLog.objects.create(
+            order=producer_order,
+            stage='design_start',
+            description=f'Ana tarama dosyası indirildi (sabit link): {os.path.basename(file_path)}',
+            operator=request.user.get_full_name() or request.user.username
+        )
+        
+        # Merkeze bildirim gönder
+        notify.send(
+            sender=request.user,
+            recipient=ear_mold.center.user,
+            verb='ana tarama dosyası indirildi',
+            description=f'{producer.company_name} tarafından {ear_mold.patient_name} ana tarama dosyası indirildi (sabit link).',
+            action_object=producer_order
+        )
+        
+        try:
+            # Dosya türünü al
+            mime_type, _ = mimetypes.guess_type(file_path)
+            if not mime_type:
+                mime_type = 'application/octet-stream'
+            
+            # Dosya içeriğini oku
+            with open(file_path, 'rb') as f:
+                response = HttpResponse(f.read(), content_type=mime_type)
+            
+            # Dosya adını ayarla
+            file_name = os.path.basename(file_path)
+            safe_filename = file_name.encode('ascii', 'ignore').decode('ascii')
+            if not safe_filename:
+                safe_filename = f'scan_file_{ear_mold.id}_{ear_mold.patient_name}'
+            
+            response['Content-Disposition'] = f'attachment; filename="{safe_filename}"'
+            response['Content-Length'] = os.path.getsize(file_path)
+            
+            return response
+            
+        except (IOError, OSError) as e:
+            messages.error(request, f'Dosya okunurken hata oluştu: {str(e)}')
+            return redirect('producer:mold_detail', pk=producer_order.pk)
+            
+    except EarMold.DoesNotExist:
+        messages.error(request, 'Kalıp bulunamadı.')
+        return redirect('producer:mold_list')
+
+
+@producer_required
+def permanent_model_download(request, file_id):
+    """
+    Sabit Model Dosyası İndirme Linki
+    Bu link kalıcıdır ve süre kısıtlaması yoktur
+    """
+    producer = request.user.producer
+    
+    try:
+        # Model dosyasını bul
+        model_file = get_object_or_404(ModeledMold, pk=file_id)
+        ear_mold = model_file.ear_mold
+        
+        # Bu kalıp için üreticinin siparişi var mı kontrol et
+        producer_order = ProducerOrder.objects.filter(
+            ear_mold=ear_mold,
+            producer=producer
+        ).first()
+        
+        if not producer_order:
+            messages.error(request, 'Bu dosyaya erişim yetkiniz bulunmamaktadır.')
+            return redirect('producer:mold_list')
+        
+        # Ağ kontrolü
+        network_relation = producer.network_centers.filter(center=ear_mold.center).first()
+        if not network_relation:
+            messages.error(request, 'Bu merkez sizin ağınızda bulunmamaktadır.')
+            return redirect('producer:mold_list')
+        
+        # Sadece terminated durumunda erişimi engelle
+        if network_relation.status == 'terminated':
+            messages.error(request, 'Bu merkez ile ağ bağlantınız sonlandırılmış.')
+            return redirect('producer:mold_list')
+        
+        file_path = model_file.file.path
+        
+        # Dosya varlığını kontrol et
+        if not os.path.exists(file_path):
+            messages.error(request, 'Dosya bulunamadı veya erişilemez.')
+            return redirect('producer:mold_detail', pk=producer_order.pk)
+        
+        # Network aktivitesini güncelle
+        network_relation.last_activity = timezone.now()
+        network_relation.save(update_fields=['last_activity'])
+        
+        # Dosya indirme log'u ekle
+        ProducerProductionLog.objects.create(
+            order=producer_order,
+            stage='design_start',
+            description=f'Model dosyası indirildi (sabit link): {os.path.basename(file_path)}',
+            operator=request.user.get_full_name() or request.user.username
+        )
+        
+        # Merkeze bildirim gönder
+        notify.send(
+            sender=request.user,
+            recipient=ear_mold.center.user,
+            verb='model dosyası indirildi',
+            description=f'{producer.company_name} tarafından {ear_mold.patient_name} model dosyası indirildi (sabit link).',
+            action_object=producer_order
+        )
+        
+        try:
+            # Dosya türünü al
+            mime_type, _ = mimetypes.guess_type(file_path)
+            if not mime_type:
+                mime_type = 'application/octet-stream'
+            
+            # Dosya içeriğini oku
+            with open(file_path, 'rb') as f:
+                response = HttpResponse(f.read(), content_type=mime_type)
+            
+            # Dosya adını ayarla
+            file_name = os.path.basename(file_path)
+            safe_filename = file_name.encode('ascii', 'ignore').decode('ascii')
+            if not safe_filename:
+                safe_filename = f'model_file_{model_file.id}_{ear_mold.patient_name}'
+            
+            response['Content-Disposition'] = f'attachment; filename="{safe_filename}"'
+            response['Content-Length'] = os.path.getsize(file_path)
+            
+            return response
+            
+        except (IOError, OSError) as e:
+            messages.error(request, f'Dosya okunurken hata oluştu: {str(e)}')
+            return redirect('producer:mold_detail', pk=producer_order.pk)
+            
+    except ModeledMold.DoesNotExist:
+        messages.error(request, 'Model dosyası bulunamadı.')
+        return redirect('producer:mold_list')

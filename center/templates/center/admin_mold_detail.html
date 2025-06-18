@@ -36,6 +36,12 @@
                             <a href="{{ mold.scan_file.url }}" class="btn btn-sm btn-outline-secondary ms-2" download>
                                 <i class="fas fa-download me-1"></i>İndir
                             </a>
+                            <br>
+                            <small class="text-info mt-1 d-block">
+                                <i class="fas fa-link me-1"></i>
+                                Üreticiler için sabit link: 
+                                <code>{% url 'producer:permanent_scan_download' mold.pk %}</code>
+                            </small>
                         {% else %}
                             <span class="text-muted">Yok</span>
                         {% endif %}
@@ -109,21 +115,26 @@
                                                 </a>
                                                 <br>
                                                 <small class="text-muted">{{ model.file.size|filesizeformat }}</small>
+                                                <br>
+                                                <small class="text-info">
+                                                    <i class="fas fa-link me-1"></i>
+                                                    Sabit link: <code>{% url 'producer:permanent_model_download' model.pk %}</code>
+                                                </small>
                                             </div>
                                         </div>
                                     </td>
-                                                                         <td>
-                                         <span class="badge {% if model.status == 'approved' %}bg-success{% elif model.status == 'rejected' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
-                                             {{ model.get_status_display }}
-                                         </span>
-                                         {% if model.status == 'approved' %}
-                                         <br>
-                                         <small class="text-success">
-                                             <i class="fas fa-paper-plane me-1"></i>
-                                             Merkeze gönderildi
-                                         </small>
-                                         {% endif %}
-                                     </td>
+                                    <td>
+                                        <span class="badge {% if model.status == 'approved' %}bg-success{% elif model.status == 'rejected' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+                                            {{ model.get_status_display }}
+                                        </span>
+                                        {% if model.status == 'approved' %}
+                                        <br>
+                                        <small class="text-success">
+                                            <i class="fas fa-paper-plane me-1"></i>
+                                            Merkeze gönderildi
+                                        </small>
+                                        {% endif %}
+                                    </td>
                                     <td>
                                         {% if model.notes %}
                                             <span data-bs-toggle="tooltip" title="{{ model.notes }}">
