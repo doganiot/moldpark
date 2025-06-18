@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Revizyon Talepleri - MoldPark{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Başlık -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-edit text-warning me-2"></i>Revizyon Talepleri</h2>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'producer:dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item active">Revizyon Talepleri</li>
+            </ol>
+        </nav>
+    </div>
+
+    <!-- İstatistik Kartları -->
+    <div class="row mb-4">
+        <div class="col-md-2">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h4>{{ stats.total }}</h4>
+                    <small>Toplam</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-warning text-dark">
+                <div class="card-body text-center">
+                    <h4>{{ stats.pending }}</h4>
+                    <small>Bekleyen</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h4>{{ stats.accepted }}</h4>
+                    <small>Kabul Edilen</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-secondary text-white">
+                <div class="card-body text-center">
+                    <h4>{{ stats.in_progress }}</h4>
+                    <small>İşlemde</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h4>{{ stats.completed }}</h4>
+                    <small>Tamamlanan</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-danger text-white">
+                <div class="card-body text-center">
+                    <h4>{{ stats.rejected }}</h4>
+                    <small>Reddedilen</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtreleme -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Durum Filtresi</label>
+                    <select name="status" class="form-select">
+                        <option value="">Tüm Durumlar</option>
+                        <option value="pending" {% if current_filter == 'pending' %}selected{% endif %}>Bekleyen</option>
+                        <option value="accepted" {% if current_filter == 'accepted' %}selected{% endif %}>Kabul Edilen</option>
+                        <option value="rejected" {% if current_filter == 'rejected' %}selected{% endif %}>Reddedilen</option>
+                        <option value="in_progress" {% if current_filter == 'in_progress' %}selected{% endif %}>İşlemde</option>
+                        <option value="completed" {% if current_filter == 'completed' %}selected{% endif %}>Tamamlanan</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="fas fa-filter me-1"></i>Filtrele
+                    </button>
+                    <a href="{% url 'producer:revision_request_list' %}" class="btn btn-secondary">
+                        <i class="fas fa-times me-1"></i>Temizle
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Revizyon Talepleri Listesi -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Revizyon Talepleri ({{ revision_requests.count }})</h5>
+        </div>
+        <div class="card-body">
+            {% if revision_requests %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Hasta</th>
+                                <th>Merkez</th>
+                                <th>Revizyon Türü</th>
+                                <th>Öncelik</th>
+                                <th>Durum</th>
+                                <th>Tarih</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for request in revision_requests %}
+                            <tr>
+                                <td>
+                                    <div>
+                                        <strong>{{ request.mold.patient_name }} {{ request.mold.patient_surname }}</strong><br>
+                                        <small class="text-muted">{{ request.mold.get_mold_type_display }}</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div>
+                                        <strong>{{ request.center.name }}</strong><br>
+                                        <small class="text-muted">{{ request.center.city }}</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ request.get_revision_type_display }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ request.get_priority_color }}">
+                                        {{ request.get_priority_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ request.get_status_color }}">
+                                        {{ request.get_status_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div>
+                                        {{ request.created_at|date:"d.m.Y" }}<br>
+                                        <small class="text-muted">{{ request.created_at|time:"H:i" }}</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <a href="{% url 'producer:revision_request_detail' request.pk %}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye me-1"></i>Detay
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">Revizyon Talebi Bulunamadı</h5>
+                    <p class="text-muted">
+                        {% if current_filter %}
+                            Seçilen filtreye uygun revizyon talebi bulunmuyor.
+                        {% else %}
+                            Henüz size gönderilmiş revizyon talebi bulunmuyor.
+                        {% endif %}
+                    </p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

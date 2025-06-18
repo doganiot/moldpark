@@ -1,0 +1,302 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Revizyon Talebi Detayı - MoldPark{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Başlık -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-edit text-warning me-2"></i>Revizyon Talebi Detayı</h2>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'producer:dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'producer:revision_request_list' %}">Revizyon Talepleri</a></li>
+                <li class="breadcrumb-item active">Detay</li>
+            </ol>
+        </nav>
+    </div>
+
+    <div class="row">
+        <!-- Sol Kolon - Revizyon Detayları -->
+        <div class="col-md-8">
+            <!-- Revizyon Bilgileri -->
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Revizyon Talebi Bilgileri
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Talep Bilgileri</h6>
+                            <table class="table table-borderless table-sm">
+                                <tr>
+                                    <th width="40%">Başlık:</th>
+                                    <td><strong>{{ revision_request.title }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <th>Revizyon Türü:</th>
+                                    <td>
+                                        <span class="badge bg-secondary">
+                                            {{ revision_request.get_revision_type_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Öncelik:</th>
+                                    <td>
+                                        <span class="badge bg-{{ revision_request.get_priority_color }}">
+                                            {{ revision_request.get_priority_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Durum:</th>
+                                    <td>
+                                        <span class="badge bg-{{ revision_request.get_status_color }}">
+                                            {{ revision_request.get_status_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Oluşturulma:</th>
+                                    <td>{{ revision_request.created_at|date:"d.m.Y H:i" }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Merkez Bilgileri</h6>
+                            <table class="table table-borderless table-sm">
+                                <tr>
+                                    <th width="40%">Merkez:</th>
+                                    <td><strong>{{ revision_request.center.name }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <th>Şehir:</th>
+                                    <td>{{ revision_request.center.city }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Telefon:</th>
+                                    <td>{{ revision_request.center.phone }}</td>
+                                </tr>
+                                <tr>
+                                    <th>E-posta:</th>
+                                    <td>{{ revision_request.center.email }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kalıp Bilgileri -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-cube me-2"></i>Kalıp Bilgileri
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Hasta Bilgileri</h6>
+                            <table class="table table-borderless table-sm">
+                                <tr>
+                                    <th width="40%">Hasta:</th>
+                                    <td><strong>{{ revision_request.mold.patient_name }} {{ revision_request.mold.patient_surname }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <th>Yaş:</th>
+                                    <td>{{ revision_request.mold.patient_age }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Cinsiyet:</th>
+                                    <td>{{ revision_request.mold.get_patient_gender_display }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Kalıp Türü:</th>
+                                    <td>{{ revision_request.mold.get_mold_type_display }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Vent Çapı:</th>
+                                    <td>{{ revision_request.mold.vent_diameter }}mm</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Kalıp Dosyası Bilgileri</h6>
+                            <table class="table table-borderless table-sm">
+                                <tr>
+                                    <th width="40%">Dosya:</th>
+                                    <td>
+                                        <a href="{{ revision_request.modeled_mold.file.url }}" target="_blank" class="text-decoration-none">
+                                            <i class="fas fa-download me-1"></i>
+                                            {{ revision_request.modeled_mold.file.name|cut:"modeled/" }}
+                                        </a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Yüklenme:</th>
+                                    <td>{{ revision_request.modeled_mold.created_at|date:"d.m.Y H:i" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Durum:</th>
+                                    <td>
+                                        <span class="badge {% if revision_request.modeled_mold.status == 'approved' %}bg-success{% elif revision_request.modeled_mold.status == 'rejected' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+                                            {{ revision_request.modeled_mold.get_status_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% if revision_request.modeled_mold.notes %}
+                                <tr>
+                                    <th>Notlar:</th>
+                                    <td>{{ revision_request.modeled_mold.notes }}</td>
+                                </tr>
+                                {% endif %}
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Revizyon Açıklaması -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-comment-alt me-2"></i>Revizyon Açıklaması
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0">{{ revision_request.description|linebreaks }}</p>
+                </div>
+            </div>
+
+            <!-- Ek Dosyalar -->
+            {% if revision_request.reference_image or revision_request.attachment %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-paperclip me-2"></i>Ek Dosyalar
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% if revision_request.reference_image %}
+                        <div class="col-md-6">
+                            <h6>Referans Görsel</h6>
+                            <div class="text-center">
+                                <img src="{{ revision_request.reference_image.url }}" 
+                                     alt="Referans Görsel" 
+                                     class="img-fluid rounded border"
+                                     style="max-height: 200px;">
+                                <br>
+                                <a href="{{ revision_request.reference_image.url }}" 
+                                   target="_blank" 
+                                   class="btn btn-sm btn-outline-primary mt-2">
+                                    <i class="fas fa-external-link-alt me-1"></i>Büyük Görüntüle
+                                </a>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if revision_request.attachment %}
+                        <div class="col-md-6">
+                            <h6>Ek Dosya</h6>
+                            <div class="text-center">
+                                <i class="fas fa-file fa-3x text-muted mb-2"></i>
+                                <br>
+                                <a href="{{ revision_request.attachment.url }}" 
+                                   class="btn btn-outline-primary" 
+                                   download>
+                                    <i class="fas fa-download me-1"></i>
+                                    {{ revision_request.attachment.name|cut:"revision_requests/" }}
+                                </a>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Üretici Yanıtı -->
+            {% if revision_request.producer_response %}
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-reply me-2"></i>Üretici Yanıtı
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0">{{ revision_request.producer_response|linebreaks }}</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sağ Kolon - İşlemler -->
+        <div class="col-md-4">
+            <!-- Hızlı İşlemler -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-bolt me-2"></i>Hızlı İşlemler</h6>
+                </div>
+                <div class="card-body">
+                    {% if revision_request.status == 'pending' %}
+                    <!-- Bekleyen talep için yanıt verme formu -->
+                    <form method="post" action="{% url 'producer:revision_request_respond' revision_request.pk %}">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Yanıtınız</label>
+                            <textarea name="producer_response" 
+                                      class="form-control" 
+                                      rows="4" 
+                                      placeholder="Revizyon talebi hakkında açıklamanızı yazın..."></textarea>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" 
+                                    name="action" 
+                                    value="accept" 
+                                    class="btn btn-success"
+                                    onclick="return confirm('Revizyon talebini kabul etmek istediğinizden emin misiniz? Kalıp dosyası revizyona alınacaktır.')">
+                                <i class="fas fa-check me-1"></i>Kabul Et
+                            </button>
+                            <button type="submit" 
+                                    name="action" 
+                                    value="reject" 
+                                    class="btn btn-danger"
+                                    onclick="return confirm('Revizyon talebini reddetmek istediğinizden emin misiniz?')">
+                                <i class="fas fa-times me-1"></i>Reddet
+                            </button>
+                        </div>
+                    </form>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Bu talep zaten yanıtlanmış durumda.
+                    </div>
+                    {% endif %}
+                    
+                    <hr>
+                    
+                    <!-- Diğer İşlemler -->
+                    {% if producer_order %}
+                    <a href="{% url 'producer:mold_detail' producer_order.pk %}" 
+                       class="btn btn-outline-primary w-100 mb-2">
+                        <i class="fas fa-cube me-1"></i>Kalıp Detayına Git
+                    </a>
+                    {% endif %}
+                    
+                    <a href="{% url 'producer:revision_request_list' %}" 
+                       class="btn btn-outline-secondary w-100">
+                        <i class="fas fa-arrow-left me-1"></i>Listeye Dön
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

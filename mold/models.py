@@ -203,6 +203,27 @@ class RevisionRequest(models.Model):
         return f'{self.modeled_mold.ear_mold.patient_name} - {self.get_revision_type_display()} ({self.get_status_display()})'
     
     def get_status_color(self):
+        """Durum rengi"""
+        colors = {
+            'pending': 'warning',
+            'accepted': 'info',
+            'rejected': 'danger',
+            'in_progress': 'secondary',
+            'completed': 'success',
+        }
+        return colors.get(self.status, 'secondary')
+    
+    def get_priority_color(self):
+        """Öncelik rengi"""
+        colors = {
+            'low': 'success',
+            'normal': 'info',
+            'high': 'warning',
+            'urgent': 'danger',
+        }
+        return colors.get(self.priority, 'info')
+    
+    def get_status_color(self):
         """Bootstrap renk sınıfı döndürür"""
         color_map = {
             'pending': 'warning',

@@ -205,7 +205,17 @@
                                 <span>Kalıp Yönetimi</span>
                             </a>
                         </div>
-
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <a href="{% url 'producer:revision_request_list' %}" class="btn btn-outline-warning w-100 h-100 d-flex flex-column justify-content-center position-relative">
+                                <i class="fas fa-edit fa-2x mb-2"></i>
+                                <span>Revizyon Talepleri</span>
+                                {% if pending_revision_requests > 0 %}
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                    {{ pending_revision_requests }}
+                                </span>
+                                {% endif %}
+                            </a>
+                        </div>
                         <div class="col-lg-3 col-md-6 mb-3">
                             <a href="{% url 'producer:network_list' %}" class="btn btn-outline-info w-100 h-100 d-flex flex-column justify-content-center">
                                 <i class="fas fa-network-wired fa-2x mb-2"></i>

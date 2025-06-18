@@ -10,7 +10,7 @@ from django.utils import timezone
 from django.http import JsonResponse, HttpResponse, Http404
 from notifications.signals import notify
 from center.models import Center
-from mold.models import EarMold, ModeledMold
+from mold.models import EarMold, ModeledMold, RevisionRequest
 from .models import Producer, ProducerOrder, ProducerMessage, ProducerNetwork, ProducerProductionLog
 from .forms import (
     ProducerRegistrationForm, ProducerProfileForm, ProducerOrderForm, 
@@ -161,6 +161,12 @@ def producer_dashboard(request):
     # Son siparişler - sadece kendi siparişleri
     recent_orders = producer.orders.all()[:5]
     
+    # Revizyon talepleri
+    pending_revision_requests = RevisionRequest.objects.filter(
+        modeled_mold__ear_mold__producer_orders__producer=producer,
+        status='pending'
+    ).count()
+    
     # Mesajlaşma sistemi kaldırıldı
     
     # Bu ayki sipariş sayısı ve limit kontrolü
@@ -181,7 +187,7 @@ def producer_dashboard(request):
         'network_centers': network_centers_count,
         'network_centers_list': network_centers,
         'recent_orders': recent_orders,
-
+        'pending_revision_requests': pending_revision_requests,
         'monthly_orders': monthly_orders,
         'remaining_limit': remaining_limit,
         'usage_percentage': usage_percentage,
@@ -1362,3 +1368,133 @@ def permanent_model_download(request, file_id):
     except ModeledMold.DoesNotExist:
         messages.error(request, 'Model dosyası bulunamadı.')
         return redirect('producer:mold_list')
+
+
+# REVİZYON TALEPLERİ YÖNETİMİ
+
+@producer_required
+def revision_request_list(request):
+    """Üretici için revizyon talepleri listesi"""
+    producer = request.user.producer
+    
+    # Sadece bu üreticinin kalıp dosyalarına yapılan revizyon taleplerini getir
+    revision_requests = RevisionRequest.objects.filter(
+        modeled_mold__ear_mold__producer_orders__producer=producer
+    ).select_related(
+        'modeled_mold__ear_mold', 'center', 'mold'
+    ).distinct().order_by('-created_at')
+    
+    # Filtreleme
+    status_filter = request.GET.get('status')
+    if status_filter:
+        revision_requests = revision_requests.filter(status=status_filter)
+    
+    # İstatistikler
+    stats = {
+        'total': revision_requests.count(),
+        'pending': revision_requests.filter(status='pending').count(),
+        'accepted': revision_requests.filter(status='accepted').count(),
+        'in_progress': revision_requests.filter(status='in_progress').count(),
+        'completed': revision_requests.filter(status='completed').count(),
+        'rejected': revision_requests.filter(status='rejected').count(),
+    }
+    
+    context = {
+        'revision_requests': revision_requests,
+        'stats': stats,
+        'current_filter': status_filter,
+    }
+    
+    return render(request, 'producer/revision_request_list.html', context)
+
+
+@producer_required
+def revision_request_detail(request, pk):
+    """Revizyon talebi detayı"""
+    producer = request.user.producer
+    
+    # Sadece bu üreticinin kalıp dosyalarına yapılan revizyon talebini getir
+    revision_request = get_object_or_404(
+        RevisionRequest.objects.select_related(
+            'modeled_mold__ear_mold', 'center', 'mold'
+        ),
+        pk=pk,
+        modeled_mold__ear_mold__producer_orders__producer=producer
+    )
+    
+    # İlgili sipariş bilgisini al
+    producer_order = ProducerOrder.objects.filter(
+        ear_mold=revision_request.mold,
+        producer=producer
+    ).first()
+    
+    context = {
+        'revision_request': revision_request,
+        'producer_order': producer_order,
+    }
+    
+    return render(request, 'producer/revision_request_detail.html', context)
+
+
+@producer_required
+def revision_request_respond(request, pk):
+    """Revizyon talebine yanıt verme"""
+    producer = request.user.producer
+    
+    revision_request = get_object_or_404(
+        RevisionRequest.objects.select_related(
+            'modeled_mold__ear_mold', 'center', 'mold'
+        ),
+        pk=pk,
+        modeled_mold__ear_mold__producer_orders__producer=producer
+    )
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        response_text = request.POST.get('producer_response', '')
+        
+        if action in ['accept', 'reject']:
+            if action == 'accept':
+                revision_request.status = 'accepted'
+                # Kalıp dosyasını revizyona düş
+                revision_request.modeled_mold.status = 'waiting'  # Revizyon için beklemeye al
+                revision_request.modeled_mold.save()
+                
+                # Kalıp durumunu güncelle
+                revision_request.mold.status = 'revision'
+                revision_request.mold.save()
+                
+                success_message = 'Revizyon talebi kabul edildi. Kalıp dosyası revizyona alındı.'
+            else:
+                revision_request.status = 'rejected'
+                success_message = 'Revizyon talebi reddedildi.'
+            
+            revision_request.producer_response = response_text
+            revision_request.save()
+            
+            # Merkeze bildirim gönder
+            notify.send(
+                sender=request.user,
+                recipient=revision_request.center.user,
+                verb=f'revizyon talebini {"kabul etti" if action == "accept" else "reddetti"}',
+                action_object=revision_request,
+                description=f'{revision_request.mold.patient_name} - {revision_request.get_revision_type_display()}',
+                target=revision_request.mold
+            )
+            
+            # Admin'e bildirim gönder
+            admin_users = User.objects.filter(is_superuser=True)
+            for admin in admin_users:
+                notify.send(
+                    sender=request.user,
+                    recipient=admin,
+                    verb=f'revizyon talebini {"kabul etti" if action == "accept" else "reddetti"}',
+                    action_object=revision_request,
+                    description=f'{producer.company_name} - {revision_request.get_revision_type_display()}',
+                    target=revision_request.mold
+                )
+            
+            messages.success(request, success_message)
+            return redirect('producer:revision_request_detail', pk=pk)
+    
+    return redirect('producer:revision_request_detail', pk=pk)

@@ -99,6 +99,14 @@
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'producer:mold_list' %}"><i class="fas fa-cube me-1"></i>Kalıplar</a>
                             </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'producer:revision_request_list' %}">
+                                    <i class="fas fa-edit me-1"></i>Revizyon Talepleri
+                                    {% if pending_revision_requests > 0 %}
+                                        <span class="badge bg-danger ms-1">{{ pending_revision_requests }}</span>
+                                    {% endif %}
+                                </a>
+                            </li>
 
                         {% elif user.center %}
                             <!-- MERKEZ NAV MENÜSÜ -->

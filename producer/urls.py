@@ -30,6 +30,11 @@ urlpatterns = [
     path('network/invite/', views.network_invite, name='network_invite'),
     path('network/remove/<int:center_id>/', views.network_remove, name='network_remove'),
     
+    # Revizyon Talepleri
+    path('revision-requests/', views.revision_request_list, name='revision_request_list'),
+    path('revision-requests/<int:pk>/', views.revision_request_detail, name='revision_request_detail'),
+    path('revision-requests/<int:pk>/respond/', views.revision_request_respond, name='revision_request_respond'),
+    
     # Sabit Dosya İndirme Linkleri (Ana Tarama Dosyaları)
     path('files/scan/<int:mold_id>/', views.permanent_scan_download, name='permanent_scan_download'),
     path('files/model/<int:file_id>/', views.permanent_model_download, name='permanent_model_download'),

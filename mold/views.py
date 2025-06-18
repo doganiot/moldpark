@@ -375,6 +375,10 @@ def revision_request_create(request, mold_id=None):
             mold.status = 'revision'
             mold.save()
             
+            # Referans alınan kalıp dosyasını da revizyona düş
+            revision_request.modeled_mold.status = 'waiting'  # Revizyon için beklemeye al
+            revision_request.modeled_mold.save()
+            
             # Admin'lere bildirim gönder
             admin_users = User.objects.filter(is_superuser=True)
             for admin in admin_users:
