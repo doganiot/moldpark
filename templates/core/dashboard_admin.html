@@ -598,9 +598,13 @@
                                                 <i class="fas fa-eye"></i>
                                             </a>
                                             {% if not producer.is_verified %}
-                                            <a href="{% url 'producer:admin_producer_verify' producer.pk %}" class="btn btn-outline-success" title="Doğrula">
-                                                <i class="fas fa-check"></i>
-                                            </a>
+                                            <form method="post" action="{% url 'producer:admin_producer_verify' producer.pk %}" class="d-inline">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="action" value="verify">
+                                                <button type="submit" class="btn btn-outline-success" title="Doğrula" onclick="return confirm('Bu üreticiyi doğrulamak istediğinizden emin misiniz?')">
+                                                    <i class="fas fa-check"></i>
+                                                </button>
+                                            </form>
                                             {% endif %}
                                         </div>
                                     </td>

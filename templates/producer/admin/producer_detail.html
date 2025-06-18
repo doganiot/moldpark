@@ -25,9 +25,13 @@
                 </div>
                 <div>
                     {% if not producer.is_verified %}
-                    <a href="{% url 'producer:admin_producer_verify' producer.pk %}" class="btn btn-success me-2">
-                        <i class="fas fa-check me-1"></i>Doğrula
-                    </a>
+                    <form method="post" action="{% url 'producer:admin_producer_verify' producer.pk %}" class="d-inline me-2">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="verify">
+                        <button type="submit" class="btn btn-success" onclick="return confirm('Bu üreticiyi doğrulamak istediğinizden emin misiniz?')">
+                            <i class="fas fa-check me-1"></i>Doğrula
+                        </button>
+                    </form>
                     {% endif %}
                     <a href="{% url 'producer:admin_producer_list' %}" class="btn btn-secondary">
                         <i class="fas fa-arrow-left me-1"></i>Geri Dön
@@ -449,9 +453,21 @@
                 <div class="card-body">
                     <div class="d-grid gap-2">
                         {% if not producer.is_verified %}
-                        <a href="{% url 'producer:admin_producer_verify' producer.pk %}" class="btn btn-success">
-                            <i class="fas fa-check me-1"></i>Üreticiyi Doğrula
-                        </a>
+                        <form method="post" action="{% url 'producer:admin_producer_verify' producer.pk %}" class="d-inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="verify">
+                            <button type="submit" class="btn btn-success w-100" onclick="return confirm('Bu üreticiyi doğrulamak istediğinizden emin misiniz?')">
+                                <i class="fas fa-check me-1"></i>Üreticiyi Doğrula
+                            </button>
+                        </form>
+                        {% else %}
+                        <form method="post" action="{% url 'producer:admin_producer_verify' producer.pk %}" class="d-inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="unverify">
+                            <button type="submit" class="btn btn-warning w-100" onclick="return confirm('Bu üreticinin doğrulamasını kaldırmak istediğinizden emin misiniz?')">
+                                <i class="fas fa-times me-1"></i>Doğrulamayı Kaldır
+                            </button>
+                        </form>
                         {% endif %}
                         
                         <button class="btn btn-warning" onclick="toggleStatus({{ producer.pk }})">

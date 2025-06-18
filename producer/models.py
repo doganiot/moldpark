@@ -48,6 +48,7 @@ class Producer(models.Model):
     # Durum ve Kontrol
     is_active = models.BooleanField("Aktif", default=True)
     is_verified = models.BooleanField("Doğrulanmış", default=False)  # Admin onayı gerekli
+    verification_date = models.DateTimeField("Doğrulama Tarihi", blank=True, null=True)
     
     # Dosyalar
     logo = models.ImageField('Logo', upload_to='producer_logos/', blank=True, null=True)
