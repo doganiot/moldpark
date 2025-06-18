@@ -1,70 +1,85 @@
-# MoldPark - Kulak Kalıbı Üretim Yönetim Sistemi
+# 🦻 MoldPark - Kulak Kalıbı Üretim Yönetim Sistemi
 
-MoldPark, işitme merkezi ve kulak kalıbı üretim süreçlerini dijitalleştiren modern bir Django web uygulamasıdır.
+MoldPark, işitme cihazı merkezleri ve kalıp üreticileri arasında şeffaf, güvenli ve verimli bir üretim sürecini yönetmek için geliştirilmiş kapsamlı bir web platformudur.
 
-## 📋 Özellikler
+## 🌟 Özellikler
 
-### 🏢 **Merkez Yönetimi**
-- Merkez kaydı ve profil yönetimi
-- Kalıp gönderim limitleri
-- Bildirim tercihleri
-- Performans takibi
+### 🏥 İşitme Merkezleri İçin
+- **Kalıp Yönetimi**: 7 farklı kalıp türü desteği (Tam Konka, Yarım Konka, İskelet, Probe, CIC, ITE, ITC)
+- **3D Dosya Yönetimi**: STL, OBJ, PLY formatlarında dosya yükleme ve indirme
+- **Üretici Ağı**: Güvenilir üreticilerle network kurma ve yönetme
+- **Sipariş Takibi**: Gerçek zamanlı üretim süreci takibi
+- **Kalite Kontrol**: Detaylı kalite skorlama sistemi
+- **Mesajlaşma**: Üreticilerle doğrudan iletişim
 
-### 🧩 **Kalıp İşlemleri**
-- Kalıp oluşturma ve düzenleme (Tam Konka, Yarım Konka, Probe, İskelet, CIC, ITE, ITC)
-- Durum takibi (Bekliyor, İşleniyor, Tamamlandı, Revizyon, Kargoda, Teslim Edildi)
-- STL/OBJ/PLY dosya yükleme
-- Kalıp geçmişi ve detayları
+### 🏭 Üreticiler İçin
+- **Sipariş Yönetimi**: Gelen siparişleri öncelik sırasına göre yönetme
+- **Üretim Takibi**: 8 aşamalı üretim süreci (Tasarım → Üretim → Kalite → Teslimat)
+- **Dosya Transfer**: Güvenli dosya indirme ve yükleme sistemi
+- **Kargo Entegrasyonu**: Kargo takip numarası ve maliyet yönetimi
+- **Kapasite Yönetimi**: Aylık üretim limiti ve kullanım takibi
+- **Performans Analizi**: Detaylı üretim metrikleri
 
-### 👨‍💼 **Admin Paneli**
-- Merkez yönetimi ve istatistikleri
-- Kalıp durumu güncelleme
-- Model yükleme sistemi
-- Sistem geneli raporlar
-- Chart.js ile dinamik grafikler
+### 🔧 Sistem Yöneticileri İçin
+- **Merkezi Yönetim**: Tüm merkezler ve üreticilerin tek panelden yönetimi
+- **Güvenlik Kontrolü**: Çok katmanlı güvenlik sistemi ve erişim kontrolü
+- **Performans İzleme**: Gerçek zamanlı sistem metrikleri ve uyarılar
+- **API Entegrasyonu**: RESTful API ile dış sistem entegrasyonları
+- **Otomatik Raporlama**: Detaylı analiz ve raporlama araçları
 
-### 🔔 **Bildirim Sistemi**
-- Gerçek zamanlı bildirimler
-- Email bildirimleri
-- Okunma durumu takibi
-- Filtreleme ve arama
+## 🚀 Yeni Özellikler (v2.0.0)
 
-### 💬 **Mesajlaşma**
-- Merkezler arası iletişim
-- Mesaj arşivleme
-- Hızlı yanıt sistemi
+### ⚡ Performans İyileştirmeleri
+- **Database Optimizasyonu**: Kritik sorgular için özel index'ler
+- **Cache Sistemi**: Redis entegrasyonu ile hızlı veri erişimi
+- **Lazy Loading**: Büyük dosyalar için optimize edilmiş yükleme
+- **Query Optimization**: N+1 sorgu sorunlarının çözümü
 
-### 🎯 **Kalite Kontrol**
-- Kalite kontrol listeleri
-- Puanlama sistemi
-- Kontrol geçmişi
+### 🔒 Güvenlik Geliştirmeleri
+- **Rol Bazlı Erişim**: Üretici/Merkez/Admin ayrımı ile güvenli erişim
+- **Session Management**: Gelişmiş oturum yönetimi
+- **File Security**: Dosya yükleme güvenlik kontrolleri
+- **CSRF Protection**: Cross-site request forgery koruması
 
-## 🛠️ Teknoloji Stack
+### 📊 Yeni Dashboard Özellikleri
+- **Sistem İstatistikleri**: Gerçek zamanlı performans metrikleri
+- **Üretim Hattı Görünümü**: Aşama bazlı sipariş takibi
+- **Uyarı Sistemi**: Otomatik sistem uyarıları ve bildirimler
+- **Aktivite Timeline**: Son aktiviteler ve değişiklikler
 
-- **Backend:** Django 4.2.23
-- **Frontend:** Bootstrap 5, jQuery, Font Awesome 6
-- **Database:** SQLite (Development)
-- **Authentication:** django-allauth
-- **Notifications:** django-notifications-hq
-- **Forms:** django-crispy-forms
-- **File Management:** django-cleanup
+### 🔧 Geliştirici Araçları
+- **Debug Toolbar**: Development ortamında detaylı debug bilgileri
+- **Management Commands**: Sistem kontrolü ve bakım komutları
+- **API Endpoints**: Sistem durumu ve istatistikler için REST API
+- **Logging System**: Kapsamlı log kayıt sistemi
 
-## 📦 Kurulum
+## 🛠️ Teknoloji Stack'i
 
-### Gereksinimler
-- Python 3.13.0+
-- pip
-- virtualenv (önerilen)
+- **Backend**: Django 4.2.23 (Python)
+- **Frontend**: Bootstrap 5 + JavaScript
+- **Database**: SQLite (Development) / PostgreSQL (Production)
+- **Cache**: Redis (Production) / LocalMem (Development)
+- **File Storage**: Local Storage / Cloud Storage Ready
+- **Authentication**: Django AllAuth
+- **API**: Django REST Framework Ready
 
-### Adımlar
+## 📋 Sistem Gereksinimleri
 
-1. **Repository'yi klonlayın:**
+- Python 3.8+
+- Django 4.2+
+- 2GB RAM (minimum)
+- 10GB Disk Space
+- Modern web browser
+
+## ⚙️ Kurulum
+
+### 1. Projeyi İndirin
 ```bash
 git clone https://github.com/yourusername/moldpark.git
 cd moldpark
 ```
 
-2. **Virtual environment oluşturun:**
+### 2. Virtual Environment Oluşturun
 ```bash
 python -m venv venv
 source venv/bin/activate  # Linux/Mac
@@ -72,105 +87,187 @@ source venv/bin/activate  # Linux/Mac
 venv\Scripts\activate     # Windows
 ```
 
-3. **Bağımlılıkları yükleyin:**
+### 3. Bağımlılıkları Kurun
 ```bash
 pip install -r requirements.txt
 ```
 
-4. **Veritabanını oluşturun:**
+### 4. Environment Ayarları
 ```bash
-python manage.py migrate
+cp env.example .env
+# .env dosyasını düzenleyin
 ```
 
-5. **Superuser oluşturun:**
+### 5. Database Kurulumu
 ```bash
+python manage.py migrate
 python manage.py createsuperuser
 ```
 
-6. **Statik dosyaları toplayın:**
+### 6. Static Dosyaları Toplayın
 ```bash
 python manage.py collectstatic
 ```
 
-7. **Sunucuyu başlatın:**
+### 7. Sunucuyu Başlatın
 ```bash
 python manage.py runserver
 ```
 
-## 🎮 Kullanım
+## 🔧 Management Commands
 
-### Admin Paneli
-- Superuser hesabı ile `/admin/` adresinden yönetim paneline erişin
-- Merkez yönetimi için `/center/admin/` adresini kullanın
-
-### Merkez Kullanıcıları
-- Ana sayfadan kayıt olun
-- Merkez bilgilerinizi tamamlayın
-- Kalıp oluşturmaya başlayın
-
-## 📊 Kalıp Türleri
-
-- **Tam Konka:** Güçlü performans ve maksimum yalıtım
-- **Yarım Konka:** Konforlu kullanım ve estetik görünüm
-- **Probe:** Görünmez tasarım ve kanal içi konfor
-- **İskelet:** Hafif yapı ve kozmetik görünüm
-- **CIC, ITE, ITC:** Çeşitli işitme kaybı seviyeleri için
-
-## 🔧 Yapılandırma
-
-### Environment Variables
+### Sistem Kontrolü
 ```bash
-# .env dosyası oluşturun
-SECRET_KEY=your-secret-key
-DEBUG=True
-ALLOWED_HOSTS=localhost,127.0.0.1
+# Temel kontrol
+python manage.py system_check
 
-# Email ayarları
-EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USE_TLS=True
-EMAIL_HOST_USER=your-email@gmail.com
-EMAIL_HOST_PASSWORD=your-app-password
+# Detaylı kontrol
+python manage.py system_check --verbose
+
+# Sorunları otomatik düzelt
+python manage.py system_check --fix
 ```
 
-## 📝 API Endpoints
+### Test Verisi Oluşturma
+```bash
+# Test üreticisi oluştur
+python manage.py create_test_producer
 
-### Bildirimler
-- `GET /center/notifications/` - Bildirim listesi
-- `POST /center/notifications/{id}/read/` - Bildirimi okundu işaretle
-- `POST /center/notifications/mark-all-read/` - Tümünü okundu işaretle
+# Üretici doğrulama
+python manage.py verify_producers
+```
 
-### Admin
-- `GET /center/admin/centers/` - Merkez listesi
-- `GET /center/admin/centers/stats/` - İstatistikler
-- `POST /center/admin/molds/{id}/update-status/` - Kalıp durumu güncelle
+## 🌐 API Endpoints
+
+### Sistem Durumu
+```
+GET /api/system-status/          # Genel sistem istatistikleri
+GET /api/production-pipeline/    # Üretim hattı durumu
+GET /api/alerts/                 # Sistem uyarıları
+POST /api/health-check/          # Sağlık kontrolü
+```
+
+### Kullanım Örneği
+```javascript
+fetch('/api/system-status/')
+  .then(response => response.json())
+  .then(data => {
+    console.log('Sistem Sağlığı:', data.system.health_score);
+    console.log('Aktif Siparişler:', data.orders.active);
+  });
+```
+
+## 📊 Dashboard Widget'ları
+
+### Template Tag Kullanımı
+```html
+{% load moldpark_extras %}
+
+<!-- Sistem istatistikleri -->
+{% system_stats %}
+
+<!-- Üretim hattı durumu -->
+{% production_pipeline %}
+
+<!-- Performans metrikleri -->
+{% performance_metrics %}
+
+<!-- Ağ sağlığı -->
+{% network_health %}
+
+<!-- Son aktiviteler -->
+{% recent_activities limit=5 %}
+
+<!-- Sistem uyarıları -->
+{% system_alerts %}
+```
+
+## 🔐 Güvenlik Özellikleri
+
+### Rol Bazlı Erişim Kontrolü
+- **Superuser**: Tüm sistem erişimi
+- **Center**: Sadece kendi merkez verileri
+- **Producer**: Sadece kendi üretici verileri
+- **Misafir**: Sadece genel sayfalar
+
+### Veri Güvenliği
+- Şifreli dosya aktarımı
+- Session timeout yönetimi
+- CSRF token koruması
+- SQL injection koruması
+
+## 📈 Performans Optimizasyonları
+
+### Database İndexleri
+- Sık kullanılan sorgular için özel indexler
+- Composite indexler ile hızlı arama
+- Foreign key optimizasyonları
+
+### Cache Stratejisi
+- Session cache
+- Query result cache
+- Static file cache
+- Template fragment cache
+
+## 🐛 Hata Ayıklama
+
+### Debug Modu
+```python
+# settings.py
+DEBUG = True
+```
+
+### Debug Toolbar
+```
+http://localhost:8000/__debug__/
+```
+
+### Log Dosyaları
+```
+logs/moldpark.log
+```
+
+## 📝 Changelog
+
+### v2.0.0 (2025-06-18)
+- ✨ Yeni dashboard widget sistemi
+- ⚡ Performans optimizasyonları
+- 🔒 Güçlendirilmiş güvenlik
+- 📊 REST API endpoints
+- 🔧 Management commands
+- 📈 Database indexleri
+- 🎨 UI/UX iyileştirmeleri
+
+### v1.0.0 (2025-06-13)
+- 🎉 İlk stable sürüm
+- 🏥 Merkez yönetimi
+- 🏭 Üretici sistemi
+- 👂 Kalıp yönetimi
+- 📨 Mesajlaşma sistemi
 
 ## 🤝 Katkıda Bulunma
 
 1. Fork yapın
 2. Feature branch oluşturun (`git checkout -b feature/AmazingFeature`)
 3. Commit yapın (`git commit -m 'Add some AmazingFeature'`)
-4. Branch'i push edin (`git push origin feature/AmazingFeature`)
-5. Pull Request oluşturun
+4. Push yapın (`git push origin feature/AmazingFeature`)
+5. Pull Request açın
 
 ## 📄 Lisans
 
-Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için `LICENSE` dosyasını inceleyin.
+Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için `LICENSE` dosyasına bakın.
 
 ## 📞 İletişim
 
-- **Email:** info@moldpark.com
-- **Telefon:** +90 (544) 221 92 84
-- **Website:** [moldpark.com](https://moldpark.com)
+- **Proje**: MoldPark
+- **Versiyon**: 2.0.0
+- **Email**: info@moldpark.com
+- **Website**: https://moldpark.com
 
 ## 🙏 Teşekkürler
 
-- Bootstrap ekibi
-- Django topluluğu
-- Font Awesome
-- Chart.js geliştiricileri
+Bu projeyi geliştirmede katkıda bulunan herkese teşekkürler!
 
 ---
 
-**MoldPark** - Kulak kalıbı üretim süreçlerinizi dijitalleştirin! 🎯 
+**MoldPark** - Kulak kalıbı üretiminde yeni nesil çözüm 🦻 

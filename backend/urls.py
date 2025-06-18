@@ -59,11 +59,24 @@ urlpatterns = [
     path('admin/', custom_admin_view, name='admin_redirect'),
     path('django-admin/', admin.site.urls),  # Gerçek admin panel
     
-    # Diğer URL'ler
+    # API ve Sistem URL'leri
     path('accounts/', include('allauth.urls')),
     path('notifications/', include('notifications.urls', namespace='notifications')),
+    
+    # Ana Uygulama URL'leri
     path('', include('core.urls')),
     path('center/', include('center.urls')),
     path('mold/', include('mold.urls')),
     path('producer/', include('producer.urls')),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+]
+
+# Static ve Media dosyaları
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+
+# Debug Toolbar (sadece development ortamında)
+if settings.DEBUG:
+    import debug_toolbar
+    urlpatterns = [
+        path('__debug__/', include(debug_toolbar.urls)),
+    ] + urlpatterns
