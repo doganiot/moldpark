@@ -205,12 +205,7 @@
                                 <span>Kalıp Yönetimi</span>
                             </a>
                         </div>
-                        <div class="col-lg-3 col-md-6 mb-3">
-                            <a href="{% url 'producer:message_create' %}" class="btn btn-outline-success w-100 h-100 d-flex flex-column justify-content-center">
-                                <i class="fas fa-plus fa-2x mb-2"></i>
-                                <span>Yeni Mesaj</span>
-                            </a>
-                        </div>
+
                         <div class="col-lg-3 col-md-6 mb-3">
                             <a href="{% url 'producer:network_list' %}" class="btn btn-outline-info w-100 h-100 d-flex flex-column justify-content-center">
                                 <i class="fas fa-network-wired fa-2x mb-2"></i>
@@ -297,11 +292,7 @@
                                                                 <i class="fas fa-list me-1"></i>Siparişleri Görüntüle
                                                             </a>
                                                         </li>
-                                                        <li>
-                                                            <a class="dropdown-item" href="{% url 'producer:message_create' %}?center={{ network.center.id }}">
-                                                                <i class="fas fa-envelope me-1"></i>Mesaj Gönder
-                                                            </a>
-                                                        </li>
+                                                        
                                                         <li><hr class="dropdown-divider"></li>
                                                         <li>
                                                             <a class="dropdown-item text-danger" href="#" onclick="removeFromNetwork({{ network.center.id }})">
@@ -393,45 +384,18 @@
             </div>
         </div>
 
-        <!-- Son Mesajlar -->
+        <!-- Mesajlaşma Sistemi Kaldırıldı -->
         <div class="col-lg-6">
             <div class="card shadow mb-4">
                 <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                    <h6 class="m-0 font-weight-bold text-primary">Okunmamış Mesajlar</h6>
-                    <a href="{% url 'producer:message_list' %}" class="btn btn-sm btn-primary">
-                        <i class="fas fa-envelope me-1"></i>Tümünü Gör
-                    </a>
+                    <h6 class="m-0 font-weight-bold text-primary">Bildirim</h6>
                 </div>
                 <div class="card-body">
-                    {% if recent_messages %}
-                        {% for message in recent_messages %}
-                        <div class="d-flex align-items-center mb-3 p-2 border rounded">
-                            <div class="flex-shrink-0">
-                                <i class="fas fa-envelope text-primary fa-lg"></i>
-                            </div>
-                            <div class="flex-grow-1 ms-3">
-                                <div class="fw-bold">
-                                    <a href="{% url 'producer:message_detail' message.pk %}" class="text-decoration-none">
-                                        {{ message.subject }}
-                                    </a>
-                                </div>
-                                <div class="text-muted small">
-                                    {{ message.center.name }} • {{ message.created_at|timesince }} önce
-                                </div>
-                            </div>
-                            {% if message.is_urgent %}
-                            <div class="flex-shrink-0">
-                                <span class="badge bg-danger">Acil</span>
-                            </div>
-                            {% endif %}
-                        </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="text-center py-4">
-                            <i class="fas fa-envelope-open fa-3x text-gray-300 mb-3"></i>
-                            <p class="text-muted">Okunmamış mesaj yok</p>
-                        </div>
-                    {% endif %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-info-circle fa-3x text-info mb-3"></i>
+                        <h6 class="text-muted">Mesajlaşma Sistemi Güncellendi</h6>
+                        <p class="text-muted">Artık tüm mesajlaşma işlemleri admin dashboard üzerinden yapılmaktadır.</p>
+                    </div>
                 </div>
             </div>
         </div>

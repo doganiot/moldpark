@@ -6,13 +6,7 @@ app_name = 'center'
 urlpatterns = [
     path('', views.dashboard, name='dashboard'),
     path('profile/', views.profile, name='profile'),
-    path('messages/', views.message_list, name='message_list'),
-    path('messages/create/', views.send_message, name='message_create'),
-    path('messages/<int:pk>/', views.message_detail, name='message_detail'),
-    path('messages/<int:pk>/archive/', views.message_archive, name='message_archive'),
-    path('messages/<int:pk>/unarchive/', views.message_unarchive, name='message_unarchive'),
-    path('messages/<int:pk>/delete/', views.message_delete, name='message_delete'),
-    path('messages/<int:pk>/quick-reply/', views.message_quick_reply, name='message_quick_reply'),
+    # Mesaj Sistemi - Kaldırıldı (Sadece Admin Dashboard üzerinden)
     path('<int:pk>/', views.center_detail, name='center_detail'),
     path('<int:pk>/limit/', views.center_limit_update, name='center_limit_update'),
     

@@ -14,7 +14,7 @@ from mold.models import EarMold, ModeledMold
 from .models import Producer, ProducerOrder, ProducerMessage, ProducerNetwork, ProducerProductionLog
 from .forms import (
     ProducerRegistrationForm, ProducerProfileForm, ProducerOrderForm, 
-    ProducerOrderUpdateForm, ProducerMessageForm, ProductionLogForm, NetworkInviteForm
+    ProducerOrderUpdateForm, ProductionLogForm, NetworkInviteForm
 )
 import mimetypes
 import os
@@ -161,10 +161,7 @@ def producer_dashboard(request):
     # Son siparişler - sadece kendi siparişleri
     recent_orders = producer.orders.all()[:5]
     
-    # Son mesajlar - sadece kendisine gelen
-    recent_messages = producer.messages.filter(
-        sender_is_producer=False, is_read=False
-    )[:5]
+    # Mesajlaşma sistemi kaldırıldı
     
     # Bu ayki sipariş sayısı ve limit kontrolü
     monthly_orders = producer.get_current_month_orders()
@@ -184,7 +181,7 @@ def producer_dashboard(request):
         'network_centers': network_centers_count,
         'network_centers_list': network_centers,
         'recent_orders': recent_orders,
-        'recent_messages': recent_messages,
+
         'monthly_orders': monthly_orders,
         'remaining_limit': remaining_limit,
         'usage_percentage': usage_percentage,
@@ -301,91 +298,7 @@ def order_update(request, pk):
     return render(request, 'producer/order_update.html', {'form': form, 'order': order})
 
 
-@producer_required
-def message_list(request):
-    """Mesaj Listesi"""
-    messages_queryset = request.user.producer.messages.all()
-    
-    # Filtreleme
-    message_type = request.GET.get('type')
-    is_read = request.GET.get('read')
-    center_filter = request.GET.get('center')
-    
-    if message_type:
-        messages_queryset = messages_queryset.filter(message_type=message_type)
-    if is_read == 'true':
-        messages_queryset = messages_queryset.filter(is_read=True)
-    elif is_read == 'false':
-        messages_queryset = messages_queryset.filter(is_read=False)
-    if center_filter:
-        messages_queryset = messages_queryset.filter(center_id=center_filter)
-    
-    # Arama
-    search = request.GET.get('search')
-    if search:
-        messages_queryset = messages_queryset.filter(
-            Q(subject__icontains=search) |
-            Q(message__icontains=search) |
-            Q(center__name__icontains=search)
-        )
-    
-    network_centers = request.user.producer.network_centers.filter(status='active')
-    
-    context = {
-        'messages': messages_queryset,
-        'network_centers': network_centers,
-        'message_types': ProducerMessage.MESSAGE_TYPE_CHOICES,
-        'current_filters': {
-            'type': message_type,
-            'read': is_read,
-            'center': center_filter,
-            'search': search,
-        }
-    }
-    
-    return render(request, 'producer/message_list.html', context)
-
-
-@producer_required
-def message_detail(request, pk):
-    """Mesaj Detay"""
-    message = get_object_or_404(ProducerMessage, pk=pk, producer=request.user.producer)
-    
-    # Mesajı okundu olarak işaretle
-    if not message.is_read:
-        message.is_read = True
-        message.read_at = timezone.now()
-        message.save()
-    
-    return render(request, 'producer/message_detail.html', {'message': message})
-
-
-@producer_required
-def message_create(request):
-    """Yeni Mesaj Oluşturma"""
-    if request.method == 'POST':
-        form = ProducerMessageForm(request.POST, request.FILES, producer=request.user.producer)
-        if form.is_valid():
-            message = form.save(commit=False)
-            message.producer = request.user.producer
-            message.sender_is_producer = True
-            message.save()
-            
-            # Merkeze bildirim gönder
-            notify.send(
-                sender=request.user,
-                recipient=message.center.user,
-                verb='yeni mesaj gönderdi',
-                action_object=message,
-                description=f'{message.subject}'
-            )
-            
-            messages.success(request, 'Mesajınız başarıyla gönderildi.')
-            return redirect('producer:message_list')
-    else:
-        form = ProducerMessageForm(producer=request.user.producer)
-    
-    return render(request, 'producer/message_create.html', {'form': form})
+# Mesajlaşma view'ları kaldırıldı - Sadece Admin Dashboard üzerinden mesajlaşma
 
 
 @producer_required

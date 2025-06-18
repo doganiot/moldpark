@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from .models import Center, CenterMessage
-from .forms import CenterProfileForm, CenterMessageForm, CenterLimitForm
+from .forms import CenterProfileForm, CenterLimitForm
 from .decorators import center_required
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.forms import PasswordChangeForm
@@ -36,9 +36,6 @@ def dashboard(request):
     # Son 5 kalıbı al
     recent_molds = molds.order_by('-created_at')[:5]
     
-    # Son 5 mesajı al
-    recent_messages = center.received_messages.filter(is_archived=False).order_by('-created_at')[:5]
-    
     # Kullanılan kalıp hakkını güncelle (kalan hakkı hesapla)
     used_molds = total_molds
     remaining_limit = max(0, center.mold_limit - used_molds)
@@ -58,7 +55,6 @@ def dashboard(request):
         'processing_molds': processing_molds,
         'completed_molds': completed_molds,
         'recent_molds': recent_molds,
-        'recent_messages': recent_messages,
         'used_molds': used_molds,
         'remaining_limit': remaining_limit,
         'producer_networks': producer_networks,
@@ -92,106 +88,7 @@ def profile(request):
     password_form = PasswordChangeForm(request.user)
     return render(request, 'center/profile.html', {'form': form, 'password_form': password_form})
 
-@login_required
-def message_list(request):
-    center = request.user.center
-    folder = request.GET.get('folder', 'inbox')
-    
-    if folder == 'sent':
-        messages = center.sent_messages.all().order_by('-created_at')
-    elif folder == 'archived':
-        messages = center.received_messages.filter(is_archived=True).order_by('-created_at')
-    else:  # inbox
-        messages = center.received_messages.filter(is_archived=False).order_by('-created_at')
-    
-    unread_count = center.received_messages.filter(is_read=False).count()
-    
-    return render(request, 'center/message_list.html', {
-        'object_list': messages,
-        'folder': folder,
-        'unread_count': unread_count
-    })
-
-@login_required
-@center_required
-def send_message(request):
-    # Admin kullanıcıya Center yoksa otomatik oluştur
-    if (request.user.is_staff or request.user.is_superuser) and not hasattr(request.user, 'center'):
-        Center.objects.create(user=request.user, name='Ana Merkez', address='-', phone='-')
-    
-    if request.method == 'POST':
-        form = CenterMessageForm(request.POST, user=request.user)
-        if form.is_valid():
-            message = form.save(commit=False)
-            message.sender = request.user.center
-            message.save()
-            messages.success(request, 'Mesajınız gönderildi.')
-            return redirect('center:message_list')
-    else:
-        form = CenterMessageForm(user=request.user)
-    
-    return render(request, 'center/send_message.html', {'form': form})
-
-@login_required
-@center_required
-def message_detail(request, pk):
-    message = get_object_or_404(CenterMessage, pk=pk)
-    if message.receiver == request.user.center and not message.is_read:
-        message.is_read = True
-        message.save()
-    return render(request, 'center/message_detail.html', {'message': message})
-
-@login_required
-@center_required
-def message_archive(request, pk):
-    message = get_object_or_404(CenterMessage, pk=pk, receiver=request.user.center)
-    message.is_archived = True
-    message.save()
-    messages.success(request, 'Mesaj arşivlendi.')
-    return redirect('center:message_list')
-
-@login_required
-@center_required
-def message_unarchive(request, pk):
-    message = get_object_or_404(CenterMessage, pk=pk, receiver=request.user.center)
-    message.is_archived = False
-    message.save()
-    messages.success(request, 'Mesaj arşivden çıkarıldı.')
-    return redirect('center:message_list')
-
-@login_required
-@center_required
-def message_delete(request, pk):
-    message = get_object_or_404(CenterMessage, pk=pk)
-    # Sadece alıcı veya gönderen silebilir
-    if message.receiver == request.user.center or message.sender == request.user.center:
-        message.delete()
-        messages.success(request, 'Mesaj silindi.')
-    else:
-        messages.error(request, 'Bu mesajı silme yetkiniz yok.')
-    return redirect('center:message_list')
-
-@login_required
-@center_required
-def message_quick_reply(request, pk):
-    original_message = get_object_or_404(CenterMessage, pk=pk)
-    
-    if request.method == 'POST':
-        message_text = request.POST.get('message')
-        if message_text:
-            # Yeni mesaj oluştur
-            new_message = CenterMessage.objects.create(
-                sender=request.user.center,
-                receiver=original_message.sender,  # Orijinal mesajı gönderene yanıt
-                subject=f"Re: {original_message.subject}",
-                message=message_text
-            )
-            messages.success(request, 'Yanıtınız gönderildi.')
-            return redirect('center:message_detail', pk=new_message.pk)
-        else:
-            messages.error(request, 'Mesaj içeriği boş olamaz.')
-    
-    return redirect('center:message_detail', pk=pk)
+# Merkez mesajlaşma view'ları kaldırıldı - Sadece Admin Dashboard üzerinden mesajlaşma
 
 def is_admin(user):
     return user.is_staff or user.is_superuser
@@ -304,8 +201,7 @@ def admin_dashboard(request):
         'data': list(order_stats.values())
     }
     
-    # Son mesajlar
-    recent_messages = CenterMessage.objects.all().order_by('-created_at')[:5]
+    # Mesajlaşma sistemi kaldırıldı
     
     # Kritik uyarılar
     warnings = []
@@ -337,7 +233,7 @@ def admin_dashboard(request):
         'recent_molds': recent_molds,
         'recent_orders': recent_orders,
         'recent_networks': recent_networks,
-        'recent_messages': recent_messages,
+
         'warnings': warnings,
     })
 

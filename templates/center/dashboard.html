@@ -296,34 +296,18 @@
             </div>
         </div>
 
-        <!-- Recent Messages -->
+        <!-- Mesajlaşma Sistemi Bilgilendirme -->
         <div class="col-md-4">
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white border-0">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Son Mesajlar</h5>
-                        <a href="{% url 'center:message_list' %}" class="btn btn-sm btn-outline-primary">
-                            Tümünü Gör
-                        </a>
+                        <h5 class="mb-0">Mesajlaşma</h5>
                     </div>
                 </div>
-                <div class="card-body">
-                    {% for message in recent_messages %}
-                    <div class="d-flex align-items-start {% if not forloop.last %}mb-3{% endif %}">
-                        <div class="flex-shrink-0">
-                            <div class="bg-light rounded-circle p-2">
-                                <i class="fas fa-envelope"></i>
-                            </div>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="mb-1">{{ message.subject }}</h6>
-                            <p class="mb-1 text-muted small">{{ message.message|truncatechars:50 }}</p>
-                            <small class="text-muted">{{ message.created_at|naturaltime }}</small>
-                        </div>
-                    </div>
-                    {% empty %}
-                    <p class="text-muted text-center mb-0">Henüz mesaj yok.</p>
-                    {% endfor %}
+                <div class="card-body text-center">
+                    <i class="fas fa-info-circle fa-3x text-info mb-3"></i>
+                    <h6 class="text-muted">Sistem Güncellendi</h6>
+                    <p class="text-muted small mb-0">Mesajlaşma işlemleri artık sadece admin dashboard üzerinden yapılmaktadır.</p>
                 </div>
             </div>
         </div>
@@ -341,11 +325,7 @@
                                 <i class="fas fa-plus me-2"></i>Yeni Kalıp
                             </a>
                         </div>
-                        <div class="col-md-3">
-                            <a href="{% url 'center:message_create' %}" class="btn btn-outline-primary d-block">
-                                <i class="fas fa-envelope me-2"></i>Mesaj Gönder
-                            </a>
-                        </div>
+
                         <div class="col-md-3">
                             <a href="{% url 'center:profile' %}" class="btn btn-outline-primary d-block">
                                 <i class="fas fa-user-cog me-2"></i>Profil Ayarları

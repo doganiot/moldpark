@@ -23,10 +23,7 @@ urlpatterns = [
     path('molds/<int:pk>/download/<int:file_id>/', views.mold_download_file, name='mold_download_file'),  # pk = order.id
     path('molds/<int:pk>/upload-result/', views.mold_upload_result, name='mold_upload_result'),  # pk = order.id
     
-    # Mesaj Sistemi
-    path('messages/', views.message_list, name='message_list'),
-    path('messages/<int:pk>/', views.message_detail, name='message_detail'),
-    path('messages/create/', views.message_create, name='message_create'),
+    # Mesaj Sistemi - Kaldırıldı (Sadece Admin Dashboard üzerinden)
     
     # Ağ Yönetimi
     path('network/', views.network_list, name='network_list'),

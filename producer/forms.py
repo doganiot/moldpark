@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth.models import User
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Row, Column, Submit, Div, Field
-from .models import Producer, ProducerOrder, ProducerMessage, ProducerProductionLog, ProducerNetwork
+from .models import Producer, ProducerOrder, ProducerProductionLog, ProducerNetwork
 
 
 class ProducerRegistrationForm(forms.ModelForm):
@@ -186,49 +186,7 @@ class ProducerOrderUpdateForm(forms.ModelForm):
         }
 
 
-class ProducerMessageForm(forms.ModelForm):
-    """Üretici Mesaj Formu"""
-    
-    class Meta:
-        model = ProducerMessage
-        fields = [
-            'center', 'message_type', 'subject', 'message', 
-            'attachment', 'related_order', 'is_urgent'
-        ]
-        widgets = {
-            'message': forms.Textarea(attrs={'rows': 4}),
-        }
-
-    def __init__(self, producer=None, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if producer:
-            # Sadece bu üreticinin ağındaki merkezleri göster
-            network_centers = producer.network_centers.filter(
-                status='active',
-                can_send_messages=True
-            )
-            self.fields['center'].queryset = network_centers.values_list('center', flat=True)
-            
-            # Sadece bu üreticinin siparişlerini göster
-            self.fields['related_order'].queryset = producer.orders.all()
-
-        self.helper = FormHelper()
-        self.helper.layout = Layout(
-            Row(
-                Column('center', css_class='form-group col-md-6 mb-0'),
-                Column('message_type', css_class='form-group col-md-6 mb-0'),
-                css_class='form-row'
-            ),
-            'subject',
-            'message',
-            Row(
-                Column('attachment', css_class='form-group col-md-6 mb-0'),
-                Column('related_order', css_class='form-group col-md-6 mb-0'),
-                css_class='form-row'
-            ),
-            Field('is_urgent', css_class='form-check-input'),
-            Submit('submit', 'Mesaj Gönder', css_class='btn btn-primary')
-        )
+# ProducerMessageForm kaldırıldı - Sadece Admin Dashboard üzerinden mesajlaşma
 
 
 class ProductionLogForm(forms.ModelForm):
