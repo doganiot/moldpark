@@ -105,39 +105,123 @@
         </div>
 
         <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
-            <div class="card border-left-secondary shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">
-                                Toplam Kalıp
+            <a href="{% url 'center:admin_mold_list' %}" class="text-decoration-none">
+                <div class="card border-left-secondary shadow h-100 py-2 hover-card">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">
+                                    Toplam Kalıp
+                                </div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.total_molds }}</div>
                             </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.total_molds }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-cube fa-2x text-gray-300"></i>
+                            <div class="col-auto">
+                                <i class="fas fa-cube fa-2x text-gray-300"></i>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </a>
         </div>
 
         <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
-            <div class="card border-left-danger shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
-                                Bekleyen Kalıp
+            <a href="{% url 'center:admin_mold_list' %}?status=waiting" class="text-decoration-none">
+                <div class="card border-left-warning shadow h-100 py-2 hover-card">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                    Bekleyen Kalıp
+                                </div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.waiting_molds }}</div>
                             </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.pending_molds }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                            <div class="col-auto">
+                                <i class="fas fa-clock fa-2x text-gray-300"></i>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </a>
+        </div>
+
+        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+            <a href="{% url 'center:admin_mold_list' %}?status=processing" class="text-decoration-none">
+                <div class="card border-left-info shadow h-100 py-2 hover-card">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                    İşleniyor
+                                </div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.processing_molds }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-cog fa-spin fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+            <a href="{% url 'center:admin_mold_list' %}?status=completed" class="text-decoration-none">
+                <div class="card border-left-success shadow h-100 py-2 hover-card">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                    Tamamlandı
+                                </div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.completed_molds }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+            <a href="{% url 'center:admin_mold_list' %}?status=delivered" class="text-decoration-none">
+                <div class="card border-left-primary shadow h-100 py-2 hover-card">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                    Teslim Edildi
+                                </div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.delivered_molds }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-truck fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+            <a href="{% url 'center:admin_mold_list' %}?status=revision" class="text-decoration-none">
+                <div class="card border-left-danger shadow h-100 py-2 hover-card">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                    Revizyon
+                                </div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.revision_molds }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-redo fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </a>
         </div>
     </div>
 
@@ -305,6 +389,22 @@
                                         <tr>
                                             <td><i class="fas fa-cube text-secondary me-2"></i>Toplam Kalıp:</td>
                                             <td><strong>{{ stats.total_molds }}</strong></td>
+                                        </tr>
+                                        <tr>
+                                            <td><i class="fas fa-clock text-warning me-2"></i>Bekleyen Kalıp:</td>
+                                            <td><strong>{{ stats.waiting_molds }}</strong></td>
+                                        </tr>
+                                        <tr>
+                                            <td><i class="fas fa-cog text-info me-2"></i>İşleniyor:</td>
+                                            <td><strong>{{ stats.processing_molds }}</strong></td>
+                                        </tr>
+                                        <tr>
+                                            <td><i class="fas fa-check-circle text-success me-2"></i>Tamamlandı:</td>
+                                            <td><strong>{{ stats.completed_molds }}</strong></td>
+                                        </tr>
+                                        <tr>
+                                            <td><i class="fas fa-truck text-primary me-2"></i>Teslim Edildi:</td>
+                                            <td><strong>{{ stats.delivered_molds }}</strong></td>
                                         </tr>
                                         <tr>
                                             <td><i class="fas fa-users-cog text-info me-2"></i>Toplam Kullanıcı:</td>
@@ -1021,6 +1121,19 @@
 
 .table-hover tbody tr:hover {
     background-color: rgba(0,123,255,.075);
+}
+
+.hover-card {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.hover-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,.15) !important;
+}
+
+a.text-decoration-none:hover {
+    text-decoration: none !important;
 }
 </style>
 {% endblock %} 

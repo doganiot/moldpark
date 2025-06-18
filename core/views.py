@@ -145,14 +145,31 @@ def admin_dashboard(request):
         'is_moldpark': True
     }
     
+    # Kalıp durumlarına göre istatistikler
+    mold_stats = {
+        'total_molds': molds.count(),
+        'waiting_molds': molds.filter(status='waiting').count(),
+        'processing_molds': molds.filter(status='processing').count(),
+        'completed_molds': molds.filter(status='completed').count(),
+        'revision_molds': molds.filter(status='revision').count(),
+        'shipping_molds': molds.filter(status='shipping').count(),
+        'delivered_molds': molds.filter(status='delivered').count(),
+    }
+    
     # İstatistikler
     stats = {
         'total_centers': centers.count() + 1,  # MoldPark dahil
         'active_centers': centers.filter(is_active=True).count() + 1,  # MoldPark aktif
         'total_producers': len(producers),
         'verified_producers': len([p for p in producers if hasattr(p, 'is_verified') and p.is_verified]),
-        'total_molds': molds.count(),
-        'pending_molds': molds.filter(status='pending').count(),
+        'total_molds': mold_stats['total_molds'],
+        'waiting_molds': mold_stats['waiting_molds'],
+        'processing_molds': mold_stats['processing_molds'],
+        'completed_molds': mold_stats['completed_molds'],
+        'revision_molds': mold_stats['revision_molds'],
+        'shipping_molds': mold_stats['shipping_molds'],
+        'delivered_molds': mold_stats['delivered_molds'],
+        'pending_molds': mold_stats['waiting_molds'],  # Geriye dönük uyumluluk için
         'moldpark_orders': len(moldpark_orders),
         'moldpark_active_orders': len([o for o in moldpark_orders if o.status in ['received', 'designing', 'production', 'quality_check']]),
         'total_users': len(center_users) + len(producer_users),
