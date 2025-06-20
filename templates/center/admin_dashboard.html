@@ -289,81 +289,26 @@
         </div>
     </div>
 
-    <!-- Son Mesajlar -->
+    <!-- Sistem Bilgileri -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0"><i class="fas fa-envelope me-2"></i>Son Mesajlar</h6>
-                        <a href="{% url 'center:admin_message_list' %}" class="btn btn-sm btn-outline-primary">
-                            Tümünü Gör
-                        </a>
-                    </div>
+                    <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Sistem Bilgileri</h6>
                 </div>
-                <div class="card-body p-0">
-                    {% if recent_messages %}
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Gönderen</th>
-                                    <th>Alıcı</th>
-                                    <th>Konu</th>
-                                    <th>Tarih</th>
-                                    <th>Durum</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for message in recent_messages %}
-                                <tr>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <i class="fas fa-user-circle fa-lg text-muted me-2"></i>
-                                            <div>
-                                                <div class="fw-medium">{{ message.sender.name }}</div>
-                                                <small class="text-muted">{{ message.sender.user.email }}</small>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <i class="fas fa-user-circle fa-lg text-muted me-2"></i>
-                                            <div>
-                                                <div class="fw-medium">{{ message.receiver.name }}</div>
-                                                <small class="text-muted">{{ message.receiver.user.email }}</small>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div class="fw-medium">{{ message.subject|truncatechars:40 }}</div>
-                                        <small class="text-muted">{{ message.message|truncatechars:60 }}</small>
-                                    </td>
-                                    <td>
-                                        <div>{{ message.created_at|date:"d.m.Y" }}</div>
-                                        <small class="text-muted">{{ message.created_at|date:"H:i" }}</small>
-                                    </td>
-                                    <td>
-                                        {% if message.is_read %}
-                                            <span class="badge bg-success">Okundu</span>
-                                        {% else %}
-                                            <span class="badge bg-warning text-dark">Okunmadı</span>
-                                        {% endif %}
-                                        {% if message.is_archived %}
-                                            <br><small class="text-muted">Arşivlendi</small>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Aktif Merkezler:</strong> {{ total_centers }}</p>
+                            <p><strong>Toplam Kalıp:</strong> {{ total_molds }}</p>
+                            <p><strong>Bekleyen İşlemler:</strong> {{ waiting_models }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Tamamlanan Kalıplar:</strong> {{ completed }}</p>
+                            <p><strong>Teslim Edilenler:</strong> {{ delivered }}</p>
+                            <p><strong>İşlem Görenler:</strong> {{ in_progress }}</p>
+                        </div>
                     </div>
-                    {% else %}
-                    <div class="text-center py-4">
-                        <i class="fas fa-envelope fa-3x text-muted mb-2"></i>
-                        <p class="text-muted mb-0">Henüz mesaj yok</p>
-                    </div>
-                    {% endif %}
                 </div>
             </div>
         </div>

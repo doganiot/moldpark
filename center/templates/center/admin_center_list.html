@@ -46,9 +46,9 @@
                 <div class="col-md-2">
                     <label class="form-label">&nbsp;</label>
                     <div class="d-grid">
-                        <a href="{% url 'center:admin_center_stats' %}" class="btn btn-info">
-                            <i class="fas fa-chart-bar me-2"></i>İstatistikler
-                        </a>
+                                        <a href="{% url 'center:admin_mold_list' %}" class="btn btn-info">
+                    <i class="fas fa-chart-bar me-2"></i>Kalıp Raporları
+                </a>
                     </div>
                 </div>
             </form>
@@ -114,6 +114,22 @@
                     </div>
                     
                     <div class="mb-3">
+                        <small class="text-muted d-block">Bağlı Üretici</small>
+                        {% if center.active_producer %}
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-industry text-success me-2"></i>
+                                <span class="small fw-bold text-success">{{ center.active_producer.company_name }}</span>
+                            </div>
+                            <small class="text-muted">{{ center.active_producer.get_producer_type_display }}</small>
+                        {% else %}
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                                <span class="small text-warning">Üretici ağı yok</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
                         <small class="text-muted d-block">Kayıt Tarihi</small>
                         <span class="small">{{ center.created_at|naturaltime }}</span>
                     </div>
@@ -124,14 +140,21 @@
                             <i class="fas fa-eye me-2"></i>Detayları Görüntüle
                         </a>
                         <div class="btn-group">
-                            <a href="{% url 'center:admin_center_toggle_status' center.pk %}" 
-                               class="btn btn-outline-{% if center.is_active %}warning{% else %}success{% endif %} btn-sm">
+                            <button onclick="toggleCenterStatus({{ center.pk }})"
+                                    class="btn btn-outline-{% if center.is_active %}warning{% else %}success{% endif %} btn-sm">
                                 <i class="fas fa-{% if center.is_active %}pause{% else %}play{% endif %} me-1"></i>
                                 {% if center.is_active %}Pasifleştir{% else %}Aktifleştir{% endif %}
-                            </a>
-                            <button type="button" class="btn btn-outline-info btn-sm" 
-                                    data-bs-toggle="modal" data-bs-target="#limitModal{{ center.pk }}">
-                                <i class="fas fa-edit me-1"></i>Limit
+                            </button>
+                        </div>
+                        
+                        <div class="btn-group mt-2">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" 
+                                    data-bs-toggle="modal" data-bs-target="#producerModal{{ center.pk }}">
+                                <i class="fas fa-exchange-alt me-1"></i>Üretici Değiştir
+                            </button>
+                            <button type="button" class="btn btn-outline-danger btn-sm" 
+                                    onclick="deleteCenter({{ center.pk }}, '{{ center.name }}')">
+                                <i class="fas fa-trash me-1"></i>Sil
                             </button>
                         </div>
                     </div>
@@ -139,28 +162,44 @@
             </div>
         </div>
 
-        <!-- Limit Güncelleme Modal -->
-        <div class="modal fade" id="limitModal{{ center.pk }}" tabindex="-1">
+
+        
+        <!-- Üretici Değiştirme Modal -->
+        <div class="modal fade" id="producerModal{{ center.pk }}" tabindex="-1">
             <div class="modal-dialog">
                 <div class="modal-content">
-                    <form method="post" action="{% url 'center:admin_center_update_limit' center.pk %}">
+                    <div class="modal-header bg-info text-white">
+                        <h5 class="modal-title">
+                            <i class="fas fa-exchange-alt me-2"></i>{{ center.name }} - Üretici Değiştir
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form class="producer-change-form" data-center-id="{{ center.pk }}">
                         {% csrf_token %}
-                        <div class="modal-header">
-                            <h5 class="modal-title">Kalıp Limiti Güncelle</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
                         <div class="modal-body">
-                            <p><strong>{{ center.name }}</strong> merkezinin kalıp limitini güncelleyin.</p>
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Bu merkezi farklı bir üretici ağına transfer edebilirsiniz.
+                            </div>
+                            
                             <div class="mb-3">
-                                <label class="form-label">Yeni Limit</label>
-                                <input type="number" name="mold_limit" class="form-control" 
-                                       value="{{ center.mold_limit }}" min="1" max="1000" required>
-                                <div class="form-text">Mevcut kullanım: {{ center.total_molds }} kalıp</div>
+                                <label for="producer_select_{{ center.pk }}" class="form-label">Yeni Üretici Merkez</label>
+                                <select class="form-select producer-select" id="producer_select_{{ center.pk }}" name="producer_id" required>
+                                    <option value="">Üretici seçin...</option>
+                                    <!-- Producers will be loaded via JavaScript -->
+                                </select>
+                            </div>
+                            
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Uyarı:</strong> Bu işlem geri alınamaz. Mevcut üretici bağlantıları sonlandırılacak.
                             </div>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
-                            <button type="submit" class="btn btn-primary">Güncelle</button>
+                            <button type="submit" class="btn btn-info">
+                                <i class="fas fa-exchange-alt me-2"></i>Transfer Et
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -177,4 +216,147 @@
         {% endfor %}
     </div>
 </div>
+
+<script>
+// Sayfa yüklendiğinde üreticileri getir
+document.addEventListener('DOMContentLoaded', function() {
+    loadProducersForAll();
+    setupProducerChangeForms();
+});
+
+function loadProducersForAll() {
+    fetch('/center/api/producers/', {
+        method: 'GET',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const producerSelects = document.querySelectorAll('.producer-select');
+        
+        producerSelects.forEach(select => {
+            select.innerHTML = '<option value="">Üretici seçin...</option>';
+            
+            if (data.success && data.producers) {
+                data.producers.forEach(producer => {
+                    const option = document.createElement('option');
+                    option.value = producer.id;
+                    option.textContent = producer.company_name;
+                    select.appendChild(option);
+                });
+            }
+        });
+    })
+    .catch(error => {
+        console.error('Üreticiler yüklenemedi:', error);
+        // Fallback - Manuel üretici listesi
+        const producerSelects = document.querySelectorAll('.producer-select');
+        
+        producerSelects.forEach(select => {
+            select.innerHTML = `
+                <option value="">Üretici seçin...</option>
+                <option value="1">MoldPark Üretim Merkezi</option>
+                <option value="2">Test Kalıp Üretim A.Ş.</option>
+            `;
+        });
+    });
+}
+
+function setupProducerChangeForms() {
+    const forms = document.querySelectorAll('.producer-change-form');
+    
+    forms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const centerId = this.getAttribute('data-center-id');
+            const formData = new FormData(this);
+            const selectedProducer = this.querySelector('select').selectedOptions[0]?.textContent;
+            
+            if (!formData.get('producer_id')) {
+                alert('Lütfen bir üretici seçin.');
+                return;
+            }
+            
+            if (confirm(`Bu merkezi ${selectedProducer} üreticisine transfer etmek istediğinizden emin misiniz?\n\nMevcut üretici bağlantıları sonlandırılacak.`)) {
+                fetch(`/center/admin/centers/${centerId}/change-producer/`, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message);
+                        location.reload();
+                    } else {
+                        alert('Hata: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Bir hata oluştu.');
+                });
+            }
+        });
+    });
+}
+
+function toggleCenterStatus(centerId) {
+    if (confirm('Merkez durumunu değiştirmek istediğinizden emin misiniz?')) {
+        fetch(`/center/admin/centers/${centerId}/toggle-status/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Bir hata oluştu: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Bir hata oluştu.');
+        });
+    }
+}
+
+function deleteCenter(centerId, centerName) {
+    if (confirm(`${centerName} merkezini sistemden tamamen silmek istediğinizden emin misiniz?\n\nBu işlem GERİ ALINAMAZ!\n\n- Merkez hesabı silinecek\n- Kullanıcı hesabı silinecek\n- Tüm üretici bağlantıları sonlandırılacak\n\nAktif kalıpları varsa işlem gerçekleşmeyecektir.`)) {
+        if (confirm(`SON UYARI: ${centerName} merkezini kalıcı olarak siliyorsunuz!\n\nEmin misiniz?`)) {
+            fetch(`/center/admin/centers/${centerId}/delete/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    if (data.redirect) {
+                        location.reload();
+                    }
+                } else {
+                    alert('Hata: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Bir hata oluştu.');
+            });
+        }
+    }
+}
+</script>
 {% endblock %} 

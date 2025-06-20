@@ -7,12 +7,13 @@ from .decorators import center_required
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import logout
-from notifications.models import Notification
+
 from django.db.models import Count, Q
 from django.db import models
 from datetime import datetime, timedelta
 from mold.models import EarMold
 from django.http import JsonResponse
+from django.utils import timezone
 
 # Create your views here.
 
@@ -511,6 +512,7 @@ def admin_center_list(request):
     """Tüm merkezlerin listesi ve yönetimi"""
     from django.db.models import Count, Q
     from datetime import datetime, timedelta
+    from producer.models import ProducerNetwork
     
     # Merkezleri getir ve istatistiklerle birleştir
     centers = Center.objects.annotate(
@@ -519,7 +521,14 @@ def admin_center_list(request):
         completed_molds=Count('molds', filter=Q(molds__status='completed')),
         delivered_molds=Count('molds', filter=Q(molds__status='delivered')),
         revision_molds=Count('molds', filter=Q(molds__status='revision'))
-    ).order_by('-created_at')
+    ).prefetch_related('producer_networks__producer').order_by('-created_at')
+    
+    # Her merkez için aktif üretici ağını ekle
+    for center in centers:
+        center.active_producer = None
+        active_network = center.producer_networks.filter(status='active').first()
+        if active_network:
+            center.active_producer = active_network.producer
     
     # Filtreleme
     status_filter = request.GET.get('status')
@@ -544,253 +553,208 @@ def admin_center_list(request):
     })
 
 @staff_member_required
-def admin_center_detail(request, pk):
-    """Merkez detay sayfası - tüm bilgiler"""
-    from django.db.models import Count, Avg
-    from datetime import datetime, timedelta
-    
-    center = get_object_or_404(Center, pk=pk)
-    
-    # Merkez istatistikleri
-    molds = center.molds.all()
-    total_molds = molds.count()
-    completed_molds = molds.filter(status='completed').count()
-    active_molds = molds.exclude(status__in=['completed', 'delivered']).count()
-    
-    # Kalite puanı ortalaması
-    avg_quality = molds.filter(quality_score__isnull=False).aggregate(
-        avg_score=Avg('quality_score')
-    )['avg_score'] or 0
-    
-    # Bu ay kullanım
-    now = datetime.now()
-    monthly_usage = molds.filter(
-        created_at__year=now.year,
-        created_at__month=now.month
-    ).count()
-    
-    # Kullanım oranı (toplam kalıp / mold_limit)
-    usage_percentage = (total_molds / center.mold_limit * 100) if center.mold_limit > 0 else 0
-    remaining_limit = max(0, center.mold_limit - total_molds)
-    
-    # Son kalıplar
-    recent_molds = molds.order_by('-created_at')[:10]
+def admin_center_detail(request, center_id):
+    """Admin center detail view - sadeleştirilmiş"""
+    center = get_object_or_404(Center, id=center_id)
     
     # İstatistikler
     stats = {
-        'total_molds': total_molds,
-        'completed_molds': completed_molds,
-        'active_molds': active_molds,
-        'avg_quality': avg_quality,
-        'monthly_usage': monthly_usage,
-        'usage_percentage': usage_percentage,
-        'remaining_limit': remaining_limit,
+        'total_molds': center.molds.count(),
+        'completed_molds': center.molds.filter(status='delivered').count(),
+        'active_molds': center.molds.exclude(status__in=['delivered', 'cancelled']).count(),
     }
     
-    return render(request, 'center/admin_center_detail.html', {
+    # Son kalıplar
+    recent_molds = center.molds.order_by('-created_at')[:5]
+    
+    context = {
         'center': center,
         'stats': stats,
         'recent_molds': recent_molds,
-    })
-
-@staff_member_required
-def admin_center_stats(request):
-    """Merkez istatistikleri ve raporlar"""
-    from django.db.models import Count, Avg, Sum
-    from datetime import datetime, timedelta
-    import json
-    
-    # Genel istatistikler
-    stats = {
-        'total_centers': Center.objects.count(),
-        'active_centers': Center.objects.filter(is_active=True).count(),
-        'total_molds': EarMold.objects.count(),
-        'avg_quality': EarMold.objects.filter(quality_score__isnull=False).aggregate(
-            avg=Avg('quality_score')
-        )['avg'] or 0
     }
     
-    # Kalıp durumları için grafik verileri
-    status_data = []
-    status_labels = []
-    for status_choice in EarMold.STATUS_CHOICES:
-        count = EarMold.objects.filter(status=status_choice[0]).count()
-        if count > 0:
-            status_data.append(count)
-            status_labels.append(status_choice[1])
-    
-    # Kalıp tipleri için grafik verileri
-    type_data = []
-    type_labels = []
-    for type_choice in EarMold.MOLD_TYPE_CHOICES:
-        count = EarMold.objects.filter(mold_type=type_choice[0]).count()
-        if count > 0:
-            type_data.append(count)
-            type_labels.append(type_choice[1])
-    
-    # Aylık trend verileri (son 6 ay)
-    trend_data = []
-    trend_labels = []
-    now = datetime.now()
-    for i in range(5, -1, -1):
-        month_date = now - timedelta(days=30*i)
-        count = EarMold.objects.filter(
-            created_at__year=month_date.year,
-            created_at__month=month_date.month
-        ).count()
-        trend_data.append(count)
-        trend_labels.append(month_date.strftime('%m/%Y'))
-    
-    # En aktif merkezler
-    top_active_centers = Center.objects.annotate(
-        mold_count=Count('molds')
-    ).order_by('-mold_count')[:5]
-    
-    # En kaliteli merkezler
-    top_quality_centers = Center.objects.annotate(
-        avg_quality=Avg('molds__quality_score')
-    ).filter(avg_quality__isnull=False).order_by('-avg_quality')[:5]
-    
-    # Merkez performans tablosu
-    center_performance = []
-    for center in Center.objects.all():
-        total_molds = center.molds.count()
-        completed_molds = center.molds.filter(status='completed').count()
-        avg_quality = center.molds.filter(quality_score__isnull=False).aggregate(
-            avg=Avg('quality_score')
-        )['avg']
-        
-        # Bu ay kullanım
-        monthly_usage = center.molds.filter(
-            created_at__year=now.year,
-            created_at__month=now.month
-        ).count()
-        
-        usage_percentage = (monthly_usage / center.mold_limit * 100) if center.mold_limit > 0 else 0
-        
-        # Son aktivite
-        last_activity = center.molds.order_by('-created_at').first()
-        
-        center_performance.append({
-            'name': center.name,
-            'user': center.user,
-            'is_active': center.is_active,
-            'total_molds': total_molds,
-            'completed_molds': completed_molds,
-            'avg_quality': avg_quality,
-            'monthly_usage': monthly_usage,
-            'monthly_limit': center.mold_limit,
-            'usage_percentage': usage_percentage,
-            'last_activity': last_activity.created_at if last_activity else None
-        })
-    
-    return render(request, 'center/admin_center_stats.html', {
-        'stats': stats,
-        'status_labels': json.dumps(status_labels),
-        'status_data': json.dumps(status_data),
-        'type_labels': json.dumps(type_labels),
-        'type_data': json.dumps(type_data),
-        'trend_labels': json.dumps(trend_labels),
-        'trend_data': json.dumps(trend_data),
-        'top_active_centers': top_active_centers,
-        'top_quality_centers': top_quality_centers,
-        'center_performance': center_performance,
-    })
+    return render(request, 'center/admin_center_detail.html', context)
 
 @staff_member_required
-def admin_center_toggle_status(request, pk):
-    """Merkez aktiflik durumunu değiştir"""
+def admin_center_toggle_status(request, center_id):
+    """Toggle center active status"""
     if request.method == 'POST':
-        center = get_object_or_404(Center, pk=pk)
+        center = get_object_or_404(Center, id=center_id)
         center.is_active = not center.is_active
         center.save()
         
+        # Notification
+        from notifications.signals import notify
+        notify.send(
+            sender=request.user,
+            recipient=center.user,
+            verb=f"Hesap {'Aktif' if center.is_active else 'Pasif'} Edildi",
+            description=f"Hesabınız admin tarafından {'aktif' if center.is_active else 'pasif'} edildi."
+        )
+        
         return JsonResponse({
             'success': True,
-            'message': f'Merkez {"aktifleştirildi" if center.is_active else "pasifleştirildi"}.',
-            'is_active': center.is_active
+            'message': f'Merkez durumu {"aktif" if center.is_active else "pasif"} olarak güncellendi.'
         })
     
     return JsonResponse({'success': False, 'message': 'Geçersiz istek.'})
 
 @staff_member_required
-def admin_center_update_limit(request, pk):
-    """Merkez kalıp limitini güncelle"""
-    center = get_object_or_404(Center, pk=pk)
-    
+def admin_center_edit_user(request, center_id):
+    """Edit center user information"""
     if request.method == 'POST':
-        # Hem monthly_limit hem de mold_limit parametrelerini kontrol et
-        new_limit = request.POST.get('monthly_limit') or request.POST.get('mold_limit')
-        
-        if not new_limit:
-            messages.error(request, 'Limit değeri boş olamaz.')
-            return redirect('center:admin_center_detail', pk=center.pk)
+        center = get_object_or_404(Center, id=center_id)
         
         try:
-            limit_value = int(new_limit)
-            if limit_value < 1 or limit_value > 1000:
-                messages.error(request, 'Limit değeri 1-1000 arasında olmalıdır.')
-                return redirect('center:admin_center_detail', pk=center.pk)
+            # Update user info
+            center.user.email = request.POST.get('email', center.user.email)
+            center.user.save()
             
-            # mold_limit'i güncelle (temel kalıp limiti)
-            center.mold_limit = limit_value
+            # Update center info
+            center.name = request.POST.get('center_name', center.name)
+            center.phone = request.POST.get('phone', center.phone)
+            center.mold_limit = int(request.POST.get('mold_limit', center.mold_limit))
             center.save()
-            messages.success(request, f'{center.name} merkezinin kalıp limiti {limit_value} olarak güncellendi.')
-        except (ValueError, TypeError):
-            messages.error(request, f'Geçersiz limit değeri: {new_limit}')
+            
+            # Notification
+            from notifications.signals import notify
+            notify.send(
+                sender=request.user,
+                recipient=center.user,
+                verb="Bilgiler Güncellendi",
+                description="Hesap bilgileriniz admin tarafından güncellendi."
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Bilgiler başarıyla güncellendi.'
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': f'Hata: {str(e)}'
+            })
     
-    return redirect('center:admin_center_detail', pk=center.pk)
+    return JsonResponse({'success': False, 'message': 'Geçersiz istek.'})
 
-@login_required
-@center_required
-def network_management(request):
-    """Center için üretici ağ yönetimi"""
-    center = request.user.center
-    
-    # Aktif ağlar
-    from producer.models import ProducerNetwork
-    active_networks = ProducerNetwork.objects.filter(
-        center=center, 
-        status='active'
-    ).select_related('producer').order_by('-joined_at')
-    
-    # Bekleyen davetler
-    pending_networks = ProducerNetwork.objects.filter(
-        center=center,
-        status='pending'
-    ).select_related('producer').order_by('-joined_at')
-    
-    # Reddedilen/askıya alınan ağlar
-    inactive_networks = ProducerNetwork.objects.filter(
-        center=center,
-        status__in=['suspended', 'terminated']
-    ).select_related('producer').order_by('-last_activity')
-    
-    return render(request, 'center/network_management.html', {
-        'center': center,
-        'active_networks': active_networks,
-        'pending_networks': pending_networks,
-        'inactive_networks': inactive_networks,
-    })
-
-@login_required
-@center_required
-def network_leave(request, network_id):
-    """Üretici ağından ayrıl"""
-    from producer.models import ProducerNetwork
-    
+@staff_member_required
+def admin_center_change_producer(request, center_id):
+    """Change center's producer network"""
     if request.method == 'POST':
-        network = get_object_or_404(ProducerNetwork, 
-                                  id=network_id, 
-                                  center=request.user.center)
+        center = get_object_or_404(Center, id=center_id)
+        producer_id = request.POST.get('producer_id')
         
-        producer_name = network.producer.company_name
-        network.status = 'terminated'
-        network.save()
+        if not producer_id:
+            return JsonResponse({'success': False, 'message': 'Üretici seçilmedi.'})
+        
+        try:
+            from producer.models import Producer, ProducerNetwork
+            
+            producer = get_object_or_404(Producer, id=producer_id)
+            
+            # Terminate existing networks
+            center.producer_networks.filter(status='active').update(
+                status='terminated',
+                terminated_at=timezone.now(),
+                termination_reason='Admin tarafından transfer edildi'
+            )
+            
+            # Create new network
+            network = ProducerNetwork.objects.create(
+                producer=producer,
+                center=center,
+                status='active',
+                joined_at=timezone.now(),
+                activated_at=timezone.now(),
+                auto_assigned=True,
+                assignment_reason=f'Admin tarafından {producer.company_name} üreticisine transfer edildi'
+            )
+            
+            # Notifications
+            from notifications.signals import notify
+            notify.send(
+                sender=request.user,
+                recipient=center.user,
+                verb="Üretici Ağı Değiştirildi",
+                description=f"Üretici ağınız {producer.company_name} olarak değiştirildi."
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Merkez {producer.company_name} üreticisine başarıyla transfer edildi.'
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': f'Transfer işlemi başarısız: {str(e)}'
+            })
+    
+    return JsonResponse({'success': False, 'message': 'Geçersiz istek.'})
+
+@staff_member_required
+def admin_center_delete(request, center_id):
+    """Delete center and user"""
+    if request.method == 'POST':
+        center = get_object_or_404(Center, id=center_id)
+        
+        # Check for active molds
+        active_molds = center.molds.exclude(status__in=['delivered', 'cancelled']).count()
+        if active_molds > 0:
+            return JsonResponse({
+                'success': False,
+                'message': f'Bu merkezin {active_molds} aktif kalıbı bulunuyor. Önce kalıpları tamamlayın.'
+            })
+        
+        try:
+            center_name = center.name
+            user = center.user
+            
+            # Terminate all networks
+            center.producer_networks.update(
+                status='terminated',
+                terminated_at=timezone.now(),
+                termination_reason='Merkez silindi'
+            )
+            
+            # Delete center and user
+            center.delete()
+            user.delete()
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'{center_name} merkezi başarıyla silindi.'
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': f'Silme işlemi başarısız: {str(e)}'
+            })
+    
+    return JsonResponse({'success': False, 'message': 'Geçersiz istek.'})
+
+@staff_member_required  
+def get_producers_api(request):
+    """API endpoint to get all producers for dropdowns"""
+    try:
+        from producer.models import Producer
+        producers = Producer.objects.filter(is_active=True, is_verified=True)
+        
+        producer_list = []
+        for producer in producers:
+            producer_list.append({
+                'id': producer.id,
+                'company_name': producer.company_name,
+            })
         
         return JsonResponse({
             'success': True,
-            'message': f'{producer_name} ağından ayrıldınız.'
+            'producers': producer_list
         })
-    
-    return JsonResponse({'success': False, 'message': 'Geçersiz istek.'})
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        })

@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
     <title>{% block title %}MoldPark - Kulak Kalıbı Yönetim Sistemi{% endblock %}</title>
     
     <!-- Favicon -->
@@ -112,9 +113,10 @@
                             <!-- MERKEZ NAV MENÜSÜ -->
                             {% if not user.is_staff and not user.is_superuser %}
                             <li class="nav-item">
-                                <a class="nav-link" href="{% url 'center:network_management' %}">
+                                <span class="nav-link text-muted">
                                     <i class="fas fa-network-wired me-1"></i>Üretici Ağları
-                                </a>
+                                    <small class="d-block">Admin Yönetimi</small>
+                                </span>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'mold:revision_request_create' %}">

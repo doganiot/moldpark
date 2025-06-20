@@ -223,22 +223,4 @@ class ProductionLogForm(forms.ModelForm):
         )
 
 
-class NetworkInviteForm(forms.Form):
-    """Ağa Merkez Davet Formu"""
-    
-    center_email = forms.EmailField(label='Merkez E-posta Adresi')
-    message = forms.CharField(
-        label='Davet Mesajı',
-        widget=forms.Textarea(attrs={'rows': 3}),
-        required=False,
-        help_text='Merkeze gönderilecek davet mesajı (opsiyonel)'
-    )
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        self.helper.layout = Layout(
-            'center_email',
-            'message',
-            Submit('submit', 'Davet Gönder', css_class='btn btn-primary')
-        ) 
+# NetworkInviteForm kaldırıldı - Ağ yönetimi artık sadece admin tarafından yapılacak

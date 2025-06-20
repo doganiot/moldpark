@@ -194,6 +194,12 @@ class ProducerNetwork(models.Model):
     joined_at = models.DateTimeField('Katılma Tarihi', auto_now_add=True)
     activated_at = models.DateTimeField('Aktifleşme Tarihi', blank=True, null=True)
     last_activity = models.DateTimeField('Son Aktivite', blank=True, null=True)
+    terminated_at = models.DateTimeField('Sonlandırılma Tarihi', blank=True, null=True)
+    
+    # Sonlandırma Bilgileri
+    termination_reason = models.TextField('Sonlandırma Nedeni', blank=True)
+    auto_assigned = models.BooleanField('Otomatik Atama', default=False)
+    assignment_reason = models.TextField('Atama Nedeni', blank=True)
 
     class Meta:
         verbose_name = 'Üretici Ağı'

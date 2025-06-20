@@ -105,7 +105,7 @@ class PrivacyView(TemplateView):
 def admin_dashboard(request):
     # Import Producer modeli burada yapalım
     try:
-        from producer.models import Producer, ProducerOrder
+        from producer.models import Producer, ProducerOrder, ProducerNetwork
         producers = Producer.objects.all()
         
         # MoldPark üretim merkezini bul
@@ -125,17 +125,32 @@ def admin_dashboard(request):
             moldpark_orders = ProducerOrder.objects.filter(
                 producer=moldpark_producer
             ).select_related('center', 'ear_mold').order_by('-created_at')[:10]
+        
+        # Sonlandırılan merkez ağları (terminated)
+        terminated_networks = ProducerNetwork.objects.filter(
+            status='terminated'
+        ).select_related('producer', 'center').order_by('-terminated_at')[:10]
+        
+        # Otomatik MoldPark'a geçen merkezler
+        auto_assigned_centers = ProducerNetwork.objects.filter(
+            auto_assigned=True,
+            status='active'
+        ).select_related('producer', 'center').order_by('-activated_at')[:10]
             
     except ImportError as e:
         print(f"DEBUG - Import Error: {e}")
         producers = []
         moldpark_producer = None
         moldpark_orders = []
+        terminated_networks = []
+        auto_assigned_centers = []
     except Exception as e:
         print(f"DEBUG - Other Error: {e}")
         producers = []
         moldpark_producer = None
         moldpark_orders = []
+        terminated_networks = []
+        auto_assigned_centers = []
     
     centers = Center.objects.all()
     molds = EarMold.objects.all()
@@ -224,6 +239,8 @@ def admin_dashboard(request):
         'center_users': center_users,
         'producer_users': producer_users,
         'stats': stats,
+        'terminated_networks': terminated_networks,
+        'auto_assigned_centers': auto_assigned_centers,
     }
     return render(request, 'core/dashboard_admin.html', context)
 

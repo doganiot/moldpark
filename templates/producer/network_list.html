@@ -1,0 +1,326 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Ağ Merkezleri - {{ user.producer.company_name }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>
+                        <i class="fas fa-network-wired me-2 text-info"></i>
+                        Ağ Merkezleri
+                    </h2>
+                    <p class="text-muted mb-0">{{ user.producer.company_name }} - Bağlı işitme merkezleri</p>
+                </div>
+                <div>
+                    <!-- Davet gönderme özelliği kaldırıldı - Ağ yönetimi sadece admin tarafından yapılır -->
+                    <a href="{% url 'producer:dashboard' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Dashboard'a Dön
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtreleme -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <form method="GET" class="row align-items-end">
+                        <div class="col-md-4">
+                            <label for="status" class="form-label">Durum</label>
+                            <select name="status" id="status" class="form-select">
+                                <option value="">Tümü</option>
+                                {% for value, label in status_choices %}
+                                <option value="{{ value }}" {% if current_status == value %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-8">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-filter me-2"></i>Filtrele
+                            </button>
+                            <a href="{% url 'producer:network_list' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i>Temizle
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- İstatistik Kartları -->
+    <div class="row mb-4">
+        {% with active_count=networks|length %}
+        {% with pending_count=0 %}
+        {% with terminated_count=0 %}
+        {% for network in networks %}
+            {% if network.status == 'pending' %}
+                {% with pending_count=pending_count|add:1 %}{% endwith %}
+            {% elif network.status == 'terminated' %}
+                {% with terminated_count=terminated_count|add:1 %}{% endwith %}
+            {% endif %}
+        {% endfor %}
+        
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-check-circle fa-2x"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="mb-0">Aktif Ağlar</h6>
+                            <h3 class="mb-0">{{ networks|length }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-clock fa-2x"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="mb-0">Bekleyen Ağlar</h6>
+                            <h3 class="mb-0">0</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm bg-secondary text-white">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-pause-circle fa-2x"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="mb-0">Toplam Ağ</h6>
+                            <h3 class="mb-0">{{ networks|length }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endwith %}
+        {% endwith %}
+        {% endwith %}
+    </div>
+
+    <!-- Ağ Merkezleri Listesi -->
+    {% if networks %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-hospital me-2"></i>
+                        Bağlı İşitme Merkezleri ({{ networks|length }})
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="row">
+                        {% for network in networks %}
+                        <div class="col-lg-6 col-md-12 p-3">
+                            <div class="card border h-100 {% if network.status == 'active' %}border-success{% elif network.status == 'pending' %}border-warning{% else %}border-secondary{% endif %}" 
+                                 style="border-left: 4px solid {% if network.status == 'active' %}#28a745{% elif network.status == 'pending' %}#ffc107{% else %}#6c757d{% endif %} !important;">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-3">
+                                        <div class="flex-grow-1">
+                                            <h6 class="font-weight-bold {% if network.status == 'active' %}text-success{% elif network.status == 'pending' %}text-warning{% else %}text-secondary{% endif %} mb-2">
+                                                <i class="fas fa-hospital me-1"></i>
+                                                {{ network.center.name }}
+                                            </h6>
+                                            <p class="text-muted mb-1 small">
+                                                <i class="fas fa-map-marker-alt me-1"></i>
+                                                {{ network.center.address|truncatechars:40 }}
+                                            </p>
+                                        </div>
+                                        {% if network.status == 'active' %}
+                                        <div class="dropdown">
+                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                                <i class="fas fa-cog"></i>
+                                            </button>
+                                            <ul class="dropdown-menu">
+                                                <li>
+                                                    <a class="dropdown-item" href="mailto:{{ network.center.user.email }}">
+                                                        <i class="fas fa-envelope me-2"></i>E-posta Gönder
+                                                    </a>
+                                                </li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li>
+                                                    <button class="dropdown-item text-danger" onclick="removeNetwork({{ network.center.id }}, '{{ network.center.name }}')">
+                                                        <i class="fas fa-times me-2"></i>Ağdan Çıkar
+                                                    </button>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Ağ Detayları -->
+                                    <div class="row text-center mb-3">
+                                        <div class="col-4">
+                                            <div class="{% if network.status == 'active' %}text-success{% elif network.status == 'pending' %}text-warning{% else %}text-secondary{% endif %}">
+                                                <small class="d-block">Durum</small>
+                                                <strong class="small">{{ network.get_status_display }}</strong>
+                                            </div>
+                                        </div>
+                                        <div class="col-4">
+                                            <div class="text-info">
+                                                <small class="d-block">Katılım</small>
+                                                <strong class="small">{{ network.joined_at|date:"d.m.Y" }}</strong>
+                                            </div>
+                                        </div>
+                                        <div class="col-4">
+                                            <div class="text-primary">
+                                                <small class="d-block">Son Aktivite</small>
+                                                <strong class="small">
+                                                    {% if network.last_activity %}
+                                                        {{ network.last_activity|date:"d.m.Y" }}
+                                                    {% else %}
+                                                        -
+                                                    {% endif %}
+                                                </strong>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- İletişim Bilgileri -->
+                                    <div class="border-top pt-3">
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <div class="text-primary small">
+                                                    <i class="fas fa-envelope me-1"></i>
+                                                    {{ network.center.user.email|truncatechars:20 }}
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="text-success small">
+                                                    <i class="fas fa-phone me-1"></i>
+                                                    {{ network.center.phone|default:"-" }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Durum Badge'i -->
+                                    <div class="mt-3">
+                                        {% if network.status == 'active' %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check me-1"></i>Aktif
+                                        </span>
+                                        {% elif network.status == 'pending' %}
+                                        <span class="badge bg-warning">
+                                            <i class="fas fa-clock me-1"></i>Bekliyor
+                                        </span>
+                                        {% elif network.status == 'suspended' %}
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-pause me-1"></i>Askıya Alındı
+                                        </span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">
+                                            <i class="fas fa-times me-1"></i>Sonlandırıldı
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <!-- Boş Durum -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-network-wired fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted mb-3">Henüz Ağ Bağlantınız Yok</h5>
+                    <p class="text-muted mb-4">
+                        İşitme merkezleriyle ağ kurarak sipariş almaya başlayabilirsiniz.
+                    </p>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Bilgi:</strong> Ağ yönetimi artık sadece admin tarafından yapılmaktadır. 
+                        Yeni merkez bağlantıları için lütfen sistem yöneticisiyle iletişime geçin.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- CSRF Token for AJAX requests -->
+{% csrf_token %}
+
+<!-- Modal ve JavaScript -->
+<script>
+function removeNetwork(centerId, centerName) {
+    if (confirm(`${centerName} merkezini ağınızdan çıkarmak istediğinizden emin misiniz?`)) {
+        fetch(`/producer/network/remove/${centerId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCsrfToken(),
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.message || 'Bir hata oluştu.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Bir hata oluştu.');
+        });
+    }
+}
+
+function getCsrfToken() {
+    const token = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (token) {
+        return token.value;
+    }
+    
+    // Alternatif: Cookie'den al
+    const cookieValue = document.cookie
+        .split(';')
+        .find(row => row.trim().startsWith('csrftoken='));
+        
+    if (cookieValue) {
+        return cookieValue.split('=')[1];
+    }
+    
+    // Son çare: Meta tag'den al
+    const metaToken = document.querySelector('meta[name="csrf-token"]');
+    if (metaToken) {
+        return metaToken.getAttribute('content');
+    }
+    
+    console.error('CSRF token bulunamadı!');
+    return '';
+}
+</script>
+{% endblock %} 

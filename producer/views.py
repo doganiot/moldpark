@@ -14,7 +14,7 @@ from mold.models import EarMold, ModeledMold, RevisionRequest
 from .models import Producer, ProducerOrder, ProducerMessage, ProducerNetwork, ProducerProductionLog
 from .forms import (
     ProducerRegistrationForm, ProducerProfileForm, ProducerOrderForm, 
-    ProducerOrderUpdateForm, ProductionLogForm, NetworkInviteForm
+    ProducerOrderUpdateForm, ProductionLogForm
 )
 import mimetypes
 import os
@@ -326,61 +326,12 @@ def network_list(request):
     return render(request, 'producer/network_list.html', context)
 
 
-@producer_required
-def network_invite(request):
-    """Ağ Daveti Gönder"""
-    if request.method == 'POST':
-        form = NetworkInviteForm(request.POST)
-        if form.is_valid():
-            center_email = form.cleaned_data['center_email']
-            try:
-                center_user = User.objects.get(email=center_email)
-                center = Center.objects.get(user=center_user)
-                
-                # Zaten ağda mı kontrol et
-                if ProducerNetwork.objects.filter(
-                    producer=request.user.producer, center=center, status='active'
-                ).exists():
-                    messages.warning(request, 'Bu merkez zaten ağınızda bulunuyor.')
-                    return redirect('producer:network_list')
-                
-                # Davet oluştur veya güncelle
-                invite, created = ProducerNetwork.objects.get_or_create(
-                    producer=request.user.producer,
-                    center=center,
-                    defaults={'status': 'pending'}
-                )
-                
-                if not created and invite.status == 'pending':
-                    messages.info(request, 'Bu merkeze zaten davet gönderilmiş.')
-                else:
-                    invite.status = 'pending'
-                    invite.save()
-                    
-                    # Merkeze bildirim gönder
-                    notify.send(
-                        sender=request.user,
-                        recipient=center.user,
-                        verb='ağ daveti',
-                        action_object=request.user.producer,
-                        description=f'{request.user.producer.company_name} sizi ağına davet etti'
-                    )
-                    
-                    messages.success(request, f'{center.name} merkezine davet gönderildi.')
-                
-                return redirect('producer:network_list')
-                
-            except (User.DoesNotExist, Center.DoesNotExist):
-                messages.error(request, 'Bu e-posta adresine sahip aktif bir merkez bulunamadı.')
-    else:
-        form = NetworkInviteForm()
-    
-    return render(request, 'producer/network_invite.html', {'form': form})
+# Davetiye sistemi kaldırıldı - Sadece admin tarafından ağ yönetimi yapılacak
 
 
 @producer_required
 def network_remove(request, center_id):
-    """Merkezi Ağdan Çıkar"""
+    """Merkezi Ağdan Çıkar - Otomatik MoldPark Ağına Geçiş"""
     if request.method == 'POST':
         try:
             network = ProducerNetwork.objects.get(
@@ -389,24 +340,120 @@ def network_remove(request, center_id):
                 status='active'
             )
             
-            # Ağdan çıkar
-            network.status = 'inactive'
+            # Merkez bilgilerini sakla
+            center = network.center
+            removed_producer = request.user.producer
+            
+            # Ağdan çıkar - status 'terminated' olarak değiştir
+            network.status = 'terminated'
+            network.terminated_at = timezone.now()
+            network.termination_reason = f'{removed_producer.company_name} tarafından ağdan çıkarıldı'
             network.save()
+            
+            # MoldPark üretim merkezini bul veya oluştur
+            try:
+                moldpark_producer = Producer.objects.get(
+                    company_name='MoldPark Üretim Merkezi'
+                )
+                
+                # MoldPark ağına otomatik bağla
+                moldpark_network, created = ProducerNetwork.objects.get_or_create(
+                    producer=moldpark_producer,
+                    center=center,
+                    defaults={
+                        'status': 'active',
+                        'joined_at': timezone.now(),
+                        'activated_at': timezone.now(),
+                        'priority_level': 'medium',
+                        'can_receive_orders': True,
+                        'can_send_messages': True,
+                        'auto_assigned': True,
+                        'assignment_reason': f'{removed_producer.company_name} ağından çıkarıldıktan sonra otomatik atama'
+                    }
+                )
+                
+                if not created:
+                    # Zaten varsa aktif hale getir
+                    moldpark_network.status = 'active'
+                    moldpark_network.activated_at = timezone.now()
+                    moldpark_network.assignment_reason = f'{removed_producer.company_name} ağından çıkarıldıktan sonra otomatik yeniden atama'
+                    moldpark_network.save()
+                
+            except Producer.DoesNotExist:
+                # MoldPark üreticisi yoksa oluştur
+                from django.contrib.auth.models import User
+                moldpark_user, _ = User.objects.get_or_create(
+                    username='moldpark_producer',
+                    defaults={
+                        'email': 'uretim@moldpark.com',
+                        'first_name': 'MoldPark',
+                        'last_name': 'Üretim'
+                    }
+                )
+                
+                moldpark_producer = Producer.objects.create(
+                    user=moldpark_user,
+                    company_name='MoldPark Üretim Merkezi',
+                    brand_name='MoldPark',
+                    description='MoldPark platformunun resmi üretim merkezi',
+                    producer_type='hybrid',
+                    address='Teknoloji Geliştirme Bölgesi, İnovasyon Caddesi No:15, 34906 Pendik/İstanbul',
+                    phone='(216) 555-0100',
+                    contact_email='uretim@moldpark.com',
+                    website='https://www.moldpark.com',
+                    tax_number='9876543210',
+                    trade_registry='İstanbul-987654',
+                    established_year=2024,
+                    mold_limit=1000,
+                    monthly_limit=5000,
+                    is_active=True,
+                    is_verified=True
+                )
+                
+                # MoldPark ağına bağla
+                ProducerNetwork.objects.create(
+                    producer=moldpark_producer,
+                    center=center,
+                    status='active',
+                    joined_at=timezone.now(),
+                    activated_at=timezone.now(),
+                    priority_level='high',
+                    can_receive_orders=True,
+                    can_send_messages=True,
+                    auto_assigned=True,
+                    assignment_reason=f'{removed_producer.company_name} ağından çıkarıldıktan sonra otomatik atama'
+                )
             
             # Merkeze bildirim gönder
             notify.send(
                 sender=request.user,
-                recipient=network.center.user,
-                verb='ağdan çıkarıldı',
-                action_object=request.user.producer,
-                description=f'{request.user.producer.company_name} sizi ağından çıkardı'
+                recipient=center.user,
+                verb='ağdan çıkarıldı ve MoldPark ağına alındı',
+                action_object=removed_producer,
+                description=f'{removed_producer.company_name} sizi ağından çıkardı. Otomatik olarak MoldPark Üretim Merkezi ağına bağlandınız.'
             )
             
-            return JsonResponse({'success': True, 'message': 'Merkez başarıyla ağdan çıkarıldı.'})
+            # Admin'lere bildirim gönder
+            admin_users = User.objects.filter(is_superuser=True)
+            for admin in admin_users:
+                notify.send(
+                    sender=request.user,
+                    recipient=admin,
+                    verb='merkez ağdan çıkarıldı',
+                    action_object=center,
+                    description=f'{center.name} merkezi {removed_producer.company_name} tarafından ağdan çıkarıldı ve MoldPark ağına otomatik geçiş yapıldı.'
+                )
+            
+            return JsonResponse({
+                'success': True, 
+                'message': f'{center.name} merkezi başarıyla ağdan çıkarıldı ve otomatik olarak MoldPark ağına geçiş yaptı.'
+            })
             
         except ProducerNetwork.DoesNotExist:
             return JsonResponse({'success': False, 'message': 'Merkez ağınızda bulunamadı.'})
         except Exception as e:
+            import logging
+            logging.error(f'Network remove error: {str(e)}')
             return JsonResponse({'success': False, 'message': 'Bir hata oluştu.'})
     
     return JsonResponse({'success': False, 'message': 'Geçersiz istek.'})
@@ -868,13 +915,37 @@ def mold_upload_result(request, pk):
                 status='approved'  # Otomatik olarak onaylanmış duruma getir
             )
             
-            # Üretim logu ekle
-            ProducerProductionLog.objects.create(
-                order=producer_order,
-                stage='delivered',
-                description=f'Kalıp üretimi tamamlandı ve dosya yüklendi: {uploaded_file.name}. Sipariş teslim edildi.',
-                operator=request.user.get_full_name() or request.user.username
+            # Revizyon kontrolü - eğer bu kalıp için revizyon talebi varsa güncelle
+            from mold.models import RevisionRequest
+            revision_requests = RevisionRequest.objects.filter(
+                modeled_mold__ear_mold=ear_mold,
+                status__in=['accepted', 'in_progress']
             )
+            
+            revision_completed = False
+            if revision_requests.exists():
+                # Revizyon taleplerini tamamlandı olarak işaretle
+                revision_requests.update(
+                    status='completed',
+                    resolved_at=timezone.now()
+                )
+                revision_completed = True
+                
+                # Revizyon log'u ekle
+                ProducerProductionLog.objects.create(
+                    order=producer_order,
+                    stage='delivered',
+                    description=f'Revizyon talebi tamamlandı ve yeni dosya yüklendi: {uploaded_file.name}. Revizyon sipariş teslim edildi.',
+                    operator=request.user.get_full_name() or request.user.username
+                )
+            else:
+                # Normal üretim logu ekle
+                ProducerProductionLog.objects.create(
+                    order=producer_order,
+                    stage='delivered',
+                    description=f'Kalıp üretimi tamamlandı ve dosya yüklendi: {uploaded_file.name}. Sipariş teslim edildi.',
+                    operator=request.user.get_full_name() or request.user.username
+                )
             
             # Siparişin durumunu güncelle - hangi durumda olursa olsun dosya yüklendiğinde tamamla
             if producer_order.status in ['received', 'designing', 'production', 'quality_check', 'packaging']:
@@ -887,15 +958,39 @@ def mold_upload_result(request, pk):
                 ear_mold.save()
             
             # Merkeze bildirim gönder
-            notify.send(
-                sender=request.user,
-                recipient=ear_mold.center.user,
-                verb='kalıp üretimi tamamlandı',
-                description=f'{ear_mold.patient_name} {ear_mold.patient_surname} için kalıp üretimi tamamlandı ve dosya yüklendi. Sipariş teslim edildi.',
-                action_object=producer_order
-            )
+            if revision_completed:
+                notify.send(
+                    sender=request.user,
+                    recipient=ear_mold.center.user,
+                    verb='revizyon talebi tamamlandı',
+                    description=f'{ear_mold.patient_name} {ear_mold.patient_surname} için revizyon talebi tamamlandı ve yeni dosya yüklendi. Sipariş teslim edildi.',
+                    action_object=producer_order
+                )
+                
+                # Revizyon talep eden merkeze özel bildirim
+                for revision_request in revision_requests:
+                    notify.send(
+                        sender=request.user,
+                        recipient=revision_request.center.user,
+                        verb='revizyon tamamlandı',
+                        description=f'{revision_request.title} - {revision_request.get_revision_type_display()} revizyonu tamamlandı.',
+                        action_object=revision_request,
+                        target=ear_mold
+                    )
+            else:
+                notify.send(
+                    sender=request.user,
+                    recipient=ear_mold.center.user,
+                    verb='kalıp üretimi tamamlandı',
+                    description=f'{ear_mold.patient_name} {ear_mold.patient_surname} için kalıp üretimi tamamlandı ve dosya yüklendi. Sipariş teslim edildi.',
+                    action_object=producer_order
+                )
             
-            messages.success(request, 'Üretilen kalıp dosyası başarıyla yüklendi. Kalıp durumu "Tamamlandı" olarak güncellendi ve sipariş teslim edildi.')
+            # Başarı mesajı
+            if revision_completed:
+                messages.success(request, 'Revizyon talebi tamamlandı! Yeni kalıp dosyası başarıyla yüklendi. Kalıp durumu "Tamamlandı" olarak güncellendi ve sipariş teslim edildi.')
+            else:
+                messages.success(request, 'Üretilen kalıp dosyası başarıyla yüklendi. Kalıp durumu "Tamamlandı" olarak güncellendi ve sipariş teslim edildi.')
             return redirect('producer:mold_detail', pk=pk)
         else:
             messages.error(request, 'Lütfen bir dosya seçin.')
@@ -1455,7 +1550,7 @@ def revision_request_respond(request, pk):
         
         if action in ['accept', 'reject']:
             if action == 'accept':
-                revision_request.status = 'accepted'
+                revision_request.status = 'in_progress'  # Kabul edildiğinde "işlemde" durumuna geç
                 # Kalıp dosyasını revizyona düş
                 revision_request.modeled_mold.status = 'waiting'  # Revizyon için beklemeye al
                 revision_request.modeled_mold.save()
@@ -1464,7 +1559,7 @@ def revision_request_respond(request, pk):
                 revision_request.mold.status = 'revision'
                 revision_request.mold.save()
                 
-                success_message = 'Revizyon talebi kabul edildi. Kalıp dosyası revizyona alındı.'
+                success_message = 'Revizyon talebi kabul edildi ve işleme alındı. Kalıp dosyası revizyona alındı.'
             else:
                 revision_request.status = 'rejected'
                 success_message = 'Revizyon talebi reddedildi.'

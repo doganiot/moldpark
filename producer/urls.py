@@ -27,7 +27,7 @@ urlpatterns = [
     
     # Ağ Yönetimi
     path('network/', views.network_list, name='network_list'),
-    path('network/invite/', views.network_invite, name='network_invite'),
+    # Network invite kaldırıldı - Sadece admin ağ yönetimi
     path('network/remove/<int:center_id>/', views.network_remove, name='network_remove'),
     
     # Revizyon Talepleri

@@ -40,13 +40,7 @@
                                 <div class="text-danger small">{{ form.modeled_mold.errors.0 }}</div>
                             {% endif %}
                             
-                            <!-- Seçilen kalıp bilgileri burada gösterilecek -->
-                            <div id="moldInfo" class="mt-3" style="display: none;">
-                                <div class="alert alert-secondary">
-                                    <h6><i class="fas fa-file-alt me-1"></i>Seçilen Kalıp Dosyası Bilgileri</h6>
-                                    <div id="moldDetails"></div>
-                                </div>
-                            </div>
+                            <!-- Seçilen kalıp bilgileri form field'ında görünür -->
                         </div>
                         
                         <div class="row">
@@ -150,42 +144,5 @@
     </div>
 </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const moldSelect = document.getElementById('{{ form.modeled_mold.id_for_label }}');
-    const moldInfo = document.getElementById('moldInfo');
-    const moldDetails = document.getElementById('moldDetails');
-    
-    // Kalıp dosyası seçildiğinde bilgileri göster
-    moldSelect.addEventListener('change', function() {
-        if (this.value) {
-            // AJAX ile kalıp bilgilerini al
-            fetch(`/api/modeled-mold/${this.value}/`)
-                .then(response => response.json())
-                .then(data => {
-                    moldDetails.innerHTML = `
-                        <div class="row">
-                            <div class="col-md-6">
-                                <strong>Hasta:</strong> ${data.patient_name} ${data.patient_surname}<br>
-                                <strong>Kalıp Türü:</strong> ${data.mold_type}<br>
-                                <strong>Dosya:</strong> ${data.filename}
-                            </div>
-                            <div class="col-md-6">
-                                <strong>Yüklenme:</strong> ${data.created_at}<br>
-                                <strong>Durum:</strong> <span class="badge bg-success">${data.status}</span><br>
-                                <strong>Vent Çapı:</strong> ${data.vent_diameter}mm
-                            </div>
-                        </div>
-                    `;
-                    moldInfo.style.display = 'block';
-                })
-                .catch(error => {
-                    console.error('Kalıp bilgileri alınamadı:', error);
-                });
-        } else {
-            moldInfo.style.display = 'none';
-        }
-    });
-});
-</script>
+
 {% endblock %} 

@@ -11,7 +11,7 @@
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <h2><i class="fas fa-building me-2"></i>{{ center.name }}</h2>
-                    <p class="text-muted mb-0">Merkez Detayları ve İstatistikler</p>
+                    <p class="text-muted mb-0">Merkez Yönetimi</p>
                 </div>
                 <a href="{% url 'center:admin_center_list' %}" class="btn btn-outline-secondary">
                     <i class="fas fa-arrow-left me-2"></i>Geri Dön
@@ -20,15 +20,12 @@
         </div>
     </div>
 
-    <!-- Merkez Bilgileri -->
+    <!-- Temel Bilgiler ve Hızlı İşlemler -->
     <div class="row mb-4">
         <div class="col-md-8">
             <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
+                <div class="card-header">
                     <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Merkez Bilgileri</h5>
-                    <span class="badge {% if center.is_active %}bg-success{% else %}bg-danger{% endif %}">
-                        {% if center.is_active %}Aktif{% else %}Pasif{% endif %}
-                    </span>
                 </div>
                 <div class="card-body">
                     <div class="row">
@@ -36,11 +33,17 @@
                             <p><strong>Merkez Adı:</strong> {{ center.name }}</p>
                             <p><strong>E-posta:</strong> {{ center.user.email }}</p>
                             <p><strong>Telefon:</strong> {{ center.phone|default:"Belirtilmemiş" }}</p>
+                            <p><strong>Adres:</strong> {{ center.address|default:"Belirtilmemiş" }}</p>
                         </div>
                         <div class="col-md-6">
-                            <p><strong>Adres:</strong> {{ center.address|default:"Belirtilmemiş" }}</p>
+                            <p><strong>Kullanıcı ID:</strong> {{ center.user.id }}</p>
                             <p><strong>Kayıt Tarihi:</strong> {{ center.user.date_joined|date:"d.m.Y H:i" }}</p>
                             <p><strong>Son Giriş:</strong> {{ center.user.last_login|date:"d.m.Y H:i"|default:"Hiç giriş yapmamış" }}</p>
+                            <p><strong>Durum:</strong> 
+                                <span class="badge {% if center.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                                    {% if center.is_active %}Aktif{% else %}Pasif{% endif %}
+                                </span>
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -60,13 +63,17 @@
                             {% if center.is_active %}Pasif Yap{% else %}Aktif Yap{% endif %}
                         </button>
                         
-                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#limitModal">
-                            <i class="fas fa-edit me-2"></i>Limit Güncelle
+                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editModal">
+                            <i class="fas fa-edit me-2"></i>Bilgileri Düzenle
                         </button>
                         
-                        <a href="mailto:{{ center.user.email }}" class="btn btn-outline-primary">
-                            <i class="fas fa-envelope me-2"></i>E-posta Gönder
-                        </a>
+                        <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#producerModal">
+                            <i class="fas fa-exchange-alt me-2"></i>Üretici Değiştir
+                        </button>
+                        
+                        <button type="button" class="btn btn-danger" onclick="deleteCenter({{ center.id }}, '{{ center.name }}')">
+                            <i class="fas fa-trash me-2"></i>Merkezi Sil
+                        </button>
                     </div>
                 </div>
             </div>
@@ -77,96 +84,36 @@
     <div class="row mb-4">
         <div class="col-md-3">
             <div class="card bg-primary text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h4 class="mb-0">{{ stats.total_molds }}</h4>
-                            <p class="mb-0">Toplam Kalıp</p>
-                        </div>
-                        <div class="align-self-center">
-                            <i class="fas fa-cube fa-2x"></i>
-                        </div>
-                    </div>
+                <div class="card-body text-center">
+                    <h4>{{ stats.total_molds }}</h4>
+                    <p class="mb-0">Toplam Kalıp</p>
                 </div>
             </div>
         </div>
         
         <div class="col-md-3">
             <div class="card bg-success text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h4 class="mb-0">{{ stats.completed_molds }}</h4>
-                            <p class="mb-0">Tamamlanan</p>
-                        </div>
-                        <div class="align-self-center">
-                            <i class="fas fa-check-circle fa-2x"></i>
-                        </div>
-                    </div>
+                <div class="card-body text-center">
+                    <h4>{{ stats.completed_molds }}</h4>
+                    <p class="mb-0">Tamamlanan</p>
                 </div>
             </div>
         </div>
         
         <div class="col-md-3">
             <div class="card bg-warning text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h4 class="mb-0">{{ stats.active_molds }}</h4>
-                            <p class="mb-0">Aktif Kalıp</p>
-                        </div>
-                        <div class="align-self-center">
-                            <i class="fas fa-clock fa-2x"></i>
-                        </div>
-                    </div>
+                <div class="card-body text-center">
+                    <h4>{{ stats.active_molds }}</h4>
+                    <p class="mb-0">Aktif Kalıp</p>
                 </div>
             </div>
         </div>
         
         <div class="col-md-3">
             <div class="card bg-info text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h4 class="mb-0">{{ stats.avg_quality|floatformat:1 }}</h4>
-                            <p class="mb-0">Ort. Kalite</p>
-                        </div>
-                        <div class="align-self-center">
-                            <i class="fas fa-star fa-2x"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Kullanım Durumu -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Kalıp Kullanım Durumu</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <p><strong>Kalıp Limiti:</strong> {{ center.mold_limit }} kalıp</p>
-                            <p><strong>Kullanılan:</strong> {{ stats.total_molds }} kalıp</p>
-                            <p><strong>Kalan:</strong> {{ stats.remaining_limit }} kalıp</p>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="progress" style="height: 25px;">
-                                <div class="progress-bar {% if stats.usage_percentage > 80 %}bg-danger{% elif stats.usage_percentage > 60 %}bg-warning{% else %}bg-success{% endif %}" 
-                                     role="progressbar" 
-                                     style="width: {{ stats.usage_percentage }}%"
-                                     aria-valuenow="{{ stats.usage_percentage }}" 
-                                     aria-valuemin="0" 
-                                     aria-valuemax="100">
-                                    %{{ stats.usage_percentage|floatformat:0 }}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <div class="card-body text-center">
+                    <h4>{{ center.mold_limit }}</h4>
+                    <p class="mb-0">Kalıp Limiti</p>
                 </div>
             </div>
         </div>
@@ -191,7 +138,6 @@
                                         <th>Hasta</th>
                                         <th>Tip</th>
                                         <th>Durum</th>
-                                        <th>Kalite</th>
                                         <th>Tarih</th>
                                         <th>İşlemler</th>
                                     </tr>
@@ -199,28 +145,9 @@
                                 <tbody>
                                     {% for mold in recent_molds %}
                                     <tr>
-                                        <td>
-                                            <strong>{{ mold.patient_name }}</strong><br>
-                                            <small class="text-muted">{{ mold.patient_age }} yaş, {{ mold.get_patient_gender_display }}</small>
-                                        </td>
-                                        <td>
-                                            <span class="badge bg-secondary">{{ mold.get_mold_type_display }}</span>
-                                        </td>
-                                        <td>
-                                            <span class="badge {{ mold.get_status_color }}">{{ mold.get_status_display }}</span>
-                                        </td>
-                                        <td>
-                                            {% if mold.quality_score %}
-                                                <div class="d-flex align-items-center">
-                                                    <span class="me-2">{{ mold.quality_score }}/10</span>
-                                                    <div class="progress" style="width: 60px; height: 8px;">
-                                                        <div class="progress-bar bg-success" style="width: {{ mold.quality_score }}0%"></div>
-                                                    </div>
-                                                </div>
-                                            {% else %}
-                                                <span class="text-muted">-</span>
-                                            {% endif %}
-                                        </td>
+                                        <td>{{ mold.patient_name }}</td>
+                                        <td><span class="badge bg-secondary">{{ mold.get_mold_type_display }}</span></td>
+                                        <td><span class="badge {{ mold.get_status_color }}">{{ mold.get_status_display }}</span></td>
                                         <td>{{ mold.created_at|date:"d.m.Y" }}</td>
                                         <td>
                                             <a href="{% url 'center:admin_mold_detail' mold.id %}" class="btn btn-sm btn-outline-primary">
@@ -244,28 +171,78 @@
     </div>
 </div>
 
-<!-- Limit Güncelleme Modal -->
-<div class="modal fade" id="limitModal" tabindex="-1">
+<!-- Bilgi Düzenleme Modal -->
+<div class="modal fade" id="editModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Kalıp Limiti Güncelle</h5>
+                <h5 class="modal-title">Merkez Bilgilerini Düzenle</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form method="post" action="{% url 'center:admin_center_update_limit' center.id %}">
+            <form id="editForm">
                 {% csrf_token %}
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="mold_limit" class="form-label">Kalıp Limiti</label>
-                        <input type="number" class="form-control" id="mold_limit" name="mold_limit" 
-                               value="{{ center.mold_limit }}" min="1" max="1000" required>
-                        <div class="form-text">Merkezin gönderebileceği maksimum kalıp sayısı (1-1000 arası)</div>
-                        <small class="text-muted">Mevcut değer: {{ center.mold_limit }}</small>
+                        <label for="edit_name" class="form-label">Merkez Adı</label>
+                        <input type="text" class="form-control" id="edit_name" name="center_name" 
+                               value="{{ center.name }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="edit_email" class="form-label">E-posta</label>
+                        <input type="email" class="form-control" id="edit_email" name="email" 
+                               value="{{ center.user.email }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="edit_phone" class="form-label">Telefon</label>
+                        <input type="text" class="form-control" id="edit_phone" name="phone" 
+                               value="{{ center.phone }}">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="edit_limit" class="form-label">Kalıp Limiti</label>
+                        <input type="number" class="form-control" id="edit_limit" name="mold_limit" 
+                               value="{{ center.mold_limit }}" min="1" max="1000">
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
-                    <button type="submit" class="btn btn-primary">Güncelle</button>
+                    <button type="submit" class="btn btn-primary">Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Üretici Değiştirme Modal -->
+<div class="modal fade" id="producerModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exchange-alt me-2"></i>Üretici Merkez Değiştir
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="producerChangeForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>{{ center.name }}</strong> merkezini farklı bir üretici ağına transfer edebilirsiniz.
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="producer_select" class="form-label">Yeni Üretici Merkez</label>
+                        <select class="form-select" id="producer_select" name="producer_id" required>
+                            <option value="">Üretici seçin...</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-info">Transfer Et</button>
                 </div>
             </form>
         </div>
@@ -273,6 +250,37 @@
 </div>
 
 <script>
+// Sayfa yüklendiğinde üreticileri getir
+document.addEventListener('DOMContentLoaded', function() {
+    loadProducers();
+});
+
+function loadProducers() {
+    fetch('/center/api/producers/', {
+        method: 'GET',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const select = document.getElementById('producer_select');
+        select.innerHTML = '<option value="">Üretici seçin...</option>';
+        
+        if (data.success && data.producers) {
+            data.producers.forEach(producer => {
+                const option = document.createElement('option');
+                option.value = producer.id;
+                option.textContent = producer.company_name;
+                select.appendChild(option);
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Üreticiler yüklenemedi:', error);
+    });
+}
+
 function toggleCenterStatus(centerId) {
     if (confirm('Merkez durumunu değiştirmek istediğinizden emin misiniz?')) {
         fetch(`/center/admin/centers/${centerId}/toggle-status/`, {
@@ -296,5 +304,95 @@ function toggleCenterStatus(centerId) {
         });
     }
 }
+
+function deleteCenter(centerId, centerName) {
+    if (confirm(`${centerName} merkezini silmek istediğinizden emin misiniz?`)) {
+        fetch(`/center/admin/centers/${centerId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                window.location.href = '/center/admin/centers/';
+            } else {
+                alert('Hata: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Bir hata oluştu.');
+        });
+    }
+}
+
+// Bilgi düzenleme form
+document.getElementById('editForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    fetch(`/center/admin/centers/{{ center.id }}/edit-user/`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Bilgiler güncellendi.');
+            location.reload();
+        } else {
+            alert('Hata: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Bir hata oluştu.');
+    });
+});
+
+// Üretici değiştirme form
+document.getElementById('producerChangeForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const selectedProducer = document.getElementById('producer_select').selectedOptions[0]?.textContent;
+    
+    if (!formData.get('producer_id')) {
+        alert('Lütfen bir üretici seçin.');
+        return;
+    }
+    
+    if (confirm(`Merkezi ${selectedProducer} üreticisine transfer etmek istediğinizden emin misiniz?`)) {
+        fetch(`/center/admin/centers/{{ center.id }}/change-producer/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Hata: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Bir hata oluştu.');
+        });
+    }
+});
 </script>
+
 {% endblock %} 

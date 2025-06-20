@@ -333,6 +333,14 @@
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="terminated-networks-tab" data-bs-toggle="tab" data-bs-target="#terminated-networks" type="button" role="tab">
+                        <i class="fas fa-unlink text-danger me-2"></i>Sonlandırılan Ağlar
+                        {% if terminated_networks|length > 0 %}
+                        <span class="badge bg-danger ms-1">{{ terminated_networks|length }}</span>
+                        {% endif %}
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
                     <button class="nav-link" id="messages-tab" data-bs-toggle="tab" data-bs-target="#messages" type="button" role="tab">
                         <i class="fas fa-envelope me-2"></i>Mesajlar
                     </button>
@@ -422,8 +430,8 @@
                                 <a href="{% url 'center:admin_mold_list' %}" class="btn btn-outline-primary">
                                     <i class="fas fa-list me-2"></i>Tüm Kalıpları Görüntüle
                                 </a>
-                                <a href="{% url 'center:admin_message_list' %}" class="btn btn-outline-success">
-                                    <i class="fas fa-envelope me-2"></i>Tüm Mesajları Görüntüle
+                                <a href="{% url 'center:admin_revision_list' %}" class="btn btn-outline-success">
+                                    <i class="fas fa-undo-alt me-2"></i>Revizyon Talepleri
                                 </a>
                                 <a href="/admin/" class="btn btn-outline-dark">
                                     <i class="fas fa-cog me-2"></i>Django Admin Paneli
@@ -1058,41 +1066,203 @@
                     </div>
                 </div>
 
-                <!-- Mesajlar Sekmesi -->
-                <div class="tab-pane fade" id="messages" role="tabpanel">
+                <!-- Sonlandırılan Merkezler Sekmesi -->
+                <div class="tab-pane fade" id="terminated-networks" role="tabpanel">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="mb-0">
-                            <i class="fas fa-envelope text-success me-2"></i>Son Mesajlar
+                            <i class="fas fa-unlink text-danger me-2"></i>Sonlandırılan Ağ Bağlantıları
                         </h5>
-                        <a href="{% url 'center:admin_message_list' %}" class="btn btn-sm btn-primary">
-                            <i class="fas fa-envelope me-1"></i>Tüm Mesajları Görüntüle
-                        </a>
+                        <div class="d-flex gap-2">
+                            <span class="badge bg-info">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Son 10 Kayıt
+                            </span>
+                        </div>
                     </div>
-                    <div class="list-group">
-                        {% for message in recent_messages %}
-                        <div class="list-group-item">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <h6 class="mb-1">{{ message.subject }}</h6>
-                                    <p class="mb-1 text-truncate" style="max-width: 500px;">{{ message.message }}</p>
-                                    <small class="text-muted">
-                                        <i class="fas fa-user me-1"></i>{{ message.center.name }} - 
-                                        <i class="fas fa-clock me-1"></i>{{ message.created_at|naturaltime }}
-                                    </small>
-                                </div>
-                                <div>
-                                    <span class="badge bg-{{ message.is_read|yesno:'success,warning' }}">
-                                        {{ message.is_read|yesno:'Okundu,Okunmadı' }}
-                                    </span>
+                    
+                    <!-- Sonlandırılan Ağlar -->
+                    {% if terminated_networks %}
+                    <div class="row">
+                        {% for network in terminated_networks %}
+                        <div class="col-lg-6 col-md-12 mb-3">
+                            <div class="card border border-danger h-100" style="border-left: 4px solid #dc3545 !important;">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-3">
+                                        <div class="flex-grow-1">
+                                            <h6 class="font-weight-bold text-danger mb-2">
+                                                <i class="fas fa-hospital me-1"></i>
+                                                {{ network.center.name }}
+                                            </h6>
+                                            <p class="text-muted mb-1 small">
+                                                <i class="fas fa-industry me-1"></i>
+                                                Çıkaran Üretici: <strong>{{ network.producer.company_name }}</strong>
+                                            </p>
+                                            <p class="text-muted mb-1 small">
+                                                <i class="fas fa-map-marker-alt me-1"></i>
+                                                {{ network.center.address|truncatechars:40 }}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <span class="badge bg-danger">
+                                                <i class="fas fa-unlink me-1"></i>Sonlandırıldı
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Sonlandırma Detayları -->
+                                    <div class="row text-center mb-3">
+                                        <div class="col-6">
+                                            <div class="text-danger">
+                                                <small class="d-block">Sonlandırma Tarihi</small>
+                                                <strong class="small">{{ network.terminated_at|date:"d.m.Y H:i" }}</strong>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="text-primary">
+                                                <small class="d-block">Katılım Süresi</small>
+                                                <strong class="small">
+                                                    {% if network.terminated_at and network.joined_at %}
+                                                        {{ network.joined_at|timeuntil:network.terminated_at }}
+                                                    {% else %}
+                                                        -
+                                                    {% endif %}
+                                                </strong>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- İletişim Bilgileri -->
+                                    <div class="border-top pt-3 mb-3">
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <div class="text-primary small">
+                                                    <i class="fas fa-envelope me-1"></i>
+                                                    {{ network.center.user.email|truncatechars:20 }}
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="text-success small">
+                                                    <i class="fas fa-phone me-1"></i>
+                                                    {{ network.center.phone|default:"-" }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Sonlandırma Nedeni -->
+                                    {% if network.termination_reason %}
+                                    <div class="alert alert-light border-danger py-2 mb-3">
+                                        <small class="text-muted">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            <strong>Neden:</strong> {{ network.termination_reason|truncatechars:100 }}
+                                        </small>
+                                    </div>
+                                    {% endif %}
+
+                                    <!-- MoldPark Durumu -->
+                                    {% for moldpark_network in auto_assigned_centers %}
+                                        {% if moldpark_network.center.id == network.center.id %}
+                                        <div class="alert alert-success border-success py-2">
+                                            <small class="text-success">
+                                                <i class="fas fa-check-circle me-1"></i>
+                                                <strong>MoldPark Ağında:</strong> {{ moldpark_network.activated_at|date:"d.m.Y H:i" }} tarihinde otomatik geçiş yapıldı
+                                            </small>
+                                        </div>
+                                        {% endif %}
+                                    {% endfor %}
+
+                                    <!-- İşlemler -->
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="mailto:{{ network.center.user.email }}" class="btn btn-outline-primary">
+                                                <i class="fas fa-envelope"></i>
+                                            </a>
+                                            <a href="/admin/center/center/{{ network.center.id }}/change/" class="btn btn-outline-info" target="_blank">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                        </div>
+                                        <small class="text-muted">
+                                            <i class="fas fa-clock me-1"></i>
+                                            {{ network.terminated_at|naturaltime }}
+                                        </small>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        {% empty %}
-                        <div class="text-center text-muted py-4">
-                            <i class="fas fa-inbox fa-3x mb-3"></i><br>
-                            Henüz mesaj bulunmuyor.
-                        </div>
                         {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-network-wired fa-3x mb-3"></i><br>
+                        <h5 class="text-muted">Henüz Sonlandırılan Ağ Bağlantısı Yok</h5>
+                        <p class="text-muted">Üreticiler tarafından ağdan çıkarılan merkezler burada görünecek.</p>
+                    </div>
+                    {% endif %}
+
+                    <!-- Otomatik MoldPark Geçişleri -->
+                    {% if auto_assigned_centers %}
+                    <div class="mt-5">
+                        <h5 class="mb-3">
+                            <i class="fas fa-magic text-primary me-2"></i>Otomatik MoldPark Geçişleri
+                        </h5>
+                        <div class="row">
+                            {% for network in auto_assigned_centers %}
+                            <div class="col-lg-4 col-md-6 mb-3">
+                                <div class="card border border-primary h-100" style="border-left: 4px solid #007bff !important;">
+                                    <div class="card-body">
+                                        <h6 class="font-weight-bold text-primary mb-2">
+                                            <i class="fas fa-hospital me-1"></i>
+                                            {{ network.center.name }}
+                                        </h6>
+                                        <p class="text-muted small mb-2">
+                                            <i class="fas fa-magic me-1"></i>
+                                            {{ network.assignment_reason|truncatechars:60 }}
+                                        </p>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="badge bg-primary">
+                                                <i class="fas fa-star me-1"></i>MoldPark Ağında
+                                            </span>
+                                            <small class="text-muted">
+                                                {{ network.activated_at|date:"d.m.Y" }}
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Sistem İstatistikleri -->
+                <div class="tab-pane fade" id="messages" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chart-bar text-success me-2"></i>Sistem İstatistikleri
+                        </h5>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6>Kalıp İstatistikleri</h6>
+                                    <p><strong>Toplam Kalıp:</strong> {{ stats.total_molds }}</p>
+                                    <p><strong>Bekleyen:</strong> {{ stats.pending_molds }}</p>
+                                    <p><strong>Tamamlanan:</strong> {{ stats.completed_molds }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6>Merkez İstatistikleri</h6>
+                                    <p><strong>Toplam Merkez:</strong> {{ stats.total_centers }}</p>
+                                    <p><strong>Aktif Merkez:</strong> {{ stats.active_centers }}</p>
+                                    <p><strong>Üretici Sayısı:</strong> {{ producers|length }}</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
