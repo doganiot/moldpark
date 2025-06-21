@@ -19,7 +19,7 @@ from datetime import timedelta
 import json
 from django.db import connection
 from django.conf import settings
-from django.contrib.auth.decorators import staff_member_required
+from django.contrib.admin.views.decorators import staff_member_required
 
 
 class SystemStatusAPI(View):
