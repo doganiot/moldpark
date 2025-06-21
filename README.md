@@ -268,6 +268,173 @@ Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için `LICENSE` dosy
 
 Bu projeyi geliştirmede katkıda bulunan herkese teşekkürler!
 
+## 🆕 Yeni Geliştirmeler (v2.1.0)
+
+### 🤖 Akıllı Bildirim Sistemi
+- **Kişiselleştirilmiş Bildirimler**: Kullanıcı davranışlarını analiz ederek özel bildirimler
+- **Proaktif Uyarılar**: Pasif kullanıcılar, limit aşımları, geciken siparişler için otomatik uyarı
+- **Performans Önerileri**: İş akışı iyileştirme önerileri ve kapasite optimizasyonu
+- **Dry-Run Modu**: Bildirim göndermeden analiz yapabilme
+
+### 🔍 Gelişmiş Sistem İzleme
+- **Otomatik Sistem Kontrolü**: Düzenli aralıklarla sistem sağlığı kontrolü
+- **E-posta Uyarıları**: Kritik sorunlar için otomatik e-posta bildirimi
+- **Disk Alanı İzleme**: Disk kullanımı ve performans takibi
+- **Güvenlik Taraması**: Otomatik güvenlik açığı tespiti
+
+### 📊 Sistem Sağlık Dashboard'ı
+- **Gerçek Zamanlı Skor**: 0-100 arası sistem sağlık skoru
+- **Bileşen Durumu**: Database, Cache, Disk, Ağ durumu ayrı ayrı
+- **Kritik Uyarı Sistemi**: Anında sorun bildirimi
+- **Interaktif Widget'lar**: Tıklanabilir sağlık kontrolleri
+
+### 🚀 Yeni Management Komutları
+
+#### Sistem İzleme
+```bash
+# Otomatik sistem izleme
+python manage.py auto_system_monitor
+
+# E-posta uyarıları ile
+python manage.py auto_system_monitor --send-alerts
+
+# Uyarı eşiği belirleme
+python manage.py auto_system_monitor --alert-threshold 3
+```
+
+#### Akıllı Bildirimler
+```bash
+# Tüm akıllı bildirimleri gönder
+python manage.py send_smart_notifications
+
+# Sadece merkez bildirimleri
+python manage.py send_smart_notifications --type center
+
+# Belirli bir merkez için
+python manage.py send_smart_notifications --center-id 1
+
+# Dry run (analiz modu)
+python manage.py send_smart_notifications --dry-run
+```
+
+### 🌐 Yeni API Endpoint'leri
+
+#### Sistem Sağlığı
+```
+GET /api/system-health/          # Detaylı sistem sağlık durumu
+POST /api/run-health-check/      # Manuel sistem kontrolü başlat
+```
+
+#### Akıllı Bildirimler
+```
+GET /api/smart-notifications-status/    # Bildirim sistemi durumu
+POST /api/trigger-smart-notifications/  # Manuel bildirim tetikleme
+```
+
+#### Performans İçgörüleri
+```
+GET /api/performance-insights/   # Kullanıcı ve sistem performans analizi
+```
+
+### 📈 Template Tag'ları
+
+#### Sistem Sağlığı Widget'ı
+```html
+{% load moldpark_extras %}
+
+<!-- Sistem sağlık widget'ı -->
+{% system_health_widget %}
+```
+
+#### Akıllı Bildirim Özeti
+```html
+<!-- Kullanıcı için bildirim özeti -->
+{% smart_notification_summary user %}
+```
+
+### 🔧 Cron Job Önerileri
+
+Sistemin otomatik olarak çalışması için önerilen cron job'lar:
+
+```bash
+# Her 6 saatte sistem kontrolü
+0 */6 * * * cd /path/to/moldpark && python manage.py auto_system_monitor --send-alerts
+
+# Günlük akıllı bildirimler
+0 9 * * * cd /path/to/moldpark && python manage.py send_smart_notifications
+
+# Haftalık tam sistem kontrolü
+0 2 * * 0 cd /path/to/moldpark && python manage.py system_check --fix --verbose
+```
+
+### 📊 Performans İyileştirmeleri
+
+#### Akıllı Sorgular
+- **Batch Processing**: Bildirimler toplu olarak işlenir
+- **Query Optimization**: N+1 sorgu problemleri çözüldü
+- **Cache Integration**: Sık kullanılan veriler cache'lenir
+
+#### Sistem Kontrolü
+- **Paralel Kontroller**: Birden fazla kontrol eş zamanlı çalışır
+- **Incremental Checks**: Sadece değişen veriler kontrol edilir
+- **Smart Thresholds**: Dinamik eşik değerleri
+
+### 🛡️ Güvenlik Geliştirmeleri
+
+#### Otomatik Güvenlik Taraması
+- **Admin Yetkisi Kontrolü**: Üretici hesaplarının admin yetkisi taraması
+- **Zayıf Şifre Tespiti**: Yaygın şifrelerin otomatik tespiti
+- **Orphan Kullanıcı Temizliği**: Kullanılmayan hesapların temizlenmesi
+
+#### Bildirim Güvenliği
+- **Rate Limiting**: Spam bildirimlerin önlenmesi
+- **Content Filtering**: Güvenli bildirim içeriği
+- **User Privacy**: Kişisel verilerin korunması
+
+### 💡 Kullanım Örnekleri
+
+#### Akıllı Bildirim Senaryoları
+
+1. **Pasif Merkez Uyarısı**
+   - 30 gün boyunca sipariş vermeyen merkezlere otomatik uyarı
+   - Admin'e pasif merkez bildirimi
+
+2. **Kapasite Uyarısı**
+   - %80 kapasite kullanımında uyarı
+   - %90'da kritik uyarı
+
+3. **Performans Önerileri**
+   - Haftalık performans analizi
+   - İyileştirme önerileri
+
+#### Sistem İzleme Senaryoları
+
+1. **Disk Alanı Kritik**
+   - %85 kullanımda uyarı
+   - %95'te kritik e-posta
+
+2. **Güvenlik Riski**
+   - Üretici hesabının admin yetkisi tespiti
+   - Anında e-posta uyarısı
+
+3. **Performans Düşüşü**
+   - Yavaş database sorguları
+   - Ağ bağlantı sorunları
+
+### 🎯 Gelecek Planları
+
+#### v2.2.0 Hedefleri
+- **Machine Learning**: Tahmine dayalı bildirimler
+- **Advanced Analytics**: Detaylı performans analizi
+- **Mobile App**: Mobil bildirim desteği
+- **Webhook Integration**: Dış sistem entegrasyonları
+
+#### v2.3.0 Hedefleri
+- **Real-time Monitoring**: Gerçek zamanlı sistem izleme
+- **Custom Dashboards**: Kişiselleştirilebilir dashboard'lar
+- **Advanced Reporting**: Gelişmiş raporlama sistemi
+- **API Rate Limiting**: API güvenlik geliştirmeleri
+
 ---
 
 **MoldPark** - Kulak kalıbı üretiminde yeni nesil çözüm 🦻 

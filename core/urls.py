@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 from .api import SystemStatusAPI, production_pipeline_api, alerts_api, health_check_api
+from . import api
 
 app_name = 'core'
 
@@ -22,4 +23,11 @@ urlpatterns = [
     path('messages/<int:pk>/mark-read/', views.message_mark_read, name='message_mark_read'),
     path('messages/<int:pk>/archive/', views.message_archive, name='message_archive'),
     path('messages/<int:pk>/delete/', views.message_delete, name='message_delete'),
+
+    # Yeni API Endpoints
+    path('api/system-health/', api.system_health_api, name='system_health_api'),
+    path('api/run-health-check/', api.run_health_check_api, name='run_health_check_api'),
+    path('api/smart-notifications-status/', api.smart_notifications_status_api, name='smart_notifications_status_api'),
+    path('api/trigger-smart-notifications/', api.trigger_smart_notifications_api, name='trigger_smart_notifications_api'),
+    path('api/performance-insights/', api.performance_insights_api, name='performance_insights_api'),
 ] 

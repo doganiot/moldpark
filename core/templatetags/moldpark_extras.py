@@ -356,4 +356,215 @@ def priority_color(priority):
         'normal': 'info',
         'low': 'secondary',
     }
-    return colors.get(priority, 'info') 
+    return colors.get(priority, 'info')
+
+
+@register.inclusion_tag('core/widgets/system_health_widget.html')
+def system_health_widget():
+    """Sistem sağlık widget'ı"""
+    try:
+        from django.db import connection
+        from django.conf import settings
+        import shutil
+        
+        # Temel sağlık skoru hesaplama
+        health_score = 100
+        
+        # Database kontrolü
+        database_status = 'healthy'
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT 1")
+        except Exception:
+            database_status = 'unhealthy'
+            health_score -= 30
+        
+        # Cache kontrolü
+        cache_status = 'healthy'
+        try:
+            from django.core.cache import cache
+            cache.set('health_check', 'ok', 60)
+            if cache.get('health_check') != 'ok':
+                cache_status = 'warning'
+                health_score -= 10
+        except Exception:
+            cache_status = 'warning'
+            health_score -= 5
+        
+        # Disk kullanımı
+        disk_usage = 0
+        try:
+            total, used, free = shutil.disk_usage(settings.BASE_DIR)
+            disk_usage = (used / total) * 100
+            
+            if disk_usage > 90:
+                health_score -= 20
+            elif disk_usage > 80:
+                health_score -= 10
+        except Exception:
+            disk_usage = 0
+        
+        # Ağ sağlığı
+        from producer.models import ProducerNetwork
+        active_networks = ProducerNetwork.objects.filter(status='active').count()
+        total_networks = ProducerNetwork.objects.count()
+        
+        network_status = 'healthy'
+        if total_networks > 0:
+            network_health = (active_networks / total_networks) * 100
+            if network_health < 50:
+                network_status = 'warning'
+                health_score -= 15
+            elif network_health < 70:
+                health_score -= 5
+        
+        # Kritik uyarılar
+        critical_alerts = []
+        
+        # Geciken siparişler
+        from producer.models import ProducerOrder
+        overdue_orders = ProducerOrder.objects.filter(
+            estimated_delivery__lt=timezone.now(),
+            status__in=['received', 'designing', 'production', 'quality_check']
+        ).count()
+        
+        if overdue_orders > 10:
+            critical_alerts.append({
+                'message': f'{overdue_orders} sipariş gecikmiş',
+                'type': 'overdue_orders'
+            })
+            health_score -= 10
+        
+        # Güvenlik riskleri
+        from producer.models import Producer
+        risky_producers = Producer.objects.filter(
+            user__is_staff=True
+        ) | Producer.objects.filter(
+            user__is_superuser=True
+        )
+        
+        if risky_producers.exists():
+            critical_alerts.append({
+                'message': f'{risky_producers.count()} üretici hesabının admin yetkisi var',
+                'type': 'security_risk'
+            })
+            health_score -= 25
+        
+        health_status = {
+            'score': max(0, health_score),
+            'database': database_status,
+            'cache': cache_status,
+            'disk_usage': round(disk_usage, 1),
+            'network': network_status,
+            'active_networks': active_networks,
+            'total_networks': total_networks,
+            'critical_alerts': critical_alerts,
+            'last_check': timezone.now()
+        }
+        
+        return {'health_status': health_status}
+        
+    except Exception as e:
+        # Hata durumunda minimal widget göster
+        return {
+            'health_status': {
+                'score': 0,
+                'database': 'unknown',
+                'cache': 'unknown',
+                'disk_usage': 0,
+                'network': 'unknown',
+                'active_networks': 0,
+                'total_networks': 0,
+                'critical_alerts': [{'message': f'Widget yüklenirken hata: {str(e)}', 'type': 'error'}],
+                'last_check': timezone.now()
+            }
+        }
+
+
+@register.inclusion_tag('core/widgets/smart_notification_summary.html')
+def smart_notification_summary(user):
+    """Akıllı bildirim özeti widget'ı"""
+    try:
+        last_24h = timezone.now() - timedelta(hours=24)
+        
+        # Kullanıcının son 24 saatteki bildirimleri
+        recent_notifications = user.notifications.filter(
+            timestamp__gte=last_24h
+        )
+        
+        # Bildirim türleri analizi
+        notification_types = {}
+        for notification in recent_notifications:
+            verb = notification.verb
+            if verb not in notification_types:
+                notification_types[verb] = 0
+            notification_types[verb] += 1
+        
+        # Akıllı öneriler
+        suggestions = []
+        
+        if hasattr(user, 'center'):
+            center = user.center
+            used_molds = center.molds.count()
+            limit_percentage = (used_molds / center.mold_limit) * 100
+            
+            if limit_percentage > 80:
+                suggestions.append({
+                    'type': 'limit_warning',
+                    'message': f'Kalıp limitinizin %{limit_percentage:.0f}\'ini kullandınız',
+                    'priority': 'high' if limit_percentage > 90 else 'medium'
+                })
+            
+            # Pasif merkez kontrolü
+            last_activity = center.molds.order_by('-created_at').first()
+            if last_activity:
+                days_inactive = (timezone.now() - last_activity.created_at).days
+                if days_inactive >= 7:
+                    suggestions.append({
+                        'type': 'inactive_warning',
+                        'message': f'{days_inactive} gündür yeni sipariş vermiyorsunuz',
+                        'priority': 'medium'
+                    })
+        
+        elif hasattr(user, 'producer'):
+            producer = user.producer
+            
+            # Bekleyen siparişler
+            pending_orders = producer.orders.filter(status='received').count()
+            if pending_orders > 5:
+                suggestions.append({
+                    'type': 'pending_orders',
+                    'message': f'{pending_orders} bekleyen sipariş var',
+                    'priority': 'high'
+                })
+            
+            # Kapasite uyarısı
+            current_month_orders = producer.get_current_month_orders()
+            capacity_percentage = (current_month_orders / producer.mold_limit) * 100
+            if capacity_percentage > 90:
+                suggestions.append({
+                    'type': 'capacity_warning',
+                    'message': f'Aylık kapasitenizin %{capacity_percentage:.0f}\'ini kullandınız',
+                    'priority': 'high'
+                })
+        
+        summary = {
+            'total_notifications_24h': recent_notifications.count(),
+            'unread_count': recent_notifications.unread().count(),
+            'notification_types': notification_types,
+            'suggestions': suggestions,
+            'last_update': timezone.now()
+        }
+        
+        return {'notification_summary': summary}
+        
+    except Exception as e:
+        return {
+            'notification_summary': {
+                'total_notifications_24h': 0,
+                'unread_count': 0,
+                'notification_types': {},
+                'suggestions': [{'type': 'error', 'message': f'Widget hatası: {str(e)}', 'priority': 'low'}],
+                'last_update': timezone.now()
+            }
+        } 

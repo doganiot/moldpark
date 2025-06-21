@@ -1,0 +1,178 @@
+<!-- Sistem Sağlık Widget'ı -->
+<div class="card border-0 shadow-sm h-100">
+    <div class="card-header bg-gradient-primary text-white">
+        <div class="d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">
+                <i class="fas fa-heartbeat me-2"></i>Sistem Sağlığı
+            </h6>
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <i class="fas fa-cog"></i>
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="#" onclick="refreshSystemHealth()">
+                        <i class="fas fa-sync me-2"></i>Yenile
+                    </a></li>
+                    <li><a class="dropdown-item" href="#" onclick="runHealthCheck()">
+                        <i class="fas fa-stethoscope me-2"></i>Tam Kontrol
+                    </a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Genel Sağlık Skoru -->
+        <div class="text-center mb-4">
+            <div class="position-relative d-inline-block">
+                <canvas id="healthScoreChart" width="120" height="120"></canvas>
+                <div class="position-absolute top-50 start-50 translate-middle">
+                    <h3 class="text-{{ health_status.score >= 90 and 'success' or health_status.score >= 70 and 'warning' or 'danger' }} mb-0">
+                        {{ health_status.score }}%
+                    </h3>
+                    <small class="text-muted">Sağlık</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sistem Bileşenleri -->
+        <div class="row g-2 mb-3">
+            <div class="col-6">
+                <div class="p-2 bg-light rounded text-center">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">Database</small>
+                        <i class="fas fa-circle text-{{ health_status.database == 'healthy' and 'success' or 'danger' }}"></i>
+                    </div>
+                    <div class="text-{{ health_status.database == 'healthy' and 'success' or 'danger' }}">
+                        {{ health_status.database == 'healthy' and 'Sağlıklı' or 'Sorunlu' }}
+                    </div>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="p-2 bg-light rounded text-center">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">Cache</small>
+                        <i class="fas fa-circle text-{{ health_status.cache == 'healthy' and 'success' or 'warning' }}"></i>
+                    </div>
+                    <div class="text-{{ health_status.cache == 'healthy' and 'success' or 'warning' }}">
+                        {{ health_status.cache == 'healthy' and 'Aktif' or 'Pasif' }}
+                    </div>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="p-2 bg-light rounded text-center">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">Disk</small>
+                        <i class="fas fa-circle text-{{ health_status.disk_usage < 80 and 'success' or health_status.disk_usage < 90 and 'warning' or 'danger' }}"></i>
+                    </div>
+                    <div class="text-{{ health_status.disk_usage < 80 and 'success' or health_status.disk_usage < 90 and 'warning' or 'danger' }}">
+                        %{{ health_status.disk_usage }}
+                    </div>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="p-2 bg-light rounded text-center">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">Ağ</small>
+                        <i class="fas fa-circle text-{{ health_status.network == 'healthy' and 'success' or 'warning' }}"></i>
+                    </div>
+                    <div class="text-{{ health_status.network == 'healthy' and 'success' or 'warning' }}">
+                        {{ health_status.active_networks }}/{{ health_status.total_networks }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Kritik Uyarılar -->
+        {% if health_status.critical_alerts %}
+        <div class="alert alert-danger py-2 px-3 mb-3">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <div class="flex-grow-1">
+                    <small class="fw-bold">{{ health_status.critical_alerts|length }} Kritik Uyarı</small>
+                    <div class="small">{{ health_status.critical_alerts.0.message|truncatechars:50 }}</div>
+                </div>
+                <button class="btn btn-sm btn-outline-danger" onclick="showCriticalAlerts()">
+                    Detay
+                </button>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Son Kontrol -->
+        <div class="text-center">
+            <small class="text-muted">
+                <i class="fas fa-clock me-1"></i>
+                Son kontrol: {{ health_status.last_check|timesince }} önce
+            </small>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript -->
+<script>
+// Sağlık skoru chart'ı
+const healthCtx = document.getElementById('healthScoreChart');
+if (healthCtx) {
+    const healthScore = {{ health_status.score }};
+    const healthColor = healthScore >= 90 ? '#28a745' : healthScore >= 70 ? '#ffc107' : '#dc3545';
+    
+    new Chart(healthCtx, {
+        type: 'doughnut',
+        data: {
+            datasets: [{
+                data: [healthScore, 100 - healthScore],
+                backgroundColor: [healthColor, '#e9ecef'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: false,
+            maintainAspectRatio: false,
+            cutout: '75%',
+            plugins: {
+                legend: { display: false },
+                tooltip: { enabled: false }
+            }
+        }
+    });
+}
+
+// Widget fonksiyonları
+function refreshSystemHealth() {
+    // AJAX ile sistem sağlığını yenile
+    fetch('/api/system-health/')
+        .then(response => response.json())
+        .then(data => {
+            // Widget'ı güncelle
+            location.reload(); // Basit çözüm
+        })
+        .catch(error => {
+            console.error('Sistem sağlığı yenilenemedi:', error);
+        });
+}
+
+function runHealthCheck() {
+    // Tam sistem kontrolü çalıştır
+    if (confirm('Tam sistem kontrolü çalıştırılsın mı? Bu işlem birkaç dakika sürebilir.')) {
+        fetch('/api/run-health-check/', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                alert('Sistem kontrolü başlatıldı. Sonuçlar e-posta ile gönderilecek.');
+            });
+    }
+}
+
+function showCriticalAlerts() {
+    // Modal ile kritik uyarıları göster
+    const alerts = {{ health_status.critical_alerts|safe }};
+    let alertHtml = '<ul class="list-unstyled">';
+    alerts.forEach(alert => {
+        alertHtml += `<li class="mb-2"><i class="fas fa-exclamation-triangle text-danger me-2"></i>${alert.message}</li>`;
+    });
+    alertHtml += '</ul>';
+    
+    // Bootstrap modal göster (assuming modal exists)
+    document.getElementById('alertModalBody').innerHTML = alertHtml;
+    new bootstrap.Modal(document.getElementById('alertModal')).show();
+}
+</script> 
