@@ -30,6 +30,64 @@
         </div>
     </div>
 
+    <!-- Abonelik Durumu -->
+    {% if user.subscription %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-info border-0 shadow-sm">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-crown fa-2x text-primary"></i>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h6 class="alert-heading mb-1">{{ user.subscription.plan.name }} Planı</h6>
+                        {% if user.subscription.plan.monthly_model_limit %}
+                            <p class="mb-0">
+                                Bu ay <strong>{{ user.subscription.models_used_this_month }}/{{ user.subscription.plan.monthly_model_limit }}</strong> model kullandınız.
+                                {% with remaining=user.subscription.get_remaining_models %}
+                                    {% if remaining %}
+                                        <span class="text-success fw-bold">{{ remaining }} hakkınız kaldı.</span>
+                                    {% else %}
+                                        <span class="text-warning fw-bold">Limitinizi doldurdunuz.</span>
+                                    {% endif %}
+                                {% endwith %}
+                            </p>
+                        {% else %}
+                            <p class="mb-0">Sınırsız kullanım hakkınız var.</p>
+                        {% endif %}
+                    </div>
+                    <div class="flex-shrink-0">
+                        <a href="{% url 'core:subscription_dashboard' %}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-cog me-1"></i>Yönet
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-warning border-0 shadow-sm">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-exclamation-triangle fa-2x text-warning"></i>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h6 class="alert-heading mb-1">Abonelik Gerekli</h6>
+                        <p class="mb-0">MoldPark hizmetlerinden faydalanmak için bir abonelik planı seçmeniz gerekmektedir.</p>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <a href="{% url 'core:pricing' %}" class="btn btn-warning">
+                            <i class="fas fa-rocket me-1"></i>Plan Seç
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Hızlı Eylemler -->
     <div class="row mb-4">
         <div class="col-12">

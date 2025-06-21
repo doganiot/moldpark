@@ -75,6 +75,59 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'core:home' %}">Ana Sayfa</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'core:pricing' %}">
+                            <i class="fas fa-tags me-1"></i>Fiyatlandırma
+                        </a>
+                    </li>
+                    {% if not user.is_authenticated %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="registerDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-user-plus me-1"></i>Kayıt Ol
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="registerDropdown">
+                            <li>
+                                <a class="dropdown-item" href="{% url 'account_signup' %}">
+                                    <i class="fas fa-clinic-medical me-2 text-primary"></i>
+                                    <div>
+                                        <strong>İşitme Merkezi</strong>
+                                        <br><small class="text-muted">Kalıp siparişi vermek için</small>
+                                    </div>
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'producer:register' %}">
+                                    <i class="fas fa-industry me-2 text-success"></i>
+                                    <div>
+                                        <strong>Üretici Merkez</strong>
+                                        <br><small class="text-muted">Kalıp üretimi yapmak için</small>
+                                    </div>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="loginDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-sign-in-alt me-1"></i>Giriş Yap
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="loginDropdown">
+                            <li>
+                                <a class="dropdown-item" href="{% url 'account_login' %}">
+                                    <i class="fas fa-clinic-medical me-2 text-primary"></i>
+                                    İşitme Merkezi Girişi
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'producer:login' %}">
+                                    <i class="fas fa-industry me-2 text-success"></i>
+                                    Üretici Merkez Girişi
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    {% endif %}
                     {% if user.is_authenticated %}
                         {% if user.is_staff or user.is_superuser %}
                             <li class="nav-item">
@@ -130,16 +183,6 @@
                                     <i class="fas fa-plus me-1"></i>Yeni Kalıp
                                 </a>
                             </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{% url 'center:network_management' %}">
-                                    <i class="fas fa-network-wired me-1"></i>Üretici Ağları
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{% url 'mold:revision_request_create' %}">
-                                    <i class="fas fa-edit me-1"></i>Revizyon Talebi
-                                </a>
-                            </li>
                             {% endif %}
                         {% endif %}
                         
@@ -153,9 +196,6 @@
                             </a>
                         </li>
                     {% endif %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'core:contact' %}">İletişim</a>
-                    </li>
                 </ul>
                 <ul class="navbar-nav">
                     {% if user.is_authenticated %}

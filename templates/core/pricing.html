@@ -1,0 +1,235 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Fiyatlandırma - MoldPark{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Başlık -->
+    <div class="text-center mb-5">
+        <h1 class="display-4 fw-bold text-primary mb-3">
+            <i class="fas fa-tags me-3"></i>Fiyatlandırma Planları
+        </h1>
+        <p class="lead text-muted">
+            İhtiyacınıza uygun planı seçin ve kalıp modelleme hizmetlerimizden faydalanmaya başlayın
+        </p>
+        <div class="badge bg-info fs-6 mt-2">
+            <i class="fas fa-info-circle me-1"></i>
+            Güncel kur: 1 USD = ₺{{ usd_to_try_rate }}
+        </div>
+    </div>
+
+    <!-- Mevcut Abonelik Durumu -->
+    {% if current_subscription %}
+    <div class="row justify-content-center mb-5">
+        <div class="col-lg-8">
+            <div class="alert alert-success border-0 shadow-sm">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-check-circle fa-2x text-success"></i>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h5 class="alert-heading mb-1">Aktif Aboneliğiniz</h5>
+                        <p class="mb-2">
+                            <strong>{{ current_subscription.plan.name }}</strong> planına abone durumdasınız.
+                        </p>
+                        <small class="text-muted">
+                            {% if current_subscription.plan.monthly_model_limit %}
+                                Bu ay {{ current_subscription.models_used_this_month }}/{{ current_subscription.plan.monthly_model_limit }} model kullandınız.
+                                {% with remaining=current_subscription.get_remaining_models %}
+                                    {% if remaining %}
+                                        <span class="text-success fw-bold">{{ remaining }} model hakkınız kaldı.</span>
+                                    {% else %}
+                                        <span class="text-warning fw-bold">Aylık limitinizi doldurdunuz.</span>
+                                    {% endif %}
+                                {% endwith %}
+                            {% else %}
+                                Sınırsız kullanım hakkınız var.
+                            {% endif %}
+                        </small>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <a href="{% url 'core:subscription_dashboard' %}" class="btn btn-outline-success btn-sm">
+                            <i class="fas fa-cog me-1"></i>Yönet
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Fiyatlandırma Kartları -->
+    <div class="row g-4 justify-content-center">
+        {% for plan in plans %}
+        <div class="col-lg-3 col-md-6">
+            <div class="card h-100 border-0 shadow-sm position-relative {% if plan.plan_type == 'center_professional' %}border-primary{% endif %}">
+                
+                <!-- Popüler Badge -->
+                {% if plan.plan_type == 'center_professional' %}
+                <div class="position-absolute top-0 start-50 translate-middle">
+                    <span class="badge bg-primary px-3 py-2 rounded-pill">
+                        <i class="fas fa-star me-1"></i>En Popüler
+                    </span>
+                </div>
+                {% endif %}
+
+                <div class="card-header bg-white text-center border-0 pt-4">
+                    <!-- Plan İkonu -->
+                    <div class="mb-3">
+                        {% if plan.plan_type == 'pay_per_use' %}
+                            <i class="fas fa-credit-card fa-3x text-secondary"></i>
+                        {% elif plan.plan_type == 'center_basic' %}
+                            <i class="fas fa-building fa-3x text-info"></i>
+                        {% elif plan.plan_type == 'center_professional' %}
+                            <i class="fas fa-crown fa-3x text-primary"></i>
+                        {% elif plan.plan_type == 'producer' %}
+                            <i class="fas fa-industry fa-3x text-success"></i>
+                        {% endif %}
+                    </div>
+                    
+                    <h4 class="card-title fw-bold">{{ plan.name }}</h4>
+                    <p class="text-muted small">{{ plan.description|truncatechars:80 }}</p>
+                </div>
+
+                <div class="card-body text-center">
+                    <!-- Fiyat -->
+                    <div class="mb-4">
+                        <div class="display-4 fw-bold text-dark">
+                            ${{ plan.price_usd }}
+                            {% if plan.is_monthly %}<small class="fs-6 text-muted">/ay</small>{% endif %}
+                        </div>
+                        <div class="text-muted">
+                            ₺{{ plan.price_try }}{% if plan.is_monthly %}/ay{% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Limit Bilgisi -->
+                    <div class="mb-4">
+                        {% if plan.monthly_model_limit %}
+                            <div class="badge bg-light text-dark fs-6 px-3 py-2">
+                                <i class="fas fa-cube me-1"></i>
+                                {{ plan.monthly_model_limit }} model/ay
+                            </div>
+                        {% else %}
+                            <div class="badge bg-light text-dark fs-6 px-3 py-2">
+                                <i class="fas fa-infinity me-1"></i>
+                                {% if plan.is_monthly %}Sınırsız{% else %}Model başına{% endif %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Özellikler -->
+                    <ul class="list-unstyled text-start mb-4">
+                        {% for feature in plan.features %}
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            <small>{{ feature }}</small>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <div class="card-footer bg-white border-0 text-center pb-4">
+                    {% if user.is_authenticated %}
+                        {% if current_subscription and current_subscription.plan == plan %}
+                            <button class="btn btn-success w-100" disabled>
+                                <i class="fas fa-check me-2"></i>Mevcut Planınız
+                            </button>
+                        {% else %}
+                            <a href="{% url 'core:subscribe_to_plan' plan.id %}" 
+                               class="btn {% if plan.plan_type == 'center_professional' %}btn-primary{% else %}btn-outline-primary{% endif %} w-100"
+                               onclick="return confirm('{{ plan.name }} planına abone olmak istediğinize emin misiniz?')">
+                                <i class="fas fa-rocket me-2"></i>
+                                {% if current_subscription %}Plana Geç{% else %}Abone Ol{% endif %}
+                            </a>
+                        {% endif %}
+                    {% else %}
+                        <a href="{% url 'account_login' %}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-sign-in-alt me-2"></i>Giriş Yapın
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Ek Bilgiler -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card border-0 bg-light">
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3 mb-3">
+                            <i class="fas fa-shield-alt fa-2x text-primary mb-2"></i>
+                            <h6>Güvenli Ödeme</h6>
+                            <small class="text-muted">SSL ile korumalı ödeme sistemi</small>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <i class="fas fa-sync-alt fa-2x text-success mb-2"></i>
+                            <h6>Esnek Planlar</h6>
+                            <small class="text-muted">İstediğiniz zaman plan değiştirebilirsiniz</small>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <i class="fas fa-headset fa-2x text-info mb-2"></i>
+                            <h6>7/24 Destek</h6>
+                            <small class="text-muted">Tüm planlar için teknik destek</small>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <i class="fas fa-undo fa-2x text-warning mb-2"></i>
+                            <h6>Para İade Garantisi</h6>
+                            <small class="text-muted">30 gün içinde koşulsuz iade</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SSS -->
+    <div class="row mt-5">
+        <div class="col-lg-8 mx-auto">
+            <h3 class="text-center mb-4">Sıkça Sorulan Sorular</h3>
+            <div class="accordion" id="faqAccordion">
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                            Plan değiştirme nasıl yapılır?
+                        </button>
+                    </h2>
+                    <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            İstediğiniz zaman farklı bir plana geçebilirsiniz. Yeni plan seçtiğinizde mevcut aboneliğiniz iptal edilir ve yeni plan aktif hale gelir.
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                            Kullanmadığım modeller bir sonraki aya devredilir mi?
+                        </button>
+                    </h2>
+                    <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Hayır, aylık model limitleri her ay sıfırlanır. Kullanmadığınız modeller bir sonraki aya devredilmez.
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                            Hangi ödeme yöntemleri kabul edilir?
+                        </button>
+                    </h2>
+                    <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Kredi kartı, banka kartı ve havale ile ödeme yapabilirsiniz. Tüm ödemeler SSL ile güvence altındadır.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

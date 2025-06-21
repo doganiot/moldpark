@@ -169,3 +169,177 @@ class MessageRecipient(models.Model):
             self.is_read = True
             self.read_at = timezone.now()
             self.save(update_fields=['is_read', 'read_at'])
+
+class PricingPlan(models.Model):
+    """Fiyatlandırma Planları"""
+    
+    PLAN_TYPE_CHOICES = [
+        ('pay_per_use', 'Kullandıkça Öde'),
+        ('center_basic', 'İşitme Merkezi - Temel'),
+        ('center_professional', 'İşitme Merkezi - Profesyonel'),
+        ('producer', 'Üretici Merkez'),
+    ]
+    
+    name = models.CharField('Plan Adı', max_length=100)
+    plan_type = models.CharField('Plan Türü', max_length=20, choices=PLAN_TYPE_CHOICES, unique=True)
+    description = models.TextField('Açıklama')
+    
+    # Fiyatlar
+    price_usd = models.DecimalField('Fiyat (USD)', max_digits=10, decimal_places=2)
+    price_try = models.DecimalField('Fiyat (TL)', max_digits=10, decimal_places=2)
+    
+    # Limitler
+    monthly_model_limit = models.IntegerField('Aylık Model Limiti', null=True, blank=True, help_text='Null ise sınırsız')
+    is_monthly = models.BooleanField('Aylık Plan', default=True)
+    
+    # Özellikler
+    features = models.JSONField('Özellikler', default=list, blank=True)
+    
+    # Durum
+    is_active = models.BooleanField('Aktif', default=True)
+    created_at = models.DateTimeField('Oluşturulma Tarihi', auto_now_add=True)
+    updated_at = models.DateTimeField('Güncellenme Tarihi', auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Fiyatlandırma Planı'
+        verbose_name_plural = 'Fiyatlandırma Planları'
+        ordering = ['price_usd']
+    
+    def __str__(self):
+        return f'{self.name} - ${self.price_usd}'
+    
+    def get_price_display(self):
+        """Fiyat görüntüleme"""
+        if self.is_monthly:
+            return f'${self.price_usd}/ay (₺{self.price_try}/ay)'
+        else:
+            return f'${self.price_usd} (₺{self.price_try})'
+    
+    def get_limit_display(self):
+        """Limit görüntüleme"""
+        if self.monthly_model_limit:
+            return f'{self.monthly_model_limit} model/ay'
+        return 'Sınırsız'
+
+
+class UserSubscription(models.Model):
+    """Kullanıcı Abonelikleri"""
+    
+    STATUS_CHOICES = [
+        ('active', 'Aktif'),
+        ('expired', 'Süresi Dolmuş'),
+        ('cancelled', 'İptal Edilmiş'),
+        ('pending', 'Beklemede'),
+    ]
+    
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='subscription')
+    plan = models.ForeignKey(PricingPlan, on_delete=models.CASCADE, related_name='subscriptions')
+    
+    # Abonelik Bilgileri
+    start_date = models.DateTimeField('Başlangıç Tarihi', default=timezone.now)
+    end_date = models.DateTimeField('Bitiş Tarihi', null=True, blank=True)
+    status = models.CharField('Durum', max_length=10, choices=STATUS_CHOICES, default='active')
+    
+    # Kullanım İstatistikleri
+    models_used_this_month = models.IntegerField('Bu Ay Kullanılan Model Sayısı', default=0)
+    last_reset_date = models.DateTimeField('Son Sıfırlama Tarihi', default=timezone.now)
+    
+    # Ödeme Bilgileri
+    amount_paid = models.DecimalField('Ödenen Tutar', max_digits=10, decimal_places=2, default=0)
+    currency = models.CharField('Para Birimi', max_length=3, choices=[('USD', 'USD'), ('TRY', 'TRY')], default='USD')
+    
+    created_at = models.DateTimeField('Oluşturulma Tarihi', auto_now_add=True)
+    updated_at = models.DateTimeField('Güncellenme Tarihi', auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Kullanıcı Aboneliği'
+        verbose_name_plural = 'Kullanıcı Abonelikleri'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f'{self.user.username} - {self.plan.name} ({self.status})'
+    
+    def is_valid(self):
+        """Abonelik geçerli mi?"""
+        if self.status != 'active':
+            return False
+        if self.end_date and timezone.now() > self.end_date:
+            return False
+        return True
+    
+    def can_create_model(self):
+        """Model oluşturabilir mi?"""
+        if not self.is_valid():
+            return False
+        
+        # Sınırsız plan ise
+        if not self.plan.monthly_model_limit:
+            return True
+        
+        # Aylık limit kontrolü
+        self.reset_monthly_usage_if_needed()
+        return self.models_used_this_month < self.plan.monthly_model_limit
+    
+    def use_model_quota(self):
+        """Model kotası kullan"""
+        self.reset_monthly_usage_if_needed()
+        self.models_used_this_month += 1
+        self.save()
+    
+    def reset_monthly_usage_if_needed(self):
+        """Gerekirse aylık kullanımı sıfırla"""
+        now = timezone.now()
+        if (now.year != self.last_reset_date.year or 
+            now.month != self.last_reset_date.month):
+            self.models_used_this_month = 0
+            self.last_reset_date = now
+            self.save()
+    
+    def get_remaining_models(self):
+        """Kalan model sayısı"""
+        if not self.plan.monthly_model_limit:
+            return None  # Sınırsız
+        
+        self.reset_monthly_usage_if_needed()
+        return max(0, self.plan.monthly_model_limit - self.models_used_this_month)
+
+
+class PaymentHistory(models.Model):
+    """Ödeme Geçmişi"""
+    
+    PAYMENT_STATUS_CHOICES = [
+        ('pending', 'Beklemede'),
+        ('completed', 'Tamamlandı'),
+        ('failed', 'Başarısız'),
+        ('refunded', 'İade Edildi'),
+    ]
+    
+    PAYMENT_TYPE_CHOICES = [
+        ('subscription', 'Abonelik'),
+        ('pay_per_use', 'Kullandıkça Öde'),
+    ]
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='payments')
+    subscription = models.ForeignKey(UserSubscription, on_delete=models.CASCADE, related_name='payments', null=True, blank=True)
+    
+    # Ödeme Bilgileri
+    amount = models.DecimalField('Tutar', max_digits=10, decimal_places=2)
+    currency = models.CharField('Para Birimi', max_length=3, choices=[('USD', 'USD'), ('TRY', 'TRY')])
+    payment_type = models.CharField('Ödeme Türü', max_length=15, choices=PAYMENT_TYPE_CHOICES)
+    status = models.CharField('Durum', max_length=10, choices=PAYMENT_STATUS_CHOICES, default='pending')
+    
+    # Ödeme Detayları
+    payment_method = models.CharField('Ödeme Yöntemi', max_length=50, blank=True)
+    transaction_id = models.CharField('İşlem ID', max_length=100, blank=True)
+    notes = models.TextField('Notlar', blank=True)
+    
+    created_at = models.DateTimeField('Oluşturulma Tarihi', auto_now_add=True)
+    updated_at = models.DateTimeField('Güncellenme Tarihi', auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Ödeme Geçmişi'
+        verbose_name_plural = 'Ödeme Geçmişleri'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f'{self.user.username} - {self.amount} {self.currency} ({self.status})'

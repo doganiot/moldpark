@@ -2,6 +2,50 @@
 
 document.addEventListener('DOMContentLoaded', function() {
     
+    // Güvenli JSON parse fonksiyonu
+    function safeJsonParse(response) {
+        try {
+            // Önce response'un JSON olup olmadığını kontrol et
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                throw new Error('Response is not JSON');
+            }
+            return response.json();
+        } catch (error) {
+            console.error('JSON parse error:', error);
+            throw new Error('JSON parse failed: ' + error.message);
+        }
+    }
+
+    // Güvenli fetch fonksiyonu
+    function safeFetch(url, options = {}) {
+        return fetch(url, options)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                // Content-Type kontrolü
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    return response.json();
+                } else {
+                    // JSON değilse text olarak al
+                    return response.text().then(text => {
+                        // Eğer HTML ise hata fırlat
+                        if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+                            throw new Error('Unexpected HTML response instead of JSON');
+                        }
+                        return { success: false, message: 'Invalid response format' };
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
+                return { success: false, message: error.message };
+            });
+    }
+
     // Tooltip'leri etkinleştir
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
@@ -162,14 +206,13 @@ document.addEventListener('DOMContentLoaded', function() {
         markAllReadBtn.addEventListener('click', function(e) {
             e.preventDefault();
             
-            fetch(this.href, {
+            safeFetch(this.href, {
                 method: 'GET',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
                     'X-CSRFToken': getCsrfToken()
                 }
             })
-            .then(response => response.json())
             .then(data => {
                 if (data.success) {
                     updateNotificationBadge(0);
@@ -178,6 +221,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (dropdown) dropdown.hide();
                     // Sayfayı yenile
                     location.reload();
+                } else {
+                    console.error('Operation failed:', data.message);
                 }
             })
             .catch(error => console.error('Error:', error));
@@ -190,14 +235,13 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             var notificationId = this.getAttribute('data-notification-id');
             
-            fetch(this.href, {
+            safeFetch(this.href, {
                 method: 'GET',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
                     'X-CSRFToken': getCsrfToken()
                 }
             })
-            .then(response => response.json())
             .then(data => {
                 if (data.success) {
                     // Badge sayısını azalt

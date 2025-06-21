@@ -1,19 +1,29 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from .models import ContactMessage, Message, MessageRecipient
+from .models import ContactMessage, Message, MessageRecipient, PricingPlan, UserSubscription, PaymentHistory
 from .forms import ContactForm, MessageForm, AdminMessageForm, MessageReplyForm
 from django.views.generic import TemplateView
 from django.contrib.auth.decorators import user_passes_test, login_required
 from center.models import Center, CenterMessage
 from mold.models import EarMold
 from accounts.forms import CustomSignupForm
-from django.db.models import Q, Count
+from django.db.models import Q, Count, Avg
 from django.contrib.auth.models import User
 from producer.models import Producer
 from notifications.signals import notify
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
+from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
+from datetime import datetime, timedelta
+import json
+import logging
+from .smart_notifications import SmartNotificationManager
 
 def home(request):
+    # Fiyatlandırma planlarını al
+    plans = PricingPlan.objects.filter(is_active=True).order_by('price_usd')
+    
     # En iyi puanlı üreticileri al
     top_producers = []
     try:
@@ -51,7 +61,8 @@ def home(request):
         
         return render(request, 'core/home.html', {
             'is_producer': is_producer,
-            'top_producers': top_producers
+            'top_producers': top_producers,
+            'plans': plans
         })
     
     # Giriş yapmamış kullanıcılar için kayıt formu
@@ -80,7 +91,8 @@ def home(request):
     
     return render(request, 'core/home.html', {
         'signup_form': form,
-        'top_producers': top_producers
+        'top_producers': top_producers,
+        'plans': plans
     })
 
 def contact(request):
@@ -561,3 +573,91 @@ def terms_of_service(request):
 def privacy_policy(request):
     """Gizlilik Politikası"""
     return render(request, 'core/privacy.html')
+
+def pricing(request):
+    """Fiyatlandırma sayfası"""
+    plans = PricingPlan.objects.filter(is_active=True).order_by('price_usd')
+    
+    # Kullanıcının mevcut aboneliği
+    current_subscription = None
+    if request.user.is_authenticated:
+        try:
+            current_subscription = UserSubscription.objects.get(user=request.user, status='active')
+        except UserSubscription.DoesNotExist:
+            pass
+    
+    context = {
+        'plans': plans,
+        'current_subscription': current_subscription,
+        'usd_to_try_rate': 32.0,  # Güncel kur
+    }
+    
+    return render(request, 'core/pricing.html', context)
+
+@login_required
+def subscribe_to_plan(request, plan_id):
+    """Plana abone ol"""
+    plan = get_object_or_404(PricingPlan, id=plan_id, is_active=True)
+    
+    # Mevcut aboneliği kontrol et
+    try:
+        current_subscription = UserSubscription.objects.get(user=request.user, status='active')
+        if current_subscription.plan == plan:
+            messages.info(request, 'Bu plana zaten abone durumdasınız.')
+            return redirect('core:pricing')
+        else:
+            # Mevcut aboneliği iptal et
+            current_subscription.status = 'cancelled'
+            current_subscription.save()
+    except UserSubscription.DoesNotExist:
+        pass
+    
+    # Yeni abonelik oluştur
+    if plan.is_monthly:
+        end_date = timezone.now() + timedelta(days=30)
+    else:
+        end_date = None
+    
+    subscription = UserSubscription.objects.create(
+        user=request.user,
+        plan=plan,
+        start_date=timezone.now(),
+        end_date=end_date,
+        status='active',
+        amount_paid=plan.price_usd,
+        currency='USD'
+    )
+    
+    # Ödeme kaydı oluştur
+    PaymentHistory.objects.create(
+        user=request.user,
+        subscription=subscription,
+        amount=plan.price_usd,
+        currency='USD',
+        payment_type='subscription' if plan.is_monthly else 'pay_per_use',
+        status='completed',  # Demo için direkt tamamlandı
+        payment_method='Demo Payment',
+        transaction_id=f'TXN_{timezone.now().strftime("%Y%m%d%H%M%S")}',
+        notes=f'{plan.name} planına abonelik'
+    )
+    
+    messages.success(request, f'{plan.name} planına başarıyla abone oldunuz!')
+    return redirect('core:pricing')
+
+@login_required
+def subscription_dashboard(request):
+    """Abonelik yönetim paneli"""
+    try:
+        subscription = UserSubscription.objects.get(user=request.user, status='active')
+    except UserSubscription.DoesNotExist:
+        subscription = None
+    
+    # Ödeme geçmişi
+    payments = PaymentHistory.objects.filter(user=request.user).order_by('-created_at')[:10]
+    
+    context = {
+        'subscription': subscription,
+        'payments': payments,
+    }
+    
+    return render(request, 'core/subscription_dashboard.html', context)

@@ -11,13 +11,13 @@
                     </div>
                     <h4 class="mb-4">Kalıp Silme Onayı</h4>
                     <p class="text-muted mb-4">
-                        <strong>{{ object.patient_name }}</strong> isimli hastaya ait kalıbı silmek istediğinize emin misiniz?
+                        <strong>{{ mold.patient_name }} {{ mold.patient_surname }}</strong> isimli hastaya ait kalıbı silmek istediğinize emin misiniz?
                         Bu işlem geri alınamaz.
                     </p>
                     <form method="post">
                         {% csrf_token %}
                         <div class="d-grid gap-2 d-md-flex justify-content-center">
-                            <a href="{% url 'mold:mold_detail' object.id %}" class="btn btn-outline-secondary">
+                            <a href="{% url 'mold:mold_detail' mold.pk %}" class="btn btn-outline-secondary">
                                 <i class="fas fa-times me-2"></i>İptal
                             </a>
                             <button type="submit" class="btn btn-danger">
