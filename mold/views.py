@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 from notifications.signals import notify
 from django.utils import timezone
 from .models import EarMold, Revision, ModeledMold, QualityCheck, RevisionRequest, MoldEvaluation
-from .forms import EarMoldForm, RevisionForm, ModeledMoldForm, QualityCheckForm, RevisionRequestForm, MoldEvaluationForm
+from .forms import EarMoldForm, RevisionForm, ModeledMoldForm, QualityCheckForm, RevisionRequestForm, MoldEvaluationForm, PhysicalShipmentForm, TrackingUpdateForm
 from center.decorators import center_required
 from django.contrib.auth.decorators import permission_required
 from producer.models import ProducerNetwork, ProducerOrder
@@ -553,4 +553,93 @@ def mold_evaluation_list(request):
     
     return render(request, 'mold/mold_evaluation_list.html', {
         'evaluations': evaluations
+    })
+
+@login_required
+@center_required
+def update_tracking(request, pk):
+    """Fiziksel kalıp için kargo takip numarası güncelleme"""
+    mold = get_object_or_404(EarMold, pk=pk)
+    
+    # Yetki kontrolü
+    if mold.center != request.user.center and not request.user.is_superuser:
+        raise PermissionDenied
+    
+    # Sadece fiziksel gönderim için
+    if not mold.is_physical_shipment:
+        messages.error(request, 'Bu kalıp dijital gönderim için oluşturulmuş, kargo takibi yapılamaz.')
+        return redirect('mold:mold_detail', pk=pk)
+    
+    if request.method == 'POST':
+        form = TrackingUpdateForm(request.POST, instance=mold)
+        if form.is_valid():
+            updated_mold = form.save(commit=False)
+            
+            # Kargo gönderildi olarak işaretle
+            if updated_mold.tracking_number and updated_mold.shipment_status == 'not_shipped':
+                updated_mold.shipment_status = 'shipped'
+                updated_mold.shipment_date = timezone.now()
+            
+            updated_mold.save()
+            
+            # İlgili siparişi bul ve güncelle
+            try:
+                producer_order = ProducerOrder.objects.get(ear_mold=mold)
+                
+                # Üreticiye bildirim gönder
+                notify.send(
+                    sender=request.user,
+                    recipient=producer_order.producer.user,
+                    verb='fiziksel kalıp kargo bilgilerini güncelledi',
+                    action_object=mold,
+                    description=f'Kargo Takip: {updated_mold.tracking_number} - {updated_mold.get_shipment_status_display_custom()}',
+                    target=producer_order
+                )
+                
+                # Sipariş notunu güncelle
+                if updated_mold.tracking_number:
+                    producer_order.producer_notes += f'\n[{timezone.now().strftime("%d.%m.%Y %H:%M")}] Kargo Takip: {updated_mold.tracking_number}'
+                    producer_order.save()
+                
+            except ProducerOrder.DoesNotExist:
+                pass
+            
+            messages.success(request, 'Kargo bilgileri başarıyla güncellendi.')
+            return redirect('mold:mold_detail', pk=pk)
+    else:
+        form = TrackingUpdateForm(instance=mold)
+    
+    return render(request, 'mold/tracking_update.html', {
+        'form': form,
+        'mold': mold
+    })
+
+
+@login_required
+@center_required
+def physical_shipment_detail(request, pk):
+    """Fiziksel kalıp gönderimi detayları ve kargo adresi"""
+    mold = get_object_or_404(EarMold, pk=pk)
+    
+    # Yetki kontrolü
+    if mold.center != request.user.center and not request.user.is_superuser:
+        raise PermissionDenied
+    
+    # Sadece fiziksel gönderim için
+    if not mold.is_physical_shipment:
+        messages.error(request, 'Bu kalıp dijital gönderim için oluşturulmuş.')
+        return redirect('mold:mold_detail', pk=pk)
+    
+    # İlgili siparişi bul
+    try:
+        producer_order = ProducerOrder.objects.get(ear_mold=mold)
+        producer = producer_order.producer
+    except ProducerOrder.DoesNotExist:
+        producer = None
+        producer_order = None
+    
+    return render(request, 'mold/physical_shipment_detail.html', {
+        'mold': mold,
+        'producer': producer,
+        'producer_order': producer_order
     })

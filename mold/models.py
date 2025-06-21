@@ -32,6 +32,15 @@ class EarMold(models.Model):
         ('F', 'Kadın'),
     )
     
+    # Kargo durumu seçenekleri
+    SHIPMENT_STATUS_CHOICES = (
+        ('not_shipped', 'Henüz Gönderilmedi'),
+        ('shipped', 'Kargoya Verildi'),
+        ('in_transit', 'Yolda'),
+        ('delivered_to_producer', 'Üreticiye Teslim Edildi'),
+        ('returned', 'İade Edildi'),
+    )
+    
     center = models.ForeignKey(Center, on_delete=models.CASCADE, related_name='molds', verbose_name='Merkez')
     patient_name = models.CharField('Hasta Adı', max_length=100)
     patient_surname = models.CharField('Hasta Soyadı', max_length=100)
@@ -39,12 +48,29 @@ class EarMold(models.Model):
     patient_gender = models.CharField('Cinsiyet', max_length=1, choices=GENDER_CHOICES)
     mold_type = models.CharField('Kalıp Tipi', max_length=10, choices=MOLD_TYPE_CHOICES)
     vent_diameter = models.FloatField('Vent Çapı', validators=[MinValueValidator(0.0)])
-    scan_file = models.FileField('Tarama Dosyası', upload_to='scans/')
+    scan_file = models.FileField('Tarama Dosyası', upload_to='scans/', blank=True, null=True)
     notes = models.TextField('Notlar', blank=True)
     status = models.CharField('Durum', max_length=20, choices=STATUS_CHOICES, default='waiting')
     quality_score = models.IntegerField('Kalite Puanı', validators=[MinValueValidator(0), MaxValueValidator(100)], null=True, blank=True)
     created_at = models.DateTimeField('Oluşturulma Tarihi', auto_now_add=True)
     updated_at = models.DateTimeField('Güncellenme Tarihi', auto_now=True)
+    
+    # Fiziksel kalıp gönderimi alanları
+    is_physical_shipment = models.BooleanField('Fiziksel Kalıp Gönderimi', default=False, help_text='Dijital dosya yerine fiziksel kalıp gönderilecek')
+    tracking_number = models.CharField('Kargo Takip Numarası', max_length=100, blank=True, null=True)
+    shipment_date = models.DateTimeField('Kargo Gönderim Tarihi', blank=True, null=True)
+    shipment_status = models.CharField('Kargo Durumu', max_length=30, choices=SHIPMENT_STATUS_CHOICES, default='not_shipped')
+    carrier_company = models.CharField('Kargo Firması', max_length=100, blank=True, null=True)
+    estimated_delivery = models.DateField('Tahmini Teslimat Tarihi', blank=True, null=True)
+    shipment_notes = models.TextField('Kargo Notları', blank=True, help_text='Kargo ile ilgili özel talimatlar')
+    
+    # Öncelik ve özel talimatlar (formdan gelen alanlar için)
+    priority = models.CharField('Öncelik', max_length=20, default='normal', choices=[
+        ('normal', 'Normal'),
+        ('high', 'Yüksek'),
+        ('urgent', 'Acil'),
+    ])
+    special_instructions = models.TextField('Özel Talimatlar', blank=True)
 
     class Meta:
         verbose_name = 'Kulak Kalıbı'
@@ -69,6 +95,30 @@ class EarMold(models.Model):
     def get_status_display_custom(self):
         """Türkçe durum adını döndürür"""
         return dict(self.STATUS_CHOICES).get(self.status, self.status)
+        
+    def get_shipment_status_color(self):
+        """Kargo durumu için Bootstrap renk sınıfı döndürür"""
+        color_map = {
+            'not_shipped': 'secondary',
+            'shipped': 'info',
+            'in_transit': 'warning',
+            'delivered_to_producer': 'success',
+            'returned': 'danger',
+        }
+        return color_map.get(self.shipment_status, 'secondary')
+        
+    def get_shipment_status_display_custom(self):
+        """Türkçe kargo durumu adını döndürür"""
+        return dict(self.SHIPMENT_STATUS_CHOICES).get(self.shipment_status, self.shipment_status)
+        
+    def get_priority_color(self):
+        """Öncelik için Bootstrap renk sınıfı döndürür"""
+        color_map = {
+            'normal': 'success',
+            'high': 'warning',
+            'urgent': 'danger',
+        }
+        return color_map.get(self.priority, 'secondary')
 
 class Revision(models.Model):
     REVISION_TYPE_CHOICES = [

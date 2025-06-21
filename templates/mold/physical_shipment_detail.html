@@ -1,0 +1,213 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'mold:mold_list' %}">Kalıplarım</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'mold:mold_detail' mold.pk %}">{{ mold.patient_name }} {{ mold.patient_surname }}</a></li>
+                    <li class="breadcrumb-item active">Fiziksel Gönderim Detayları</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Kargo Adresi -->
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-map-marker-alt me-2"></i>Kargo Gönderim Adresi
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if producer %}
+                        <div class="alert alert-success">
+                            <h6><i class="fas fa-check-circle me-2"></i>Üretici Merkez Bilgileri</h6>
+                            <address class="mb-0">
+                                <strong>{{ producer.company_name }}</strong><br>
+                                {% if producer.address %}
+                                    {{ producer.address|linebreaks }}
+                                {% else %}
+                                    <em class="text-muted">Adres bilgisi henüz eklenmemiş</em><br>
+                                {% endif %}
+                                
+                                {% if producer.phone %}
+                                    <i class="fas fa-phone me-1"></i>{{ producer.phone }}<br>
+                                {% endif %}
+                                
+                                {% if producer.user.email %}
+                                    <i class="fas fa-envelope me-1"></i>{{ producer.user.email }}<br>
+                                {% endif %}
+                                
+                                {% if producer.contact_person %}
+                                    <i class="fas fa-user me-1"></i>{{ producer.contact_person }}
+                                {% endif %}
+                            </address>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-info-circle me-2"></i>Gönderim Talimatları</h6>
+                            <ul class="mb-0">
+                                <li>Kalıbınızı sağlam bir kutu içinde paketleyiniz</li>
+                                <li>Paketin üzerine sipariş numarasını yazınız: <strong>{{ producer_order.order_number }}</strong></li>
+                                <li>Hasta bilgilerini paketin içine koyunuz</li>
+                                <li>Kırılabilir etiketini unutmayınız</li>
+                                <li>Kargo takip numarasını aldıktan sonra sisteme giriniz</li>
+                            </ul>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning">
+                            <h6><i class="fas fa-exclamation-triangle me-2"></i>Üretici Bilgisi Bulunamadı</h6>
+                            <p class="mb-0">Bu kalıp için henüz bir üretici atanmamış. Lütfen yönetici ile iletişime geçin.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Kalıp ve Kargo Bilgileri -->
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0">
+                    <h5 class="mb-0">
+                        <i class="fas fa-shipping-fast me-2"></i>Kargo Durumu
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Kalıp Bilgileri -->
+                    <div class="mb-4">
+                        <h6>Kalıp Bilgileri</h6>
+                        <div class="row">
+                            <div class="col-6"><strong>Hasta:</strong></div>
+                            <div class="col-6">{{ mold.patient_name }} {{ mold.patient_surname }}</div>
+                            
+                            <div class="col-6"><strong>Kalıp Tipi:</strong></div>
+                            <div class="col-6">{{ mold.get_mold_type_display }}</div>
+                            
+                            <div class="col-6"><strong>Vent Çapı:</strong></div>
+                            <div class="col-6">{{ mold.vent_diameter }} mm</div>
+                            
+                            <div class="col-6"><strong>Öncelik:</strong></div>
+                            <div class="col-6">
+                                <span class="badge bg-{{ mold.get_priority_color }}">{{ mold.get_priority_display }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Kargo Durumu -->
+                    <div class="mb-4">
+                        <h6>Kargo Durumu</h6>
+                        <div class="progress mb-2" style="height: 25px;">
+                            {% if mold.shipment_status == 'not_shipped' %}
+                                <div class="progress-bar bg-secondary" style="width: 25%">Hazırlanıyor</div>
+                            {% elif mold.shipment_status == 'shipped' %}
+                                <div class="progress-bar bg-info" style="width: 50%">Kargoda</div>
+                            {% elif mold.shipment_status == 'in_transit' %}
+                                <div class="progress-bar bg-warning" style="width: 75%">Yolda</div>
+                            {% elif mold.shipment_status == 'delivered_to_producer' %}
+                                <div class="progress-bar bg-success" style="width: 100%">Teslim Edildi</div>
+                            {% elif mold.shipment_status == 'returned' %}
+                                <div class="progress-bar bg-danger" style="width: 100%">İade Edildi</div>
+                            {% endif %}
+                        </div>
+                        <div class="text-center">
+                            <span class="badge bg-{{ mold.get_shipment_status_color }} fs-6">
+                                {{ mold.get_shipment_status_display_custom }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Kargo Detayları -->
+                    {% if mold.tracking_number or mold.carrier_company %}
+                    <div class="mb-4">
+                        <h6>Kargo Detayları</h6>
+                        <div class="list-group list-group-flush">
+                            {% if mold.carrier_company %}
+                            <div class="list-group-item d-flex justify-content-between px-0">
+                                <strong>Kargo Firması:</strong>
+                                <span>{{ mold.get_carrier_company_display }}</span>
+                            </div>
+                            {% endif %}
+                            
+                            {% if mold.tracking_number %}
+                            <div class="list-group-item d-flex justify-content-between px-0">
+                                <strong>Takip Numarası:</strong>
+                                <span class="font-monospace">{{ mold.tracking_number }}</span>
+                            </div>
+                            {% endif %}
+                            
+                            {% if mold.shipment_date %}
+                            <div class="list-group-item d-flex justify-content-between px-0">
+                                <strong>Gönderim Tarihi:</strong>
+                                <span>{{ mold.shipment_date|date:"d.m.Y H:i" }}</span>
+                            </div>
+                            {% endif %}
+                            
+                            {% if mold.estimated_delivery %}
+                            <div class="list-group-item d-flex justify-content-between px-0">
+                                <strong>Tahmini Teslimat:</strong>
+                                <span>{{ mold.estimated_delivery|date:"d.m.Y" }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Eylem Butonları -->
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'mold:update_tracking' mold.pk %}" class="btn btn-primary">
+                            <i class="fas fa-edit me-2"></i>Kargo Bilgilerini Güncelle
+                        </a>
+                        <a href="{% url 'mold:mold_detail' mold.pk %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Kalıp Detayına Dön
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notlar -->
+    {% if mold.notes or mold.special_instructions or mold.shipment_notes %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0">
+                    <h5 class="mb-0">
+                        <i class="fas fa-sticky-note me-2"></i>Notlar ve Talimatlar
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% if mold.notes %}
+                        <div class="col-md-4">
+                            <h6>Genel Notlar</h6>
+                            <p class="text-muted">{{ mold.notes|linebreaks }}</p>
+                        </div>
+                        {% endif %}
+                        
+                        {% if mold.special_instructions %}
+                        <div class="col-md-4">
+                            <h6>Özel Talimatlar</h6>
+                            <p class="text-muted">{{ mold.special_instructions|linebreaks }}</p>
+                        </div>
+                        {% endif %}
+                        
+                        {% if mold.shipment_notes %}
+                        <div class="col-md-4">
+                            <h6>Kargo Notları</h6>
+                            <p class="text-muted">{{ mold.shipment_notes|linebreaks }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %} 

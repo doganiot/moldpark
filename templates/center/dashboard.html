@@ -30,6 +30,59 @@
         </div>
     </div>
 
+    <!-- Hızlı Eylemler -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bolt me-2 text-warning"></i>Hızlı Eylemler
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <a href="{% url 'mold:mold_create' %}" class="btn btn-success w-100 p-3 h-100">
+                                <div class="text-center">
+                                    <i class="fas fa-plus fa-2x mb-2"></i>
+                                    <h6 class="mb-0">Yeni Kalıp</h6>
+                                    <small class="opacity-75">Kalıp siparişi oluştur</small>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'mold:mold_list' %}" class="btn btn-primary w-100 p-3 h-100">
+                                <div class="text-center">
+                                    <i class="fas fa-cube fa-2x mb-2"></i>
+                                    <h6 class="mb-0">Kalıplarım</h6>
+                                    <small class="opacity-75">Mevcut kalıpları görüntüle</small>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'mold:revision_request_create' %}" class="btn btn-warning w-100 p-3 h-100">
+                                <div class="text-center">
+                                    <i class="fas fa-edit fa-2x mb-2"></i>
+                                    <h6 class="mb-0">Revizyon Talebi</h6>
+                                    <small class="opacity-75">Kalıp revizyonu iste</small>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'center:network_management' %}" class="btn btn-info w-100 p-3 h-100">
+                                <div class="text-center">
+                                    <i class="fas fa-network-wired fa-2x mb-2"></i>
+                                    <h6 class="mb-0">Üretici Ağları</h6>
+                                    <small class="opacity-75">Ağ bağlantılarını yönet</small>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Üretici Ağları -->
     <div class="row mb-4">
         <div class="col-12">

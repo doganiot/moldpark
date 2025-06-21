@@ -3,9 +3,9 @@ from .models import EarMold, Revision, ModeledMold, QualityCheck, RevisionReques
 
 @admin.register(EarMold)
 class EarMoldAdmin(admin.ModelAdmin):
-    list_display = ('patient_name', 'patient_surname', 'center', 'mold_type', 'status', 'quality_score', 'created_at')
-    list_filter = ('status', 'mold_type', 'center', 'created_at')
-    search_fields = ('patient_name', 'patient_surname', 'center__name')
+    list_display = ('patient_name', 'patient_surname', 'center', 'mold_type', 'is_physical_shipment', 'status', 'shipment_status', 'priority', 'created_at')
+    list_filter = ('status', 'mold_type', 'center', 'is_physical_shipment', 'shipment_status', 'priority', 'created_at')
+    search_fields = ('patient_name', 'patient_surname', 'center__name', 'tracking_number')
     readonly_fields = ('created_at', 'updated_at')
     ordering = ('-created_at',)
 
@@ -14,7 +14,15 @@ class EarMoldAdmin(admin.ModelAdmin):
             'fields': ('patient_name', 'patient_surname', 'patient_age', 'patient_gender')
         }),
         ('Kalıp Bilgileri', {
-            'fields': ('center', 'mold_type', 'vent_diameter', 'scan_file', 'notes')
+            'fields': ('center', 'mold_type', 'vent_diameter', 'scan_file', 'notes', 'priority', 'special_instructions')
+        }),
+        ('Sipariş Türü', {
+            'fields': ('is_physical_shipment',)
+        }),
+        ('Fiziksel Gönderim Bilgileri', {
+            'fields': ('carrier_company', 'tracking_number', 'shipment_date', 'shipment_status', 'estimated_delivery', 'shipment_notes'),
+            'classes': ('collapse',),
+            'description': 'Bu bölüm sadece fiziksel kalıp gönderimi için kullanılır.'
         }),
         ('Durum Bilgileri', {
             'fields': ('status', 'quality_score')
@@ -23,6 +31,14 @@ class EarMoldAdmin(admin.ModelAdmin):
             'fields': ('created_at', 'updated_at')
         }),
     )
+
+    def get_fieldsets(self, request, obj=None):
+        """Fiziksel gönderim değilse kargo alanlarını gizle"""
+        fieldsets = super().get_fieldsets(request, obj)
+        if obj and not obj.is_physical_shipment:
+            # Fiziksel gönderim alanlarını gizle
+            fieldsets = [fs for fs in fieldsets if fs[0] != 'Fiziksel Gönderim Bilgileri']
+        return fieldsets
 
 @admin.register(Revision)
 class RevisionAdmin(admin.ModelAdmin):

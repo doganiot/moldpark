@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'mold:mold_list' %}">Kalıplarım</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'mold:mold_detail' mold.pk %}">{{ mold.patient_name }} {{ mold.patient_surname }}</a></li>
+                    <li class="breadcrumb-item active">Kargo Takip Güncelle</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0">
+                    <h5 class="mb-0">
+                        <i class="fas fa-shipping-fast me-2"></i>Kargo Takip Bilgileri
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Kalıp Bilgileri -->
+                    <div class="alert alert-info mb-4">
+                        <h6><i class="fas fa-info-circle me-2"></i>Kalıp Bilgileri</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Hasta:</strong> {{ mold.patient_name }} {{ mold.patient_surname }}<br>
+                                <strong>Kalıp Tipi:</strong> {{ mold.get_mold_type_display }}<br>
+                                <strong>Durum:</strong> 
+                                <span class="badge bg-{{ mold.get_status_color }}">{{ mold.get_status_display_custom }}</span>
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Öncelik:</strong> 
+                                <span class="badge bg-{{ mold.get_priority_color }}">{{ mold.get_priority_display }}</span><br>
+                                <strong>Oluşturulma:</strong> {{ mold.created_at|date:"d.m.Y H:i" }}<br>
+                                <strong>Mevcut Kargo Durumu:</strong>
+                                <span class="badge bg-{{ mold.get_shipment_status_color }}">{{ mold.get_shipment_status_display_custom }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Kargo Formu -->
+                    <form method="post" class="row g-3">
+                        {% csrf_token %}
+
+                        <div class="col-md-6">
+                            {{ form.carrier_company|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.shipment_status|as_crispy_field }}
+                        </div>
+                        <div class="col-12">
+                            {{ form.tracking_number|as_crispy_field }}
+                            <small class="text-muted">
+                                Kargo takip numarasını kargo firmasından aldıktan sonra buraya giriniz.
+                            </small>
+                        </div>
+
+                        <!-- Mevcut Bilgiler -->
+                        {% if mold.tracking_number or mold.shipment_date %}
+                        <div class="col-12">
+                            <div class="alert alert-secondary">
+                                <h6><i class="fas fa-history me-2"></i>Mevcut Kargo Bilgileri</h6>
+                                {% if mold.tracking_number %}
+                                    <strong>Takip No:</strong> {{ mold.tracking_number }}<br>
+                                {% endif %}
+                                {% if mold.shipment_date %}
+                                    <strong>Gönderim Tarihi:</strong> {{ mold.shipment_date|date:"d.m.Y H:i" }}<br>
+                                {% endif %}
+                                {% if mold.carrier_company %}
+                                    <strong>Kargo Firması:</strong> {{ mold.get_carrier_company_display }}<br>
+                                {% endif %}
+                                {% if mold.estimated_delivery %}
+                                    <strong>Tahmini Teslimat:</strong> {{ mold.estimated_delivery|date:"d.m.Y" }}
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Submit Buttons -->
+                        <div class="col-12 mt-4">
+                            <div class="d-flex justify-content-between">
+                                <a href="{% url 'mold:mold_detail' mold.pk %}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Geri
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>Kargo Bilgilerini Güncelle
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Yardım Kartı -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0">
+                    <h5 class="mb-0">Kargo Rehberi</h5>
+                </div>
+                <div class="card-body">
+                    <h6>Kargo Durumları</h6>
+                    <ul class="list-unstyled mb-3">
+                        <li><span class="badge bg-secondary me-2">Henüz Gönderilmedi</span> Kalıp henüz kargoya verilmedi</li>
+                        <li><span class="badge bg-info me-2">Kargoya Verildi</span> Kalıp kargo firmasına teslim edildi</li>
+                        <li><span class="badge bg-warning me-2">Yolda</span> Kargo transit halinde</li>
+                        <li><span class="badge bg-success me-2">Üreticiye Teslim</span> Üretici merkez kalıbı aldı</li>
+                        <li><span class="badge bg-danger me-2">İade Edildi</span> Kargo iade edildi</li>
+                    </ul>
+
+                    <h6>Takip Numarası Örnekleri</h6>
+                    <ul class="list-unstyled small text-muted">
+                        <li><strong>Aras:</strong> 12 haneli sayı</li>
+                        <li><strong>Yurtiçi:</strong> 10 haneli sayı</li>
+                        <li><strong>UPS:</strong> 1Z ile başlar</li>
+                        <li><strong>MNG:</strong> Harf-sayı karışımı</li>
+                    </ul>
+
+                    <div class="alert alert-warning small">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        Takip numarasını doğru girdiğinizden emin olun. Üretici merkez bu bilgileri kullanarak kargonuzu takip edecektir.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

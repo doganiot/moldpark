@@ -48,12 +48,32 @@
 
                                 <dt class="col-sm-4">Kalıp Tipi</dt>
                                 <dd class="col-sm-8">{{ mold.get_mold_type_display }}</dd>
+
+                                <dt class="col-sm-4">Sipariş Türü</dt>
+                                <dd class="col-sm-8">
+                                    {% if mold.is_physical_shipment %}
+                                        <span class="badge bg-info">
+                                            <i class="fas fa-shipping-fast me-1"></i>Fiziksel Gönderim
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-file-upload me-1"></i>Dijital Tarama
+                                        </span>
+                                    {% endif %}
+                                </dd>
                             </dl>
                         </div>
                         <div class="col-md-6">
                             <dl class="row">
                                 <dt class="col-sm-4">Vent Çapı</dt>
                                 <dd class="col-sm-8">{{ mold.vent_diameter }} mm</dd>
+
+                                <dt class="col-sm-4">Öncelik</dt>
+                                <dd class="col-sm-8">
+                                    <span class="badge bg-{{ mold.get_priority_color }}">
+                                        {{ mold.get_priority_display }}
+                                    </span>
+                                </dd>
 
                                 <dt class="col-sm-4">Durum</dt>
                                 <dd class="col-sm-8">
@@ -77,6 +97,41 @@
                             </dl>
                         </div>
                     </div>
+
+                    <!-- Fiziksel Gönderim Kargo Durumu -->
+                    {% if mold.is_physical_shipment %}
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <div class="alert alert-info">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1">
+                                            <i class="fas fa-shipping-fast me-2"></i>Kargo Durumu
+                                        </h6>
+                                        <span class="badge bg-{{ mold.get_shipment_status_color }} fs-6">
+                                            {{ mold.get_shipment_status_display_custom }}
+                                        </span>
+                                        {% if mold.tracking_number %}
+                                        <br>
+                                        <small class="text-muted">
+                                            <i class="fas fa-hashtag me-1"></i>
+                                            Takip: {{ mold.tracking_number }}
+                                        </small>
+                                        {% endif %}
+                                    </div>
+                                    <div>
+                                        <a href="{% url 'mold:physical_shipment_detail' mold.pk %}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye me-1"></i>Kargo Detayları
+                                        </a>
+                                        <a href="{% url 'mold:update_tracking' mold.pk %}" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-edit me-1"></i>Takip Güncelle
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
                     
                     {% if mold.notes %}
                     <div class="mt-3">
@@ -173,8 +228,22 @@
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-6">
-                            <h6>Tarama Dosyası</h6>
-                            {% if mold.scan_file %}
+                            <h6>
+                                {% if mold.is_physical_shipment %}
+                                    Fiziksel Kalıp Gönderimi
+                                {% else %}
+                                    Tarama Dosyası
+                                {% endif %}
+                            </h6>
+                            {% if mold.is_physical_shipment %}
+                                <div class="text-center py-4">
+                                    <i class="fas fa-shipping-fast fa-3x text-info mb-2"></i>
+                                    <p class="text-muted">Bu kalıp fiziksel olarak gönderilecek.</p>
+                                    <a href="{% url 'mold:physical_shipment_detail' mold.pk %}" class="btn btn-sm btn-outline-info">
+                                        <i class="fas fa-map-marker-alt me-1"></i>Kargo Adresi
+                                    </a>
+                                </div>
+                            {% elif mold.scan_file %}
                                 <div class="d-flex align-items-center">
                                     <i class="fas fa-file-alt fa-2x text-primary me-3"></i>
                                     <div>

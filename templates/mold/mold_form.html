@@ -149,6 +149,16 @@
                         <div class="col-12">
                             <h6 class="mb-3">Sipariş Türü</h6>
                             {{ form.order_type|as_crispy_field }}
+                            <div class="alert alert-info mt-3" id="order-type-info">
+                                <div id="digital-info" style="display: none;">
+                                    <i class="fas fa-file-upload me-2"></i>
+                                    <strong>Dijital Tarama:</strong> STL, OBJ veya PLY formatında 3D tarama dosyası yükleyeceksiniz.
+                                </div>
+                                <div id="physical-info" style="display: none;">
+                                    <i class="fas fa-shipping-fast me-2"></i>
+                                    <strong>Fiziksel Kalıp:</strong> Fiziksel kalıbı kargo ile üretici merkezine göndereceksiniz.
+                                </div>
+                            </div>
                         </div>
                         {% endif %}
 
@@ -188,11 +198,11 @@
                             {{ form.vent_diameter|as_crispy_field }}
                         </div>
 
-                        <!-- File Upload -->
-                        <div class="col-12">
-                            <h6 class="mb-3 mt-4">Dosya Yükleme</h6>
-                        </div>
-                        <div class="col-12">
+                        <!-- Dijital Dosya Yükleme Bölümü -->
+                        <div id="digital-upload-section" class="col-12" style="display: none;">
+                            <h6 class="mb-3 mt-4">
+                                <i class="fas fa-file-upload me-2"></i>Dijital Dosya Yükleme
+                            </h6>
                             {% if object and object.scan_file %}
                                 <div class="alert alert-info">
                                     <div class="d-flex align-items-center">
@@ -214,6 +224,36 @@
                                 Desteklenen formatlar: STL, OBJ, PLY, ZIP, RAR<br>
                                 Maksimum dosya boyutu: 100MB
                             </small>
+                        </div>
+
+                        <!-- Fiziksel Kargo Bilgilendirme Bölümü -->
+                        <div id="physical-shipping-section" class="col-12" style="display: none;">
+                            <h6 class="mb-3 mt-4">
+                                <i class="fas fa-shipping-fast me-2"></i>Fiziksel Kalıp Gönderimi
+                            </h6>
+                            <div class="alert alert-warning">
+                                <h6><i class="fas fa-exclamation-triangle me-2"></i>Önemli Bilgiler</h6>
+                                <ul class="mb-0">
+                                    <li>Kalıbınızı güvenli bir şekilde paketleyiniz</li>
+                                    <li>Sipariş oluşturduktan sonra size kargo adresi verilecektir</li>
+                                    <li>Kargo gönderimi sonrası takip numarasını sisteme girebilirsiniz</li>
+                                    <li>Kalıp üreticiye ulaştıktan sonra üretim süreci başlayacaktır</li>
+                                </ul>
+                            </div>
+                            <div class="card border-info">
+                                <div class="card-body">
+                                    <h6 class="card-title">
+                                        <i class="fas fa-map-marker-alt me-2"></i>Kargo Adresi
+                                    </h6>
+                                    <p class="card-text">
+                                        <strong>Adres bilgileri sipariş onaylandıktan sonra gösterilecektir.</strong><br>
+                                        <small class="text-muted">
+                                            Sipariş oluşturduktan sonra "Kalıp Detayları" sayfasından kargo adresini görebilir 
+                                            ve takip numarasını ekleyebilirsiniz.
+                                        </small>
+                                    </p>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Notes -->
@@ -309,24 +349,65 @@
 
 {% block extra_js %}
 <script>
-    // File input validation
-    document.querySelector('input[type="file"]').addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (file) {
-            // Check file size (100MB)
-            if (file.size > 104857600) {
-                alert('Dosya boyutu 100MB\'ı geçemez.');
-                e.target.value = '';
-                return;
-            }
+    document.addEventListener('DOMContentLoaded', function() {
+        // Sipariş türü değişikliklerini dinle
+        const orderTypeInputs = document.querySelectorAll('input[name="order_type"]');
+        const digitalSection = document.getElementById('digital-upload-section');
+        const physicalSection = document.getElementById('physical-shipping-section');
+        const digitalInfo = document.getElementById('digital-info');
+        const physicalInfo = document.getElementById('physical-info');
+        const fileInput = document.querySelector('input[type="file"]');
 
-            // Check file extension
-            const ext = file.name.split('.').pop().toLowerCase();
-            if (!['stl', 'obj', 'ply', 'zip', 'rar'].includes(ext)) {
-                alert('Sadece STL, OBJ, PLY, ZIP ve RAR dosyaları yüklenebilir.');
-                e.target.value = '';
-                return;
+        function toggleSections() {
+            const selectedType = document.querySelector('input[name="order_type"]:checked')?.value;
+            
+            if (selectedType === 'digital') {
+                digitalSection.style.display = 'block';
+                physicalSection.style.display = 'none';
+                digitalInfo.style.display = 'block';
+                physicalInfo.style.display = 'none';
+                if (fileInput) fileInput.required = true;
+            } else if (selectedType === 'physical') {
+                digitalSection.style.display = 'none';
+                physicalSection.style.display = 'block';
+                digitalInfo.style.display = 'none';
+                physicalInfo.style.display = 'block';
+                if (fileInput) fileInput.required = false;
             }
+        }
+
+        // İlk yükleme
+        toggleSections();
+
+        // Radio button değişikliklerini dinle
+        orderTypeInputs.forEach(input => {
+            input.addEventListener('change', toggleSections);
+        });
+
+        // File input validation (sadece dijital için)
+        if (fileInput) {
+            fileInput.addEventListener('change', function(e) {
+                const selectedType = document.querySelector('input[name="order_type"]:checked')?.value;
+                if (selectedType !== 'digital') return;
+
+                const file = e.target.files[0];
+                if (file) {
+                    // Check file size (100MB)
+                    if (file.size > 104857600) {
+                        alert('Dosya boyutu 100MB\'ı geçemez.');
+                        e.target.value = '';
+                        return;
+                    }
+
+                    // Check file extension
+                    const ext = file.name.split('.').pop().toLowerCase();
+                    if (!['stl', 'obj', 'ply', 'zip', 'rar'].includes(ext)) {
+                        alert('Sadece STL, OBJ, PLY, ZIP ve RAR dosyaları yüklenebilir.');
+                        e.target.value = '';
+                        return;
+                    }
+                }
+            });
         }
     });
 </script>

@@ -113,10 +113,27 @@
                             <!-- MERKEZ NAV MENÜSÜ -->
                             {% if not user.is_staff and not user.is_superuser %}
                             <li class="nav-item">
-                                <span class="nav-link text-muted">
+                                <a class="nav-link" href="{% url 'center:dashboard' %}">
+                                    <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'mold:mold_list' %}">
+                                    <i class="fas fa-cube me-1"></i>Kalıplarım
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link btn btn-success text-white me-2 fw-bold" href="{% url 'mold:mold_create' %}" 
+                                   style="border-radius: 25px; padding: 0.5rem 1.2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.3s ease;"
+                                   onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 8px rgba(0,0,0,0.2)'"
+                                   onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)'">
+                                    <i class="fas fa-plus me-1"></i>Yeni Kalıp
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'center:network_management' %}">
                                     <i class="fas fa-network-wired me-1"></i>Üretici Ağları
-                                    <small class="d-block">Admin Yönetimi</small>
-                                </span>
+                                </a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'mold:revision_request_create' %}">

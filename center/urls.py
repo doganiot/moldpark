@@ -10,6 +10,9 @@ urlpatterns = [
     path('change-avatar/', views.change_avatar, name='change_avatar'),
     path('delete-account/', views.delete_account, name='delete_account'),
     
+    # Network Management
+    path('network/', views.network_management, name='network_management'),
+    
     # Notifications
     path('notifications/', views.notification_list, name='notification_list'),
     path('notifications/<int:notification_id>/read/', views.mark_notification_read, name='mark_notification_read'),

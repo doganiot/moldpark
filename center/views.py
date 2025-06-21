@@ -12,6 +12,7 @@ from django.db.models import Count, Q
 from django.db import models
 from datetime import datetime, timedelta
 from mold.models import EarMold
+from producer.models import ProducerNetwork, Producer
 from django.http import JsonResponse
 from django.utils import timezone
 
@@ -42,7 +43,6 @@ def dashboard(request):
     remaining_limit = max(0, center.mold_limit - used_molds)
     
     # Üretici ağ bilgileri
-    from producer.models import ProducerNetwork
     producer_networks = ProducerNetwork.objects.filter(
         center=center, 
         status='active'
@@ -758,3 +758,31 @@ def get_producers_api(request):
             'success': False,
             'message': str(e)
         })
+
+@login_required
+@center_required
+def network_management(request):
+    """İşitme merkezi üretici ağ yönetimi"""
+    center = request.user.center
+    
+    # Tüm network durumları
+    all_networks = ProducerNetwork.objects.filter(center=center).select_related('producer')
+    active_networks = all_networks.filter(status='active')
+    pending_networks = all_networks.filter(status='pending')
+    terminated_networks = all_networks.filter(status='terminated')
+    
+    # İstatistikler
+    stats = {
+        'total_networks': all_networks.count(),
+        'active_count': active_networks.count(),
+        'pending_count': pending_networks.count(),
+        'terminated_count': terminated_networks.count(),
+    }
+    
+    return render(request, 'center/network_management.html', {
+        'center': center,
+        'active_networks': active_networks,
+        'pending_networks': pending_networks,
+        'terminated_networks': terminated_networks,
+        'stats': stats,
+    })

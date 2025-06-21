@@ -14,6 +14,10 @@ urlpatterns = [
     path('<int:mold_id>/upload-model/', views.upload_model, name='upload_model'),
     path('model/<int:pk>/delete/', views.delete_modeled_mold, name='delete_modeled_mold'),
     
+    # Fiziksel Kalıp Gönderimi
+    path('<int:pk>/update-tracking/', views.update_tracking, name='update_tracking'),
+    path('<int:pk>/physical-shipment/', views.physical_shipment_detail, name='physical_shipment_detail'),
+    
     # Revizyon Talepleri
     path('revision-request/create/', views.revision_request_create, name='revision_request_create'),
     path('<int:mold_id>/revision-request/', views.revision_request_create, name='revision_request_create_for_mold'),
