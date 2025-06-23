@@ -821,13 +821,17 @@ body {
 
 /* Logo Stilleri */
 .navbar-brand img {
-    transition: transform 0.3s ease;
+    transition: all 0.3s ease;
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    background: white;
+    padding: 2px;
+    border: 1px solid #e9ecef;
 }
 
 .navbar-brand:hover img {
     transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
 .footer img {
@@ -839,11 +843,15 @@ body {
 .hero-logo {
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    transition: transform 0.3s ease;
+    transition: all 0.3s ease;
+    background: white;
+    padding: 8px;
+    border: 2px solid #e9ecef;
 }
 
 .hero-logo:hover {
     transform: scale(1.02);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
 }
 
 /* Utility Classes */
