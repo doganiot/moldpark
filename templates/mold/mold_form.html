@@ -1,415 +1,937 @@
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
 
+{% block extra_css %}
+<style>
+.mold-form-hero {
+    background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-700) 50%, var(--primary-800) 100%);
+    color: white;
+    position: relative;
+    overflow: hidden;
+}
+
+.mold-form-hero::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="white" stroke-width="0.5" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+}
+
+.mold-form-hero .hero-content {
+    position: relative;
+    z-index: 2;
+}
+
+.progress-indicator {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.progress-step {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 50px;
+    background: var(--gray-100);
+    color: var(--gray-600);
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.progress-step.active {
+    background: var(--primary-600);
+    color: white;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
+.progress-step.completed {
+    background: var(--success-600);
+    color: white;
+}
+
+.progress-arrow {
+    width: 0;
+    height: 0;
+    border-left: 8px solid var(--gray-300);
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    margin: 0 0.5rem;
+}
+
+.form-card {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    overflow: hidden;
+}
+
+.form-section {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid var(--gray-200);
+    position: relative;
+}
+
+.form-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: var(--gradient-primary);
+    border-radius: 0 4px 4px 0;
+}
+
+.form-section h6 {
+    color: var(--gray-800);
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.form-section .section-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: var(--gradient-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.1rem;
+}
+
+.form-field-enhanced {
+    margin-bottom: 1.5rem;
+}
+
+.form-field-enhanced label {
+    font-weight: 600;
+    color: var(--gray-700);
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.form-field-enhanced input,
+.form-field-enhanced select,
+.form-field-enhanced textarea {
+    border: 2px solid var(--gray-200);
+    border-radius: 12px;
+    padding: 0.875rem 1rem;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.form-field-enhanced input:focus,
+.form-field-enhanced select:focus,
+.form-field-enhanced textarea:focus {
+    border-color: var(--primary-500);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    outline: none;
+}
+
+.alert-modern {
+    border-radius: 16px;
+    border: none;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.alert-modern.alert-warning {
+    background: linear-gradient(135deg, var(--warning-100), var(--warning-200));
+    color: var(--warning-800);
+    border-left: 4px solid var(--warning-500);
+}
+
+.alert-modern.alert-danger {
+    background: linear-gradient(135deg, var(--danger-100), var(--danger-200));
+    color: var(--danger-800);
+    border-left: 4px solid var(--danger-500);
+}
+
+.alert-modern.alert-info {
+    background: linear-gradient(135deg, var(--info-100), var(--info-200));
+    color: var(--info-800);
+    border-left: 4px solid var(--info-500);
+}
+
+.alert-modern .alert-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.alert-warning .alert-icon { background: var(--warning-500); color: white; }
+.alert-danger .alert-icon { background: var(--danger-500); color: white; }
+.alert-info .alert-icon { background: var(--info-500); color: white; }
+
+.file-upload-area {
+    border: 2px dashed var(--gray-300);
+    border-radius: 16px;
+    padding: 2rem;
+    text-align: center;
+    background: var(--gray-50);
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.file-upload-area:hover {
+    border-color: var(--primary-500);
+    background: var(--primary-50);
+}
+
+.file-upload-area.dragover {
+    border-color: var(--primary-600);
+    background: var(--primary-100);
+    transform: scale(1.02);
+}
+
+.submit-section {
+    background: linear-gradient(135deg, var(--gray-50), var(--gray-100));
+    border-radius: 20px;
+    padding: 2rem;
+    text-align: center;
+    margin-top: 2rem;
+}
+
+.btn-submit-modern {
+    background: var(--gradient-primary);
+    border: none;
+    border-radius: 50px;
+    padding: 1rem 3rem;
+    color: white;
+    font-weight: 600;
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+}
+
+.btn-submit-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(79, 70, 229, 0.4);
+    color: white;
+}
+
+.btn-submit-modern:disabled {
+    background: var(--gray-400);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.debug-panel {
+    background: linear-gradient(135deg, var(--info-100), var(--info-200));
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    border-left: 4px solid var(--info-500);
+}
+
+.limit-indicator {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--success-50);
+    border-radius: 12px;
+    border: 1px solid var(--success-200);
+    margin-bottom: 1.5rem;
+}
+
+.limit-indicator.warning {
+    background: var(--warning-50);
+    border-color: var(--warning-200);
+}
+
+.limit-indicator.danger {
+    background: var(--danger-50);
+    border-color: var(--danger-200);
+}
+
+.progress-bar-custom {
+    height: 8px;
+    background: var(--gray-200);
+    border-radius: 4px;
+    overflow: hidden;
+    flex: 1;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--gradient-primary);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.order-type-selector {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.order-type-card {
+    border: 2px solid var(--gray-200);
+    border-radius: 16px;
+    padding: 1.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.order-type-card:hover {
+    border-color: var(--primary-500);
+    background: var(--primary-50);
+}
+
+.order-type-card.selected {
+    border-color: var(--primary-600);
+    background: var(--primary-100);
+    box-shadow: 0 4px 15px rgba(79, 70, 229, 0.2);
+}
+
+.order-type-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    background: var(--gradient-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+    margin: 0 auto 1rem;
+}
+
+@media (max-width: 768px) {
+    .form-section {
+        padding: 1.5rem;
+    }
+    
+    .progress-indicator {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .progress-arrow {
+        display: none;
+    }
+    
+    .order-type-selector {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container">
-    <!-- DEBUG PANEL -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="alert alert-info">
-                <h6><i class="fas fa-bug me-2"></i>Debug Bilgileri</h6>
-                <div class="row">
-                    <div class="col-md-6">
-                        <strong>Kalıp Limiti:</strong> {{ used_molds }}/{{ total_limit }} kullanıldı (Kalan: {{ remaining_limit }})<br>
-                        <strong>Aktif Ağ Sayısı:</strong> {{ active_networks.count }}<br>
-                        {% if active_networks %}
-                            <strong>Ağlar:</strong>
-                            <ul class="mb-0 mt-1">
-                            {% for network in active_networks %}
-                                <li>{{ network.producer.company_name }} 
-                                    <span class="badge bg-{% if network.producer.is_verified %}success{% else %}warning{% endif %}">
-                                        {% if network.producer.is_verified %}Doğrulanmış{% else %}Beklemede{% endif %}
-                                    </span>
-                                </li>
-                            {% endfor %}
-                            </ul>
-                        {% else %}
-                            <span class="text-danger">Hiç aktif ağ yok!</span>
-                        {% endif %}
-                    </div>
-                    <div class="col-md-6">
-                        <strong>Form Durumu:</strong>
-                        {% if form.errors %}
-                            <span class="text-danger">Hatalar var!</span>
-                            <ul class="text-danger mt-1">
-                            {% for field, errors in form.errors.items %}
-                                <li><strong>{{ field }}:</strong> {{ errors|join:", " }}</li>
-                            {% endfor %}
-                            </ul>
-                        {% else %}
-                            <span class="text-success">Form hazır</span>
-                        {% endif %}
-                        <br>
-                        <strong>Form Field Durumları:</strong>
-                        <ul class="small mt-1">
-                            {% for field in form %}
-                                <li>{{ field.label }}: 
-                                    {% if field.field.disabled %}
-                                        <span class="text-danger">Devre dışı</span>
-                                    {% else %}
-                                        <span class="text-success">Aktif</span>
-                                    {% endif %}
-                                </li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row mb-4">
-        <div class="col-12">
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="{% url 'mold:mold_list' %}">Kalıplarım</a></li>
-                    <li class="breadcrumb-item active">
-                        {% if object %}
-                            {{ object.patient_name }} - Düzenle
-                        {% else %}
-                            Yeni Kalıp
-                        {% endif %}
-                    </li>
-                </ol>
-            </nav>
-        </div>
-    </div>
-
-    <!-- Network Uyarısı -->
-    {% if not active_networks %}
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="alert alert-danger">
-                <div class="d-flex align-items-center">
-                    <i class="fas fa-exclamation-triangle fa-2x me-3"></i>
-                    <div>
-                        <h6 class="mb-1">Üretici Ağı Gerekli</h6>
-                        <p class="mb-2">Kalıp siparişi verebilmek için bir üretici ağına katılmanız gerekiyor.</p>
-                        <div class="btn btn-outline-secondary btn-sm disabled">
-                            <i class="fas fa-network-wired me-1"></i>Admin Yönetimi
+<div class="container-fluid py-4">
+    <!-- Modern Hero Section -->
+    <div class="mold-form-hero rounded-4 mb-4">
+        <div class="hero-content p-4">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="me-3">
+                            <div class="bg-white bg-opacity-20 rounded-circle d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                {% if object %}
+                                    <i class="fas fa-edit text-white fa-2x"></i>
+                                {% else %}
+                                    <i class="fas fa-plus text-white fa-2x"></i>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div>
+                            <h1 class="mb-1 fw-bold">
+                                {% if object %}
+                                    Kalıp Düzenle
+                                {% else %}
+                                    Yeni Kalıp Oluştur
+                                {% endif %}
+                            </h1>
+                            <p class="mb-0 opacity-75">
+                                {% if object %}
+                                    {{ object.patient_name }} {{ object.patient_surname }} için kalıp düzenleme
+                                {% else %}
+                                    Profesyonel kulak kalıbı siparişi oluşturun
+                                {% endif %}
+                            </p>
                         </div>
                     </div>
                 </div>
+                <div class="col-lg-4 text-end d-none d-lg-block">
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb bg-white bg-opacity-20 rounded-3 px-3 py-2 mb-0">
+                            <li class="breadcrumb-item"><a href="{% url 'mold:mold_list' %}" class="text-white">Kalıplarım</a></li>
+                            <li class="breadcrumb-item active text-white">
+                                {% if object %}Düzenle{% else %}Yeni Kalıp{% endif %}
+                            </li>
+                        </ol>
+                    </nav>
+                </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Debug Panel (Development Only) -->
+    <div class="debug-panel">
+        <h6><i class="fas fa-bug me-2"></i>Sistem Durumu</h6>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="limit-indicator {% if remaining_limit <= 0 %}danger{% elif remaining_limit <= 5 %}warning{% endif %}">
+                    <div class="progress-bar-custom">
+                        <div class="progress-fill" style="width: {{ used_molds|mul:100|div:total_limit }}%"></div>
+                    </div>
+                    <div class="text-end">
+                        <strong>{{ used_molds }}/{{ total_limit }}</strong>
+                        <small class="d-block">Kalan: {{ remaining_limit }}</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="fas fa-network-wired text-primary"></i>
+                    <span><strong>{{ active_networks.count }}</strong> Aktif Ağ</span>
+                    {% if not active_networks %}
+                        <span class="badge bg-danger">Ağ Yok!</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Indicator -->
+    <div class="progress-indicator">
+        <div class="progress-step completed">
+            <i class="fas fa-user-check"></i>
+            Giriş
+        </div>
+        <div class="progress-arrow"></div>
+        <div class="progress-step active">
+            <i class="fas fa-clipboard-list"></i>
+            Form Doldurma
+        </div>
+        <div class="progress-arrow"></div>
+        <div class="progress-step">
+            <i class="fas fa-upload"></i>
+            Dosya Yükleme
+        </div>
+        <div class="progress-arrow"></div>
+        <div class="progress-step">
+            <i class="fas fa-check-circle"></i>
+            Tamamlama
+        </div>
+    </div>
+
+    <!-- Network Warning -->
+    {% if not active_networks %}
+    <div class="alert-modern alert-danger">
+        <div class="alert-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div>
+            <h6 class="mb-1">Üretici Ağı Gerekli</h6>
+            <p class="mb-2">Kalıp siparişi verebilmek için bir üretici ağına katılmanız gerekiyor.</p>
+            <button class="btn btn-outline-danger btn-sm disabled">
+                <i class="fas fa-network-wired me-1"></i>Admin ile İletişime Geçin
+            </button>
         </div>
     </div>
     {% endif %}
 
-    <!-- Limit Uyarısı -->
+    <!-- Limit Warning -->
     {% if remaining_limit <= 0 %}
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="alert alert-warning">
-                <div class="d-flex align-items-center">
-                    <i class="fas fa-exclamation-circle fa-2x me-3"></i>
-                    <div>
-                        <h6 class="mb-1">Kalıp Limiti Doldu</h6>
-                        <p class="mb-0">{{ total_limit }} kalıp limitinizi doldurdunuz. Daha fazla kalıp oluşturamazsınız.</p>
-                    </div>
-                </div>
-            </div>
+    <div class="alert-modern alert-warning">
+        <div class="alert-icon">
+            <i class="fas fa-exclamation-circle"></i>
+        </div>
+        <div>
+            <h6 class="mb-1">Kalıp Limiti Doldu</h6>
+            <p class="mb-0">{{ total_limit }} kalıp limitinizi doldurdunuz. Daha fazla kalıp oluşturamazsınız.</p>
         </div>
     </div>
     {% endif %}
 
     <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white border-0">
-                    <h5 class="mb-0">
-                        {% if object %}
-                            Kalıp Düzenle
-                        {% else %}
-                            Yeni Kalıp Oluştur
-                        {% endif %}
-                    </h5>
-                </div>
-                <div class="card-body">
+        <div class="col-xl-10">
+            {% if not active_networks or remaining_limit <= 0 %}
+            <div class="form-card">
+                <div class="text-center py-5">
                     {% if not active_networks %}
-                    <div class="text-center py-5">
-                        <i class="fas fa-network-wired fa-3x text-muted mb-3"></i>
-                        <h6 class="text-muted">Üretici ağına bağlı değilsiniz</h6>
+                        <i class="fas fa-network-wired fa-4x text-muted mb-3"></i>
+                        <h5 class="text-muted">Üretici Ağına Bağlı Değilsiniz</h5>
                         <p class="text-muted">Kalıp oluşturmak için önce bir üretici ağına katılmalısınız.</p>
-                        <div class="btn btn-outline-secondary disabled">
-                            <i class="fas fa-network-wired me-1"></i>Admin Yönetimi
-                        </div>
-                    </div>
-                    {% elif remaining_limit <= 0 %}
-                    <div class="text-center py-5">
-                        <i class="fas fa-ban fa-3x text-muted mb-3"></i>
-                        <h6 class="text-muted">Kalıp limiti doldu</h6>
-                        <p class="text-muted">{{ total_limit }} kalıp limitinizi doldurdunuz.</p>
-                    </div>
                     {% else %}
-                    <form method="post" enctype="multipart/form-data" class="row g-3">
-                        {% csrf_token %}
+                        <i class="fas fa-ban fa-4x text-muted mb-3"></i>
+                        <h5 class="text-muted">Kalıp Limiti Doldu</h5>
+                        <p class="text-muted">{{ total_limit }} kalıp limitinizi doldurdunuz.</p>
+                    {% endif %}
+                    <a href="{% url 'mold:mold_list' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-arrow-left me-2"></i>Kalıplarıma Dön
+                    </a>
+                </div>
+            </div>
+            {% else %}
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
 
-                        <!-- Sipariş Türü -->
-                        {% if form.order_type %}
-                        <div class="col-12">
-                            <h6 class="mb-3">Sipariş Türü</h6>
-                            {{ form.order_type|as_crispy_field }}
-                            <div class="alert alert-info mt-3" id="order-type-info">
-                                <div id="digital-info" style="display: none;">
-                                    <i class="fas fa-file-upload me-2"></i>
-                                    <strong>Dijital Tarama:</strong> STL, OBJ veya PLY formatında 3D tarama dosyası yükleyeceksiniz.
-                                </div>
-                                <div id="physical-info" style="display: none;">
-                                    <i class="fas fa-shipping-fast me-2"></i>
-                                    <strong>Fiziksel Kalıp:</strong> Fiziksel kalıbı kargo ile üretici merkezine göndereceksiniz.
-                                </div>
+                <!-- Order Type Section -->
+                {% if form.order_type %}
+                <div class="form-section">
+                    <h6>
+                        <div class="section-icon">
+                            <i class="fas fa-clipboard-check"></i>
+                        </div>
+                        Sipariş Türü Seçimi
+                    </h6>
+                    
+                    <div class="order-type-selector">
+                        <div class="order-type-card" data-type="digital">
+                            <div class="order-type-icon">
+                                <i class="fas fa-file-upload"></i>
+                            </div>
+                            <h6>Dijital Tarama</h6>
+                            <p class="text-muted small mb-0">STL, OBJ veya PLY formatında 3D tarama dosyası yükleyin</p>
+                        </div>
+                        <div class="order-type-card" data-type="physical">
+                            <div class="order-type-icon">
+                                <i class="fas fa-shipping-fast"></i>
+                            </div>
+                            <h6>Fiziksel Kalıp</h6>
+                            <p class="text-muted small mb-0">Fiziksel kalıbı kargo ile üretici merkezine gönderin</p>
+                        </div>
+                    </div>
+                    
+                    {{ form.order_type|as_crispy_field }}
+                </div>
+                {% endif %}
+
+                <!-- Priority Section -->
+                {% if form.priority %}
+                <div class="form-section">
+                    <h6>
+                        <div class="section-icon">
+                            <i class="fas fa-exclamation-circle"></i>
+                        </div>
+                        Öncelik Seviyesi
+                    </h6>
+                    {{ form.priority|as_crispy_field }}
+                </div>
+                {% endif %}
+
+                <!-- Patient Information Section -->
+                <div class="form-section">
+                    <h6>
+                        <div class="section-icon">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        Hasta Bilgileri
+                    </h6>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="form-field-enhanced">
+                                {{ form.patient_name|as_crispy_field }}
                             </div>
                         </div>
-                        {% endif %}
-
-                        <!-- Öncelik -->
-                        {% if form.priority %}
-                        <div class="col-12">
-                            <h6 class="mb-3">Öncelik</h6>
-                            {{ form.priority|as_crispy_field }}
-                        </div>
-                        {% endif %}
-
-                        <!-- Patient Information -->
-                        <div class="col-12">
-                            <h6 class="mb-3">Hasta Bilgileri</h6>
-                        </div>
                         <div class="col-md-4">
-                            {{ form.patient_name|as_crispy_field }}
-                        </div>
-                        <div class="col-md-4">
-                            {{ form.patient_surname|as_crispy_field }}
-                        </div>
-                        <div class="col-md-2">
-                            {{ form.patient_age|as_crispy_field }}
-                        </div>
-                        <div class="col-md-2">
-                            {{ form.patient_gender|as_crispy_field }}
-                        </div>
-
-                        <!-- Mold Information -->
-                        <div class="col-12">
-                            <h6 class="mb-3 mt-4">Kalıp Bilgileri</h6>
-                        </div>
-                        <div class="col-md-6">
-                            {{ form.mold_type|as_crispy_field }}
-                        </div>
-                        <div class="col-md-6">
-                            {{ form.vent_diameter|as_crispy_field }}
-                        </div>
-
-                        <!-- Dijital Dosya Yükleme Bölümü -->
-                        <div id="digital-upload-section" class="col-12" style="display: none;">
-                            <h6 class="mb-3 mt-4">
-                                <i class="fas fa-file-upload me-2"></i>Dijital Dosya Yükleme
-                            </h6>
-                            {% if object and object.scan_file %}
-                                <div class="alert alert-info">
-                                    <div class="d-flex align-items-center">
-                                        <i class="fas fa-info-circle fa-2x me-3"></i>
-                                        <div>
-                                            <h6 class="mb-1">Mevcut Dosya</h6>
-                                            <p class="mb-0">
-                                                {{ object.scan_file.name|cut:"scans/" }}
-                                                <small class="text-muted">
-                                                    ({{ object.scan_file.size|filesizeformat }})
-                                                </small>
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            {% endif %}
-                            {{ form.scan_file|as_crispy_field }}
-                            <small class="text-muted">
-                                Desteklenen formatlar: STL, OBJ, PLY, ZIP, RAR<br>
-                                Maksimum dosya boyutu: 100MB
-                            </small>
-                        </div>
-
-                        <!-- Fiziksel Kargo Bilgilendirme Bölümü -->
-                        <div id="physical-shipping-section" class="col-12" style="display: none;">
-                            <h6 class="mb-3 mt-4">
-                                <i class="fas fa-shipping-fast me-2"></i>Fiziksel Kalıp Gönderimi
-                            </h6>
-                            <div class="alert alert-warning">
-                                <h6><i class="fas fa-exclamation-triangle me-2"></i>Önemli Bilgiler</h6>
-                                <ul class="mb-0">
-                                    <li>Kalıbınızı güvenli bir şekilde paketleyiniz</li>
-                                    <li>Sipariş oluşturduktan sonra size kargo adresi verilecektir</li>
-                                    <li>Kargo gönderimi sonrası takip numarasını sisteme girebilirsiniz</li>
-                                    <li>Kalıp üreticiye ulaştıktan sonra üretim süreci başlayacaktır</li>
-                                </ul>
+                            <div class="form-field-enhanced">
+                                {{ form.patient_surname|as_crispy_field }}
                             </div>
-                            <div class="card border-info">
-                                <div class="card-body">
-                                    <h6 class="card-title">
-                                        <i class="fas fa-map-marker-alt me-2"></i>Kargo Adresi
-                                    </h6>
-                                    <p class="card-text">
-                                        <strong>Adres bilgileri sipariş onaylandıktan sonra gösterilecektir.</strong><br>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-field-enhanced">
+                                {{ form.patient_age|as_crispy_field }}
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-field-enhanced">
+                                {{ form.patient_gender|as_crispy_field }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mold Information Section -->
+                <div class="form-section">
+                    <h6>
+                        <div class="section-icon">
+                            <i class="fas fa-cube"></i>
+                        </div>
+                        Kalıp Özellikleri
+                    </h6>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="form-field-enhanced">
+                                {{ form.mold_type|as_crispy_field }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-field-enhanced">
+                                {{ form.vent_diameter|as_crispy_field }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dijital Dosya Yükleme Bölümü -->
+                <div id="digital-upload-section" class="form-section" style="display: none;">
+                    <h6>
+                        <div class="section-icon">
+                            <i class="fas fa-file-upload"></i>
+                        </div>
+                        Dijital Dosya Yükleme
+                    </h6>
+                    {% if object and object.scan_file %}
+                        <div class="alert alert-info">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-info-circle fa-2x me-3"></i>
+                                <div>
+                                    <h6 class="mb-1">Mevcut Dosya</h6>
+                                    <p class="mb-0">
+                                        {{ object.scan_file.name|cut:"scans/" }}
                                         <small class="text-muted">
-                                            Sipariş oluşturduktan sonra "Kalıp Detayları" sayfasından kargo adresini görebilir 
-                                            ve takip numarasını ekleyebilirsiniz.
+                                            ({{ object.scan_file.size|filesizeformat }})
                                         </small>
                                     </p>
                                 </div>
                             </div>
                         </div>
-
-                        <!-- Notes -->
-                        <div class="col-12">
-                            <h6 class="mb-3 mt-4">Notlar</h6>
-                        </div>
-                        <div class="col-12">
-                            {{ form.notes|as_crispy_field }}
-                        </div>
-
-                        <!-- Özel Talimatlar -->
-                        {% if form.special_instructions %}
-                        <div class="col-12">
-                            <h6 class="mb-3 mt-4">Özel Talimatlar</h6>
-                            {{ form.special_instructions|as_crispy_field }}
-                        </div>
-                        {% endif %}
-
-                        <!-- Submit -->
-                        <div class="col-12 mt-4">
-                            <div class="d-flex justify-content-between">
-                                <a href="{% url 'mold:mold_list' %}" class="btn btn-outline-secondary">
-                                    <i class="fas fa-arrow-left me-2"></i>Geri
-                                </a>
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-save me-2"></i>Kalıp Oluştur ve Sipariş Gönder
-                                </button>
-                            </div>
-                        </div>
-                    </form>
                     {% endif %}
-                </div>
-            </div>
-        </div>
-
-        <!-- Help Card -->
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white border-0">
-                    <h5 class="mb-0">Yardım & Durum</h5>
-                </div>
-                <div class="card-body">
-                    <!-- Durum Bilgisi -->
-                    <div class="mb-4">
-                        <h6>Sistem Durumu</h6>
-                        <div class="list-group list-group-flush">
-                            <div class="list-group-item d-flex justify-content-between align-items-center px-0">
-                                Kalıp Limiti
-                                <span class="badge bg-{% if remaining_limit > 5 %}success{% elif remaining_limit > 0 %}warning{% else %}danger{% endif %}">
-                                    {{ remaining_limit }}/{{ total_limit }}
-                                </span>
-                            </div>
-                            <div class="list-group-item d-flex justify-content-between align-items-center px-0">
-                                Aktif Ağlar
-                                <span class="badge bg-{% if active_networks.count > 0 %}success{% else %}danger{% endif %}">
-                                    {{ active_networks.count }}
-                                </span>
-                            </div>
-                        </div>
+                    <div class="file-upload-area">
+                        {{ form.scan_file|as_crispy_field }}
                     </div>
+                    <small class="text-muted">
+                        Desteklenen formatlar: STL, OBJ, PLY, ZIP, RAR<br>
+                        Maksimum dosya boyutu: 100MB
+                    </small>
+                </div>
 
-                    <div class="mb-4">
-                        <h6>Kalıp Tipleri</h6>
-                        <ul class="list-unstyled mb-0">
-                            <li><i class="fas fa-check-circle text-success me-2"></i>Tam Konka</li>
-                            <li><i class="fas fa-check-circle text-success me-2"></i>Yarım Konka</li>
-                            <li><i class="fas fa-check-circle text-success me-2"></i>İskelet Tip</li>
-                            <li><i class="fas fa-check-circle text-success me-2"></i>Probe</li>
-                            <li><i class="fas fa-check-circle text-success me-2"></i>CIC</li>
-                            <li><i class="fas fa-check-circle text-success me-2"></i>ITE</li>
-                            <li><i class="fas fa-check-circle text-success me-2"></i>ITC</li>
+                <!-- Fiziksel Kargo Bilgilendirme Bölümü -->
+                <div id="physical-shipping-section" class="form-section" style="display: none;">
+                    <h6>
+                        <div class="section-icon">
+                            <i class="fas fa-shipping-fast"></i>
+                        </div>
+                        Fiziksel Kalıp Gönderimi
+                    </h6>
+                    <div class="alert alert-warning">
+                        <h6><i class="fas fa-exclamation-triangle me-2"></i>Önemli Bilgiler</h6>
+                        <ul class="mb-0">
+                            <li>Kalıbınızı güvenli bir şekilde paketleyiniz</li>
+                            <li>Sipariş oluşturduktan sonra size kargo adresi verilecektir</li>
+                            <li>Kargo gönderimi sonrası takip numarasını sisteme girebilirsiniz</li>
+                            <li>Kalıp üreticiye ulaştıktan sonra üretim süreci başlayacaktır</li>
                         </ul>
                     </div>
-                    <div class="mb-4">
-                        <h6>Vent Çapı</h6>
-                        <p class="text-muted small mb-0">
-                            Vent çapı, kalıbın havalandırma deliğinin çapını milimetre cinsinden belirtir.
-                            Genellikle 1-3mm arasında olur.
-                        </p>
-                    </div>
-                    <div>
-                        <h6>Dosya Gereksinimleri</h6>
-                        <p class="text-muted small mb-0">
-                            Tarama dosyanızın STL, OBJ, PLY, ZIP veya RAR formatında olması gerekir.
-                            Dosya boyutu 100MB'ı geçmemelidir.
-                        </p>
+                    <div class="card border-info">
+                        <div class="card-body">
+                            <h6 class="card-title">
+                                <i class="fas fa-map-marker-alt me-2"></i>Kargo Adresi
+                            </h6>
+                            <p class="card-text">
+                                <strong>Adres bilgileri sipariş onaylandıktan sonra gösterilecektir.</strong><br>
+                                <small class="text-muted">
+                                    Sipariş oluşturduktan sonra "Kalıp Detayları" sayfasından kargo adresini görebilir 
+                                    ve takip numarasını ekleyebilirsiniz.
+                                </small>
+                            </p>
+                        </div>
                     </div>
                 </div>
-            </div>
+
+                <!-- Notes -->
+                <div class="form-section">
+                    <h6>
+                        <div class="section-icon">
+                            <i class="fas fa-sticky-note"></i>
+                        </div>
+                        Notlar
+                    </h6>
+                    {{ form.notes|as_crispy_field }}
+                </div>
+
+                <!-- Özel Talimatlar -->
+                {% if form.special_instructions %}
+                <div class="form-section">
+                    <h6>
+                        <div class="section-icon">
+                            <i class="fas fa-exclamation-circle"></i>
+                        </div>
+                        Özel Talimatlar
+                    </h6>
+                    {{ form.special_instructions|as_crispy_field }}
+                </div>
+                {% endif %}
+
+                <!-- Submit -->
+                <div class="submit-section">
+                    <h6 class="mb-3">Siparişi Tamamla</h6>
+                    <p class="text-muted mb-4">Tüm bilgileri kontrol ettikten sonra siparişinizi oluşturabilirsiniz.</p>
+                    <div class="d-flex justify-content-center gap-3">
+                        <a href="{% url 'mold:mold_list' %}" class="btn btn-outline-secondary btn-lg">
+                            <i class="fas fa-arrow-left me-2"></i>İptal
+                        </a>
+                        <button type="submit" class="btn-submit-modern" id="submit-btn">
+                            <i class="fas fa-save me-2"></i>
+                            {% if object %}
+                                Kalıbı Güncelle
+                            {% else %}
+                                Kalıp Siparişi Oluştur
+                            {% endif %}
+                        </button>
+                    </div>
+                </div>
+            </form>
+            {% endif %}
         </div>
     </div>
 </div>
 
 {% block extra_js %}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Sipariş türü değişikliklerini dinle
-        const orderTypeInputs = document.querySelectorAll('input[name="order_type"]');
-        const digitalSection = document.getElementById('digital-upload-section');
-        const physicalSection = document.getElementById('physical-shipping-section');
-        const digitalInfo = document.getElementById('digital-info');
-        const physicalInfo = document.getElementById('physical-info');
-        const fileInput = document.querySelector('input[type="file"]');
-
-        function toggleSections() {
-            const selectedType = document.querySelector('input[name="order_type"]:checked')?.value;
+document.addEventListener('DOMContentLoaded', function() {
+    // Order type functionality
+    const orderTypeInputs = document.querySelectorAll('input[name="order_type"]');
+    const digitalSection = document.getElementById('digital-upload-section');
+    const physicalSection = document.getElementById('physical-shipping-section');
+    const orderTypeCards = document.querySelectorAll('.order-type-card');
+    
+    // Progress tracking
+    const progressSteps = document.querySelectorAll('.progress-step');
+    
+    // Form validation
+    const form = document.querySelector('form');
+    const submitBtn = document.getElementById('submit-btn');
+    const fileInput = document.querySelector('input[type="file"]');
+    
+    // Order type card selection
+    orderTypeCards.forEach(card => {
+        card.addEventListener('click', function() {
+            const type = this.dataset.type;
             
-            if (selectedType === 'digital') {
-                digitalSection.style.display = 'block';
-                physicalSection.style.display = 'none';
-                digitalInfo.style.display = 'block';
-                physicalInfo.style.display = 'none';
-                if (fileInput) fileInput.required = true;
-            } else if (selectedType === 'physical') {
-                digitalSection.style.display = 'none';
-                physicalSection.style.display = 'block';
-                digitalInfo.style.display = 'none';
-                physicalInfo.style.display = 'block';
-                if (fileInput) fileInput.required = false;
+            // Update visual selection
+            orderTypeCards.forEach(c => c.classList.remove('selected'));
+            this.classList.add('selected');
+            
+            // Update radio button
+            const radioBtn = document.querySelector(`input[name="order_type"][value="${type}"]`);
+            if (radioBtn) {
+                radioBtn.checked = true;
+                radioBtn.dispatchEvent(new Event('change'));
             }
-        }
-
-        // İlk yükleme
-        toggleSections();
-
-        // Radio button değişikliklerini dinle
-        orderTypeInputs.forEach(input => {
-            input.addEventListener('change', toggleSections);
         });
+    });
+    
+    function updateProgress(activeStep) {
+        progressSteps.forEach((step, index) => {
+            step.classList.remove('active', 'completed');
+            if (index < activeStep) {
+                step.classList.add('completed');
+            } else if (index === activeStep) {
+                step.classList.add('active');
+            }
+        });
+    }
+    
+    function toggleSections() {
+        const selectedType = document.querySelector('input[name="order_type"]:checked')?.value;
+        
+        // Update card selection
+        orderTypeCards.forEach(card => {
+            card.classList.remove('selected');
+            if (card.dataset.type === selectedType) {
+                card.classList.add('selected');
+            }
+        });
+        
+        // Show/hide sections
+        if (selectedType === 'digital') {
+            digitalSection.style.display = 'block';
+            physicalSection.style.display = 'none';
+            if (fileInput) fileInput.required = true;
+            updateProgress(2); // File upload step
+        } else if (selectedType === 'physical') {
+            digitalSection.style.display = 'none';
+            physicalSection.style.display = 'block';
+            if (fileInput) fileInput.required = false;
+            updateProgress(3); // Ready to submit
+        }
+    }
+    
+    // File upload drag & drop
+    const fileUploadArea = document.querySelector('.file-upload-area');
+    if (fileUploadArea && fileInput) {
+        fileUploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('dragover');
+        });
+        
+        fileUploadArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+        });
+        
+        fileUploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+            
+            if (e.dataTransfer.files.length > 0) {
+                fileInput.files = e.dataTransfer.files;
+                fileInput.dispatchEvent(new Event('change'));
+            }
+        });
+        
+        // File input validation
+        fileInput.addEventListener('change', function(e) {
+            const selectedType = document.querySelector('input[name="order_type"]:checked')?.value;
+            if (selectedType !== 'digital') return;
 
-        // File input validation (sadece dijital için)
-        if (fileInput) {
-            fileInput.addEventListener('change', function(e) {
-                const selectedType = document.querySelector('input[name="order_type"]:checked')?.value;
-                if (selectedType !== 'digital') return;
+            const file = e.target.files[0];
+            if (file) {
+                // Check file size (100MB)
+                if (file.size > 104857600) {
+                    alert('Dosya boyutu 100MB\'ı geçemez.');
+                    e.target.value = '';
+                    return;
+                }
 
-                const file = e.target.files[0];
-                if (file) {
-                    // Check file size (100MB)
-                    if (file.size > 104857600) {
-                        alert('Dosya boyutu 100MB\'ı geçemez.');
-                        e.target.value = '';
-                        return;
-                    }
-
-                    // Check file extension
-                    const ext = file.name.split('.').pop().toLowerCase();
-                    if (!['stl', 'obj', 'ply', 'zip', 'rar'].includes(ext)) {
-                        alert('Sadece STL, OBJ, PLY, ZIP ve RAR dosyaları yüklenebilir.');
-                        e.target.value = '';
-                        return;
-                    }
+                // Check file extension
+                const ext = file.name.split('.').pop().toLowerCase();
+                if (!['stl', 'obj', 'ply', 'zip', 'rar'].includes(ext)) {
+                    alert('Sadece STL, OBJ, PLY, ZIP ve RAR dosyaları yüklenebilir.');
+                    e.target.value = '';
+                    return;
+                }
+                
+                updateProgress(3); // Ready to submit
+                
+                // Show success message
+                const existingInfo = fileUploadArea.querySelector('.file-success');
+                if (existingInfo) existingInfo.remove();
+                
+                const fileInfo = document.createElement('div');
+                fileInfo.className = 'file-success mt-2 text-success';
+                fileInfo.innerHTML = `<i class="fas fa-check-circle me-2"></i>Dosya seçildi: ${file.name}`;
+                fileUploadArea.appendChild(fileInfo);
+            }
+        });
+    }
+    
+    // Form validation
+    function validateForm() {
+        const requiredFields = form.querySelectorAll('input[required], select[required], textarea[required]');
+        let isValid = true;
+        
+        requiredFields.forEach(field => {
+            if (!field.value.trim()) {
+                isValid = false;
+                field.classList.add('is-invalid');
+            } else {
+                field.classList.remove('is-invalid');
+            }
+        });
+        
+        return isValid;
+    }
+    
+    // Real-time validation
+    if (form) {
+        const inputs = form.querySelectorAll('input, select, textarea');
+        inputs.forEach(input => {
+            input.addEventListener('blur', function() {
+                if (this.hasAttribute('required') && !this.value.trim()) {
+                    this.classList.add('is-invalid');
+                } else {
+                    this.classList.remove('is-invalid');
                 }
             });
-        }
+            
+            input.addEventListener('input', function() {
+                if (this.classList.contains('is-invalid') && this.value.trim()) {
+                    this.classList.remove('is-invalid');
+                }
+            });
+        });
+    }
+    
+    // Form submission
+    if (form && submitBtn) {
+        form.addEventListener('submit', function(e) {
+            if (!validateForm()) {
+                e.preventDefault();
+                
+                // Show error message
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'alert alert-danger mt-3';
+                errorDiv.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Lütfen tüm gerekli alanları doldurun.';
+                
+                // Remove existing error
+                const existingError = form.querySelector('.alert-danger');
+                if (existingError) {
+                    existingError.remove();
+                }
+                
+                submitBtn.parentNode.insertBefore(errorDiv, submitBtn);
+                
+                // Scroll to first error
+                const firstError = form.querySelector('.is-invalid');
+                if (firstError) {
+                    firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                
+                return false;
+            }
+            
+            // Show loading state
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>İşleniyor...';
+        });
+    }
+    
+    // Initialize
+    toggleSections();
+    
+    // Order type change listener
+    orderTypeInputs.forEach(input => {
+        input.addEventListener('change', toggleSections);
     });
+    
+    // Enhanced form styling
+    const formInputs = document.querySelectorAll('input, select, textarea');
+    formInputs.forEach(input => {
+        input.addEventListener('focus', function() {
+            this.closest('.form-field-enhanced')?.classList.add('focused');
+        });
+        
+        input.addEventListener('blur', function() {
+            this.closest('.form-field-enhanced')?.classList.remove('focused');
+        });
+    });
+});
 </script>
 {% endblock %}
 {% endblock %}

@@ -4,445 +4,550 @@
 
 {% block title %}Yönetici Paneli - MoldPark{% endblock %}
 
+{% block extra_css %}
+<style>
+.admin-hero {
+    background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-700) 50%, var(--primary-800) 100%);
+    color: white;
+    position: relative;
+    overflow: hidden;
+}
+
+.admin-hero::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="1" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+    opacity: 0.1;
+}
+
+.admin-hero .hero-content {
+    position: relative;
+    z-index: 2;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: var(--gradient-primary);
+    transition: width 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+.stat-card:hover::before {
+    width: 8px;
+}
+
+.stat-card.clickable {
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+}
+
+.stat-card.clickable:hover {
+    color: inherit;
+    text-decoration: none;
+}
+
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.stat-icon.primary { background: linear-gradient(135deg, var(--primary-500), var(--primary-600)); color: white; }
+.stat-icon.success { background: linear-gradient(135deg, var(--success-500), var(--success-600)); color: white; }
+.stat-icon.info { background: linear-gradient(135deg, var(--info-500), var(--info-600)); color: white; }
+.stat-icon.warning { background: linear-gradient(135deg, var(--warning-500), var(--warning-600)); color: white; }
+.stat-icon.danger { background: linear-gradient(135deg, var(--danger-500), var(--danger-600)); color: white; }
+.stat-icon.secondary { background: linear-gradient(135deg, var(--gray-500), var(--gray-600)); color: white; }
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 0.25rem;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: var(--gray-600);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.tab-navigation {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    margin-bottom: 2rem;
+}
+
+.nav-tabs-modern {
+    border-bottom: none;
+    background: var(--gray-50);
+    padding: 0.5rem;
+    gap: 0.25rem;
+}
+
+.nav-tabs-modern .nav-link {
+    border: none;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    color: var(--gray-600);
+    font-weight: 500;
+    transition: all 0.3s ease;
+    position: relative;
+    background: transparent;
+}
+
+.nav-tabs-modern .nav-link:hover {
+    background: white;
+    color: var(--primary-600);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.nav-tabs-modern .nav-link.active {
+    background: white;
+    color: var(--primary-600);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+}
+
+.tab-content-modern {
+    padding: 2rem;
+}
+
+.overview-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.overview-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.overview-card h6 {
+    color: var(--gray-700);
+    font-weight: 600;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.system-stats-table {
+    width: 100%;
+}
+
+.system-stats-table td {
+    padding: 0.75rem 0;
+    border: none;
+    vertical-align: middle;
+}
+
+.system-stats-table td:first-child {
+    color: var(--gray-600);
+    font-weight: 500;
+}
+
+.system-stats-table td:last-child {
+    text-align: right;
+    font-weight: 700;
+    color: var(--gray-800);
+}
+
+.quick-actions {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.quick-action-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem;
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    text-decoration: none;
+    color: var(--gray-700);
+    font-weight: 500;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.quick-action-btn:hover {
+    background: var(--primary-50);
+    border-color: var(--primary-200);
+    color: var(--primary-700);
+    transform: translateX(4px);
+}
+
+.moldpark-section {
+    background: linear-gradient(135deg, var(--warning-100), var(--warning-200));
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    border: 1px solid var(--warning-300);
+}
+
+.moldpark-section h5 {
+    color: var(--warning-800);
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.moldpark-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.moldpark-stat-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.moldpark-stat-number {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--warning-700);
+    margin-bottom: 0.25rem;
+}
+
+.moldpark-stat-label {
+    font-size: 0.875rem;
+    color: var(--gray-600);
+    font-weight: 500;
+}
+
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .overview-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .admin-hero .hero-content {
+        text-align: center;
+    }
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid py-4">
-    <!-- Header -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h1 class="mb-2">
-                        <i class="fas fa-cogs text-primary me-2"></i>
-                        Yönetici Paneli
-                    </h1>
-                    <nav aria-label="breadcrumb">
-                        <ol class="breadcrumb">
-                            <li class="breadcrumb-item active">Sistem Yönetimi</li>
-                        </ol>
-                    </nav>
+    <!-- Modern Hero Section -->
+    <div class="admin-hero rounded-4 mb-4">
+        <div class="hero-content p-4">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="me-3">
+                            <div class="bg-white bg-opacity-20 rounded-circle d-flex align-items-center justify-content-center" style="width: 70px; height: 70px;">
+                                <i class="fas fa-crown text-white fa-2x"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <h1 class="mb-1 fw-bold">Yönetici Paneli</h1>
+                            <p class="mb-0 opacity-75">MoldPark sisteminin merkezi yönetim paneli</p>
+                        </div>
+                    </div>
+                    
+                    <div class="row g-3 text-center">
+                        <div class="col-6 col-md-3">
+                            <div class="bg-white bg-opacity-20 rounded-3 p-3">
+                                <div class="h4 mb-1 fw-bold">{{ stats.total_centers }}</div>
+                                <small class="opacity-75">Toplam Merkez</small>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="bg-white bg-opacity-20 rounded-3 p-3">
+                                <div class="h4 mb-1 fw-bold">{{ stats.total_producers }}</div>
+                                <small class="opacity-75">Üretici</small>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="bg-white bg-opacity-20 rounded-3 p-3">
+                                <div class="h4 mb-1 fw-bold">{{ stats.total_molds }}</div>
+                                <small class="opacity-75">Toplam Kalıp</small>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="bg-white bg-opacity-20 rounded-3 p-3">
+                                <div class="h4 mb-1 fw-bold">{{ stats.total_users }}</div>
+                                <small class="opacity-75">Kullanıcı</small>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div>
-                    <span class="badge bg-success fs-6">
-                        <i class="fas fa-shield-alt me-1"></i>Süper Yönetici
-                    </span>
+                <div class="col-lg-4 text-end d-none d-lg-block">
+                    <div class="badge bg-white bg-opacity-20 fs-6 px-3 py-2">
+                        <i class="fas fa-shield-alt me-2"></i>Süper Yönetici
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- İstatistik Kartları -->
-    <div class="row mb-4">
-        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
-            <div class="card border-left-primary shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                Toplam Merkez
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.total_centers }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-clinic-medical fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
+    <!-- Modern Stats Grid -->
+    <div class="stats-grid">
+        <a href="{% url 'center:admin_mold_list' %}" class="stat-card clickable">
+            <div class="stat-icon secondary">
+                <i class="fas fa-cube"></i>
             </div>
-        </div>
+            <div class="stat-number">{{ stats.total_molds }}</div>
+            <div class="stat-label">Toplam Kalıp</div>
+        </a>
 
-        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
-            <div class="card border-left-success shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                Aktif Merkez
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.active_centers }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
+        <a href="{% url 'center:admin_mold_list' %}?status=waiting" class="stat-card clickable">
+            <div class="stat-icon warning">
+                <i class="fas fa-clock"></i>
             </div>
-        </div>
+            <div class="stat-number">{{ stats.waiting_molds }}</div>
+            <div class="stat-label">Bekleyen Kalıp</div>
+        </a>
 
-        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
-            <div class="card border-left-info shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                Üretici
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.total_producers }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-industry fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
+        <a href="{% url 'center:admin_mold_list' %}?status=processing" class="stat-card clickable">
+            <div class="stat-icon info">
+                <i class="fas fa-cog fa-spin"></i>
             </div>
-        </div>
+            <div class="stat-number">{{ stats.processing_molds }}</div>
+            <div class="stat-label">İşleniyor</div>
+        </a>
 
-        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
-            <div class="card border-left-warning shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                Doğrulu Üretici
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.verified_producers }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-certificate fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
+        <a href="{% url 'center:admin_mold_list' %}?status=completed" class="stat-card clickable">
+            <div class="stat-icon success">
+                <i class="fas fa-check-circle"></i>
             </div>
-        </div>
+            <div class="stat-number">{{ stats.completed_molds }}</div>
+            <div class="stat-label">Tamamlandı</div>
+        </a>
 
-        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
-            <a href="{% url 'center:admin_mold_list' %}" class="text-decoration-none">
-                <div class="card border-left-secondary shadow h-100 py-2 hover-card">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">
-                                    Toplam Kalıp
-                                </div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.total_molds }}</div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-cube fa-2x text-gray-300"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </a>
-        </div>
+        <a href="{% url 'center:admin_mold_list' %}?status=delivered" class="stat-card clickable">
+            <div class="stat-icon primary">
+                <i class="fas fa-truck"></i>
+            </div>
+            <div class="stat-number">{{ stats.delivered_molds }}</div>
+            <div class="stat-label">Teslim Edildi</div>
+        </a>
 
-        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
-            <a href="{% url 'center:admin_mold_list' %}?status=waiting" class="text-decoration-none">
-                <div class="card border-left-warning shadow h-100 py-2 hover-card">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                    Bekleyen Kalıp
-                                </div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.waiting_molds }}</div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-clock fa-2x text-gray-300"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </a>
-        </div>
-
-        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
-            <a href="{% url 'center:admin_mold_list' %}?status=processing" class="text-decoration-none">
-                <div class="card border-left-info shadow h-100 py-2 hover-card">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                    İşleniyor
-                                </div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.processing_molds }}</div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-cog fa-spin fa-2x text-gray-300"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </a>
-        </div>
-
-        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
-            <a href="{% url 'center:admin_mold_list' %}?status=completed" class="text-decoration-none">
-                <div class="card border-left-success shadow h-100 py-2 hover-card">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                    Tamamlandı
-                                </div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.completed_molds }}</div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-check-circle fa-2x text-gray-300"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </a>
-        </div>
-
-        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
-            <a href="{% url 'center:admin_mold_list' %}?status=delivered" class="text-decoration-none">
-                <div class="card border-left-primary shadow h-100 py-2 hover-card">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                    Teslim Edildi
-                                </div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.delivered_molds }}</div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-truck fa-2x text-gray-300"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </a>
-        </div>
-
-        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
-            <a href="{% url 'center:admin_mold_list' %}?status=revision" class="text-decoration-none">
-                <div class="card border-left-danger shadow h-100 py-2 hover-card">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
-                                    Revizyon
-                                </div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.revision_molds }}</div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-redo fa-2x text-gray-300"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </a>
-        </div>
+        <a href="{% url 'center:admin_mold_list' %}?status=revision" class="stat-card clickable">
+            <div class="stat-icon danger">
+                <i class="fas fa-redo"></i>
+            </div>
+            <div class="stat-number">{{ stats.revision_molds }}</div>
+            <div class="stat-label">Revizyon</div>
+        </a>
     </div>
 
-    <!-- MoldPark Siparişleri İstatistik Kartları -->
+    <!-- MoldPark Special Section -->
     {% if moldpark_producer %}
-    <div class="row mb-4">
-        <div class="col-12">
-            <h5 class="text-warning mb-3">
-                <i class="fas fa-star me-2"></i>MoldPark Üretim Merkezi İstatistikleri
-            </h5>
-        </div>
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card border-left-warning shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                MoldPark Siparişleri
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.moldpark_orders }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-star fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
+    <div class="moldpark-section">
+        <h5>
+            <i class="fas fa-star"></i>
+            MoldPark Üretim Merkezi
+        </h5>
+        <div class="moldpark-stats">
+            <div class="moldpark-stat-card">
+                <div class="moldpark-stat-number">{{ stats.moldpark_orders }}</div>
+                <div class="moldpark-stat-label">Toplam Sipariş</div>
             </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card border-left-info shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                Aktif Siparişler
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.moldpark_active_orders }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-cog fa-spin fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
+            <div class="moldpark-stat-card">
+                <div class="moldpark-stat-number">{{ stats.moldpark_active_orders }}</div>
+                <div class="moldpark-stat-label">Aktif Sipariş</div>
             </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card border-left-success shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                Aylık Limit
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ moldpark_producer.mold_limit }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-chart-line fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
+            <div class="moldpark-stat-card">
+                <div class="moldpark-stat-number">{{ moldpark_producer.mold_limit }}</div>
+                <div class="moldpark-stat-label">Aylık Limit</div>
             </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card border-left-primary shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                Durum
-                            </div>
-                            <div class="h6 mb-0 font-weight-bold text-success">Aktif & Doğrulanmış</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
+            <div class="moldpark-stat-card">
+                <div class="moldpark-stat-number text-success">Aktif</div>
+                <div class="moldpark-stat-label">Durum</div>
             </div>
         </div>
     </div>
     {% endif %}
-    </div>
 
-    <!-- Tab Navigation -->
-    <div class="card shadow">
-        <div class="card-header p-0">
-            <ul class="nav nav-tabs nav-tabs-custom" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab">
-                        <i class="fas fa-chart-pie me-2"></i>Genel Bakış
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="centers-tab" data-bs-toggle="tab" data-bs-target="#centers" type="button" role="tab">
-                        <i class="fas fa-clinic-medical me-2"></i>İşitme Merkezleri
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="producers-tab" data-bs-toggle="tab" data-bs-target="#producers" type="button" role="tab">
-                        <i class="fas fa-industry me-2"></i>Üretici Merkezler
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="molds-tab" data-bs-toggle="tab" data-bs-target="#molds" type="button" role="tab">
-                        <i class="fas fa-cube me-2"></i>Kalıp Yönetimi
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="terminated-networks-tab" data-bs-toggle="tab" data-bs-target="#terminated-networks" type="button" role="tab">
-                        <i class="fas fa-unlink text-danger me-2"></i>Sonlandırılan Ağlar
-                        {% if terminated_networks|length > 0 %}
-                        <span class="badge bg-danger ms-1">{{ terminated_networks|length }}</span>
-                        {% endif %}
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="messages-tab" data-bs-toggle="tab" data-bs-target="#messages" type="button" role="tab">
-                        <i class="fas fa-envelope me-2"></i>Mesajlar
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="user-credentials-tab" data-bs-toggle="tab" data-bs-target="#user-credentials" type="button" role="tab">
-                        <i class="fas fa-users-cog me-2"></i>Kullanıcı Bilgileri
-                        <span class="badge bg-info ms-1">{{ stats.total_users }}</span>
-                    </button>
-                </li>
-                <!-- DEBUG: MoldPark Producer: {{ moldpark_producer|default:"None" }} -->
-                {% if moldpark_producer %}
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="moldpark-orders-tab" data-bs-toggle="tab" data-bs-target="#moldpark-orders" type="button" role="tab">
-                        <i class="fas fa-star text-warning me-2"></i>MoldPark Siparişleri
-                        {% if stats.moldpark_active_orders > 0 %}
-                        <span class="badge bg-warning text-dark ms-1">{{ stats.moldpark_active_orders }}</span>
-                        {% endif %}
-                    </button>
-                </li>
-                {% else %}
-                <!-- DEBUG: MoldPark producer bulunamadı -->
-                {% endif %}
-            </ul>
-        </div>
-        <div class="card-body">
+    <!-- Modern Tab Navigation -->
+    <div class="tab-navigation">
+        <ul class="nav nav-tabs nav-tabs-modern" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab">
+                    <i class="fas fa-chart-pie me-2"></i>Genel Bakış
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="centers-tab" data-bs-toggle="tab" data-bs-target="#centers" type="button" role="tab">
+                    <i class="fas fa-clinic-medical me-2"></i>İşitme Merkezleri
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="producers-tab" data-bs-toggle="tab" data-bs-target="#producers" type="button" role="tab">
+                    <i class="fas fa-industry me-2"></i>Üretici Merkezler
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="molds-tab" data-bs-toggle="tab" data-bs-target="#molds" type="button" role="tab">
+                    <i class="fas fa-cube me-2"></i>Kalıp Yönetimi
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="terminated-networks-tab" data-bs-toggle="tab" data-bs-target="#terminated-networks" type="button" role="tab">
+                    <i class="fas fa-unlink text-danger me-2"></i>Sonlandırılan Ağlar
+                    {% if terminated_networks|length > 0 %}
+                    <span class="badge bg-danger ms-1">{{ terminated_networks|length }}</span>
+                    {% endif %}
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="messages-tab" data-bs-toggle="tab" data-bs-target="#messages" type="button" role="tab">
+                    <i class="fas fa-envelope me-2"></i>Mesajlar
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="user-credentials-tab" data-bs-toggle="tab" data-bs-target="#user-credentials" type="button" role="tab">
+                    <i class="fas fa-users-cog me-2"></i>Kullanıcı Bilgileri
+                    <span class="badge bg-info ms-1">{{ stats.total_users }}</span>
+                </button>
+            </li>
+            {% if moldpark_producer %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="moldpark-orders-tab" data-bs-toggle="tab" data-bs-target="#moldpark-orders" type="button" role="tab">
+                    <i class="fas fa-star text-warning me-2"></i>MoldPark Siparişleri
+                    {% if stats.moldpark_active_orders > 0 %}
+                    <span class="badge bg-warning text-dark ms-1">{{ stats.moldpark_active_orders }}</span>
+                    {% endif %}
+                </button>
+            </li>
+            {% endif %}
+        </ul>
+        
+        <div class="tab-content-modern">
             <div class="tab-content">
                 <!-- Genel Bakış Sekmesi -->
                 <div class="tab-pane fade show active" id="overview" role="tabpanel">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h5 class="mb-3">
-                                <i class="fas fa-chart-bar text-primary me-2"></i>Sistem Durumu
-                            </h5>
-                            <div class="table-responsive">
-                                <table class="table table-borderless">
-                                    <tbody>
-                                        <tr>
-                                            <td><i class="fas fa-clinic-medical text-primary me-2"></i>Toplam İşitme Merkezi:</td>
-                                            <td><strong>{{ stats.total_centers }}</strong></td>
-                                        </tr>
-                                        <tr>
-                                            <td><i class="fas fa-check-circle text-success me-2"></i>Aktif Merkezler:</td>
-                                            <td><strong>{{ stats.active_centers }}</strong></td>
-                                        </tr>
-                                        <tr>
-                                            <td><i class="fas fa-industry text-info me-2"></i>Toplam Üretici:</td>
-                                            <td><strong>{{ stats.total_producers }}</strong></td>
-                                        </tr>
-                                        <tr>
-                                            <td><i class="fas fa-certificate text-warning me-2"></i>Doğrulanmış Üretici:</td>
-                                            <td><strong>{{ stats.verified_producers }}</strong></td>
-                                        </tr>
-                                        <tr>
-                                            <td><i class="fas fa-cube text-secondary me-2"></i>Toplam Kalıp:</td>
-                                            <td><strong>{{ stats.total_molds }}</strong></td>
-                                        </tr>
-                                        <tr>
-                                            <td><i class="fas fa-clock text-warning me-2"></i>Bekleyen Kalıp:</td>
-                                            <td><strong>{{ stats.waiting_molds }}</strong></td>
-                                        </tr>
-                                        <tr>
-                                            <td><i class="fas fa-cog text-info me-2"></i>İşleniyor:</td>
-                                            <td><strong>{{ stats.processing_molds }}</strong></td>
-                                        </tr>
-                                        <tr>
-                                            <td><i class="fas fa-check-circle text-success me-2"></i>Tamamlandı:</td>
-                                            <td><strong>{{ stats.completed_molds }}</strong></td>
-                                        </tr>
-                                        <tr>
-                                            <td><i class="fas fa-truck text-primary me-2"></i>Teslim Edildi:</td>
-                                            <td><strong>{{ stats.delivered_molds }}</strong></td>
-                                        </tr>
-                                        <tr>
-                                            <td><i class="fas fa-users-cog text-info me-2"></i>Toplam Kullanıcı:</td>
-                                            <td><strong>{{ stats.total_users }}</strong></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
+                    <div class="overview-grid">
+                        <div class="overview-card">
+                            <h6>
+                                <i class="fas fa-chart-bar text-primary"></i>
+                                Sistem Durumu
+                            </h6>
+                            <table class="system-stats-table">
+                                <tbody>
+                                    <tr>
+                                        <td><i class="fas fa-clinic-medical text-primary me-2"></i>Toplam İşitme Merkezi</td>
+                                        <td>{{ stats.total_centers }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><i class="fas fa-check-circle text-success me-2"></i>Aktif Merkezler</td>
+                                        <td>{{ stats.active_centers }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><i class="fas fa-industry text-info me-2"></i>Toplam Üretici</td>
+                                        <td>{{ stats.total_producers }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><i class="fas fa-certificate text-warning me-2"></i>Doğrulanmış Üretici</td>
+                                        <td>{{ stats.verified_producers }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><i class="fas fa-cube text-secondary me-2"></i>Toplam Kalıp</td>
+                                        <td>{{ stats.total_molds }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><i class="fas fa-clock text-warning me-2"></i>Bekleyen Kalıp:</td>
+                                        <td><strong>{{ stats.waiting_molds }}</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td><i class="fas fa-cog text-info me-2"></i>İşleniyor:</td>
+                                        <td><strong>{{ stats.processing_molds }}</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td><i class="fas fa-check-circle text-success me-2"></i>Tamamlandı:</td>
+                                        <td><strong>{{ stats.completed_molds }}</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td><i class="fas fa-truck text-primary me-2"></i>Teslim Edildi:</td>
+                                        <td><strong>{{ stats.delivered_molds }}</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td><i class="fas fa-users-cog text-info me-2"></i>Toplam Kullanıcı:</td>
+                                        <td><strong>{{ stats.total_users }}</strong></td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
-                        <div class="col-md-6">
-                            <h5 class="mb-3">
-                                <i class="fas fa-tasks text-warning me-2"></i>Hızlı İşlemler
-                            </h5>
-                            <div class="d-grid gap-2">
-                                <a href="{% url 'center:admin_mold_list' %}" class="btn btn-outline-primary">
+                        <div class="overview-card">
+                            <h6>
+                                <i class="fas fa-tasks text-warning"></i>
+                                Hızlı İşlemler
+                            </h6>
+                            <div class="quick-actions">
+                                <a href="{% url 'center:admin_mold_list' %}" class="quick-action-btn">
                                     <i class="fas fa-list me-2"></i>Tüm Kalıpları Görüntüle
                                 </a>
-                                <a href="{% url 'center:admin_revision_list' %}" class="btn btn-outline-success">
+                                <a href="{% url 'center:admin_revision_list' %}" class="quick-action-btn">
                                     <i class="fas fa-undo-alt me-2"></i>Revizyon Talepleri
                                 </a>
-                                <a href="/admin/" class="btn btn-outline-dark">
+                                <a href="/admin/" class="quick-action-btn">
                                     <i class="fas fa-cog me-2"></i>Django Admin Paneli
                                 </a>
-                                <a href="{% url 'producer:admin_producer_list' %}" class="btn btn-outline-info">
+                                <a href="{% url 'producer:admin_producer_list' %}" class="quick-action-btn">
                                     <i class="fas fa-industry me-2"></i>Üretici Yönetimi
                                 </a>
-                                <a href="{% url 'producer:admin_mold_list' %}" class="btn btn-outline-success">
+                                <a href="{% url 'producer:admin_mold_list' %}" class="quick-action-btn">
                                     <i class="fas fa-cube me-2"></i>Tüm Kalıpları Görüntüle
                                 </a>
-                                <button class="btn btn-outline-info" onclick="document.getElementById('user-credentials-tab').click()">
+                                <button class="quick-action-btn" onclick="document.getElementById('user-credentials-tab').click()">
                                     <i class="fas fa-users-cog me-2"></i>Kullanıcı Bilgileri
                                 </button>
                             </div>
@@ -690,153 +795,205 @@
                     </div>
                 </div>
 
-                <!-- MoldPark Siparişleri Sekmesi -->
-                {% if moldpark_producer %}
-                <div class="tab-pane fade" id="moldpark-orders" role="tabpanel">
+                <!-- Sonlandırılan Merkezler Sekmesi -->
+                <div class="tab-pane fade" id="terminated-networks" role="tabpanel">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="mb-0">
-                            <i class="fas fa-star text-warning me-2"></i>MoldPark Üretim Merkezi Siparişleri
+                            <i class="fas fa-unlink text-danger me-2"></i>Sonlandırılan Ağ Bağlantıları
                         </h5>
-                        <div class="btn-group">
-                            <span class="badge bg-info fs-6 me-2">
-                                <i class="fas fa-box me-1"></i>Toplam: {{ stats.moldpark_orders }}
-                            </span>
-                            <span class="badge bg-warning fs-6">
-                                <i class="fas fa-clock me-1"></i>Aktif: {{ stats.moldpark_active_orders }}
+                        <div class="d-flex gap-2">
+                            <span class="badge bg-info">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Son 10 Kayıt
                             </span>
                         </div>
                     </div>
                     
-                    {% if moldpark_orders %}
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead class="table-warning">
-                                <tr>
-                                    <th>Sipariş No</th>
-                                    <th>Hasta</th>
-                                    <th>Kalıp Türü</th>
-                                    <th>Merkez</th>
-                                    <th>Durum</th>
-                                    <th>Öncelik</th>
-                                    <th>Tarih</th>
-                                    <th>İşlemler</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for order in moldpark_orders %}
-                                <tr>
-                                    <td>
-                                        <strong class="text-primary">{{ order.order_number }}</strong>
-                                    </td>
-                                    <td>
-                                        <strong>{{ order.ear_mold.patient_name }} {{ order.ear_mold.patient_surname }}</strong><br>
-                                        <small class="text-muted">{{ order.ear_mold.patient_age }} yaş, {{ order.ear_mold.get_patient_gender_display }}</small>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-info">{{ order.ear_mold.get_mold_type_display }}</span>
-                                    </td>
-                                    <td>
-                                        <strong>{{ order.center.name }}</strong><br>
-                                        <small class="text-muted">{{ order.center.phone }}</small>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-{% if order.status == 'delivered' %}success{% elif order.status == 'cancelled' %}danger{% elif order.status in 'received,designing,production' %}warning{% elif order.status == 'quality_check' %}info{% else %}secondary{% endif %}">
-                                            {{ order.get_status_display }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-{% if order.priority == 'urgent' %}danger{% elif order.priority == 'high' %}warning{% else %}secondary{% endif %}">
-                                            {{ order.get_priority_display }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <small>{{ order.created_at|date:"d.m.Y H:i" }}</small>
-                                        {% if order.estimated_delivery %}
-                                        <br><small class="text-muted">Tahmini: {{ order.estimated_delivery|date:"d.m.Y" }}</small>
+                    <!-- Sonlandırılan Ağlar -->
+                    {% if terminated_networks %}
+                    <div class="row">
+                        {% for network in terminated_networks %}
+                        <div class="col-lg-6 col-md-12 mb-3">
+                            <div class="card border border-danger h-100" style="border-left: 4px solid #dc3545 !important;">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-3">
+                                        <div class="flex-grow-1">
+                                            <h6 class="font-weight-bold text-danger mb-2">
+                                                <i class="fas fa-hospital me-1"></i>
+                                                {{ network.center.name }}
+                                            </h6>
+                                            <p class="text-muted mb-1 small">
+                                                <i class="fas fa-industry me-1"></i>
+                                                Çıkaran Üretici: <strong>{{ network.producer.company_name }}</strong>
+                                            </p>
+                                            <p class="text-muted mb-1 small">
+                                                <i class="fas fa-map-marker-alt me-1"></i>
+                                                {{ network.center.address|truncatechars:40 }}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <span class="badge bg-danger">
+                                                <i class="fas fa-unlink me-1"></i>Sonlandırıldı
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Sonlandırma Detayları -->
+                                    <div class="row text-center mb-3">
+                                        <div class="col-6">
+                                            <div class="text-danger">
+                                                <small class="d-block">Sonlandırma Tarihi</small>
+                                                <strong class="small">{{ network.terminated_at|date:"d.m.Y H:i" }}</strong>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="text-primary">
+                                                <small class="d-block">Katılım Süresi</small>
+                                                <strong class="small">
+                                                    {% if network.terminated_at and network.joined_at %}
+                                                        {{ network.joined_at|timeuntil:network.terminated_at }}
+                                                    {% else %}
+                                                        -
+                                                    {% endif %}
+                                                </strong>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- İletişim Bilgileri -->
+                                    <div class="border-top pt-3 mb-3">
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <div class="text-primary small">
+                                                    <i class="fas fa-envelope me-1"></i>
+                                                    {{ network.center.user.email|truncatechars:20 }}
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="text-success small">
+                                                    <i class="fas fa-phone me-1"></i>
+                                                    {{ network.center.phone|default:"-" }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Sonlandırma Nedeni -->
+                                    {% if network.termination_reason %}
+                                    <div class="alert alert-light border-danger py-2 mb-3">
+                                        <small class="text-muted">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            <strong>Neden:</strong> {{ network.termination_reason|truncatechars:100 }}
+                                        </small>
+                                    </div>
+                                    {% endif %}
+
+                                    <!-- MoldPark Durumu -->
+                                    {% for moldpark_network in auto_assigned_centers %}
+                                        {% if moldpark_network.center.id == network.center.id %}
+                                        <div class="alert alert-success border-success py-2">
+                                            <small class="text-success">
+                                                <i class="fas fa-check-circle me-1"></i>
+                                                <strong>MoldPark Ağında:</strong> {{ moldpark_network.activated_at|date:"d.m.Y H:i" }} tarihinde otomatik geçiş yapıldı
+                                            </small>
+                                        </div>
                                         {% endif %}
-                                    </td>
-                                    <td>
+                                    {% endfor %}
+
+                                    <!-- İşlemler -->
+                                    <div class="d-flex justify-content-between align-items-center">
                                         <div class="btn-group btn-group-sm">
-                                            <a href="{% url 'producer:mold_detail' order.pk %}" class="btn btn-outline-primary" title="Detay">
-                                                <i class="fas fa-eye"></i>
+                                            <a href="mailto:{{ network.center.user.email }}" class="btn btn-outline-primary">
+                                                <i class="fas fa-envelope"></i>
                                             </a>
-                                            {% if order.ear_mold.scan_file %}
-                                            <a href="{% url 'producer:permanent_scan_download' order.ear_mold.pk %}" class="btn btn-outline-success" title="Dosya İndir">
-                                                <i class="fas fa-download"></i>
+                                            <a href="/admin/center/center/{{ network.center.id }}/change/" class="btn btn-outline-info" target="_blank">
+                                                <i class="fas fa-edit"></i>
                                             </a>
-                                            {% endif %}
-                                            {% if order.status not in 'delivered,cancelled' %}
-                                            <a href="{% url 'producer:mold_upload_result' order.pk %}" class="btn btn-outline-warning" title="Dosya Yükle">
-                                                <i class="fas fa-upload"></i>
-                                            </a>
-                                            {% endif %}
                                         </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    <!-- MoldPark Üretim Merkezi Bilgileri -->
-                    <div class="row mt-4">
-                        <div class="col-md-6">
-                            <div class="card border-warning">
-                                <div class="card-header bg-warning text-dark">
-                                    <h6 class="mb-0">
-                                        <i class="fas fa-info-circle me-2"></i>MoldPark Üretim Merkezi
-                                    </h6>
-                                </div>
-                                <div class="card-body">
-                                    <p><strong>Firma:</strong> {{ moldpark_producer.company_name }}</p>
-                                    <p><strong>Tür:</strong> {{ moldpark_producer.get_producer_type_display }}</p>
-                                    <p><strong>E-posta:</strong> {{ moldpark_producer.contact_email }}</p>
-                                    <p><strong>Telefon:</strong> {{ moldpark_producer.phone }}</p>
-                                    <p><strong>Aylık Limit:</strong> {{ moldpark_producer.mold_limit }} kalıp</p>
-                                    <p class="mb-0"><strong>Durum:</strong> 
-                                        <span class="badge bg-success">
-                                            <i class="fas fa-check-circle me-1"></i>Aktif & Doğrulanmış
-                                        </span>
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="card border-info">
-                                <div class="card-header bg-info text-white">
-                                    <h6 class="mb-0">
-                                        <i class="fas fa-chart-bar me-2"></i>Sipariş İstatistikleri
-                                    </h6>
-                                </div>
-                                <div class="card-body">
-                                    <div class="row text-center">
-                                        <div class="col-4">
-                                            <h4 class="text-primary">{{ stats.moldpark_orders }}</h4>
-                                            <small class="text-muted">Toplam</small>
-                                        </div>
-                                        <div class="col-4">
-                                            <h4 class="text-warning">{{ stats.moldpark_active_orders }}</h4>
-                                            <small class="text-muted">Aktif</small>
-                                        </div>
-                                        <div class="col-4">
-                                            <h4 class="text-success">{{ stats.moldpark_orders|add:"-"|add:stats.moldpark_active_orders }}</h4>
-                                            <small class="text-muted">Tamamlanan</small>
-                                        </div>
+                                        <small class="text-muted">
+                                            <i class="fas fa-clock me-1"></i>
+                                            {{ network.terminated_at|naturaltime }}
+                                        </small>
                                     </div>
                                 </div>
                             </div>
                         </div>
+                        {% endfor %}
                     </div>
-                    
                     {% else %}
                     <div class="text-center text-muted py-5">
-                        <i class="fas fa-star fa-4x mb-3 text-warning"></i><br>
-                        <h5>Henüz MoldPark siparişi bulunmuyor</h5>
-                        <p>Kullanıcılar MoldPark Üretim Merkezi'ni seçtiklerinde siparişler burada görünecek.</p>
+                        <i class="fas fa-network-wired fa-3x mb-3"></i><br>
+                        <h5 class="text-muted">Henüz Sonlandırılan Ağ Bağlantısı Yok</h5>
+                        <p class="text-muted">Üreticiler tarafından ağdan çıkarılan merkezler burada görünecek.</p>
+                    </div>
+                    {% endif %}
+
+                    <!-- Otomatik MoldPark Geçişleri -->
+                    {% if auto_assigned_centers %}
+                    <div class="mt-5">
+                        <h5 class="mb-3">
+                            <i class="fas fa-magic text-primary me-2"></i>Otomatik MoldPark Geçişleri
+                        </h5>
+                        <div class="row">
+                            {% for network in auto_assigned_centers %}
+                            <div class="col-lg-4 col-md-6 mb-3">
+                                <div class="card border border-primary h-100" style="border-left: 4px solid #007bff !important;">
+                                    <div class="card-body">
+                                        <h6 class="font-weight-bold text-primary mb-2">
+                                            <i class="fas fa-hospital me-1"></i>
+                                            {{ network.center.name }}
+                                        </h6>
+                                        <p class="text-muted small mb-2">
+                                            <i class="fas fa-magic me-1"></i>
+                                            {{ network.assignment_reason|truncatechars:60 }}
+                                        </p>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="badge bg-primary">
+                                                <i class="fas fa-star me-1"></i>MoldPark Ağında
+                                            </span>
+                                            <small class="text-muted">
+                                                {{ network.activated_at|date:"d.m.Y" }}
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
                     </div>
                     {% endif %}
                 </div>
-                {% endif %}
+
+                <!-- Sistem İstatistikleri -->
+                <div class="tab-pane fade" id="messages" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chart-bar text-success me-2"></i>Sistem İstatistikleri
+                        </h5>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6>Kalıp İstatistikleri</h6>
+                                    <p><strong>Toplam Kalıp:</strong> {{ stats.total_molds }}</p>
+                                    <p><strong>Bekleyen:</strong> {{ stats.pending_molds }}</p>
+                                    <p><strong>Tamamlanan:</strong> {{ stats.completed_molds }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6>Merkez İstatistikleri</h6>
+                                    <p><strong>Toplam Merkez:</strong> {{ stats.total_centers }}</p>
+                                    <p><strong>Aktif Merkez:</strong> {{ stats.active_centers }}</p>
+                                    <p><strong>Üretici Sayısı:</strong> {{ producers|length }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- Kullanıcı Bilgileri Sekmesi -->
                 <div class="tab-pane fade" id="user-credentials" role="tabpanel">
@@ -1065,249 +1222,8 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Sonlandırılan Merkezler Sekmesi -->
-                <div class="tab-pane fade" id="terminated-networks" role="tabpanel">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="mb-0">
-                            <i class="fas fa-unlink text-danger me-2"></i>Sonlandırılan Ağ Bağlantıları
-                        </h5>
-                        <div class="d-flex gap-2">
-                            <span class="badge bg-info">
-                                <i class="fas fa-info-circle me-1"></i>
-                                Son 10 Kayıt
-                            </span>
-                        </div>
-                    </div>
-                    
-                    <!-- Sonlandırılan Ağlar -->
-                    {% if terminated_networks %}
-                    <div class="row">
-                        {% for network in terminated_networks %}
-                        <div class="col-lg-6 col-md-12 mb-3">
-                            <div class="card border border-danger h-100" style="border-left: 4px solid #dc3545 !important;">
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between align-items-start mb-3">
-                                        <div class="flex-grow-1">
-                                            <h6 class="font-weight-bold text-danger mb-2">
-                                                <i class="fas fa-hospital me-1"></i>
-                                                {{ network.center.name }}
-                                            </h6>
-                                            <p class="text-muted mb-1 small">
-                                                <i class="fas fa-industry me-1"></i>
-                                                Çıkaran Üretici: <strong>{{ network.producer.company_name }}</strong>
-                                            </p>
-                                            <p class="text-muted mb-1 small">
-                                                <i class="fas fa-map-marker-alt me-1"></i>
-                                                {{ network.center.address|truncatechars:40 }}
-                                            </p>
-                                        </div>
-                                        <div>
-                                            <span class="badge bg-danger">
-                                                <i class="fas fa-unlink me-1"></i>Sonlandırıldı
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    <!-- Sonlandırma Detayları -->
-                                    <div class="row text-center mb-3">
-                                        <div class="col-6">
-                                            <div class="text-danger">
-                                                <small class="d-block">Sonlandırma Tarihi</small>
-                                                <strong class="small">{{ network.terminated_at|date:"d.m.Y H:i" }}</strong>
-                                            </div>
-                                        </div>
-                                        <div class="col-6">
-                                            <div class="text-primary">
-                                                <small class="d-block">Katılım Süresi</small>
-                                                <strong class="small">
-                                                    {% if network.terminated_at and network.joined_at %}
-                                                        {{ network.joined_at|timeuntil:network.terminated_at }}
-                                                    {% else %}
-                                                        -
-                                                    {% endif %}
-                                                </strong>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- İletişim Bilgileri -->
-                                    <div class="border-top pt-3 mb-3">
-                                        <div class="row">
-                                            <div class="col-6">
-                                                <div class="text-primary small">
-                                                    <i class="fas fa-envelope me-1"></i>
-                                                    {{ network.center.user.email|truncatechars:20 }}
-                                                </div>
-                                            </div>
-                                            <div class="col-6">
-                                                <div class="text-success small">
-                                                    <i class="fas fa-phone me-1"></i>
-                                                    {{ network.center.phone|default:"-" }}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Sonlandırma Nedeni -->
-                                    {% if network.termination_reason %}
-                                    <div class="alert alert-light border-danger py-2 mb-3">
-                                        <small class="text-muted">
-                                            <i class="fas fa-info-circle me-1"></i>
-                                            <strong>Neden:</strong> {{ network.termination_reason|truncatechars:100 }}
-                                        </small>
-                                    </div>
-                                    {% endif %}
-
-                                    <!-- MoldPark Durumu -->
-                                    {% for moldpark_network in auto_assigned_centers %}
-                                        {% if moldpark_network.center.id == network.center.id %}
-                                        <div class="alert alert-success border-success py-2">
-                                            <small class="text-success">
-                                                <i class="fas fa-check-circle me-1"></i>
-                                                <strong>MoldPark Ağında:</strong> {{ moldpark_network.activated_at|date:"d.m.Y H:i" }} tarihinde otomatik geçiş yapıldı
-                                            </small>
-                                        </div>
-                                        {% endif %}
-                                    {% endfor %}
-
-                                    <!-- İşlemler -->
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div class="btn-group btn-group-sm">
-                                            <a href="mailto:{{ network.center.user.email }}" class="btn btn-outline-primary">
-                                                <i class="fas fa-envelope"></i>
-                                            </a>
-                                            <a href="/admin/center/center/{{ network.center.id }}/change/" class="btn btn-outline-info" target="_blank">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                        </div>
-                                        <small class="text-muted">
-                                            <i class="fas fa-clock me-1"></i>
-                                            {{ network.terminated_at|naturaltime }}
-                                        </small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                    {% else %}
-                    <div class="text-center text-muted py-5">
-                        <i class="fas fa-network-wired fa-3x mb-3"></i><br>
-                        <h5 class="text-muted">Henüz Sonlandırılan Ağ Bağlantısı Yok</h5>
-                        <p class="text-muted">Üreticiler tarafından ağdan çıkarılan merkezler burada görünecek.</p>
-                    </div>
-                    {% endif %}
-
-                    <!-- Otomatik MoldPark Geçişleri -->
-                    {% if auto_assigned_centers %}
-                    <div class="mt-5">
-                        <h5 class="mb-3">
-                            <i class="fas fa-magic text-primary me-2"></i>Otomatik MoldPark Geçişleri
-                        </h5>
-                        <div class="row">
-                            {% for network in auto_assigned_centers %}
-                            <div class="col-lg-4 col-md-6 mb-3">
-                                <div class="card border border-primary h-100" style="border-left: 4px solid #007bff !important;">
-                                    <div class="card-body">
-                                        <h6 class="font-weight-bold text-primary mb-2">
-                                            <i class="fas fa-hospital me-1"></i>
-                                            {{ network.center.name }}
-                                        </h6>
-                                        <p class="text-muted small mb-2">
-                                            <i class="fas fa-magic me-1"></i>
-                                            {{ network.assignment_reason|truncatechars:60 }}
-                                        </p>
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <span class="badge bg-primary">
-                                                <i class="fas fa-star me-1"></i>MoldPark Ağında
-                                            </span>
-                                            <small class="text-muted">
-                                                {{ network.activated_at|date:"d.m.Y" }}
-                                            </small>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    {% endif %}
-                </div>
-
-                <!-- Sistem İstatistikleri -->
-                <div class="tab-pane fade" id="messages" role="tabpanel">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="mb-0">
-                            <i class="fas fa-chart-bar text-success me-2"></i>Sistem İstatistikleri
-                        </h5>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="card">
-                                <div class="card-body">
-                                    <h6>Kalıp İstatistikleri</h6>
-                                    <p><strong>Toplam Kalıp:</strong> {{ stats.total_molds }}</p>
-                                    <p><strong>Bekleyen:</strong> {{ stats.pending_molds }}</p>
-                                    <p><strong>Tamamlanan:</strong> {{ stats.completed_molds }}</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="card">
-                                <div class="card-body">
-                                    <h6>Merkez İstatistikleri</h6>
-                                    <p><strong>Toplam Merkez:</strong> {{ stats.total_centers }}</p>
-                                    <p><strong>Aktif Merkez:</strong> {{ stats.active_centers }}</p>
-                                    <p><strong>Üretici Sayısı:</strong> {{ producers|length }}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
 </div>
-
-<style>
-.border-left-primary { border-left: 4px solid #007bff; }
-.border-left-success { border-left: 4px solid #28a745; }
-.border-left-info { border-left: 4px solid #17a2b8; }
-.border-left-warning { border-left: 4px solid #ffc107; }
-.border-left-danger { border-left: 4px solid #dc3545; }
-.border-left-secondary { border-left: 4px solid #6c757d; }
-
-.nav-tabs-custom .nav-link {
-    border-radius: 0;
-    font-weight: 500;
-}
-
-.nav-tabs-custom .nav-link.active {
-    background-color: #f8f9fa;
-    border-bottom-color: transparent;
-}
-
-.card-header {
-    background-color: #fff;
-    border-bottom: 1px solid #dee2e6;
-}
-
-.table-hover tbody tr:hover {
-    background-color: rgba(0,123,255,.075);
-}
-
-.hover-card {
-    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-}
-
-.hover-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0,0,0,.15) !important;
-}
-
-a.text-decoration-none:hover {
-    text-decoration: none !important;
-}
-</style>
 {% endblock %} 
