@@ -104,16 +104,6 @@
     --ease-back: cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
-/* Dark Mode Support */
-@media (prefers-color-scheme: dark) {
-    :root {
-        --bg-primary: var(--gray-900);
-        --bg-secondary: var(--gray-800);
-        --text-primary: var(--gray-100);
-        --text-secondary: var(--gray-300);
-    }
-}
-
 /* ========================================
    TEXT & TYPOGRAPHY IMPROVEMENTS
    ======================================== */
@@ -866,6 +856,11 @@ body {
         width: 100%;
         justify-content: center;
     }
+    
+    .brand-logo {
+        width: 110px !important;
+        height: 36px !important;
+    }
 }
 
 /* Large Screens */
@@ -952,88 +947,6 @@ body {
 }
 
 /* ========================================
-   DARK MODE STYLES
-   ======================================== */
-
-@media (prefers-color-scheme: dark) {
-    body {
-        background: var(--gray-900);
-        color: var(--gray-200);
-    }
-    
-    .navbar {
-        background: rgba(17, 24, 39, 0.95) !important;
-        border-bottom-color: var(--gray-700);
-    }
-    
-    .card {
-        background: var(--gray-800);
-        border-color: var(--gray-700);
-        color: var(--gray-200);
-    }
-    
-    .form-control {
-        background: var(--gray-800);
-        border-color: var(--gray-600);
-        color: var(--gray-200);
-    }
-    
-    .form-control:focus {
-        background: var(--gray-700);
-        color: var(--gray-200);
-    }
-
-    footer {
-        background: rgba(17, 24, 39, 0.95) !important;
-        border-top-color: var(--gray-700);
-    }
-
-    .text-muted {
-        color: var(--gray-400) !important;
-    }
-
-    footer .text-muted {
-        color: var(--gray-400) !important;
-    }
-
-    footer h6 {
-        color: var(--gray-200) !important;
-    }
-
-    footer a.text-muted {
-        color: var(--gray-400) !important;
-    }
-
-    footer a.text-muted:hover {
-        color: var(--primary-400) !important;
-    }
-
-    .dropdown-item {
-        color: var(--gray-200) !important;
-    }
-
-    .dropdown-item:hover {
-        color: var(--gray-100) !important;
-    }
-
-    .table td {
-        color: var(--gray-200) !important;
-    }
-
-    .table th {
-        color: var(--gray-100) !important;
-    }
-
-    .form-label {
-        color: var(--gray-200) !important;
-    }
-
-    small.text-muted {
-        color: var(--gray-400) !important;
-    }
-}
-
-/* ========================================
    PRINT STYLES
    ======================================== */
 
@@ -1052,5 +965,23 @@ body {
     * {
         color: #000 !important;
         background: white !important;
+    }
+}
+
+/* Navbar Brand Logo - Responsive */
+.brand-logo {
+    width: 160px !important;
+    height: 54px !important;
+    object-fit: contain;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    background: #fff;
+    transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
+}
+
+@media (max-width: 768px) {
+    .brand-logo {
+        width: 110px !important;
+        height: 36px !important;
     }
 } 
