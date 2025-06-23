@@ -3,21 +3,21 @@
    ======================================== */
 
 :root {
-    /* Modern Color Palette */
-    --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-    --warning-gradient: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
-    --danger-gradient: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+    /* Minimal Color Palette - Siyah, Beyaz, Açık Sarı */
+    --primary-gradient: linear-gradient(135deg, #1a1a1a 0%, #333333 100%);
+    --secondary-gradient: linear-gradient(135deg, #ffd700 0%, #fff8dc 100%);
+    --success-gradient: linear-gradient(135deg, #f4d03f 0%, #fef9e7 100%);
+    --warning-gradient: linear-gradient(135deg, #f39c12 0%, #fcf3cf 100%);
+    --danger-gradient: linear-gradient(135deg, #5d6d7e 0%, #d5dbdb 100%);
     
-    /* Primary Colors */
-    --primary-color: #667eea;
-    --primary-dark: #5a6fd8;
-    --primary-light: #8b9df0;
+    /* Primary Colors - Siyah Tonları */
+    --primary-color: #1a1a1a;
+    --primary-dark: #000000;
+    --primary-light: #333333;
     
-    /* Secondary Colors */
-    --secondary-color: #f093fb;
-    --accent-color: #00f2fe;
+    /* Secondary Colors - Sarı Tonları */
+    --secondary-color: #ffd700;
+    --accent-color: #f4d03f;
     
     /* Neutral Colors */
     --dark: #2d3748;
@@ -74,7 +74,7 @@ html {
 
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
     min-height: 100vh;
     line-height: 1.6;
     color: var(--gray-800);
@@ -138,7 +138,7 @@ body {
 
 .navbar-nav .nav-link:hover {
     color: var(--primary-color) !important;
-    background: rgba(102, 126, 234, 0.1);
+    background: rgba(26, 26, 26, 0.1);
     transform: translateY(-2px);
 }
 
