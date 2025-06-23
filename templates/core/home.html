@@ -5,104 +5,160 @@
 {% block title %}MoldPark - Kulak Kalıbı Üretiminde Dijital Dönüşüm{% endblock %}
 
 {% block content %}
-<!-- Clean Hero Section - Template Style -->
-<section class="position-relative" style="min-height: 100vh; background: #ffffff; padding-top: 100px;">
-    <div class="container">
-        <div class="row align-items-center min-vh-100">
-            <div class="col-lg-12 text-center">
-                <div class="hero-content">
-                    <!-- Logo ve Başlık -->
-                    <div class="mb-5">
-                        <img src="{% static 'images/moldpark.jpg' %}" alt="MoldPark Logo" 
-                             class="mb-4 hero-logo" 
-                             style="width: 300px; height: 100px; object-fit: contain;">
-                        <h1 class="display-1 fw-bold mb-3" style="color: #1a1a1a; font-size: 4rem; letter-spacing: -2px;">
-                            MoldPark
-                        </h1>
-                        <p class="lead mb-4 text-muted" style="font-size: 1.5rem; font-weight: 300; max-width: 600px; margin: 0 auto;">
-                            Kulak kalıbı üretiminde dijital dönüşüm platformu
-                        </p>
+<!-- Modern Hero Section -->
+<section class="position-relative overflow-hidden" style="min-height: 100vh; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);">
+    <!-- Animated Background Elements -->
+    <div class="position-absolute w-100 h-100" style="z-index: 1;">
+        <div class="position-absolute" style="top: 20%; left: 10%; width: 100px; height: 100px; background: linear-gradient(45deg, var(--primary-100), var(--primary-200)); border-radius: 50%; opacity: 0.3; animation: float 6s ease-in-out infinite;"></div>
+        <div class="position-absolute" style="bottom: 30%; right: 15%; width: 80px; height: 80px; background: linear-gradient(45deg, var(--primary-200), var(--primary-300)); border-radius: 50%; opacity: 0.2; animation: float 8s ease-in-out infinite reverse;"></div>
+    </div>
+    
+    <div class="container position-relative" style="z-index: 2;">
+        <div class="row align-items-center min-vh-100 py-5">
+            <div class="col-lg-6">
+                <div class="hero-content animate-fade-in-up">
+                    <!-- Badge -->
+                    <div class="mb-4">
+                        <span class="badge bg-primary text-white px-4 py-2 rounded-pill fs-6">
+                            <i class="fas fa-rocket me-2"></i>
+                            Türkiye'nin En Büyük Kalıp Platformu
+                        </span>
                     </div>
                     
-                    <!-- İstatistikler - Minimal Style -->
-                    <div class="row mb-5 justify-content-center">
-                        <div class="col-md-8">
-                            <div class="row text-center">
-                                <div class="col-4">
-                                    <div class="py-4">
-                                        <h2 class="display-4 fw-bold mb-2" style="color: #1a1a1a;">500+</h2>
-                                        <p class="text-muted mb-0">Üretilen Kalıp</p>
+                    <!-- Main Headline -->
+                    <h1 class="display-4 fw-bold mb-4" style="color: var(--gray-900); line-height: 1.2;">
+                        Kulak Kalıbı Üretiminde
+                        <span class="text-primary d-block">Dijital Dönüşüm</span>
+                    </h1>
+                    
+                    <!-- Subtitle -->
+                    <p class="lead mb-4 text-muted" style="font-size: 1.25rem; max-width: 500px;">
+                        AI destekli modelleme, hızlı teslimat ve %99 kalite garantisi ile işitme merkezi ihtiyaçlarınızı karşılıyoruz.
+                    </p>
+                    
+                    <!-- Key Benefits -->
+                    <div class="row mb-5">
+                        <div class="col-sm-6 mb-3">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0">
+                                    <div class="bg-success rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                        <i class="fas fa-clock text-white"></i>
                                     </div>
                                 </div>
-                                <div class="col-4">
-                                    <div class="py-4">
-                                        <h2 class="display-4 fw-bold mb-2" style="color: #1a1a1a;">50+</h2>
-                                        <p class="text-muted mb-0">İşitme Merkezi</p>
+                                <div class="flex-grow-1 ms-3">
+                                    <div class="fw-semibold">24 Saat Teslimat</div>
+                                    <small class="text-muted">Hızlı ve güvenilir</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 mb-3">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0">
+                                    <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                        <i class="fas fa-shield-check text-white"></i>
                                     </div>
                                 </div>
-                                <div class="col-4">
-                                    <div class="py-4">
-                                        <h2 class="display-4 fw-bold mb-2" style="color: #1a1a1a;">99%</h2>
-                                        <p class="text-muted mb-0">Memnuniyet</p>
-                                    </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <div class="fw-semibold">%99 Kalite Garantisi</div>
+                                    <small class="text-muted">Mükemmel sonuçlar</small>
                                 </div>
                             </div>
                         </div>
                     </div>
-
-                    <!-- CTA Buttons - Clean Style -->
+                    
+                    <!-- CTA Buttons -->
                     {% if not user.is_authenticated %}
-                    <div class="hero-cta d-flex justify-content-center gap-3 mb-5">
-                        <a href="#pricing" class="btn btn-lg px-5 py-3 fw-bold" 
-                           style="background: #1a1a1a; color: white; border: none; border-radius: 0;">
-                            Hemen Başla
+                    <div class="d-flex flex-wrap gap-3 mb-4">
+                        <a href="{% url 'account_signup' %}" class="btn btn-primary btn-lg px-5 py-3 hover-lift">
+                            <i class="fas fa-rocket me-2"></i>
+                            Hemen Başlayın
                         </a>
-                        <a href="#features" class="btn btn-outline-dark btn-lg px-5 py-3 fw-bold" 
-                           style="border-radius: 0;">
+                        <a href="#features" class="btn btn-outline-primary btn-lg px-5 py-3 hover-lift">
+                            <i class="fas fa-play me-2"></i>
                             Nasıl Çalışır?
                         </a>
                     </div>
                     {% else %}
-                    <div class="hero-cta d-flex justify-content-center gap-3 mb-5">
+                    <div class="d-flex flex-wrap gap-3 mb-4">
                         {% if user.center %}
-                        <a href="{% url 'center:dashboard' %}" class="btn btn-lg px-5 py-3 fw-bold" 
-                           style="background: #1a1a1a; color: white; border: none; border-radius: 0;">
+                        <a href="{% url 'center:dashboard' %}" class="btn btn-primary btn-lg px-5 py-3 hover-lift">
+                            <i class="fas fa-tachometer-alt me-2"></i>
                             Dashboard
                         </a>
-                        <a href="{% url 'mold:mold_create' %}" class="btn btn-outline-dark btn-lg px-5 py-3 fw-bold" 
-                           style="border-radius: 0;">
+                        <a href="{% url 'mold:mold_create' %}" class="btn btn-success btn-lg px-5 py-3 hover-lift">
+                            <i class="fas fa-plus me-2"></i>
                             Yeni Kalıp
                         </a>
                         {% elif user.producer %}
-                        <a href="{% url 'producer:dashboard' %}" class="btn btn-lg px-5 py-3 fw-bold" 
-                           style="background: #1a1a1a; color: white; border: none; border-radius: 0;">
+                        <a href="{% url 'producer:dashboard' %}" class="btn btn-primary btn-lg px-5 py-3 hover-lift">
+                            <i class="fas fa-industry me-2"></i>
                             Üretici Paneli
                         </a>
-                        <a href="{% url 'producer:order_list' %}" class="btn btn-outline-dark btn-lg px-5 py-3 fw-bold" 
-                           style="border-radius: 0;">
+                        <a href="{% url 'producer:order_list' %}" class="btn btn-outline-primary btn-lg px-5 py-3 hover-lift">
+                            <i class="fas fa-list me-2"></i>
                             Siparişlerim
                         </a>
                         {% else %}
-                        <a href="{% url 'core:admin_dashboard' %}" class="btn btn-lg px-5 py-3 fw-bold" 
-                           style="background: #1a1a1a; color: white; border: none; border-radius: 0;">
+                        <a href="{% url 'core:admin_dashboard' %}" class="btn btn-primary btn-lg px-5 py-3 hover-lift">
+                            <i class="fas fa-tools me-2"></i>
                             Admin Panel
                         </a>
                         {% endif %}
                     </div>
                     {% endif %}
                     
-                    <!-- Platform Görseli -->
-                    <div class="mt-5">
-                        <div class="position-relative d-inline-block">
-                            <img src="{% static 'images/moldpark.jpg' %}" alt="MoldPark Platform" 
-                                 class="img-fluid shadow-lg" 
-                                 style="max-height: 400px; width: 100%; max-width: 800px; object-fit: cover;">
-                            <div class="position-absolute top-50 start-50 translate-middle">
-                                <button class="btn btn-lg rounded-circle shadow-lg" 
-                                        data-bs-toggle="modal" data-bs-target="#videoModal"
-                                        style="width: 70px; height: 70px; background: rgba(255,255,255,0.9); border: none;">
-                                    <i class="fas fa-play" style="color: #1a1a1a; font-size: 1.2rem;"></i>
-                                </button>
+                    <!-- Trust Indicators -->
+                    <div class="d-flex flex-wrap align-items-center gap-4 text-muted">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-star text-warning me-1"></i>
+                            <span class="small">4.9/5 Müşteri Memnuniyeti</span>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-users text-primary me-1"></i>
+                            <span class="small">500+ Aktif Merkez</span>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-award text-success me-1"></i>
+                            <span class="small">ISO 9001 Sertifikalı</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-6">
+                <div class="hero-visual position-relative animate-slide-in-right">
+                    <!-- Main Image/Video -->
+                    <div class="position-relative">
+                        <img src="{% static 'images/moldpark.jpg' %}" alt="MoldPark Platform" 
+                             class="img-fluid rounded-3 shadow-lg hover-scale" 
+                             style="max-height: 500px; width: 100%; object-fit: cover;">
+                        
+                        <!-- Play Button Overlay -->
+                        <div class="position-absolute top-50 start-50 translate-middle">
+                            <button class="btn btn-light rounded-circle shadow-lg animate-bounce-in" 
+                                    data-bs-toggle="modal" data-bs-target="#videoModal"
+                                    style="width: 80px; height: 80px;">
+                                <i class="fas fa-play text-primary" style="font-size: 1.5rem; margin-left: 4px;"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Stats Overlay -->
+                        <div class="position-absolute bottom-0 start-0 m-4">
+                            <div class="bg-white rounded-2 p-3 shadow-md">
+                                <div class="row g-3 text-center">
+                                    <div class="col-4">
+                                        <div class="h5 mb-0 fw-bold text-primary stat-counter">500</div>
+                                        <div class="small text-muted">Kalıp</div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="h5 mb-0 fw-bold text-success stat-counter">50</div>
+                                        <div class="small text-muted">Merkez</div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="h5 mb-0 fw-bold text-warning stat-counter">99</div>
+                                        <div class="small text-muted">% Başarı</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -112,251 +168,329 @@
     </div>
 </section>
 
-<!-- Clean Features Section - Template Style -->
-<section id="features" class="py-5" style="background: #f8f9fa;">
+<!-- Features Section -->
+<section id="features" class="py-5 bg-white">
     <div class="container">
+        <!-- Section Header -->
         <div class="row mb-5">
             <div class="col-lg-8 mx-auto text-center">
-                <h2 class="display-4 fw-bold mb-4" style="color: #1a1a1a; font-size: 3rem;">Neden MoldPark?</h2>
-                <p class="lead text-muted" style="font-size: 1.2rem; font-weight: 300;">Modern teknoloji ile geleneksel kalıp üretimini birleştiren platform</p>
+                <h2 class="display-5 fw-bold mb-4 text-gray-900">
+                    Neden MoldPark?
+                </h2>
+                <p class="lead text-muted mb-4">
+                    Modern teknoloji ile geleneksel kalıp üretimini birleştiren platform
+                </p>
+                <div class="d-inline-flex align-items-center bg-light rounded-pill px-4 py-2">
+                    <i class="fas fa-certificate text-primary me-2"></i>
+                    <span class="small fw-semibold">Sektörde 10+ Yıl Deneyim</span>
+                </div>
             </div>
         </div>
         
-        <div class="row g-5">
+        <!-- Features Grid -->
+        <div class="row g-4">
+            <!-- Feature 1 -->
             <div class="col-lg-4 col-md-6">
-                <div class="text-center py-4">
-                    <div class="mb-4">
-                        <div class="d-inline-flex align-items-center justify-content-center" 
-                             style="width: 80px; height: 80px; background: #1a1a1a;">
+                <div class="feature-card h-100 text-center p-5 border rounded-3 hover-lift">
+                    <div class="feature-icon mb-4">
+                        <div class="d-inline-flex align-items-center justify-content-center bg-primary rounded-circle" 
+                             style="width: 80px; height: 80px;">
                             <i class="fas fa-brain text-white" style="font-size: 2rem;"></i>
                         </div>
                     </div>
-                    <h4 class="fw-bold mb-3" style="color: #1a1a1a;">AI Destekli Modelleme</h4>
-                    <p class="text-muted" style="line-height: 1.8;">Yapay zeka algoritmaları ile otomatik kalıp optimizasyonu ve kalite kontrolü</p>
+                    <h4 class="fw-bold mb-3">AI Destekli Modelleme</h4>
+                    <p class="text-muted mb-4">
+                        Yapay zeka algoritmaları ile otomatik kalıp optimizasyonu ve kalite kontrolü sağlıyoruz.
+                    </p>
+                    <ul class="list-unstyled text-start small">
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Otomatik hata tespiti</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Kalite optimizasyonu</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Hızlı işlem süresi</li>
+                    </ul>
                 </div>
             </div>
             
+            <!-- Feature 2 -->
             <div class="col-lg-4 col-md-6">
-                <div class="text-center py-4">
-                    <div class="mb-4">
-                        <div class="d-inline-flex align-items-center justify-content-center" 
-                             style="width: 80px; height: 80px; background: #1a1a1a;">
+                <div class="feature-card h-100 text-center p-5 border rounded-3 hover-lift">
+                    <div class="feature-icon mb-4">
+                        <div class="d-inline-flex align-items-center justify-content-center bg-success rounded-circle" 
+                             style="width: 80px; height: 80px;">
                             <i class="fas fa-clock text-white" style="font-size: 2rem;"></i>
                         </div>
                     </div>
-                    <h4 class="fw-bold mb-3" style="color: #1a1a1a;">Hızlı Teslimat</h4>
-                    <p class="text-muted" style="line-height: 1.8;">24 saat içinde modelleme, 48 saat içinde fiziksel kalıp teslimatı</p>
+                    <h4 class="fw-bold mb-3">Hızlı Teslimat</h4>
+                    <p class="text-muted mb-4">
+                        24 saat içinde modelleme, 48 saat içinde fiziksel kalıp teslimatı garantisi.
+                    </p>
+                    <ul class="list-unstyled text-start small">
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Express üretim</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Kargo takibi</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Acil durum desteği</li>
+                    </ul>
                 </div>
             </div>
             
+            <!-- Feature 3 -->
             <div class="col-lg-4 col-md-6">
-                <div class="text-center py-4">
-                    <div class="mb-4">
-                        <div class="d-inline-flex align-items-center justify-content-center" 
-                             style="width: 80px; height: 80px; background: #1a1a1a;">
+                <div class="feature-card h-100 text-center p-5 border rounded-3 hover-lift">
+                    <div class="feature-icon mb-4">
+                        <div class="d-inline-flex align-items-center justify-content-center bg-warning rounded-circle" 
+                             style="width: 80px; height: 80px;">
                             <i class="fas fa-shield-alt text-white" style="font-size: 2rem;"></i>
                         </div>
                     </div>
-                    <h4 class="fw-bold mb-3" style="color: #1a1a1a;">Kalite Garantisi</h4>
-                    <p class="text-muted" style="line-height: 1.8;">%99.5 başarı oranı ile üretilen kalıplar için tam kalite garantisi</p>
+                    <h4 class="fw-bold mb-3">Kalite Garantisi</h4>
+                    <p class="text-muted mb-4">
+                        %99.5 başarı oranı ile üretilen kalıplar için tam kalite garantisi sunuyoruz.
+                    </p>
+                    <ul class="list-unstyled text-start small">
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Ücretsiz revizyon</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Para iade garantisi</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Kalite sertifikası</li>
+                    </ul>
                 </div>
             </div>
             
+            <!-- Feature 4 -->
             <div class="col-lg-4 col-md-6">
-                <div class="text-center py-4">
-                    <div class="mb-4">
-                        <div class="d-inline-flex align-items-center justify-content-center" 
-                             style="width: 80px; height: 80px; background: #1a1a1a;">
+                <div class="feature-card h-100 text-center p-5 border rounded-3 hover-lift">
+                    <div class="feature-icon mb-4">
+                        <div class="d-inline-flex align-items-center justify-content-center bg-info rounded-circle" 
+                             style="width: 80px; height: 80px;">
                             <i class="fas fa-network-wired text-white" style="font-size: 2rem;"></i>
                         </div>
                     </div>
-                    <h4 class="fw-bold mb-3" style="color: #1a1a1a;">Merkezi Ağ</h4>
-                    <p class="text-muted" style="line-height: 1.8;">Türkiye geneli üretici ağı ile en yakın ve en kaliteli üretici eşleştirmesi</p>
+                    <h4 class="fw-bold mb-3">Merkezi Ağ</h4>
+                    <p class="text-muted mb-4">
+                        Türkiye geneli üretici ağı ile en yakın ve en kaliteli üretici eşleştirmesi.
+                    </p>
+                    <ul class="list-unstyled text-start small">
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Yakınlık bazlı eşleştirme</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Kalite puanlama sistemi</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Yedek üretici desteği</li>
+                    </ul>
                 </div>
             </div>
             
+            <!-- Feature 5 -->
             <div class="col-lg-4 col-md-6">
-                <div class="text-center py-4">
-                    <div class="mb-4">
-                        <div class="d-inline-flex align-items-center justify-content-center" 
-                             style="width: 80px; height: 80px; background: #1a1a1a;">
+                <div class="feature-card h-100 text-center p-5 border rounded-3 hover-lift">
+                    <div class="feature-icon mb-4">
+                        <div class="d-inline-flex align-items-center justify-content-center bg-purple rounded-circle" 
+                             style="width: 80px; height: 80px; background: linear-gradient(135deg, #6f42c1, #8a63d2);">
                             <i class="fas fa-chart-line text-white" style="font-size: 2rem;"></i>
                         </div>
                     </div>
-                    <h4 class="fw-bold mb-3" style="color: #1a1a1a;">Detaylı Analitik</h4>
-                    <p class="text-muted" style="line-height: 1.8;">Gerçek zamanlı takip, performans metrikleri ve gelişmiş raporlama</p>
+                    <h4 class="fw-bold mb-3">Detaylı Analitik</h4>
+                    <p class="text-muted mb-4">
+                        Gerçek zamanlı takip, performans metrikleri ve gelişmiş raporlama sistemi.
+                    </p>
+                    <ul class="list-unstyled text-start small">
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Canlı sipariş takibi</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Performans raporları</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Trend analizleri</li>
+                    </ul>
                 </div>
             </div>
             
+            <!-- Feature 6 -->
             <div class="col-lg-4 col-md-6">
-                <div class="text-center py-4">
-                    <div class="mb-4">
-                        <div class="d-inline-flex align-items-center justify-content-center" 
-                             style="width: 80px; height: 80px; background: #1a1a1a;">
+                <div class="feature-card h-100 text-center p-5 border rounded-3 hover-lift">
+                    <div class="feature-icon mb-4">
+                        <div class="d-inline-flex align-items-center justify-content-center bg-danger rounded-circle" 
+                             style="width: 80px; height: 80px;">
                             <i class="fas fa-headset text-white" style="font-size: 2rem;"></i>
                         </div>
                     </div>
-                    <h4 class="fw-bold mb-3" style="color: #1a1a1a;">7/24 Destek</h4>
-                    <p class="text-muted" style="line-height: 1.8;">Uzman ekibimiz ile kesintisiz teknik destek ve müşteri hizmetleri</p>
+                    <h4 class="fw-bold mb-3">7/24 Destek</h4>
+                    <p class="text-muted mb-4">
+                        Uzman ekibimiz ile kesintisiz teknik destek ve müşteri hizmetleri.
+                    </p>
+                    <ul class="list-unstyled text-start small">
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Canlı sohbet desteği</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Telefon desteği</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Video görüşme</li>
+                    </ul>
                 </div>
             </div>
         </div>
     </div>
 </section>
 
-<!-- Modern Pricing Section -->
-<section id="pricing" class="py-5" style="background: white;">
+<!-- Pricing Preview Section -->
+<section id="pricing" class="py-5" style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);">
     <div class="container">
         <div class="row mb-5">
-            <div class="col-lg-8 mx-auto text-center animate-fade-in-up">
-                <h2 class="display-4 fw-bold mb-4 gradient-text">Fiyatlandırma Planları</h2>
-                <p class="lead text-muted fs-5">İhtiyacınıza uygun planı seçin ve hemen başlayın</p>
-                <div class="badge-gradient fs-6 mt-3 px-3 py-2 rounded-pill">
-                    <i class="fas fa-info-circle me-1"></i>
-                    Güncel kur: 1 USD = ₺32
-                </div>
+            <div class="col-lg-8 mx-auto text-center">
+                <h2 class="display-5 fw-bold mb-4">Esnek Fiyatlandırma Planları</h2>
+                <p class="lead text-muted">İhtiyacınıza uygun planı seçin, dilediğiniz zaman değiştirin</p>
             </div>
         </div>
         
         <div class="row g-4 justify-content-center">
-            {% for plan in pricing_plans %}
-            <div class="col-lg-3 col-md-6 animate-fade-in-up" style="animation-delay: {{ forloop.counter0|floatformat:1|add:'0.1' }}s;">
-                <div class="card h-100 hover-lift {% if plan.plan_type == 'center_professional' %}border-primary shadow-lg{% endif %}" 
-                     style="border-radius: 1.5rem; {% if plan.plan_type == 'center_professional' %}transform: scale(1.05);{% endif %}">
+            {% for plan in plans|slice:":3" %}
+            <div class="col-lg-4 col-md-6">
+                <div class="card border-0 shadow-lg h-100 {% if plan.plan_type == 'center_professional' %}border-primary position-relative{% endif %}">
                     {% if plan.plan_type == 'center_professional' %}
                     <div class="position-absolute top-0 start-50 translate-middle">
-                        <span class="badge gradient-bg-primary px-3 py-2 rounded-pill">En Popüler</span>
+                        <span class="badge bg-primary px-4 py-2 rounded-pill">
+                            <i class="fas fa-star me-1"></i>En Popüler
+                        </span>
                     </div>
                     {% endif %}
                     
-                    <div class="card-header text-center border-0 bg-transparent pt-4">
-                        <h4 class="fw-bold mb-3">{{ plan.name }}</h4>
+                    <div class="card-header bg-white text-center border-0 pt-5">
                         <div class="mb-3">
-                            <div class="display-4 fw-bold gradient-text">
+                            {% if plan.plan_type == 'pay_per_use' %}
+                                <i class="fas fa-credit-card fa-3x text-secondary"></i>
+                            {% elif plan.plan_type == 'center_basic' %}
+                                <i class="fas fa-building fa-3x text-info"></i>
+                            {% elif plan.plan_type == 'center_professional' %}
+                                <i class="fas fa-crown fa-3x text-primary"></i>
+                            {% endif %}
+                        </div>
+                        <h4 class="fw-bold">{{ plan.name }}</h4>
+                        <p class="text-muted small">{{ plan.description|truncatechars:60 }}</p>
+                    </div>
+                    
+                    <div class="card-body text-center">
+                        <div class="mb-4">
+                            <div class="display-4 fw-bold text-dark">
                                 ${{ plan.price_usd }}
                                 {% if plan.is_monthly %}<small class="fs-6 text-muted">/ay</small>{% endif %}
                             </div>
-                            <div class="text-muted">
-                                ₺{{ plan.price_try }}{% if plan.is_monthly %}/ay{% endif %}
-                            </div>
+                            <div class="text-muted">₺{{ plan.price_try }}{% if plan.is_monthly %}/ay{% endif %}</div>
                         </div>
                         
-                        {% if plan.monthly_model_limit %}
-                        <div class="badge-gradient px-3 py-2 rounded-pill">
-                            <i class="fas fa-cube me-1"></i>
-                            {{ plan.monthly_model_limit }} model/ay
+                        <div class="mb-4">
+                            {% if plan.monthly_model_limit %}
+                                <div class="badge bg-light text-dark fs-6 px-3 py-2">
+                                    {{ plan.monthly_model_limit }} model/ay
+                                </div>
+                            {% else %}
+                                <div class="badge bg-light text-dark fs-6 px-3 py-2">
+                                    {% if plan.is_monthly %}Sınırsız{% else %}Model başına{% endif %}
+                                </div>
+                            {% endif %}
                         </div>
-                        {% else %}
-                        <div class="badge-gradient px-3 py-2 rounded-pill">
-                            <i class="fas fa-infinity me-1"></i>
-                            Model başına
-                        </div>
-                        {% endif %}
                     </div>
                     
-                    <div class="card-body">
-                        <ul class="list-unstyled">
-                            {% for feature in plan.features|slice:":4" %}
-                            <li class="mb-3 d-flex align-items-center">
-                                <i class="fas fa-check text-success me-3"></i>
-                                <span>{{ feature }}</span>
-                            </li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                    
-                    <div class="card-footer border-0 bg-transparent text-center pb-4">
-                        <a href="{% url 'core:subscribe_to_plan' plan.id %}" 
-                           class="btn {% if plan.plan_type == 'center_professional' %}btn-primary{% else %}btn-outline-primary{% endif %} btn-lg w-100 hover-lift">
-                            Planı Seç
+                    <div class="card-footer bg-white border-0 text-center pb-4">
+                        <a href="{% url 'core:pricing' %}" 
+                           class="btn {% if plan.plan_type == 'center_professional' %}btn-primary{% else %}btn-outline-primary{% endif %} w-100">
+                            Detayları İncele
                         </a>
                     </div>
                 </div>
             </div>
             {% endfor %}
         </div>
+        
+        <div class="text-center mt-5">
+            <a href="{% url 'core:pricing' %}" class="btn btn-lg btn-primary px-5 py-3 hover-lift">
+                <i class="fas fa-eye me-2"></i>
+                Tüm Planları Görüntüle
+            </a>
+        </div>
     </div>
 </section>
 
-<!-- Modern Registration Section -->
-<section id="register" class="py-5" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+<!-- Registration Types Section -->
+<section id="register" class="py-5 bg-white">
     <div class="container">
         <div class="row mb-5">
-            <div class="col-lg-8 mx-auto text-center animate-fade-in-up">
-                <h2 class="display-4 fw-bold mb-4 text-white text-shadow">Hemen Başlayın</h2>
-                <p class="lead text-white opacity-90 fs-5">Size uygun hesap türünü seçin ve MoldPark ailesine katılın</p>
+            <div class="col-lg-8 mx-auto text-center">
+                <h2 class="display-5 fw-bold mb-4">Bugün Başlayın</h2>
+                <p class="lead text-muted">Size uygun hesap türünü seçin ve MoldPark ailesine katılın</p>
             </div>
         </div>
         
         <div class="row g-4 justify-content-center">
-            <div class="col-lg-5 animate-fade-in-up" style="animation-delay: 0.1s;">
-                <div class="glass-card h-100 text-center p-5 hover-lift">
-                    <div class="mb-4">
-                        <div class="feature-icon gradient-bg-primary mx-auto mb-3">
-                            <i class="fas fa-clinic-medical"></i>
+            <!-- İşitme Merkezi -->
+            <div class="col-lg-5 col-md-6">
+                <div class="card border-0 shadow-lg h-100 hover-lift">
+                    <div class="card-body p-5 text-center">
+                        <div class="mb-4">
+                            <div class="d-inline-flex align-items-center justify-content-center bg-primary rounded-circle" 
+                                 style="width: 100px; height: 100px;">
+                                <i class="fas fa-clinic-medical text-white" style="font-size: 3rem;"></i>
+                            </div>
                         </div>
-                        <h3 class="fw-bold text-white mb-3">İşitme Merkezi</h3>
-                        <p class="text-white opacity-75 mb-4">Kalıp siparişi vermek ve üretim sürecini takip etmek için</p>
+                        
+                        <h3 class="fw-bold mb-3">İşitme Merkezi</h3>
+                        <p class="text-muted mb-4">Kalıp siparişi verin, süreçleri takip edin</p>
+                        
+                        <ul class="list-unstyled text-start mb-4">
+                            <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Kalıp sipariş yönetimi</li>
+                            <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Gerçek zamanlı takip</li>
+                            <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Kalite değerlendirme</li>
+                            <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Revizyon talepleri</li>
+                            <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Detaylı raporlama</li>
+                        </ul>
+                        
+                        <a href="{% url 'account_signup' %}" class="btn btn-primary btn-lg w-100 hover-lift">
+                            <i class="fas fa-user-plus me-2"></i>
+                            İşitme Merkezi Kaydı
+                        </a>
                     </div>
-                    
-                    <ul class="list-unstyled text-start text-white opacity-75 mb-4">
-                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Kalıp sipariş yönetimi</li>
-                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Üretim süreci takibi</li>
-                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Kalite değerlendirme</li>
-                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Revizyon talepleri</li>
-                    </ul>
-                    
-                    <a href="{% url 'account_signup' %}" class="btn btn-light btn-lg w-100 hover-lift">
-                        <i class="fas fa-user-plus me-2"></i>İşitme Merkezi Kaydı
-                    </a>
                 </div>
             </div>
             
-            <div class="col-lg-5 animate-fade-in-up" style="animation-delay: 0.2s;">
-                <div class="glass-card h-100 text-center p-5 hover-lift">
-                    <div class="mb-4">
-                        <div class="feature-icon gradient-bg-success mx-auto mb-3">
-                            <i class="fas fa-industry"></i>
+            <!-- Üretici Merkez -->
+            <div class="col-lg-5 col-md-6">
+                <div class="card border-0 shadow-lg h-100 hover-lift">
+                    <div class="card-body p-5 text-center">
+                        <div class="mb-4">
+                            <div class="d-inline-flex align-items-center justify-content-center bg-success rounded-circle" 
+                                 style="width: 100px; height: 100px;">
+                                <i class="fas fa-industry text-white" style="font-size: 3rem;"></i>
+                            </div>
                         </div>
-                        <h3 class="fw-bold text-white mb-3">Üretici Merkez</h3>
-                        <p class="text-white opacity-75 mb-4">Kalıp üretimi yapmak ve sipariş almak için</p>
+                        
+                        <h3 class="fw-bold mb-3">Üretici Merkez</h3>
+                        <p class="text-muted mb-4">Kalıp üretimi yapın, gelir elde edin</p>
+                        
+                        <ul class="list-unstyled text-start mb-4">
+                            <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Sipariş alma sistemi</li>
+                            <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Üretim yönetimi</li>
+                            <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Kalite kontrol</li>
+                            <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Gelir takibi</li>
+                            <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Performans analitiği</li>
+                        </ul>
+                        
+                        <a href="{% url 'producer:register' %}" class="btn btn-success btn-lg w-100 hover-lift">
+                            <i class="fas fa-industry me-2"></i>
+                            Üretici Merkez Kaydı
+                        </a>
                     </div>
-                    
-                    <ul class="list-unstyled text-start text-white opacity-75 mb-4">
-                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Sipariş alma ve yönetimi</li>
-                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Üretim planlama</li>
-                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Kalite kontrol</li>
-                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Performans analizi</li>
-                    </ul>
-                    
-                    <a href="{% url 'producer:register' %}" class="btn btn-light btn-lg w-100 hover-lift">
-                        <i class="fas fa-industry me-2"></i>Üretici Merkez Kaydı
-                    </a>
                 </div>
             </div>
         </div>
     </div>
 </section>
 
-<!-- Modern CTA Section -->
-<section class="py-5" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+<!-- Call to Action Section -->
+<section class="py-5" style="background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-700) 100%);">
     <div class="container">
-        <div class="row">
-            <div class="col-lg-8 mx-auto text-center animate-fade-in-up">
-                <h2 class="display-4 fw-bold text-white text-shadow mb-4">
-                    Kulak Kalıbı Üretiminde Devrim
-                </h2>
-                <p class="lead text-white opacity-90 mb-5 fs-5">
-                    Binlerce işitme merkezi ve üretici merkezin tercihi MoldPark ile siz de farkı yaşayın
-                </p>
-                <div class="d-flex flex-wrap justify-content-center gap-3">
-                    <a href="{% url 'core:pricing' %}" class="btn btn-light btn-lg px-5 py-3 fw-bold hover-lift">
-                        <i class="fas fa-rocket me-2"></i>Ücretsiz Dene
-                    </a>
-                    <a href="{% url 'core:contact' %}" class="btn btn-outline-light btn-lg px-5 py-3 fw-bold hover-lift">
-                        <i class="fas fa-phone me-2"></i>İletişime Geç
-                    </a>
-                </div>
+        <div class="row align-items-center">
+            <div class="col-lg-8 text-white">
+                <h2 class="display-6 fw-bold mb-3">Hazır mısınız?</h2>
+                <p class="lead mb-0">Bugün MoldPark'a katılın ve kulak kalıbı üretiminde farkı yaşayın. Ücretsiz deneme fırsatını kaçırmayın!</p>
+            </div>
+            <div class="col-lg-4 text-lg-end mt-4 mt-lg-0">
+                {% if not user.is_authenticated %}
+                <a href="{% url 'account_signup' %}" class="btn btn-light btn-lg px-5 py-3 hover-lift">
+                    <i class="fas fa-rocket me-2"></i>
+                    Ücretsiz Başlayın
+                </a>
+                {% else %}
+                <a href="{% if user.center %}{% url 'center:dashboard' %}{% elif user.producer %}{% url 'producer:dashboard' %}{% else %}{% url 'core:admin_dashboard' %}{% endif %}" 
+                   class="btn btn-light btn-lg px-5 py-3 hover-lift">
+                    <i class="fas fa-arrow-right me-2"></i>
+                    Dashboard'a Git
+                </a>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -365,14 +499,14 @@
 <!-- Video Modal -->
 <div class="modal fade" id="videoModal" tabindex="-1" aria-labelledby="videoModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content border-0 rounded-3 overflow-hidden">
+        <div class="modal-content border-0 rounded-3">
             <div class="modal-header border-0">
                 <h5 class="modal-title fw-bold" id="videoModalLabel">MoldPark Platform Tanıtımı</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-0">
                 <div class="ratio ratio-16x9">
-                    <video controls class="w-100">
+                    <video controls class="rounded-bottom">
                         <source src="{% static 'images/moldpark.mp4' %}" type="video/mp4">
                         Tarayıcınız video oynatmayı desteklemiyor.
                     </video>
@@ -382,28 +516,11 @@
     </div>
 </div>
 
-<!-- Custom Animations -->
+<!-- Animation Keyframes -->
 <style>
 @keyframes float {
     0%, 100% { transform: translateY(0px); }
     50% { transform: translateY(-20px); }
-}
-
-@keyframes shine {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-.min-vh-100 {
-    min-height: 100vh;
-}
-
-.hero-logo {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.hero-logo:hover {
-    transform: scale(1.1) rotate(5deg);
 }
 </style>
 {% endblock %} 
