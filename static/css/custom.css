@@ -101,15 +101,15 @@ body {
 }
 
 /* ========================================
-   MODERN NAVBAR
+   MODERN NAVBAR - SIYAH BEYAZ TEMA
    ======================================== */
 
 .navbar {
     background: #ffffff !important;
-    border-bottom: 1px solid #e9ecef;
+    border-bottom: 2px solid #1a1a1a;
     padding: var(--spacing-md) 0;
     transition: all 0.3s ease;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 8px rgba(26, 26, 26, 0.15);
 }
 
 .navbar-brand {
@@ -121,27 +121,31 @@ body {
 
 .navbar-brand:hover {
     transform: scale(1.05);
+    color: #000000 !important;
 }
 
 .navbar-nav .nav-link {
-    font-weight: 500;
-    color: var(--gray-700) !important;
+    font-weight: 600;
+    color: #1a1a1a !important;
     padding: var(--spacing-sm) var(--spacing-md) !important;
-    border-radius: var(--radius-lg);
+    border-radius: 0;
     transition: all 0.3s ease;
     position: relative;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 0.9rem;
 }
 
 .navbar-nav .nav-link:hover {
-    color: var(--primary-color) !important;
-    background: rgba(26, 26, 26, 0.1);
+    color: #ffffff !important;
+    background: #1a1a1a;
     transform: translateY(-2px);
 }
 
 .navbar-nav .nav-link.active {
-    background: var(--primary-gradient);
-    color: white !important;
-    box-shadow: var(--shadow-md);
+    background: #1a1a1a;
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(26, 26, 26, 0.3);
 }
 
 /* ========================================
@@ -546,13 +550,50 @@ body {
    FOOTER STYLES
    ======================================== */
 
+/* ========================================
+   FOOTER - SIYAH BEYAZ TEMA
+   ======================================== */
+
 .footer {
-    background: var(--glass-bg);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-top: 1px solid var(--glass-border);
+    background: #1a1a1a !important;
+    color: #ffffff;
+    border-top: 3px solid #ffffff;
     padding: var(--spacing-2xl) 0;
     margin-top: auto;
+    box-shadow: 0 -4px 8px rgba(26, 26, 26, 0.15);
+}
+
+.footer h5 {
+    color: #ffffff !important;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 1rem;
+}
+
+.footer p,
+.footer li,
+.footer a {
+    color: #e9ecef !important;
+    font-weight: 400;
+}
+
+.footer a:hover {
+    color: #ffffff !important;
+    text-decoration: underline;
+    transition: all 0.3s ease;
+}
+
+.footer .social-links a {
+    color: #e9ecef !important;
+    font-size: 1.5rem;
+    margin-right: 1rem;
+    transition: all 0.3s ease;
+}
+
+.footer .social-links a:hover {
+    color: #ffffff !important;
+    transform: translateY(-2px);
 }
 
 /* ========================================
@@ -680,54 +721,70 @@ body {
     box-shadow: 0 0 0 0.2rem rgba(135, 206, 235, 0.25);
 }
 
-/* Notification Badge */
+/* Notification Badge - Siyah Beyaz Tema */
 .notification-badge {
     position: absolute;
     top: -5px;
     right: -5px;
-    background: #dc3545;
-    color: white;
-    border-radius: 50%;
-    width: 18px;
-    height: 18px;
+    background: #1a1a1a !important;
+    color: #ffffff !important;
+    border: 2px solid #ffffff;
+    border-radius: 0;
+    width: 20px;
+    height: 20px;
     font-size: 10px;
+    font-weight: 700;
     display: flex;
     align-items: center;
     justify-content: center;
+    text-transform: uppercase;
 }
 
-/* Navbar Dropdown Styling */
+/* Navbar Dropdown Styling - Siyah Beyaz Tema */
 .navbar .dropdown-menu {
-    border: none;
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-    border-radius: 0.5rem;
+    border: 2px solid #1a1a1a;
+    background: #ffffff;
+    box-shadow: 0 0.5rem 1rem rgba(26, 26, 26, 0.2);
+    border-radius: 0;
     margin-top: 0.5rem;
 }
 
 .navbar .dropdown-item {
     padding: 0.75rem 1.5rem;
-    border-radius: 0.25rem;
-    margin: 0.25rem 0.5rem;
+    border-radius: 0;
+    margin: 0;
+    color: #1a1a1a !important;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 0.85rem;
 }
 
 .navbar .dropdown-item:hover {
-    background-color: #f8f9fa;
+    background-color: #1a1a1a !important;
+    color: #ffffff !important;
     transform: translateX(5px);
     transition: all 0.2s ease;
 }
 
 .navbar .dropdown-item strong {
     display: block;
-    color: #495057;
+    color: inherit !important;
+    font-weight: 600;
 }
 
 .navbar .dropdown-item small {
-    color: #6c757d;
-    font-size: 0.8rem;
+    color: inherit !important;
+    font-size: 0.75rem;
+    opacity: 0.8;
+    text-transform: none;
+    letter-spacing: normal;
 }
 
 .navbar .dropdown-divider {
-    margin: 0.5rem 0;
+    margin: 0;
+    border-color: #1a1a1a;
+    border-width: 1px;
 }
 
 /* Loading Spinner */
