@@ -115,6 +115,97 @@
 }
 
 /* ========================================
+   TEXT & TYPOGRAPHY IMPROVEMENTS
+   ======================================== */
+
+/* Enhanced Text Colors for Better Readability */
+.text-muted {
+    color: var(--gray-600) !important;
+}
+
+.text-light {
+    color: var(--gray-500) !important;
+}
+
+.text-dark {
+    color: var(--gray-800) !important;
+}
+
+/* Footer Specific Improvements */
+footer {
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--gray-200);
+}
+
+footer .text-muted {
+    color: var(--gray-600) !important;
+}
+
+footer h6 {
+    color: var(--gray-800) !important;
+    font-weight: 600;
+}
+
+footer a.text-muted {
+    color: var(--gray-600) !important;
+    transition: color var(--duration-200) var(--ease-out);
+}
+
+footer a.text-muted:hover {
+    color: var(--primary-600) !important;
+}
+
+footer .hover-primary:hover {
+    color: var(--primary-600) !important;
+}
+
+footer small.text-muted {
+    color: var(--gray-600) !important;
+}
+
+/* Improved contrast for small text */
+small.text-muted {
+    color: var(--gray-600) !important;
+    font-size: var(--text-sm);
+}
+
+/* Better visibility for secondary text */
+.text-secondary {
+    color: var(--gray-600) !important;
+}
+
+/* Enhanced dropdown text */
+.dropdown-item {
+    color: var(--gray-700) !important;
+}
+
+.dropdown-item:hover {
+    color: var(--gray-900) !important;
+}
+
+/* Improved notification text */
+.notification-item .text-muted {
+    color: var(--gray-600) !important;
+}
+
+/* Better form label visibility */
+.form-label {
+    color: var(--gray-700) !important;
+    font-weight: 500;
+}
+
+/* Enhanced table text */
+.table td {
+    color: var(--gray-700) !important;
+}
+
+.table th {
+    color: var(--gray-800) !important;
+}
+
+/* ========================================
    BASE STYLES & RESET
    ======================================== */
 
@@ -133,7 +224,7 @@ html {
 body {
     font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: var(--gray-50);
-    color: var(--gray-800);
+    color: var(--gray-700);
     line-height: 1.6;
     min-height: 100vh;
     overflow-x: hidden;
@@ -825,7 +916,7 @@ body {
 @media (prefers-color-scheme: dark) {
     body {
         background: var(--gray-900);
-        color: var(--gray-100);
+        color: var(--gray-200);
     }
     
     .navbar {
@@ -836,17 +927,67 @@ body {
     .card {
         background: var(--gray-800);
         border-color: var(--gray-700);
-        color: var(--gray-100);
+        color: var(--gray-200);
     }
     
     .form-control {
         background: var(--gray-800);
         border-color: var(--gray-600);
-        color: var(--gray-100);
+        color: var(--gray-200);
     }
     
     .form-control:focus {
         background: var(--gray-700);
+        color: var(--gray-200);
+    }
+
+    footer {
+        background: rgba(17, 24, 39, 0.95) !important;
+        border-top-color: var(--gray-700);
+    }
+
+    .text-muted {
+        color: var(--gray-400) !important;
+    }
+
+    footer .text-muted {
+        color: var(--gray-400) !important;
+    }
+
+    footer h6 {
+        color: var(--gray-200) !important;
+    }
+
+    footer a.text-muted {
+        color: var(--gray-400) !important;
+    }
+
+    footer a.text-muted:hover {
+        color: var(--primary-400) !important;
+    }
+
+    .dropdown-item {
+        color: var(--gray-200) !important;
+    }
+
+    .dropdown-item:hover {
+        color: var(--gray-100) !important;
+    }
+
+    .table td {
+        color: var(--gray-200) !important;
+    }
+
+    .table th {
+        color: var(--gray-100) !important;
+    }
+
+    .form-label {
+        color: var(--gray-200) !important;
+    }
+
+    small.text-muted {
+        color: var(--gray-400) !important;
     }
 }
 
