@@ -8,84 +8,55 @@
     <title>{% block title %}MoldPark - Kulak Kalıbı Yönetim Sistemi{% endblock %}</title>
     
     <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="{% static 'favicon.ico' %}")
+    <link rel="icon" type="image/x-icon" href="{% static 'favicon.ico' %}">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <!-- Custom CSS -->
     <link href="{% static 'css/custom.css' %}" rel="stylesheet">
     
-    <!-- Inline CSS for backward compatibility -->
-    <style>
-        :root {
-            --primary-color: #87CEEB; /* Gökyüzü mavisi */
-            --secondary-color: #98FB98; /* Açık mat yeşil */
-        }
-        
-        body {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .navbar {
-            background-color: var(--primary-color);
-        }
-        
-        .btn-primary {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
-        }
-        
-        .btn-secondary {
-            background-color: var(--secondary-color);
-            border-color: var(--secondary-color);
-            color: #000;
-        }
-        
-        .footer {
-            margin-top: auto;
-            background-color: var(--primary-color);
-            color: white;
-            padding: 1rem 0;
-        }
-        
-        .content {
-            flex: 1;
-            padding: 2rem 0;
-        }
-    </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark">
+    <!-- Modern Navbar -->
+    <nav class="navbar navbar-expand-lg fixed-top">
         <div class="container">
             <a class="navbar-brand d-flex align-items-center" href="{% url 'core:home' %}">
-                <img src="{% static 'images/moldpark_logo.jpg' %}" alt="MoldPark Logo" height="40" class="me-2">
+                <img src="{% static 'images/moldpark_logo.jpg' %}" alt="MoldPark Logo" 
+                     class="rounded-circle me-3 shadow-sm" 
+                     style="width: 45px; height: 45px; object-fit: cover;">
                 <span class="fw-bold">MoldPark</span>
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'core:home' %}">Ana Sayfa</a>
+                        <a class="nav-link" href="{% url 'core:home' %}">
+                            <i class="fas fa-home me-1"></i>Ana Sayfa
+                        </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'core:pricing' %}">
                             <i class="fas fa-tags me-1"></i>Fiyatlandırma
                         </a>
                     </li>
+                    
                     {% if not user.is_authenticated %}
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="registerDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <a class="nav-link dropdown-toggle" href="#" id="registerDropdown" role="button" data-bs-toggle="dropdown">
                             <i class="fas fa-user-plus me-1"></i>Kayıt Ol
                         </a>
-                        <ul class="dropdown-menu" aria-labelledby="registerDropdown">
+                        <ul class="dropdown-menu shadow-lg border-0">
                             <li>
                                 <a class="dropdown-item" href="{% url 'account_signup' %}">
                                     <i class="fas fa-clinic-medical me-2 text-primary"></i>
@@ -108,10 +79,10 @@
                         </ul>
                     </li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="loginDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <a class="nav-link dropdown-toggle" href="#" id="loginDropdown" role="button" data-bs-toggle="dropdown">
                             <i class="fas fa-sign-in-alt me-1"></i>Giriş Yap
                         </a>
-                        <ul class="dropdown-menu" aria-labelledby="loginDropdown">
+                        <ul class="dropdown-menu shadow-lg border-0">
                             <li>
                                 <a class="dropdown-item" href="{% url 'account_login' %}">
                                     <i class="fas fa-clinic-medical me-2 text-primary"></i>
@@ -131,27 +102,28 @@
                     {% if user.is_authenticated %}
                         {% if user.is_staff or user.is_superuser %}
                             <li class="nav-item">
-                                <a class="nav-link" href="{% url 'center:admin_dashboard' %}"><i class="fas fa-tools me-1"></i>Yönetim Paneli</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{% url 'producer:admin_producer_list' %}"><i class="fas fa-industry me-1"></i>Üretici Yönetimi</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{% url 'producer:admin_mold_list' %}"><i class="fas fa-cube me-1"></i>Tüm Kalıplar</a>
+                                <a class="nav-link" href="{% url 'center:admin_dashboard' %}">
+                                    <i class="fas fa-tools me-1"></i>Yönetim Paneli
+                                </a>
                             </li>
                         {% endif %}
                         
                         <!-- Üretici Kontrolü -->
                         {% if user.producer %}
-                            <!-- ÜRETİCİ NAV MENÜSÜ -->
                             <li class="nav-item">
-                                <a class="nav-link" href="{% url 'producer:dashboard' %}"><i class="fas fa-industry me-1"></i>Üretici Panel</a>
+                                <a class="nav-link" href="{% url 'producer:dashboard' %}">
+                                    <i class="fas fa-industry me-1"></i>Üretici Panel
+                                </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="{% url 'producer:order_list' %}"><i class="fas fa-shopping-cart me-1"></i>Siparişlerim</a>
+                                <a class="nav-link" href="{% url 'producer:order_list' %}">
+                                    <i class="fas fa-shopping-cart me-1"></i>Siparişlerim
+                                </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="{% url 'producer:mold_list' %}"><i class="fas fa-cube me-1"></i>Kalıplar</a>
+                                <a class="nav-link" href="{% url 'producer:mold_list' %}">
+                                    <i class="fas fa-cube me-1"></i>Kalıplar
+                                </a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'producer:revision_request_list' %}">
@@ -176,10 +148,8 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link btn btn-success text-white me-2 fw-bold" href="{% url 'mold:mold_create' %}" 
-                                   style="border-radius: 25px; padding: 0.5rem 1.2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.3s ease;"
-                                   onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 8px rgba(0,0,0,0.2)'"
-                                   onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)'">
+                                <a class="nav-link btn btn-primary text-white me-2 px-3 py-2 rounded-pill hover-lift" 
+                                   href="{% url 'mold:mold_create' %}">
                                     <i class="fas fa-plus me-1"></i>Yeni Kalıp
                                 </a>
                             </li>
@@ -188,10 +158,12 @@
                         
                         <!-- Mesajlaşma - Tüm giriş yapmış kullanıcılar için -->
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'core:message_list' %}">
+                            <a class="nav-link position-relative" href="{% url 'core:message_list' %}">
                                 <i class="fas fa-envelope me-1"></i>Mesajlar
                                 {% if unread_message_count > 0 %}
-                                    <span class="badge bg-danger ms-1">{{ unread_message_count }}</span>
+                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                        {{ unread_message_count }}
+                                    </span>
                                 {% endif %}
                             </a>
                         </li>
@@ -202,88 +174,167 @@
                         <!-- Bildirimler - sadece merkez ve admin kullanıcıları için -->
                         {% if user.center or user.is_staff or user.is_superuser %}
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-bell me-1"></i>
+                            <a class="nav-link position-relative" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-bell fs-5"></i>
                                 {% with unread_count=user.notifications.unread.count %}
-                                <span class="badge bg-danger notification-badge" {% if unread_count == 0 %}style="display: none;"{% endif %}>
+                                {% if unread_count > 0 %}
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger notification-badge">
                                     {{ unread_count }}
                                 </span>
+                                {% endif %}
                                 {% endwith %}
                             </a>
-                            <ul class="dropdown-menu dropdown-menu-end">
+                            <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="min-width: 350px;">
+                                <li class="dropdown-header">
+                                    <h6 class="mb-0">Bildirimler</h6>
+                                </li>
                                 {% for notification in user.notifications.unread|slice:":5" %}
                                     <li>
-                                        <a class="dropdown-item notification-item" href="{% url 'center:mark_notification_read' notification.id %}" data-notification-id="{{ notification.id }}">
-                                            <div class="fw-semibold">{{ notification.verb|title }}</div>
-                                            <div class="text-muted small">{{ notification.description|truncatechars:60 }}</div>
-                                            <small class="text-muted">{{ notification.timestamp|timesince }} önce</small>
+                                        <a class="dropdown-item notification-item p-3 border-bottom" href="{% url 'center:mark_notification_read' notification.id %}" data-notification-id="{{ notification.id }}">
+                                            <div class="d-flex">
+                                                <div class="flex-shrink-0">
+                                                    <i class="fas fa-circle text-primary" style="font-size: 0.5rem;"></i>
+                                                </div>
+                                                <div class="flex-grow-1 ms-2">
+                                                    <div class="fw-semibold text-dark">{{ notification.verb|title }}</div>
+                                                    <div class="text-muted small">{{ notification.description|truncatechars:60 }}</div>
+                                                    <small class="text-muted">{{ notification.timestamp|timesince }} önce</small>
+                                                </div>
+                                            </div>
                                         </a>
                                     </li>
                                 {% empty %}
-                                    <li><span class="dropdown-item text-muted">Yeni bildirim yok</span></li>
+                                    <li class="dropdown-item text-center py-4">
+                                        <i class="fas fa-bell-slash text-muted fs-1 mb-2"></i>
+                                        <div class="text-muted">Yeni bildirim yok</div>
+                                    </li>
                                 {% endfor %}
                                 {% if user.notifications.unread.count > 5 %}
                                     <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item text-center" href="{% url 'center:notification_list' %}?filter=unread">{{ user.notifications.unread.count }} bildirim daha</a></li>
+                                    <li><a class="dropdown-item text-center text-primary" href="{% url 'center:notification_list' %}?filter=unread">{{ user.notifications.unread.count }} bildirim daha</a></li>
                                 {% endif %}
                                 {% if user.notifications.unread.count > 0 %}
                                     <li><hr class="dropdown-divider"></li>
                                     <li>
-                                        <a class="dropdown-item text-center" href="{% url 'center:mark_all_notifications_read' %}" id="mark-all-read">
+                                        <a class="dropdown-item text-center text-success" href="{% url 'center:mark_all_notifications_read' %}" id="mark-all-read">
                                             <i class="fas fa-check-double me-1"></i>Tümünü Okundu İşaretle
                                         </a>
                                     </li>
                                 {% endif %}
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item text-center" href="{% url 'center:notification_list' %}">Tüm Bildirimler</a></li>
+                                <li><a class="dropdown-item text-center text-primary" href="{% url 'center:notification_list' %}">Tüm Bildirimler</a></li>
                             </ul>
                         </li>
                         {% endif %}
                         
                         <!-- Kullanıcı Menüsü -->
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-user me-1"></i>
-                                {% if user.producer %}
-                                    {{ user.producer.company_name }}
-                                {% elif user.center %}
-                                    {{ user.center.name }}
-                                {% else %}
-                                    {{ user.email }}
-                                {% endif %}
+                            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                                <div class="user-avatar me-2">
+                                    <i class="fas fa-user-circle fs-4 text-primary"></i>
+                                </div>
+                                <div class="user-info d-none d-md-block">
+                                    <div class="user-name fw-semibold">
+                                        {% if user.producer %}
+                                            {{ user.producer.company_name|truncatechars:15 }}
+                                        {% elif user.center %}
+                                            {{ user.center.name|truncatechars:15 }}
+                                        {% else %}
+                                            {{ user.username }}
+                                        {% endif %}
+                                    </div>
+                                    <small class="text-muted">
+                                        {% if user.producer %}
+                                            Üretici Merkez
+                                        {% elif user.center %}
+                                            İşitme Merkezi
+                                        {% elif user.is_staff %}
+                                            Yönetici
+                                        {% endif %}
+                                    </small>
+                                </div>
                             </a>
-                            <ul class="dropdown-menu dropdown-menu-end">
+                            <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0">
+                                <li class="dropdown-header">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-user-circle fs-3 text-primary me-2"></i>
+                                        <div>
+                                            <div class="fw-bold">
+                                                {% if user.producer %}
+                                                    {{ user.producer.company_name }}
+                                                {% elif user.center %}
+                                                    {{ user.center.name }}
+                                                {% else %}
+                                                    {{ user.username }}
+                                                {% endif %}
+                                            </div>
+                                            <small class="text-muted">{{ user.email }}</small>
+                                        </div>
+                                    </div>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
                                 {% if user.producer %}
                                     <!-- ÜRETİCİ DROPDOWN -->
-                                    <li><a class="dropdown-item" href="{% url 'producer:profile' %}"><i class="fas fa-user me-2"></i>Profil</a></li>
-                                    <li><a class="dropdown-item" href="{% url 'producer:network_list' %}"><i class="fas fa-network-wired me-2"></i>Ağ Yönetimi</a></li>
+                                    <li>
+                                        <a class="dropdown-item" href="{% url 'producer:profile' %}">
+                                            <i class="fas fa-user me-2 text-primary"></i>Profil
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="{% url 'producer:network_list' %}">
+                                            <i class="fas fa-network-wired me-2 text-info"></i>Ağ Yönetimi
+                                        </a>
+                                    </li>
                                     <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="{% url 'producer:logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Çıkış</a></li>
+                                    <li>
+                                        <a class="dropdown-item text-danger" href="{% url 'producer:logout' %}">
+                                            <i class="fas fa-sign-out-alt me-2"></i>Çıkış
+                                        </a>
+                                    </li>
                                 {% elif user.center %}
                                     <!-- MERKEZ DROPDOWN -->
-                                    <li><a class="dropdown-item" href="{% url 'center:profile' %}"><i class="fas fa-user me-2"></i>Profil</a></li>
+                                    <li>
+                                        <a class="dropdown-item" href="{% url 'center:profile' %}">
+                                            <i class="fas fa-user me-2 text-primary"></i>Profil
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="{% url 'core:subscription_dashboard' %}">
+                                            <i class="fas fa-credit-card me-2 text-success"></i>Abonelik
+                                        </a>
+                                    </li>
                                     <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="{% url 'account_logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Çıkış</a></li>
+                                    <li>
+                                        <a class="dropdown-item text-danger" href="{% url 'account_logout' %}">
+                                            <i class="fas fa-sign-out-alt me-2"></i>Çıkış
+                                        </a>
+                                    </li>
                                 {% else %}
                                     <!-- ADMİN DROPDOWN -->
-                                    <li><a class="dropdown-item" href="{% url 'center:profile' %}"><i class="fas fa-user me-2"></i>Profil</a></li>
+                                    <li>
+                                        <a class="dropdown-item" href="{% url 'center:profile' %}">
+                                            <i class="fas fa-user me-2 text-primary"></i>Profil
+                                        </a>
+                                    </li>
                                     <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="{% url 'account_logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Çıkış</a></li>
+                                    <li>
+                                        <a class="dropdown-item text-danger" href="{% url 'account_logout' %}">
+                                            <i class="fas fa-sign-out-alt me-2"></i>Çıkış
+                                        </a>
+                                    </li>
                                 {% endif %}
                             </ul>
                         </li>
                     {% else %}
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="loginDropdown" role="button" data-bs-toggle="dropdown">
-                                Giriş
+                        <li class="nav-item">
+                            <a class="nav-link btn btn-outline-primary me-2 px-3 py-2 rounded-pill" href="{% url 'account_login' %}">
+                                <i class="fas fa-sign-in-alt me-1"></i>Giriş Yap
                             </a>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" href="{% url 'account_login' %}"><i class="fas fa-building me-2"></i>Merkez Girişi</a></li>
-                                <li><a class="dropdown-item" href="{% url 'producer:login' %}"><i class="fas fa-industry me-2"></i>Üretici Girişi</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="{% url 'account_signup' %}"><i class="fas fa-user-plus me-2"></i>Merkez Kaydı</a></li>
-                                <li><a class="dropdown-item" href="{% url 'producer:register' %}"><i class="fas fa-plus me-2"></i>Üretici Kaydı</a></li>
-                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link btn btn-primary text-white px-3 py-2 rounded-pill hover-lift" href="{% url 'account_signup' %}">
+                                <i class="fas fa-user-plus me-1"></i>Kayıt Ol
+                            </a>
                         </li>
                     {% endif %}
                 </ul>
@@ -295,8 +346,19 @@
     {% if messages %}
         <div class="container mt-3">
             {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
-                    {{ message }}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show shadow-sm border-0 rounded-3">
+                    <div class="d-flex align-items-center">
+                        {% if message.tags == 'success' %}
+                            <i class="fas fa-check-circle me-2 text-success"></i>
+                        {% elif message.tags == 'error' or message.tags == 'danger' %}
+                            <i class="fas fa-exclamation-circle me-2 text-danger"></i>
+                        {% elif message.tags == 'warning' %}
+                            <i class="fas fa-exclamation-triangle me-2 text-warning"></i>
+                        {% else %}
+                            <i class="fas fa-info-circle me-2 text-info"></i>
+                        {% endif %}
+                        <div class="flex-grow-1">{{ message }}</div>
+                    </div>
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             {% endfor %}
@@ -309,27 +371,80 @@
     </main>
 
     <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
+    <footer class="glass-card mt-auto">
+        <div class="container py-5">
             <div class="row">
-                <div class="col-md-6">
+                <div class="col-lg-4 mb-4">
                     <div class="d-flex align-items-center mb-3">
-                        <img src="{% static 'images/moldpark_logo.jpg' %}" alt="MoldPark Logo" height="30" class="me-2">
-                        <h5 class="mb-0">MoldPark</h5>
+                        <img src="{% static 'images/moldpark_logo.jpg' %}" alt="MoldPark" class="me-2" style="height: 40px; border-radius: 8px;">
+                        <h4 class="mb-0 gradient-text">MoldPark</h4>
                     </div>
-                    <p>Kulak kalıbı üretim süreçlerinizi dijitalleştirin.</p>
+                    <p class="text-muted">Profesyonel kulak kalıbı üretim ve yönetim sistemi ile işitme sektöründe yenilikçi çözümler sunuyoruz.</p>
+                    <div class="d-flex gap-3">
+                        <a href="#" class="text-muted hover-primary">
+                            <i class="fab fa-twitter fs-5"></i>
+                        </a>
+                        <a href="#" class="text-muted hover-primary">
+                            <i class="fab fa-linkedin fs-5"></i>
+                        </a>
+                        <a href="#" class="text-muted hover-primary">
+                            <i class="fab fa-instagram fs-5"></i>
+                        </a>
+                    </div>
                 </div>
-                <div class="col-md-6 text-md-end">
-                    <h5>İletişim</h5>
-                    <p>
-                        <i class="fas fa-envelope me-2"></i>info@moldpark.com<br>
-                        <i class="fas fa-phone me-2"></i>+90 (544) 221 92 84
-                    </p>
+                <div class="col-lg-2 col-md-6 mb-4">
+                    <h6 class="fw-bold mb-3">Platform</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><a href="{% url 'core:home' %}" class="text-muted text-decoration-none hover-primary">Ana Sayfa</a></li>
+                        <li class="mb-2"><a href="{% url 'core:pricing' %}" class="text-muted text-decoration-none hover-primary">Fiyatlandırma</a></li>
+                        <li class="mb-2"><a href="#features" class="text-muted text-decoration-none hover-primary">Özellikler</a></li>
+                        <li class="mb-2"><a href="#register" class="text-muted text-decoration-none hover-primary">Kayıt Ol</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-2 col-md-6 mb-4">
+                    <h6 class="fw-bold mb-3">Hizmetler</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><span class="text-muted">AI Modelleme</span></li>
+                        <li class="mb-2"><span class="text-muted">Hızlı Üretim</span></li>
+                        <li class="mb-2"><span class="text-muted">Kalite Kontrol</span></li>
+                        <li class="mb-2"><span class="text-muted">7/24 Destek</span></li>
+                    </ul>
+                </div>
+                <div class="col-lg-2 col-md-6 mb-4">
+                    <h6 class="fw-bold mb-3">Destek</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><a href="{% url 'core:contact' %}" class="text-muted text-decoration-none hover-primary">İletişim</a></li>
+                        <li class="mb-2"><a href="#" class="text-muted text-decoration-none hover-primary">Yardım Merkezi</a></li>
+                        <li class="mb-2"><a href="#" class="text-muted text-decoration-none hover-primary">Dokümantasyon</a></li>
+                        <li class="mb-2"><span class="text-muted">API</span></li>
+                    </ul>
+                </div>
+                <div class="col-lg-2 col-md-6 mb-4">
+                    <h6 class="fw-bold mb-3">İletişim</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="fas fa-envelope me-2 text-primary"></i>
+                            <small class="text-muted">info@moldpark.com</small>
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-phone me-2 text-primary"></i>
+                            <small class="text-muted">+90 (544) 221 92 84</small>
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-map-marker-alt me-2 text-primary"></i>
+                            <small class="text-muted">İstanbul, Türkiye</small>
+                        </li>
+                    </ul>
                 </div>
             </div>
-            <hr>
-            <div class="text-center">
-                <small>&copy; {% now "Y" %} MoldPark. Tüm hakları saklıdır.</small>
+            <hr class="my-4 opacity-25">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <p class="text-muted mb-0">&copy; {% now "Y" %} MoldPark. Tüm hakları saklıdır.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <small class="text-muted">Türkiye'nin en güvenilir kulak kalıbı platformu</small>
+                </div>
             </div>
         </div>
     </footer>
