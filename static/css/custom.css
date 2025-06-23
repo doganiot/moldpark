@@ -249,16 +249,20 @@ body {
    ======================================== */
 
 .navbar {
-    background: rgba(255, 255, 255, 0.95) !important;
+    background: rgba(248, 250, 252, 0.98) !important;
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border-bottom: 1px solid var(--gray-200);
-    padding: var(--space-3) 0;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+    padding: var(--space-4) 0;
     transition: all var(--duration-300) var(--ease-out);
-    box-shadow: var(--shadow-sm);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     position: sticky !important;
     top: 0;
     z-index: var(--z-sticky);
+}
+
+.navbar-modern {
+    min-height: 70px;
 }
 
 .navbar.scrolled {
@@ -293,25 +297,63 @@ body {
 
 .navbar-nav .nav-link {
     font-weight: 500;
-    color: var(--gray-700) !important;
-    padding: var(--space-2) var(--space-4) !important;
-    border-radius: var(--radius-lg);
+    color: var(--gray-600) !important;
+    padding: var(--space-3) var(--space-4) !important;
+    border-radius: var(--radius-xl);
     transition: all var(--duration-200) var(--ease-out);
     position: relative;
     display: flex;
     align-items: center;
     gap: var(--space-2);
+    margin: 0 var(--space-1);
 }
 
 .navbar-nav .nav-link:hover {
-    color: var(--primary-600) !important;
-    background: var(--primary-50);
+    color: var(--primary-700) !important;
+    background: rgba(59, 130, 246, 0.08);
     transform: translateY(-1px);
 }
 
 .navbar-nav .nav-link.active {
-    background: var(--primary-100);
+    background: rgba(59, 130, 246, 0.12);
     color: var(--primary-700) !important;
+}
+
+/* Modern Button Styles for Navbar */
+.btn-outline-light {
+    background: transparent;
+    color: var(--gray-600) !important;
+    border: 2px solid rgba(148, 163, 184, 0.3);
+    font-weight: 500;
+    padding: var(--space-2) var(--space-5);
+    border-radius: var(--radius-xl);
+    transition: all var(--duration-200) var(--ease-out);
+}
+
+.btn-outline-light:hover {
+    background: rgba(148, 163, 184, 0.1);
+    color: var(--gray-700) !important;
+    border-color: rgba(148, 163, 184, 0.5);
+    transform: translateY(-1px);
+}
+
+/* Enhanced Primary Button */
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+    color: white !important;
+    border: none;
+    font-weight: 600;
+    padding: var(--space-2) var(--space-5);
+    border-radius: var(--radius-xl);
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+    transition: all var(--duration-200) var(--ease-out);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, var(--primary-600), var(--primary-700));
+    color: white !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
 }
 
 /* Modern Dropdown */

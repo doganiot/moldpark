@@ -26,16 +26,16 @@
 </head>
 <body>
     <!-- Modern Navbar -->
-    <nav class="navbar navbar-expand-lg fixed-top">
+    <nav class="navbar navbar-expand-lg fixed-top navbar-modern">
         <div class="container">
             <a class="navbar-brand d-flex align-items-center" href="{% url 'core:home' %}">
                 <img src="{% static 'images/moldpark.jpg' %}" alt="MoldPark Logo" 
-                     class="me-3 shadow-sm" 
+                     class="me-3 brand-logo shadow-sm" 
                      style="width: 120px; height: 40px; object-fit: contain; border-radius: 8px;">
-                <span class="fw-bold fs-4" style="color: #1a1a1a;">MoldPark</span>
+                <span class="brand-text fw-bold fs-4">MoldPark</span>
             </a>
             
-            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <button class="navbar-toggler custom-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
@@ -52,52 +52,7 @@
                     </li>
                     
                     {% if not user.is_authenticated %}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="registerDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-user-plus me-1"></i>Kayıt Ol
-                        </a>
-                        <ul class="dropdown-menu shadow-lg border-0">
-                            <li>
-                                <a class="dropdown-item" href="{% url 'account_signup' %}">
-                                    <i class="fas fa-clinic-medical me-2 text-primary"></i>
-                                    <div>
-                                        <strong>İşitme Merkezi</strong>
-                                        <br><small class="text-muted">Kalıp siparişi vermek için</small>
-                                    </div>
-                                </a>
-                            </li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <a class="dropdown-item" href="{% url 'producer:register' %}">
-                                    <i class="fas fa-industry me-2 text-success"></i>
-                                    <div>
-                                        <strong>Üretici Merkez</strong>
-                                        <br><small class="text-muted">Kalıp üretimi yapmak için</small>
-                                    </div>
-                                </a>
-                            </li>
-                        </ul>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="loginDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-sign-in-alt me-1"></i>Giriş Yap
-                        </a>
-                        <ul class="dropdown-menu shadow-lg border-0">
-                            <li>
-                                <a class="dropdown-item" href="{% url 'account_login' %}">
-                                    <i class="fas fa-clinic-medical me-2 text-primary"></i>
-                                    İşitme Merkezi Girişi
-                                </a>
-                            </li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <a class="dropdown-item" href="{% url 'producer:login' %}">
-                                    <i class="fas fa-industry me-2 text-success"></i>
-                                    Üretici Merkez Girişi
-                                </a>
-                            </li>
-                        </ul>
-                    </li>
+                    <!-- Guest Navigation - moved to right side -->
                     {% endif %}
                     {% if user.is_authenticated %}
                         {% if user.is_staff or user.is_superuser %}
@@ -148,8 +103,7 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link btn btn-primary text-white me-2 px-3 py-2 rounded-pill hover-lift" 
-                                   href="{% url 'mold:mold_create' %}">
+                                <a class="btn btn-primary ms-2" href="{% url 'mold:mold_create' %}">
                                     <i class="fas fa-plus me-1"></i>Yeni Kalıp
                                 </a>
                             </li>
@@ -326,15 +280,60 @@
                             </ul>
                         </li>
                     {% else %}
-                        <li class="nav-item">
-                            <a class="nav-link btn btn-outline-dark me-2 px-3 py-2 rounded-pill" href="{% url 'account_login' %}">
-                                <i class="fas fa-sign-in-alt me-1"></i>Giriş Yap
-                            </a>
+                        <!-- Guest User Actions -->
+                        <li class="nav-item me-2">
+                            <div class="dropdown">
+                                <button class="btn btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-user-plus me-1"></i>Kayıt Ol
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0">
+                                    <li>
+                                        <a class="dropdown-item py-3" href="{% url 'account_signup' %}">
+                                            <div class="d-flex align-items-center">
+                                                <i class="fas fa-clinic-medical me-3 text-primary fs-5"></i>
+                                                <div>
+                                                    <div class="fw-semibold">İşitme Merkezi</div>
+                                                    <small class="text-muted">Kalıp siparişi vermek için</small>
+                                                </div>
+                                            </div>
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item py-3" href="{% url 'producer:register' %}">
+                                            <div class="d-flex align-items-center">
+                                                <i class="fas fa-industry me-3 text-success fs-5"></i>
+                                                <div>
+                                                    <div class="fw-semibold">Üretici Merkez</div>
+                                                    <small class="text-muted">Kalıp üretimi yapmak için</small>
+                                                </div>
+                                            </div>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link btn px-3 py-2 rounded-pill hover-lift" href="{% url 'account_signup' %}" style="background: #ffd700; color: #1a1a1a; border: none;">
-                                <i class="fas fa-user-plus me-1"></i>Kayıt Ol
-                            </a>
+                            <div class="dropdown">
+                                <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-sign-in-alt me-1"></i>Giriş Yap
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0">
+                                    <li>
+                                        <a class="dropdown-item py-2" href="{% url 'account_login' %}">
+                                            <i class="fas fa-clinic-medical me-2 text-primary"></i>
+                                            İşitme Merkezi
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item py-2" href="{% url 'producer:login' %}">
+                                            <i class="fas fa-industry me-2 text-success"></i>
+                                            Üretici Merkez
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
                         </li>
                     {% endif %}
                 </ul>
