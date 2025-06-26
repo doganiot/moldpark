@@ -30,7 +30,10 @@ urlpatterns = [
     
     # Mold Admin
     path('admin/molds/', views.admin_mold_list, name='admin_mold_list'),
-    path('admin/molds/<int:mold_id>/', views.admin_mold_detail, name='admin_mold_detail'),
+    path('admin/molds/<int:pk>/', views.admin_mold_detail, name='admin_mold_detail'),
+    path('admin/molds/<int:pk>/update-status/', views.admin_mold_update_status, name='admin_mold_update_status'),
+    path('admin/molds/<int:mold_id>/upload-model/', views.admin_upload_model, name='admin_upload_model'),
+    path('admin/models/<int:model_id>/delete/', views.admin_delete_model, name='admin_delete_model'),
     path('admin/revisions/', views.admin_revision_list, name='admin_revision_list'),
     
     # API endpoints

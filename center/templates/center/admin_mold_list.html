@@ -65,7 +65,7 @@
                     <td>{{ mold.created_at|date:'d.m.Y H:i' }}</td>
                     <td>
                         <div class="btn-group">
-                            <a href="{% url 'center:admin_mold_detail' mold.id %}" class="btn btn-sm btn-outline-primary" title="Detay">
+                            <a href="{% url 'center:admin_mold_detail' pk=mold.id %}" class="btn btn-sm btn-outline-primary" title="Detay">
                                 <i class="fas fa-eye"></i>
                             </a>
                         {% if mold.scan_file %}

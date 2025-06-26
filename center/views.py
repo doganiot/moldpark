@@ -183,12 +183,43 @@ def admin_dashboard(request):
         created_at__month=current_month
     ).count()
     
-    # Sorunlu durumlar
-    pending_orders = ProducerOrder.objects.filter(status='received').count()
-    revision_molds = EarMold.objects.filter(status='revision').count()
+    # Sorunlu durumlar - DEBUG VE DOĞRU STATUS KONTROLÜ
+    from django.db.models import Q
+    
+    # Debug: Mevcut sipariş statuslarını kontrol et
+    actual_order_statuses = list(ProducerOrder.objects.values_list('status', flat=True).distinct())
+    print(f"DEBUG - Mevcut sipariş statusları: {actual_order_statuses}")
+    
+    # Beklemede olan siparişler (sadece gerçekte var olan statuslar)
+    pending_statuses = [s for s in ['pending', 'received', 'designing'] if s in actual_order_statuses]
+    pending_orders = ProducerOrder.objects.filter(status__in=pending_statuses).count() if pending_statuses else 0
+    
+    # Debug: Mevcut kalıp statuslarını kontrol et  
+    actual_mold_statuses = list(EarMold.objects.values_list('status', flat=True).distinct())
+    print(f"DEBUG - Mevcut kalıp statusları: {actual_mold_statuses}")
+    
+    # Revizyon bekleyen kalıplar (sadece gerçekte var olan statuslar)
+    revision_statuses = [s for s in ['revision', 'revision_requested'] if s in actual_mold_statuses]
+    revision_molds = EarMold.objects.filter(status__in=revision_statuses).count() if revision_statuses else 0
+    
+    # Gecikmiş sipariş sorgusu - Sadece aktif ve gerçekten gecikmiş olanları say
+    current_time = timezone.now()
+    
+    # Sadece gerçekte var olan statuslarda olanları kontrol et
+    valid_overdue_statuses = [s for s in ['received', 'designing', 'production', 'quality_check'] if s in actual_order_statuses]
+    
+    # Gecikmiş siparişleri daha akıllı şekilde hesapla:
+    # 1. estimated_delivery NULL olmamalı
+    # 2. Gerçekten geçmişte olmalı
+    # 3. Sipariş durumu aktif olmalı (teslim edilmemiş)
+    # 4. İlgili kalıp da teslim edilmemiş olmalı
     overdue_orders = ProducerOrder.objects.filter(
-        estimated_delivery__lt=timezone.now(),
-        status__in=['received', 'designing', 'production', 'quality_check']
+        estimated_delivery__isnull=False,  # NULL tarih kontrolü
+        estimated_delivery__lt=current_time.date(),  # Sadece tarih karşılaştırması
+        status__in=valid_overdue_statuses,
+        ear_mold__status__in=['pending', 'processing', 'quality_check', 'waiting']  # Kalıp da aktif durumda
+    ).exclude(
+        ear_mold__status__in=['delivered', 'completed']  # Teslim edilmiş kalıpları hariç tut
     ).count()
     
     # Chart verileri
@@ -204,14 +235,14 @@ def admin_dashboard(request):
     
     # Mesajlaşma sistemi kaldırıldı
     
-    # Kritik uyarılar
+    # Kritik uyarılar - Sadece gerçek sorunları göster
     warnings = []
     if overdue_orders > 0:
-        warnings.append(f'{overdue_orders} adet gecikmiş sipariş')
+        warnings.append(f'{overdue_orders} adet aktif gecikmiş sipariş (kalıp teslim edilmemiş)')
     if revision_molds > 0:
         warnings.append(f'{revision_molds} adet revizyon bekleyen kalıp')
-    if pending_orders > 5:
-        warnings.append(f'{pending_orders} adet beklemede olan sipariş')
+    if pending_orders > 10:  # 5'ten 10'a çıkardık
+        warnings.append(f'{pending_orders} adet beklemede olan sipariş (Normal seviyenin üstünde)')
     
     return render(request, 'center/admin_dashboard.html', {
         'total_centers': total_centers,
@@ -406,7 +437,12 @@ def mark_notification_read(request, notification_id):
     notification.mark_as_read()
     
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return JsonResponse({'success': True, 'message': 'Bildirim okundu olarak işaretlendi.'})
+        unread_count = request.user.notifications.unread().count()
+        return JsonResponse({
+            'success': True, 
+            'message': 'Bildirim okundu olarak işaretlendi.',
+            'unread_count': unread_count
+        })
     
     return redirect('center:notification_list')
 

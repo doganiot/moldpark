@@ -55,7 +55,7 @@
                     <h5 class="mb-0">Durum Güncelle</h5>
                 </div>
                 <div class="card-body">
-                    <form method="post" action="{% url 'center:admin_mold_update_status' mold.id %}">
+                    <form method="post" action="{% url 'center:admin_mold_update_status' pk=mold.id %}">
                         {% csrf_token %}
                         <div class="mb-3">
                             <label class="form-label">Yeni Durum</label>
@@ -187,7 +187,7 @@
 <div class="modal fade" id="uploadModelModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form method="post" action="{% url 'center:admin_upload_model' mold.id %}" enctype="multipart/form-data">
+            <form method="post" action="{% url 'center:admin_upload_model' mold_id=mold.id %}" enctype="multipart/form-data">
                 {% csrf_token %}
                 <div class="modal-header bg-success text-white">
                     <h5 class="modal-title">

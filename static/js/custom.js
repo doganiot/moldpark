@@ -437,6 +437,7 @@ class MoldParkApp {
             method: 'POST',
             headers: {
                 'X-CSRFToken': this.getCsrfToken(),
+                'X-Requested-With': 'XMLHttpRequest',
                 'Content-Type': 'application/json'
             }
         })
@@ -454,6 +455,7 @@ class MoldParkApp {
             method: 'POST',
             headers: {
                 'X-CSRFToken': this.getCsrfToken(),
+                'X-Requested-With': 'XMLHttpRequest',
                 'Content-Type': 'application/json'
             }
         })

@@ -13,7 +13,9 @@ urlpatterns = [
     path('pricing/', views.pricing, name='pricing'),
     path('subscribe/<int:plan_id>/', views.subscribe_to_plan, name='subscribe_to_plan'),
     path('subscription/', views.subscription_dashboard, name='subscription_dashboard'),
+    # Admin Dashboard - Multiple URL aliases for better UX
     path('admin-panel/', views.admin_dashboard, name='admin_dashboard'),
+    path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard_alt'),
     path('api/system-status/', SystemStatusAPI.as_view(), name='api_system_status'),
     path('api/production-pipeline/', production_pipeline_api, name='api_production_pipeline'),
     path('api/alerts/', alerts_api, name='api_alerts'),
