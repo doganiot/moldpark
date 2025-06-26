@@ -697,6 +697,7 @@ def admin_center_change_producer(request, center_id):
             )
             
             # Create new network
+            assignment_reason = request.POST.get('assignment_reason', f'Admin tarafından {producer.company_name} üreticisine transfer edildi')
             network = ProducerNetwork.objects.create(
                 producer=producer,
                 center=center,
@@ -704,7 +705,7 @@ def admin_center_change_producer(request, center_id):
                 joined_at=timezone.now(),
                 activated_at=timezone.now(),
                 auto_assigned=True,
-                assignment_reason=f'Admin tarafından {producer.company_name} üreticisine transfer edildi'
+                assignment_reason=assignment_reason
             )
             
             # Notifications

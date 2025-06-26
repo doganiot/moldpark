@@ -903,12 +903,17 @@
                                     <!-- İşlemler -->
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div class="btn-group btn-group-sm">
-                                            <a href="mailto:{{ network.center.user.email }}" class="btn btn-outline-primary">
+                                            <a href="mailto:{{ network.center.user.email }}" class="btn btn-outline-primary" title="E-posta Gönder">
                                                 <i class="fas fa-envelope"></i>
                                             </a>
-                                            <a href="/admin/center/center/{{ network.center.id }}/change/" class="btn btn-outline-info" target="_blank">
+                                            <a href="/django-admin/center/center/{{ network.center.id }}/change/" class="btn btn-outline-info" target="_blank" title="Düzenle">
                                                 <i class="fas fa-edit"></i>
                                             </a>
+                                            <button type="button" class="btn btn-outline-success" 
+                                                    onclick="reassignNetwork({{ network.center.id }}, '{{ network.center.name }}')" 
+                                                    title="Farklı Ağa Bağla">
+                                                <i class="fas fa-network-wired"></i>
+                                            </button>
                                         </div>
                                         <small class="text-muted">
                                             <i class="fas fa-clock me-1"></i>
@@ -1066,10 +1071,10 @@
                                             </td>
                                             <td>
                                                 <div class="btn-group btn-group-sm">
-                                                    <a href="/admin/auth/user/{{ user.user_id }}/change/" class="btn btn-outline-primary" title="Django Admin'de Düzenle" target="_blank">
+                                                    <a href="/django-admin/auth/user/{{ user.user_id }}/change/" class="btn btn-outline-primary" title="Django Admin'de Düzenle" target="_blank">
                                                         <i class="fas fa-cog"></i>
                                                     </a>
-                                                    <a href="/admin/center/center/{{ user.profile_id }}/change/" class="btn btn-outline-info" title="Profil Düzenle" target="_blank">
+                                                    <a href="/django-admin/center/center/{{ user.profile_id }}/change/" class="btn btn-outline-info" title="Profil Düzenle" target="_blank">
                                                         <i class="fas fa-user-edit"></i>
                                                     </a>
                                                 </div>
@@ -1148,10 +1153,10 @@
                                             </td>
                                             <td>
                                                 <div class="btn-group btn-group-sm">
-                                                    <a href="/admin/auth/user/{{ user.user_id }}/change/" class="btn btn-outline-primary" title="Django Admin'de Düzenle" target="_blank">
+                                                    <a href="/django-admin/auth/user/{{ user.user_id }}/change/" class="btn btn-outline-primary" title="Django Admin'de Düzenle" target="_blank">
                                                         <i class="fas fa-cog"></i>
                                                     </a>
-                                                    <a href="/admin/producer/producer/{{ user.profile_id }}/change/" class="btn btn-outline-info" title="Profil Düzenle" target="_blank">
+                                                    <a href="/django-admin/producer/producer/{{ user.profile_id }}/change/" class="btn btn-outline-info" title="Profil Düzenle" target="_blank">
                                                         <i class="fas fa-user-edit"></i>
                                                     </a>
                                                 </div>
@@ -1182,13 +1187,13 @@
                                 </div>
                                 <div class="card-body">
                                     <div class="d-grid gap-2">
-                                        <a href="/admin/auth/user/" class="btn btn-outline-primary" target="_blank">
+                                        <a href="/django-admin/auth/user/" class="btn btn-outline-primary" target="_blank">
                                             <i class="fas fa-users me-2"></i>Tüm Kullanıcıları Yönet
                                         </a>
-                                        <a href="/admin/center/center/" class="btn btn-outline-info" target="_blank">
+                                        <a href="/django-admin/center/center/" class="btn btn-outline-info" target="_blank">
                                             <i class="fas fa-clinic-medical me-2"></i>İşitme Merkezlerini Yönet
                                         </a>
-                                        <a href="/admin/producer/producer/" class="btn btn-outline-success" target="_blank">
+                                        <a href="/django-admin/producer/producer/" class="btn btn-outline-success" target="_blank">
                                             <i class="fas fa-industry me-2"></i>Üretici Merkezleri Yönet
                                         </a>
                                     </div>
@@ -1226,4 +1231,107 @@
         </div>
     </div>
 </div>
+
+<!-- Ağ Yeniden Atama Modal -->
+<div class="modal fade" id="reassignNetworkModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-network-wired me-2"></i>Merkezi Farklı Ağa Bağla
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="reassignNetworkForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong id="reassignCenterName"></strong> merkezini seçtiğiniz üretici ağına transfer edebilirsiniz.
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="new_producer_select" class="form-label">Yeni Üretici Merkez</label>
+                        <select class="form-select" id="new_producer_select" name="producer_id" required>
+                            <option value="">Üretici seçin...</option>
+                            {% for producer in producers %}
+                            <option value="{{ producer.id }}">{{ producer.company_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="assignment_reason" class="form-label">Transfer Nedeni</label>
+                        <textarea class="form-control" id="assignment_reason" name="assignment_reason" rows="3" 
+                                  placeholder="Bu transferin nedenini açıklayın..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>İptal
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-exchange-alt me-1"></i>Transfer Et
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Global değişken
+let currentReassignCenterId = null;
+
+// Ağ yeniden atama fonksiyonu
+function reassignNetwork(centerId, centerName) {
+    currentReassignCenterId = centerId;
+    document.getElementById('reassignCenterName').textContent = centerName;
+    
+    // Modal'ı göster
+    const modal = new bootstrap.Modal(document.getElementById('reassignNetworkModal'));
+    modal.show();
+}
+
+// Form submit işlemi
+document.getElementById('reassignNetworkForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const selectedProducer = document.getElementById('new_producer_select').selectedOptions[0]?.textContent;
+    
+    if (!formData.get('producer_id')) {
+        alert('Lütfen bir üretici seçin.');
+        return;
+    }
+    
+    if (confirm(`Merkezi ${selectedProducer} üreticisine transfer etmek istediğinizden emin misiniz?`)) {
+        // AJAX çağrısı yap
+        fetch(`/center/admin/centers/${currentReassignCenterId}/change-producer/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                // Modal'ı kapat
+                bootstrap.Modal.getInstance(document.getElementById('reassignNetworkModal')).hide();
+                // Sayfayı yenile
+                location.reload();
+            } else {
+                alert('Hata: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Transfer işlemi sırasında bir hata oluştu.');
+        });
+    }
+});
+</script>
+
 {% endblock %} 
