@@ -19,11 +19,37 @@
                         {% endif %}
                     </p>
                 </div>
-                {% if unread_count > 0 %}
-                <button type="button" class="btn btn-outline-success" onclick="markAllAsRead()">
-                    <i class="fas fa-check-double me-1"></i>Tümünü Okundu İşaretle
-                </button>
-                {% endif %}
+                <div class="d-flex gap-2 align-items-center flex-wrap">
+                    {% if unread_count > 0 %}
+                    <button type="button" class="btn btn-success" onclick="markAllAsRead()">
+                        <i class="fas fa-check-double me-1"></i>Tümünü Okundu İşaretle ({{ unread_count }})
+                    </button>
+                    {% endif %}
+                    
+                    <!-- Toplu İşlem Butonları -->
+                    <button type="button" class="btn btn-outline-primary" onclick="toggleSelectMode()" id="selectModeBtn">
+                        <i class="fas fa-check-square me-1"></i>Seç
+                    </button>
+                    
+                    <div id="bulkActions" class="d-none">
+                        <button type="button" class="btn btn-sm btn-outline-success" onclick="markSelectedAsRead()">
+                            <i class="fas fa-check me-1"></i>Seçilenleri Okundu İşaretle
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteSelected()">
+                            <i class="fas fa-trash me-1"></i>Seçilenleri Sil
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="selectAll()">
+                            <i class="fas fa-check-double me-1"></i>Tümünü Seç
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="selectNone()">
+                            <i class="fas fa-times me-1"></i>Seçimi Temizle
+                        </button>
+                    </div>
+                    
+                    <button type="button" class="btn btn-outline-secondary" onclick="location.reload()">
+                        <i class="fas fa-sync-alt me-1"></i>Yenile
+                    </button>
+                </div>
             </div>
 
             <!-- Bildirimler Listesi -->
@@ -32,6 +58,11 @@
                     {% for notification in notifications %}
                     <div class="card mb-3 notification-item {% if not notification.is_read %}unread{% endif %}" data-id="{{ notification.id }}">
                         <div class="card-body">
+                            <!-- Seçim Checkbox -->
+                            <div class="notification-checkbox position-absolute" style="top: 10px; left: 10px; display: none;">
+                                <input type="checkbox" class="form-check-input notification-select" value="{{ notification.id }}" onclick="event.stopPropagation();">
+                            </div>
+                            
                             <!-- Tıklanabilir Ana İçerik -->
                             <div class="notification-content" onclick="handleNotificationClick({{ notification.id }})" style="cursor: pointer;">
                                 <div class="d-flex align-items-start">
@@ -193,8 +224,122 @@ function getCsrfToken() {
 
 // Modern bildirim tıklama işlevi
 function handleNotificationClick(notificationId) {
-    // Bildirime tıklandığında otomatik yönlendirme
-    window.location.href = `/notifications/${notificationId}/`;
+    // Seçim modunda değilse yönlendir
+    if (!isSelectMode) {
+        window.location.href = `/notifications/${notificationId}/`;
+    }
+}
+
+// Toplu işlem değişkenleri
+let isSelectMode = false;
+
+// Seçim modunu aç/kapat
+function toggleSelectMode() {
+    isSelectMode = !isSelectMode;
+    const checkboxes = document.querySelectorAll('.notification-checkbox');
+    const bulkActions = document.getElementById('bulkActions');
+    const selectBtn = document.getElementById('selectModeBtn');
+    
+    if (isSelectMode) {
+        // Seçim modunu aç
+        checkboxes.forEach(cb => cb.style.display = 'block');
+        bulkActions.classList.remove('d-none');
+        selectBtn.innerHTML = '<i class="fas fa-times me-1"></i>İptal';
+        selectBtn.className = 'btn btn-outline-secondary';
+        
+        // Tıklama davranışını değiştir
+        document.querySelectorAll('.notification-content').forEach(content => {
+            content.style.cursor = 'default';
+        });
+    } else {
+        // Seçim modunu kapat
+        checkboxes.forEach(cb => {
+            cb.style.display = 'none';
+            cb.querySelector('input').checked = false;
+        });
+        bulkActions.classList.add('d-none');
+        selectBtn.innerHTML = '<i class="fas fa-check-square me-1"></i>Seç';
+        selectBtn.className = 'btn btn-outline-primary';
+        
+        // Tıklama davranışını geri al
+        document.querySelectorAll('.notification-content').forEach(content => {
+            content.style.cursor = 'pointer';
+        });
+    }
+}
+
+// Tümünü seç
+function selectAll() {
+    document.querySelectorAll('.notification-select').forEach(checkbox => {
+        checkbox.checked = true;
+    });
+}
+
+// Seçimi temizle
+function selectNone() {
+    document.querySelectorAll('.notification-select').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+}
+
+// Seçilenleri okundu işaretle
+function markSelectedAsRead() {
+    const selectedIds = getSelectedNotificationIds();
+    if (selectedIds.length === 0) {
+        alert('Lütfen en az bir bildirim seçin.');
+        return;
+    }
+    
+    if (confirm(`${selectedIds.length} bildirimi okundu olarak işaretlemek istediğinizden emin misiniz?`)) {
+        Promise.all(selectedIds.map(id => 
+            fetch(`/notifications/${id}/read/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCsrfToken(),
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json'
+                }
+            })
+        )).then(() => {
+            location.reload();
+        }).catch(error => {
+            console.error('Error:', error);
+            alert('Bir hata oluştu!');
+        });
+    }
+}
+
+// Seçilenleri sil
+function deleteSelected() {
+    const selectedIds = getSelectedNotificationIds();
+    if (selectedIds.length === 0) {
+        alert('Lütfen en az bir bildirim seçin.');
+        return;
+    }
+    
+    if (confirm(`${selectedIds.length} bildirimi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`)) {
+        Promise.all(selectedIds.map(id => 
+            fetch(`/notifications/${id}/delete/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCsrfToken(),
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json'
+                }
+            })
+        )).then(() => {
+            location.reload();
+        }).catch(error => {
+            console.error('Error:', error);
+            alert('Bir hata oluştu!');
+        });
+    }
+}
+
+// Seçili bildirim ID'lerini al
+function getSelectedNotificationIds() {
+    const selectedCheckboxes = document.querySelectorAll('.notification-select:checked');
+    return Array.from(selectedCheckboxes).map(cb => cb.value);
 }
 
 function markAsRead(notificationId) {

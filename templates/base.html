@@ -212,6 +212,13 @@
                                         <span class="badge bg-primary">{{ unread_notifications }} yeni</span>
                                     {% endif %}
                                 </li>
+                                {% if unread_notifications > 0 %}
+                                <li>
+                                    <button class="dropdown-item text-success" onclick="markAllNotificationsReadFromDropdown()" type="button">
+                                        <i class="fas fa-check-double me-2"></i>Tümünü Okundu İşaretle
+                                    </button>
+                                </li>
+                                {% endif %}
                                 <li><hr class="dropdown-divider"></li>
                                 
                                 {% if user.simple_notifications.all|slice:":5" %}
@@ -423,6 +430,84 @@
             </div>
         </div>
     </nav>
+
+    <!-- Navbar Bildirim JavaScript -->
+    <script>
+    function markAllNotificationsReadFromDropdown() {
+        if (confirm('Tüm bildirimleri okundu olarak işaretlemek istediğinizden emin misiniz?')) {
+            fetch('/notifications/mark-all-read/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCsrfToken(),
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Navbar'daki badge'i gizle
+                    const badge = document.querySelector('.notification-badge');
+                    if (badge) {
+                        badge.style.display = 'none';
+                    }
+                    
+                    // Dropdown'u kapat
+                    const dropdown = bootstrap.Dropdown.getInstance(document.getElementById('notificationDropdown'));
+                    if (dropdown) {
+                        dropdown.hide();
+                    }
+                    
+                    // Başarı mesajı göster
+                    showToast('Tüm bildirimler okundu olarak işaretlendi!', 'success');
+                    
+                    // Sayfayı yenile (güncel bildirimler için)
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1000);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Bir hata oluştu!', 'error');
+            });
+        }
+    }
+
+    function getCsrfToken() {
+        const token = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (token) {
+            return token.value;
+        }
+        
+        // Meta tag'den al
+        const metaToken = document.querySelector('meta[name="csrf-token"]');
+        if (metaToken) {
+            return metaToken.getAttribute('content');
+        }
+        
+        // Cookie'den al
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+            const [name, value] = cookie.trim().split('=');
+            if (name === 'csrftoken') {
+                return value;
+            }
+        }
+        
+        return '';
+    }
+
+    function showToast(message, type = 'info') {
+        // Bootstrap toast yoksa basit alert kullan
+        if (typeof bootstrap !== 'undefined' && bootstrap.Toast) {
+            // Bootstrap toast kodu buraya eklenebilir
+            alert(message);
+        } else {
+            alert(message);
+        }
+    }
+    </script>
 
     <!-- Messages -->
     {% if messages %}
