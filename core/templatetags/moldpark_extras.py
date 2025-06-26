@@ -567,4 +567,24 @@ def smart_notification_summary(user):
                 'suggestions': [{'type': 'error', 'message': f'Widget hatası: {str(e)}', 'priority': 'low'}],
                 'last_update': timezone.now()
             }
-        } 
+        }
+
+
+@register.filter
+def mul(value, arg):
+    """Çarpma işlemi filtresi"""
+    try:
+        return float(value) * float(arg)
+    except (ValueError, TypeError):
+        return 0
+
+
+@register.filter 
+def div(value, arg):
+    """Bölme işlemi filtresi"""
+    try:
+        if float(arg) == 0:
+            return 0
+        return float(value) / float(arg)
+    except (ValueError, TypeError):
+        return 0 
