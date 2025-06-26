@@ -30,35 +30,117 @@
         <div class="container">
             <a class="navbar-brand d-flex align-items-center" href="{% url 'core:home' %}">
                 <img src="{% static 'images/moldpark.jpg' %}" alt="MoldPark Logo" 
-                     class="me-3 brand-logo shadow-sm" 
+                     class="me-2 brand-logo shadow-sm" 
                      style="width: 120px; height: 40px; object-fit: contain; border-radius: 8px;">
-                <span class="brand-text fw-bold fs-4">MoldPark</span>
+                <span class="brand-text fw-bold fs-4 d-none d-sm-inline">MoldPark</span>
             </a>
+            
+            <!-- Quick Actions for Mobile -->
+            <div class="d-flex d-lg-none align-items-center gap-2">
+                {% if user.is_authenticated and user.center %}
+                    <a href="{% url 'mold:mold_create' %}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus"></i>
+                        <span class="d-none d-sm-inline ms-1">Yeni</span>
+                    </a>
+                {% endif %}
+                
+                <!-- Notifications for Mobile -->
+                {% if user.is_authenticated and user.center or user.is_staff or user.is_superuser %}
+                <div class="dropdown">
+                    <a class="nav-link position-relative p-2" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-bell"></i>
+                        {% with unread_count=user.notifications.unread.count %}
+                        {% if unread_count > 0 %}
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger notification-badge">
+                            {{ unread_count }}
+                        </span>
+                        {% endif %}
+                        {% endwith %}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="min-width: 300px;">
+                        <li class="dropdown-header">
+                            <h6 class="mb-0">Bildirimler</h6>
+                        </li>
+                        {% for notification in user.notifications.unread|slice:":3" %}
+                            <li>
+                                <a class="dropdown-item notification-item p-3 border-bottom" href="{% url 'center:mark_notification_read' notification.id %}" data-notification-id="{{ notification.id }}">
+                                    <div class="d-flex">
+                                        <div class="flex-shrink-0">
+                                            <i class="fas fa-circle text-primary" style="font-size: 0.5rem;"></i>
+                                        </div>
+                                        <div class="flex-grow-1 ms-2">
+                                            <div class="fw-semibold text-dark small">{{ notification.verb|title }}</div>
+                                            <div class="text-muted small">{{ notification.description|truncatechars:40 }}</div>
+                                        </div>
+                                    </div>
+                                </a>
+                            </li>
+                        {% empty %}
+                            <li class="dropdown-item text-center py-3">
+                                <i class="fas fa-bell-slash text-muted mb-1"></i>
+                                <div class="text-muted small">Bildirim yok</div>
+                            </li>
+                        {% endfor %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-center text-primary small" href="{% url 'center:notification_list' %}">Tümünü Gör</a></li>
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
             
             <button class="navbar-toggler custom-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
+            
             <div class="collapse navbar-collapse" id="navbarNav">
+                <!-- Mobile Menu Header -->
+                <div class="d-lg-none border-bottom pb-3 mb-3 mt-3">
+                    {% if user.is_authenticated %}
+                        <div class="d-flex align-items-center">
+                            <div class="user-avatar me-3">
+                                <i class="fas fa-user-circle fs-2 text-primary"></i>
+                            </div>
+                            <div>
+                                <div class="fw-bold">
+                                    {% if user.producer %}
+                                        {{ user.producer.company_name }}
+                                    {% elif user.center %}
+                                        {{ user.center.name }}
+                                    {% else %}
+                                        {{ user.username }}
+                                    {% endif %}
+                                </div>
+                                <small class="text-muted">
+                                    {% if user.producer %}
+                                        Üretici Merkez
+                                    {% elif user.center %}
+                                        İşitme Merkezi
+                                    {% elif user.is_staff %}
+                                        Yönetici
+                                    {% endif %}
+                                </small>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+                
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'core:home' %}">
-                            <i class="fas fa-home me-1"></i>Ana Sayfa
+                            <i class="fas fa-home me-2"></i>Ana Sayfa
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'core:pricing' %}">
-                            <i class="fas fa-tags me-1"></i>Fiyatlandırma
+                            <i class="fas fa-tags me-2"></i>Fiyatlandırma
                         </a>
                     </li>
                     
-                    {% if not user.is_authenticated %}
-                    <!-- Guest Navigation - moved to right side -->
-                    {% endif %}
                     {% if user.is_authenticated %}
                         {% if user.is_staff or user.is_superuser %}
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'center:admin_dashboard' %}">
-                                    <i class="fas fa-tools me-1"></i>Yönetim Paneli
+                                    <i class="fas fa-tools me-2"></i>Yönetim Paneli
                                 </a>
                             </li>
                         {% endif %}
@@ -67,22 +149,22 @@
                         {% if user.producer %}
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'producer:dashboard' %}">
-                                    <i class="fas fa-industry me-1"></i>Üretici Panel
+                                    <i class="fas fa-industry me-2"></i>Üretici Panel
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'producer:order_list' %}">
-                                    <i class="fas fa-shopping-cart me-1"></i>Siparişlerim
+                                    <i class="fas fa-shopping-cart me-2"></i>Siparişlerim
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'producer:mold_list' %}">
-                                    <i class="fas fa-cube me-1"></i>Kalıplar
+                                    <i class="fas fa-cube me-2"></i>Kalıplar
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'producer:revision_request_list' %}">
-                                    <i class="fas fa-edit me-1"></i>Revizyon Talepleri
+                                    <i class="fas fa-edit me-2"></i>Revizyon Talepleri
                                     {% if pending_revision_requests > 0 %}
                                         <span class="badge bg-danger ms-1">{{ pending_revision_requests }}</span>
                                     {% endif %}
@@ -94,15 +176,20 @@
                             {% if not user.is_staff and not user.is_superuser %}
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'center:dashboard' %}">
-                                    <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                                    <i class="fas fa-tachometer-alt me-2"></i>Dashboard
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'mold:mold_list' %}">
-                                    <i class="fas fa-cube me-1"></i>Kalıplarım
+                                    <i class="fas fa-cube me-2"></i>Kalıplarım
                                 </a>
                             </li>
-                            <li class="nav-item">
+                            <li class="nav-item d-lg-none">
+                                <a class="nav-link text-primary fw-bold" href="{% url 'mold:mold_create' %}">
+                                    <i class="fas fa-plus me-2"></i>Yeni Kalıp Oluştur
+                                </a>
+                            </li>
+                            <li class="nav-item d-none d-lg-block">
                                 <a class="btn btn-primary ms-2" href="{% url 'mold:mold_create' %}">
                                     <i class="fas fa-plus me-1"></i>Yeni Kalıp
                                 </a>
@@ -113,11 +200,9 @@
                         <!-- Mesajlaşma - Tüm giriş yapmış kullanıcılar için -->
                         <li class="nav-item">
                             <a class="nav-link position-relative" href="{% url 'core:message_list' %}">
-                                <i class="fas fa-envelope me-1"></i>Mesajlar
+                                <i class="fas fa-envelope me-2"></i>Mesajlar
                                 {% if unread_message_count > 0 %}
-                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                                        {{ unread_message_count }}
-                                    </span>
+                                    <span class="badge bg-danger ms-1">{{ unread_message_count }}</span>
                                 {% endif %}
                             </a>
                         </li>
@@ -125,62 +210,6 @@
                 </ul>
                 <ul class="navbar-nav">
                     {% if user.is_authenticated %}
-                        <!-- Bildirimler - sadece merkez ve admin kullanıcıları için -->
-                        {% if user.center or user.is_staff or user.is_superuser %}
-                        <li class="nav-item dropdown">
-                            <a class="nav-link position-relative" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-bell fs-5"></i>
-                                {% with unread_count=user.notifications.unread.count %}
-                                {% if unread_count > 0 %}
-                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger notification-badge">
-                                    {{ unread_count }}
-                                </span>
-                                {% endif %}
-                                {% endwith %}
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="min-width: 350px;">
-                                <li class="dropdown-header">
-                                    <h6 class="mb-0">Bildirimler</h6>
-                                </li>
-                                {% for notification in user.notifications.unread|slice:":5" %}
-                                    <li>
-                                        <a class="dropdown-item notification-item p-3 border-bottom" href="{% url 'center:mark_notification_read' notification.id %}" data-notification-id="{{ notification.id }}">
-                                            <div class="d-flex">
-                                                <div class="flex-shrink-0">
-                                                    <i class="fas fa-circle text-primary" style="font-size: 0.5rem;"></i>
-                                                </div>
-                                                <div class="flex-grow-1 ms-2">
-                                                    <div class="fw-semibold text-dark">{{ notification.verb|title }}</div>
-                                                    <div class="text-muted small">{{ notification.description|truncatechars:60 }}</div>
-                                                    <small class="text-muted">{{ notification.timestamp|timesince }} önce</small>
-                                                </div>
-                                            </div>
-                                        </a>
-                                    </li>
-                                {% empty %}
-                                    <li class="dropdown-item text-center py-4">
-                                        <i class="fas fa-bell-slash text-muted fs-1 mb-2"></i>
-                                        <div class="text-muted">Yeni bildirim yok</div>
-                                    </li>
-                                {% endfor %}
-                                {% if user.notifications.unread.count > 5 %}
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item text-center text-primary" href="{% url 'center:notification_list' %}?filter=unread">{{ user.notifications.unread.count }} bildirim daha</a></li>
-                                {% endif %}
-                                {% if user.notifications.unread.count > 0 %}
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li>
-                                        <a class="dropdown-item text-center text-success" href="{% url 'center:mark_all_notifications_read' %}" id="mark-all-read">
-                                            <i class="fas fa-check-double me-1"></i>Tümünü Okundu İşaretle
-                                        </a>
-                                    </li>
-                                {% endif %}
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item text-center text-primary" href="{% url 'center:notification_list' %}">Tüm Bildirimler</a></li>
-                            </ul>
-                        </li>
-                        {% endif %}
-                        
                         <!-- Kullanıcı Menüsü -->
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">

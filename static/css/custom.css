@@ -984,4 +984,668 @@ body {
         width: 110px !important;
         height: 36px !important;
     }
+}
+
+/* Kontrast artırıcı kart yazı renkleri */
+.bg-primary, .bg-info, .bg-success, .bg-secondary, .bg-danger {
+  color: #fff !important;
+}
+.bg-warning {
+  color: #1f2937 !important; /* dark gray, sarı üstünde siyah daha okunur */
+}
+.text-white {
+  color: #fff !important;
+}
+.text-dark {
+  color: #111827 !important;
+}
+
+/* Admin panel kart başlıkları ve içerikleri için ekstra kontrast */
+.card.bg-primary .card-title,
+.card.bg-info .card-title,
+.card.bg-success .card-title,
+.card.bg-secondary .card-title,
+.card.bg-danger .card-title {
+  color: #fff !important;
+}
+.card.bg-warning .card-title {
+  color: #1f2937 !important;
+}
+.card.bg-primary .card-body,
+.card.bg-info .card-body,
+.card.bg-success .card-body,
+.card.bg-secondary .card-body,
+.card.bg-danger .card-body {
+  color: #fff !important;
+}
+.card.bg-warning .card-body {
+  color: #1f2937 !important;
+}
+
+/* Admin panel hero bölümü için özel stil */
+.bg-primary h1.fw-bold,
+.bg-primary .fw-bold {
+    color: #ffffff !important;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.bg-primary p.opacity-75,
+.bg-primary .opacity-75 {
+    color: #ffffff !important;
+    opacity: 0.9 !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Admin panel ikon container'ı için */
+.bg-white.bg-opacity-20 {
+    background: rgba(255, 255, 255, 0.2) !important;
+    backdrop-filter: blur(8px);
+}
+
+.bg-white.bg-opacity-20 i.text-white {
+    color: #ffffff !important;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Admin Panel Genel Stil İyileştirmeleri */
+.admin-panel {
+    background: var(--gray-50);
+}
+
+/* Hero Bölümü */
+.bg-primary {
+    background: linear-gradient(135deg, #0284c7, #0c4a6e) !important;
+}
+
+.bg-primary h1.fw-bold,
+.bg-primary .fw-bold {
+    color: #ffffff !important;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.bg-primary p.opacity-75,
+.bg-primary .opacity-75 {
+    color: #ffffff !important;
+    opacity: 0.9 !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* İstatistik Kartları */
+.card.bg-primary {
+    background: linear-gradient(135deg, #0ea5e9, #0369a1) !important;
+}
+
+.card.bg-info {
+    background: linear-gradient(135deg, #38bdf8, #0284c7) !important;
+}
+
+.card.bg-success {
+    background: linear-gradient(135deg, #22c55e, #15803d) !important;
+}
+
+.card.bg-warning {
+    background: linear-gradient(135deg, #fbbf24, #d97706) !important;
+    color: #1f2937 !important;
+}
+
+.card.bg-secondary {
+    background: linear-gradient(135deg, #64748b, #475569) !important;
+}
+
+/* Kart İçeriği */
+.card .card-title {
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.card .display-4 {
+    font-size: 2.5rem !important;
+    font-weight: 700 !important;
+}
+
+.card.bg-warning .card-title,
+.card.bg-warning .display-4,
+.card.bg-warning i {
+    color: #1f2937 !important;
+}
+
+.card.bg-primary .card-title,
+.card.bg-info .card-title,
+.card.bg-success .card-title,
+.card.bg-secondary .card-title,
+.card.bg-primary .display-4,
+.card.bg-info .display-4,
+.card.bg-success .display-4,
+.card.bg-secondary .display-4,
+.card.bg-primary i,
+.card.bg-info i,
+.card.bg-success i,
+.card.bg-secondary i {
+    color: #ffffff !important;
+}
+
+/* Yönetim Butonları */
+.btn-primary {
+    background: #0284c7 !important;
+    border-color: #0284c7 !important;
+    color: #ffffff !important;
+}
+
+.btn-info {
+    background: #0ea5e9 !important;
+    border-color: #0ea5e9 !important;
+    color: #ffffff !important;
+}
+
+.btn-success {
+    background: #22c55e !important;
+    border-color: #22c55e !important;
+    color: #ffffff !important;
+}
+
+.btn-warning {
+    background: #f59e0b !important;
+    border-color: #f59e0b !important;
+    color: #1f2937 !important;
+}
+
+/* Buton İçeriği */
+.btn strong {
+    font-size: 1rem;
+    display: block;
+}
+
+.btn small {
+    font-size: 0.85rem;
+    opacity: 0.9;
+}
+
+/* Son Aktiviteler */
+.list-group-item h6 {
+    color: var(--gray-900) !important;
+    font-weight: 600;
+}
+
+.list-group-item p.text-muted {
+    color: var(--gray-700) !important;
+}
+
+.badge.bg-success {
+    background: #22c55e !important;
+    color: #ffffff !important;
+}
+
+/* Sistem Durumu */
+.card-header {
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.card-header h5 {
+    color: var(--gray-900) !important;
+    font-weight: 600;
+}
+
+/* İkon Konteyner */
+.bg-white.bg-opacity-20 {
+    background: rgba(255, 255, 255, 0.2) !important;
+    backdrop-filter: blur(8px);
+}
+
+.bg-white.bg-opacity-20 i.text-white {
+    color: #ffffff !important;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Üretici Merkezi Hero Bölümü - Beyaz Yazılar */
+.producer-hero h2.fw-bold {
+    color: #ffffff !important;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    font-size: 2rem;
+}
+
+.producer-hero p.small {
+    color: #ffffff !important;
+    opacity: 0.9;
+}
+
+/* Badge Stilleri */
+.badge.bg-white.bg-opacity-20 {
+    background: rgba(255, 255, 255, 0.15) !important;
+    color: #ffffff !important;
+    font-weight: 500;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.badge.bg-white.bg-opacity-20 i {
+    color: #ffffff !important;
+    opacity: 0.9;
+}
+
+/* İstatistik Rakamları */
+.h4.fw-bold {
+    color: #ffffff !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    font-size: 1.5rem;
+}
+
+/* İstatistik Açıklamaları */
+small.opacity-75 {
+    color: #ffffff !important;
+    opacity: 0.9 !important;
+    font-size: 0.875rem;
+}
+
+/* Kullanım İstatistikleri */
+.bg-white.bg-opacity-10 {
+    background: rgba(255, 255, 255, 0.1) !important;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.bg-white.bg-opacity-10 .small {
+    color: #ffffff !important;
+    opacity: 0.9;
+}
+
+.bg-white.bg-opacity-10 .fw-bold {
+    color: #ffffff !important;
+    opacity: 1;
+}
+
+/* Progress Bar */
+.progress {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.progress-bar.bg-success {
+    background: #22c55e !important;
+}
+
+/* Tüm Siparişler Butonu - Siyah Kalacak */
+.btn-light.hover-lift {
+    background: rgba(255, 255, 255, 0.9) !important;
+    color: #1f2937 !important;
+    border: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-light.hover-lift:hover {
+    background: #ffffff !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Avatar Circle */
+.avatar-circle {
+    background: rgba(255, 255, 255, 0.15) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.avatar-circle i {
+    color: #ffffff !important;
+    opacity: 0.9;
+}
+
+/* ==========================================
+   ÜRETİCİ MERKEZİ DETAY - SİYAH METİN STİLİ
+   Bu kurallar dosyanın en sonunda ve !important ile
+   önceki tanımları geçersiz kılar.
+   ========================================== */
+.producer-hero h2.fw-bold,
+.producer-hero p.small {
+    color: #111827 !important; /* Koyu siyah */
+    text-shadow: none !important;
+}
+
+/* Badge'ler */
+.badge.bg-white.bg-opacity-20 {
+    background: rgba(255, 255, 255, 0.9) !important;
+    color: #111827 !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+.badge.bg-white.bg-opacity-20 i {
+    color: #111827 !important;
+}
+
+/* İstatistik Rakamları ve Açıklamaları */
+.h4.fw-bold {
+    color: #111827 !important;
+    text-shadow: none !important;
+}
+
+small.opacity-75 {
+    color: #374151 !important; /* Orta ton siyah */
+    opacity: 1 !important;
+}
+
+/* Kullanım İstatistik Kartı */
+.bg-white.bg-opacity-10 {
+    background: rgba(255, 255, 255, 0.95) !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+.bg-white.bg-opacity-10 .small,
+.bg-white.bg-opacity-10 .fw-bold {
+    color: #111827 !important;
+    opacity: 1 !important;
+}
+
+/* Avatar ve İkon */
+.avatar-circle {
+    background: rgba(255, 255, 255, 0.95) !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+.avatar-circle i,
+.avatar-circle i.text-white {
+    color: #111827 !important;
+}
+
+/* ========================================
+   ENHANCED DASHBOARD COMPONENTS
+   ======================================== */
+
+/* Interactive Dashboard Cards */
+.dashboard-card {
+    background: white;
+    border-radius: var(--radius-2xl);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--gray-200);
+    transition: all var(--duration-300) var(--ease-out);
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.dashboard-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: var(--gradient-primary);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform var(--duration-300) var(--ease-out);
+}
+
+.dashboard-card:hover::before {
+    transform: scaleX(1);
+}
+
+.dashboard-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-xl);
+    border-color: var(--primary-300);
+}
+
+.dashboard-card-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: var(--radius-xl);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.dashboard-card-icon::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.3) 50%, transparent 70%);
+    transform: translateX(-100%);
+    transition: transform var(--duration-700) var(--ease-out);
+}
+
+.dashboard-card:hover .dashboard-card-icon::before {
+    transform: translateX(100%);
+}
+
+.dashboard-card-number {
+    font-size: 2.5rem;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.dashboard-card-label {
+    font-size: 0.875rem;
+    color: var(--gray-600);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.dashboard-card-change {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-top: 0.5rem;
+}
+
+.dashboard-card-change.positive {
+    color: var(--success);
+}
+
+.dashboard-card-change.negative {
+    color: var(--error);
+}
+
+/* Quick Action Cards */
+.quick-action-card {
+    background: white;
+    border: 2px solid var(--gray-200);
+    border-radius: var(--radius-2xl);
+    padding: 1.5rem;
+    text-align: center;
+    transition: all var(--duration-300) var(--ease-out);
+    position: relative;
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+}
+
+.quick-action-card:hover {
+    border-color: var(--primary-400);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+    color: inherit;
+    text-decoration: none;
+}
+
+.quick-action-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--gradient-primary);
+    opacity: 0;
+    transition: opacity var(--duration-300) var(--ease-out);
+}
+
+.quick-action-card:hover::after {
+    opacity: 0.05;
+}
+
+.quick-action-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: var(--radius-2xl);
+    margin: 0 auto 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    position: relative;
+    z-index: 2;
+    transition: transform var(--duration-300) var(--ease-back);
+}
+
+.quick-action-card:hover .quick-action-icon {
+    transform: scale(1.1) rotate(5deg);
+}
+
+.quick-action-title {
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    position: relative;
+    z-index: 2;
+}
+
+.quick-action-desc {
+    font-size: 0.875rem;
+    color: var(--gray-600);
+    position: relative;
+    z-index: 2;
+}
+
+/* Status Cards */
+.status-card {
+    background: white;
+    border-radius: var(--radius-xl);
+    padding: 1rem;
+    border-left: 4px solid;
+    box-shadow: var(--shadow-sm);
+    transition: all var(--duration-200) var(--ease-out);
+}
+
+.status-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateX(4px);
+}
+
+.status-card.status-success {
+    border-left-color: var(--success);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(16, 185, 129, 0.02));
+}
+
+.status-card.status-warning {
+    border-left-color: var(--warning);
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.05), rgba(245, 158, 11, 0.02));
+}
+
+.status-card.status-error {
+    border-left-color: var(--error);
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.05), rgba(239, 68, 68, 0.02));
+}
+
+.status-card.status-info {
+    border-left-color: var(--info);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(59, 130, 246, 0.02));
+}
+
+/* Notification Improvements */
+.notification-popup {
+    position: fixed;
+    top: 90px;
+    right: 20px;
+    z-index: var(--z-tooltip);
+    background: white;
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-2xl);
+    border: 1px solid var(--gray-200);
+    padding: 1rem;
+    min-width: 300px;
+    transform: translateX(400px);
+    transition: transform var(--duration-300) var(--ease-out);
+}
+
+.notification-popup.show {
+    transform: translateX(0);
+}
+
+.notification-popup.success {
+    border-left: 4px solid var(--success);
+}
+
+.notification-popup.error {
+    border-left: 4px solid var(--error);
+}
+
+.notification-popup.warning {
+    border-left: 4px solid var(--warning);
+}
+
+.notification-popup.info {
+    border-left: 4px solid var(--info);
+}
+
+/* Loading States */
+.loading-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(4px);
+    z-index: var(--z-modal);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: all var(--duration-300) var(--ease-out);
+}
+
+.loading-overlay.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.loading-spinner-enhanced {
+    width: 60px;
+    height: 60px;
+    border: 4px solid var(--gray-200);
+    border-top: 4px solid var(--primary-600);
+    border-radius: 50%;
+    animation: spin var(--duration-1000) linear infinite;
+}
+
+/* Progressive Enhancement */
+@media (prefers-reduced-motion: reduce) {
+    .dashboard-card {
+        transition: none;
+    }
+    
+    .dashboard-card:hover {
+        transform: none;
+    }
+    
+    .loading-spinner-enhanced {
+        animation: none;
+        border-top-color: var(--primary-600);
+    }
+}
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+    .dashboard-card {
+        padding: 1rem;
+    }
+    
+    .dashboard-card-number {
+        font-size: 2rem;
+    }
+    
+    .quick-action-icon {
+        width: 60px;
+        height: 60px;
+        font-size: 1.5rem;
+    }
+    
+    .notification-popup {
+        right: 10px;
+        left: 10px;
+        min-width: auto;
+    }
 } 

@@ -9,26 +9,64 @@ class MoldParkApp {
     }
 
     init() {
-        this.setupEventListeners();
-        this.initializeComponents();
-        this.setupAnimations();
-        this.setupPerformanceOptimizations();
+        try {
+            this.setupEventListeners();
+            this.initializeComponents();
+            this.setupAnimations();
+            this.setupPerformanceOptimizations();
+            
+            // Initialize new enhanced features
+            this.initDashboardInteractions();
+            this.initEnhancedFormValidation();
+            this.initKeyboardShortcuts();
+            this.initAudioContext();
+            this.initPerformanceMonitoring();
+            
+            console.log('✅ MoldPark uygulaması tüm özelliklerle başlatıldı');
+        } catch (error) {
+            console.error('MoldPark initialization error:', error);
+        }
+    }
+
+    initializeComponents() {
+        // Komponent başlatma işlemleri
+        console.log('MoldPark components initialized');
     }
 
     setupEventListeners() {
-        document.addEventListener('DOMContentLoaded', () => {
+        // Güvenli event listener kurulumu
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                this.initBootstrapComponents();
+                this.setupCustomFeatures();
+                this.setupNavbarEffects();
+                this.setupFormEnhancements();
+                this.setupNotificationSystem();
+            });
+        } else {
+            // DOM zaten yüklü
             this.initBootstrapComponents();
             this.setupCustomFeatures();
             this.setupNavbarEffects();
             this.setupFormEnhancements();
             this.setupNotificationSystem();
-        });
+        }
 
         // Navbar scroll effect
-        window.addEventListener('scroll', this.throttle(this.handleNavbarScroll.bind(this), 16));
-        
-        // Resize handler
-        window.addEventListener('resize', this.debounce(this.handleResize.bind(this), 250));
+        if (typeof window !== 'undefined') {
+            window.addEventListener('scroll', this.throttle(this.handleNavbarScroll.bind(this), 16));
+            
+            // Resize handler
+            window.addEventListener('resize', this.debounce(this.handleResize.bind(this), 250));
+        }
+    }
+
+    setupNavbarEffects() {
+        // Navbar efektleri
+        const navbar = document.querySelector('.navbar');
+        if (navbar) {
+            console.log('Navbar effects initialized');
+        }
     }
 
     // ========================================
@@ -113,9 +151,9 @@ class MoldParkApp {
     handleFormSubmit(event) {
         const form = event.target;
         
-        if (!form.checkValidity()) {
-            event.preventDefault();
-            event.stopPropagation();
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
             
             // Focus first invalid field
             const firstInvalid = form.querySelector(':invalid');
@@ -128,7 +166,7 @@ class MoldParkApp {
             this.showFormLoading(form);
         }
         
-        form.classList.add('was-validated');
+            form.classList.add('was-validated');
     }
 
     validateField(event) {
@@ -206,13 +244,13 @@ class MoldParkApp {
         const fileType = file.type;
         
         let infoDiv = input.parentNode.querySelector('.file-info');
-        if (!infoDiv) {
-            infoDiv = document.createElement('div');
+                if (!infoDiv) {
+                    infoDiv = document.createElement('div');
             infoDiv.className = 'file-info mt-2 p-3 bg-light border rounded';
-            input.parentNode.appendChild(infoDiv);
-        }
-        
-        infoDiv.innerHTML = `
+                    input.parentNode.appendChild(infoDiv);
+                }
+                
+                infoDiv.innerHTML = `
             <div class="d-flex align-items-center">
                 <div class="me-3">
                     <i class="fas fa-file-alt fa-2x text-primary"></i>
@@ -348,23 +386,23 @@ class MoldParkApp {
         anchorLinks.forEach(link => {
             const href = link.getAttribute('href');
             
-            if (href && href.length > 1 && href !== '#' && /^#[a-zA-Z][\w-]*$/.test(href)) {
+                if (href && href.length > 1 && href !== '#' && /^#[a-zA-Z][\w-]*$/.test(href)) {
                 link.addEventListener('click', (e) => {
-                    try {
+                        try {
                         const targetElement = document.getElementById(href.substring(1));
-                        if (targetElement) {
-                            e.preventDefault();
-                            targetElement.scrollIntoView({
-                                behavior: 'smooth',
-                                block: 'start'
-                            });
-                        }
+                            if (targetElement) {
+                                e.preventDefault();
+                                targetElement.scrollIntoView({
+                                    behavior: 'smooth',
+                                    block: 'start'
+                                });
+                            }
                     } catch (error) {
                         console.error('Scroll error:', error);
-                    }
-                });
-            }
-        });
+                        }
+                    });
+                }
+            });
     }
 
     // ========================================
@@ -485,7 +523,7 @@ class MoldParkApp {
                 }
             });
         }, { threshold: 0.5 });
-        
+
         counters.forEach(counter => observer.observe(counter));
     }
 
@@ -671,19 +709,388 @@ class MoldParkApp {
             detail: { isMobile, width: window.innerWidth }
         }));
     }
+
+    // Dashboard Card Interactions
+    initDashboardInteractions() {
+        const dashboardCards = document.querySelectorAll('.dashboard-card, .quick-action-card, .status-card');
+        
+        dashboardCards.forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                this.playHoverSound();
+                card.style.setProperty('--hover-scale', '1.02');
+            });
+            
+            card.addEventListener('mouseleave', () => {
+                card.style.removeProperty('--hover-scale');
+            });
+            
+            // Add ripple effect on click
+            card.addEventListener('click', (e) => {
+                this.createRippleEffect(e, card);
+            });
+        });
+    }
+    
+    // Create Ripple Effect
+    createRippleEffect(event, element) {
+        const ripple = document.createElement('div');
+        const rect = element.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height);
+        const x = event.clientX - rect.left - size / 2;
+        const y = event.clientY - rect.top - size / 2;
+        
+        ripple.style.cssText = `
+            position: absolute;
+            width: ${size}px;
+            height: ${size}px;
+            left: ${x}px;
+            top: ${y}px;
+            background: radial-gradient(circle, rgba(79, 70, 229, 0.3) 0%, transparent 70%);
+            border-radius: 50%;
+            transform: scale(0);
+            animation: ripple 0.6s linear;
+            pointer-events: none;
+            z-index: 1;
+        `;
+        
+        // Add ripple animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes ripple {
+                to {
+                    transform: scale(2);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        element.style.position = 'relative';
+        element.style.overflow = 'hidden';
+        element.appendChild(ripple);
+        
+        setTimeout(() => {
+            ripple.remove();
+            if (element.querySelectorAll('.ripple').length === 0) {
+                document.head.removeChild(style);
+            }
+        }, 600);
+    }
+    
+    // Notification System
+    showNotification(message, type = 'info', duration = 5000) {
+        const notification = document.createElement('div');
+        notification.className = `notification-popup ${type}`;
+        notification.innerHTML = `
+            <div class="d-flex align-items-start">
+                <div class="notification-icon me-3">
+                    <i class="fas fa-${this.getNotificationIcon(type)} fa-lg"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="notification-message">${message}</div>
+                    <div class="notification-progress">
+                        <div class="progress" style="height: 2px;">
+                            <div class="progress-bar bg-${type}" role="progressbar" style="width: 100%"></div>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn-close btn-close-sm ms-2" onclick="this.parentElement.parentElement.remove()"></button>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Show notification
+        setTimeout(() => notification.classList.add('show'), 100);
+        
+        // Auto hide
+        setTimeout(() => {
+            notification.classList.remove('show');
+            setTimeout(() => notification.remove(), 300);
+        }, duration);
+        
+        // Progress bar animation
+        const progressBar = notification.querySelector('.progress-bar');
+        if (progressBar) {
+            progressBar.style.transition = `width ${duration}ms linear`;
+            setTimeout(() => progressBar.style.width = '0%', 100);
+        }
+    }
+    
+    getNotificationIcon(type) {
+        const icons = {
+            success: 'check-circle',
+            error: 'exclamation-circle',
+            warning: 'exclamation-triangle',
+            info: 'info-circle'
+        };
+        return icons[type] || 'info-circle';
+    }
+    
+    // Loading Overlay
+    showLoading(message = 'Yükleniyor...') {
+        const overlay = document.createElement('div');
+        overlay.className = 'loading-overlay';
+        overlay.innerHTML = `
+            <div class="text-center">
+                <div class="loading-spinner-enhanced mb-3"></div>
+                <div class="loading-message fw-semibold text-gray-700">${message}</div>
+            </div>
+        `;
+        
+        document.body.appendChild(overlay);
+        setTimeout(() => overlay.classList.add('show'), 50);
+        
+        return {
+            hide: () => {
+                overlay.classList.remove('show');
+                setTimeout(() => overlay.remove(), 300);
+            },
+            updateMessage: (newMessage) => {
+                const messageEl = overlay.querySelector('.loading-message');
+                if (messageEl) messageEl.textContent = newMessage;
+            }
+        };
+    }
+    
+    // Enhanced Form Validation
+    initEnhancedFormValidation() {
+        const forms = document.querySelectorAll('form');
+        
+        forms.forEach(form => {
+            const inputs = form.querySelectorAll('input, select, textarea');
+            
+            inputs.forEach(input => {
+                // Real-time validation
+                input.addEventListener('blur', () => this.validateField(input));
+                input.addEventListener('input', () => {
+                    if (input.classList.contains('is-invalid')) {
+                        this.validateField(input);
+                    }
+                });
+                
+                // Enhanced focus effects
+                input.addEventListener('focus', () => {
+                    input.parentElement.classList.add('field-focused');
+                });
+                
+                input.addEventListener('blur', () => {
+                    input.parentElement.classList.remove('field-focused');
+                });
+            });
+            
+            // Form submission with loading
+            form.addEventListener('submit', (e) => {
+                const submitBtn = form.querySelector('button[type="submit"]');
+                if (submitBtn && !form.querySelector('.is-invalid')) {
+                    this.setButtonLoading(submitBtn);
+                }
+            });
+        });
+    }
+    
+    validateField(field) {
+        const value = field.value.trim();
+        let isValid = true;
+        let message = '';
+        
+        // Required validation
+        if (field.hasAttribute('required') && !value) {
+            isValid = false;
+            message = 'Bu alan zorunludur';
+        }
+        
+        // Email validation
+        if (field.type === 'email' && value) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(value)) {
+                isValid = false;
+                message = 'Geçerli bir email adresi giriniz';
+            }
+        }
+        
+        // Phone validation
+        if (field.type === 'tel' && value) {
+            const phoneRegex = /^[\+]?[0-9\s\-\(\)]{10,}$/;
+            if (!phoneRegex.test(value)) {
+                isValid = false;
+                message = 'Geçerli bir telefon numarası giriniz';
+            }
+        }
+        
+        // Update field state
+        if (isValid) {
+            field.classList.remove('is-invalid');
+            field.classList.add('is-valid');
+            this.removeFieldError(field);
+        } else {
+            field.classList.remove('is-valid');
+            field.classList.add('is-invalid');
+            this.showFieldError(field, message);
+        }
+        
+        return isValid;
+    }
+    
+    showFieldError(field, message) {
+        this.removeFieldError(field);
+        
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'invalid-feedback d-block';
+        errorDiv.textContent = message;
+        
+        field.parentElement.appendChild(errorDiv);
+    }
+    
+    removeFieldError(field) {
+        const existingError = field.parentElement.querySelector('.invalid-feedback');
+        if (existingError) {
+            existingError.remove();
+        }
+    }
+    
+    setButtonLoading(button, loadingText = 'Yükleniyor...') {
+        const originalText = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = `
+            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+            ${loadingText}
+        `;
+        
+        // Store original text for restoration
+        button.dataset.originalText = originalText;
+    }
+    
+    restoreButton(button) {
+        if (button.dataset.originalText) {
+            button.innerHTML = button.dataset.originalText;
+            button.disabled = false;
+            delete button.dataset.originalText;
+        }
+    }
+    
+    // Sound Effects (optional)
+    playHoverSound() {
+        // Only play if user has interacted with the page
+        if (this.audioContext && this.audioContext.state === 'running') {
+            try {
+                const oscillator = this.audioContext.createOscillator();
+                const gainNode = this.audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+                
+                oscillator.frequency.setValueAtTime(800, this.audioContext.currentTime);
+                gainNode.gain.setValueAtTime(0.1, this.audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.1);
+                
+                oscillator.start(this.audioContext.currentTime);
+                oscillator.stop(this.audioContext.currentTime + 0.1);
+            } catch (e) {
+                // Ignore audio errors
+            }
+        }
+    }
+    
+    initAudioContext() {
+        try {
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Resume context on user interaction
+            document.addEventListener('click', () => {
+                if (this.audioContext.state === 'suspended') {
+                    this.audioContext.resume();
+                }
+            }, { once: true });
+        } catch (e) {
+            // Audio not supported
+            console.log('Web Audio API not supported');
+        }
+    }
+    
+    // Advanced Performance Monitoring
+    initPerformanceMonitoring() {
+        // Monitor page load performance
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                const perfData = performance.getEntriesByType('navigation')[0];
+                if (perfData) {
+                    const loadTime = perfData.loadEventEnd - perfData.loadEventStart;
+                    console.log(`Sayfa yükleme süresi: ${loadTime}ms`);
+                    
+                    // Show warning if load time is too high
+                    if (loadTime > 3000) {
+                        this.showNotification(
+                            'Sayfa yükleme süresi yavaş. İnternet bağlantınızı kontrol edin.',
+                            'warning',
+                            3000
+                        );
+                    }
+                }
+            }, 1000);
+        });
+        
+        // Monitor memory usage (if available)
+        if ('memory' in performance) {
+            setInterval(() => {
+                const memory = performance.memory;
+                const usedPercent = (memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100;
+                
+                if (usedPercent > 80) {
+                    console.warn('Yüksek bellek kullanımı tespit edildi');
+                }
+            }, 30000);
+        }
+    }
+    
+    // Keyboard Shortcuts
+    initKeyboardShortcuts() {
+        document.addEventListener('keydown', (e) => {
+            // Ctrl/Cmd + K for search
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                const searchInput = document.querySelector('input[type="search"], input[name="search"]');
+                if (searchInput) {
+                    searchInput.focus();
+                    this.showNotification('Arama alanı aktif edildi', 'info', 2000);
+                }
+            }
+            
+            // Escape to close modals
+            if (e.key === 'Escape') {
+                const openModal = document.querySelector('.modal.show');
+                if (openModal) {
+                    const modal = bootstrap.Modal.getInstance(openModal);
+                    if (modal) modal.hide();
+                }
+            }
+        });
+    }
 }
 
 // ========================================
 // INITIALIZE APPLICATION
 // ========================================
 
+// Güvenli uygulama başlatma
+function initMoldParkApp() {
+    try {
+        if (typeof window !== 'undefined' && !window.moldparkApp) {
+            window.moldparkApp = new MoldParkApp();
+            console.log('MoldPark App successfully initialized');
+        }
+    } catch (error) {
+        console.error('Failed to initialize MoldPark App:', error);
+    }
+}
+
 // Initialize app when DOM is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        window.moldparkApp = new MoldParkApp();
-    });
-} else {
-    window.moldparkApp = new MoldParkApp();
+if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initMoldParkApp);
+    } else {
+        initMoldParkApp();
+    }
 }
 
 // Export for modules
