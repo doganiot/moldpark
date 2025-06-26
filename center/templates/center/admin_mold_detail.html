@@ -18,7 +18,7 @@
                     <p><strong>Kalıp Tipi:</strong> {{ mold.get_mold_type_display }}</p>
                     <p><strong>Vent Çapı:</strong> {{ mold.vent_diameter }} mm</p>
                     <p><strong>Durum:</strong> 
-                        <span class="badge {% if mold.status == 'waiting' %}bg-info{% elif mold.status == 'processing' %}bg-warning text-dark{% elif mold.status == 'completed' %}bg-success{% elif mold.status == 'delivered' %}bg-secondary{% elif mold.status == 'revision' %}bg-danger{% elif mold.status == 'shipping' %}bg-primary{% else %}bg-light text-dark{% endif %} fs-6">
+                        <span class="badge {% if mold.status == 'waiting' %}bg-info{% elif mold.status == 'processing' %}bg-warning text-dark{% elif mold.status == 'completed' %}bg-success{% elif mold.status == 'delivered' %}bg-secondary{% elif mold.status == 'revision' %}bg-danger{% elif mold.status == 'rejected' %}bg-dark{% elif mold.status == 'shipping' %}bg-primary{% else %}bg-light text-dark{% endif %} fs-6">
                             {{ mold.get_status_display }}
                         </span>
                         {% if mold.status == 'completed' %}

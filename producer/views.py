@@ -1568,12 +1568,15 @@ def revision_request_respond(request, pk):
                 success_message = 'Revizyon talebi kabul edildi ve işleme alındı. Kalıp dosyası revizyona alındı.'
             else:
                 revision_request.status = 'rejected'
-                success_message = 'Revizyon talebi reddedildi.'
+                # Revizyon reddedildiğinde kalıp durumunu da "reddedildi" yap
+                revision_request.mold.status = 'rejected'
+                revision_request.mold.save()
+                success_message = 'Revizyon talebi reddedildi. Kalıp durumu reddedildi olarak güncellendi.'
             
             revision_request.producer_response = response_text
             revision_request.save()
             
-            # Merkeze bildirim gönder
+            # Merkeze bildirim gönder (eski sistem)
             notify.send(
                 sender=request.user,
                 recipient=revision_request.center.user,
@@ -1582,6 +1585,23 @@ def revision_request_respond(request, pk):
                 description=f'{revision_request.mold.patient_name} - {revision_request.get_revision_type_display()}',
                 target=revision_request.mold
             )
+            
+            # Yeni basit bildirim sistemi ile de gönder
+            from core.utils import send_error_notification, send_warning_notification
+            if action == "accept":
+                send_warning_notification(
+                    user=revision_request.center.user,
+                    title="Revizyon Talebi Kabul Edildi",
+                    message=f"{revision_request.mold.patient_name} - {revision_request.get_revision_type_display()} revizyon talebiniz {producer.company_name} tarafından kabul edildi ve işleme alındı.",
+                    related_url=f"/mold/{revision_request.mold.id}/"
+                )
+            else:
+                send_error_notification(
+                    user=revision_request.center.user,
+                    title="Revizyon Talebi Reddedildi",
+                    message=f"{revision_request.mold.patient_name} - {revision_request.get_revision_type_display()} revizyon talebiniz {producer.company_name} tarafından reddedildi. Kalıp durumu 'Reddedildi' olarak güncellendi.",
+                    related_url=f"/mold/{revision_request.mold.id}/"
+                )
             
             # Admin'e bildirim gönder
             admin_users = User.objects.filter(is_superuser=True)

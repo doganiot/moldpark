@@ -218,6 +218,7 @@ def admin_dashboard(request):
         'processing_molds': molds.filter(status='processing').count(),
         'completed_molds': molds.filter(status='completed').count(),
         'revision_molds': molds.filter(status='revision').count(),
+        'rejected_molds': molds.filter(status='rejected').count(),
         'shipping_molds': molds.filter(status='shipping').count(),
         'delivered_molds': molds.filter(status='delivered').count(),
     }
@@ -233,6 +234,7 @@ def admin_dashboard(request):
         'processing_molds': mold_stats['processing_molds'],
         'completed_molds': mold_stats['completed_molds'],
         'revision_molds': mold_stats['revision_molds'],
+        'rejected_molds': mold_stats['rejected_molds'],
         'shipping_molds': mold_stats['shipping_molds'],
         'delivered_molds': mold_stats['delivered_molds'],
         'pending_molds': mold_stats['waiting_molds'],  # Geriye dönük uyumluluk için

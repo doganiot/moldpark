@@ -23,6 +23,7 @@ class EarMold(models.Model):
         ('processing', 'İşleniyor'),
         ('completed', 'Tamamlandı'),
         ('revision', 'Revizyon'),
+        ('rejected', 'Reddedildi'),
         ('shipping', 'Kargoda'),
         ('delivered', 'Teslim Edildi'),
     )
@@ -87,6 +88,7 @@ class EarMold(models.Model):
             'processing': 'info',
             'completed': 'success',
             'revision': 'danger',
+            'rejected': 'dark',
             'shipping': 'primary',
             'delivered': 'secondary',
         }

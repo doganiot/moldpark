@@ -387,6 +387,14 @@
             <div class="stat-number">{{ stats.revision_molds }}</div>
             <div class="stat-label">Revizyon</div>
         </a>
+
+        <a href="{% url 'center:admin_mold_list' %}?status=rejected" class="stat-card clickable">
+            <div class="stat-icon dark">
+                <i class="fas fa-times-circle"></i>
+            </div>
+            <div class="stat-number">{{ stats.rejected_molds }}</div>
+            <div class="stat-label">Reddedildi</div>
+        </a>
     </div>
 
     <!-- MoldPark Special Section -->
@@ -518,6 +526,10 @@
                                     <tr>
                                         <td><i class="fas fa-truck text-primary me-2"></i>Teslim Edildi:</td>
                                         <td><strong>{{ stats.delivered_molds }}</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td><i class="fas fa-times-circle text-dark me-2"></i>Reddedildi:</td>
+                                        <td><strong>{{ stats.rejected_molds }}</strong></td>
                                     </tr>
                                     <tr>
                                         <td><i class="fas fa-users-cog text-info me-2"></i>Toplam Kullanıcı:</td>

@@ -337,6 +337,10 @@
                                         <span class="badge bg-success">Tamamlandı</span>
                                     {% elif mold.status == 'delivered' %}
                                         <span class="badge bg-primary">Teslim Edildi</span>
+                                    {% elif mold.status == 'revision' %}
+                                        <span class="badge bg-danger">Revizyon</span>
+                                    {% elif mold.status == 'rejected' %}
+                                        <span class="badge bg-dark">Reddedildi</span>
                                     {% endif %}
                                 </td>
                                 <td>

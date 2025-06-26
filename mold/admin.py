@@ -125,7 +125,11 @@ class RevisionRequestAdmin(admin.ModelAdmin):
                 revision_request.status = 'rejected'
                 revision_request.save()
                 
-                # Merkeze bildirim gönder
+                # Revizyon reddedildiğinde kalıp durumunu da "reddedildi" yap
+                revision_request.mold.status = 'rejected'
+                revision_request.mold.save()
+                
+                # Merkeze bildirim gönder (eski sistem)
                 notify.send(
                     sender=request.user,
                     recipient=revision_request.center.user,
@@ -134,9 +138,19 @@ class RevisionRequestAdmin(admin.ModelAdmin):
                     description=f'{revision_request.mold.patient_name} - {revision_request.get_revision_type_display()}',
                     target=revision_request.mold
                 )
+                
+                # Yeni basit bildirim sistemi ile de gönder
+                from core.utils import send_error_notification
+                send_error_notification(
+                    user=revision_request.center.user,
+                    title="Revizyon Talebi Reddedildi",
+                    message=f"{revision_request.mold.patient_name} - {revision_request.get_revision_type_display()} revizyon talebiniz admin tarafından reddedildi. Kalıp durumu 'Reddedildi' olarak güncellendi.",
+                    related_url=f"/mold/{revision_request.mold.id}/"
+                )
+                
                 updated += 1
         
-        self.message_user(request, f'{updated} revizyon talebi reddedildi olarak işaretlendi.')
+        self.message_user(request, f'{updated} revizyon talebi reddedildi olarak işaretlendi. Kalıp durumları güncellendi.')
     mark_as_rejected.short_description = "Seçili talepleri reddedildi olarak işaretle"
 
     def mark_as_in_progress(self, request, queryset):

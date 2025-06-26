@@ -58,7 +58,7 @@
                     <td>{{ mold.patient_name }}</td>
                     <td>{{ mold.get_mold_type_display }}</td>
                     <td>
-                        <span class="badge {% if mold.status == 'waiting' %}bg-info{% elif mold.status == 'processing' %}bg-warning text-dark{% elif mold.status == 'completed' %}bg-success{% elif mold.status == 'delivered' %}bg-secondary{% elif mold.status == 'revision' %}bg-danger{% elif mold.status == 'shipping' %}bg-primary{% else %}bg-light text-dark{% endif %}">
+                        <span class="badge {% if mold.status == 'waiting' %}bg-info{% elif mold.status == 'processing' %}bg-warning text-dark{% elif mold.status == 'completed' %}bg-success{% elif mold.status == 'delivered' %}bg-secondary{% elif mold.status == 'revision' %}bg-danger{% elif mold.status == 'rejected' %}bg-dark{% elif mold.status == 'shipping' %}bg-primary{% else %}bg-light text-dark{% endif %}">
                             {{ mold.get_status_display }}
                         </span>
                     </td>
