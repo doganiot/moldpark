@@ -38,6 +38,7 @@ urlpatterns = [
     
     # Basit Bildirim Sistemi
     path('notifications/', views.simple_notifications, name='simple_notifications'),
+    path('notifications/<int:notification_id>/', views.notification_redirect, name='notification_redirect'),
     path('notifications/<int:notification_id>/read/', views.mark_notification_as_read, name='mark_notification_read'),
     path('notifications/mark-all-read/', views.mark_all_notifications_read, name='mark_all_notifications_read'),
     path('notifications/<int:notification_id>/delete/', views.delete_notification, name='delete_notification'),

@@ -107,8 +107,8 @@ def mold_create(request):
                 # ÜRETİCİYE BASİT BİLDİRİM GÖNDER
                 send_order_notification(
                     producer.user,
-                    'Yeni Kalıp Siparişi',
-                    f'{center.name} - {mold.patient_name} {mold.patient_surname} ({mold.get_mold_type_display()}) kalıbı için sipariş aldınız.',
+                    'Yeni Kalıp Siparişi Aldınız',
+                    f'{center.name} merkezinden {mold.patient_name} {mold.patient_surname} hastası için {mold.get_mold_type_display()} kalıbı siparişi aldınız. Sipariş No: {order.order_number}',
                     related_url=f'/producer/orders/{order.id}/',
                     order_id=order.id
                 )
@@ -116,8 +116,8 @@ def mold_create(request):
                 # MERKEZE BAŞARI BİLDİRİMİ
                 send_success_notification(
                     request.user,
-                    'Kalıp Siparişi Oluşturuldu',
-                    f'Sipariş No: {order.order_number} - {producer.company_name} firmasına başarıyla gönderildi.',
+                    'Kalıp Siparişi Başarıyla Oluşturuldu',
+                    f'Kalıbınız {producer.company_name} firmasına gönderildi. Sipariş takip numarası: {order.order_number}. Tahmini teslimat: {order.estimated_delivery.strftime("%d.%m.%Y")}',
                     related_url=f'/mold/{mold.id}/'
                 )
                 
@@ -141,9 +141,9 @@ def mold_create(request):
             for admin in admin_users:
                 send_system_notification(
                     admin,
-                    'Yeni Kalıp Oluşturuldu',
-                    f'{request.user.center.name} - {mold.patient_name} {mold.patient_surname} ({mold.get_mold_type_display()}) kalıbı oluşturuldu.',
-                    related_url=f'/admin-panel/mold/{mold.id}/'
+                    'Yeni Kalıp Siparişi Sisteme Eklendi',
+                    f'{request.user.center.name} merkezi tarafından {mold.patient_name} {mold.patient_surname} hastası için {mold.get_mold_type_display()} kalıbı oluşturuldu ve {producer.company_name} firmasına sipariş verildi.',
+                    related_url=f'/admin-panel/'
                 )
             
             return redirect('mold:mold_detail', pk=mold.pk)

@@ -32,50 +32,62 @@
                     {% for notification in notifications %}
                     <div class="card mb-3 notification-item {% if not notification.is_read %}unread{% endif %}" data-id="{{ notification.id }}">
                         <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div class="flex-grow-1">
-                                    <div class="d-flex align-items-center mb-2">
-                                        <i class="{{ notification.get_icon }} text-{{ notification.get_color }} me-2"></i>
-                                        <h6 class="mb-0 fw-bold">{{ notification.title }}</h6>
-                                        {% if not notification.is_read %}
-                                            <span class="badge bg-primary ms-2">Yeni</span>
-                                        {% endif %}
+                            <!-- Tıklanabilir Ana İçerik -->
+                            <div class="notification-content" onclick="handleNotificationClick({{ notification.id }})" style="cursor: pointer;">
+                                <div class="d-flex align-items-start">
+                                    <div class="notification-icon me-3">
+                                        <i class="{{ notification.get_icon }} text-{{ notification.get_color }} fs-4"></i>
                                     </div>
-                                    
-                                    <p class="text-muted mb-2">{{ notification.message }}</p>
-                                    
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        <small class="text-muted">
-                                            <i class="fas fa-clock me-1"></i>
-                                            {{ notification.created_at|date:"d.m.Y H:i" }}
-                                            {% if notification.is_read %}
-                                                | Okundu: {{ notification.read_at|date:"d.m.Y H:i" }}
-                                            {% endif %}
-                                        </small>
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                            <h6 class="mb-0 fw-bold">{{ notification.title }}</h6>
+                                            <div class="d-flex align-items-center">
+                                                {% if not notification.is_read %}
+                                                    <span class="badge bg-primary me-2">Yeni</span>
+                                                {% endif %}
+                                                <small class="text-muted">
+                                                    {{ notification.created_at|timesince }} önce
+                                                </small>
+                                            </div>
+                                        </div>
                                         
-                                        {% if notification.related_url %}
-                                        <a href="{{ notification.related_url }}" class="btn btn-sm btn-outline-primary">
-                                            <i class="fas fa-external-link-alt me-1"></i>Detay
-                                        </a>
-                                        {% endif %}
+                                        <p class="text-muted mb-2">{{ notification.message }}</p>
+                                        
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <small class="text-muted">
+                                                <i class="fas fa-clock me-1"></i>
+                                                {{ notification.created_at|date:"d.m.Y H:i" }}
+                                                {% if notification.is_read %}
+                                                    | <i class="fas fa-check-circle text-success me-1"></i>Okundu
+                                                {% endif %}
+                                            </small>
+                                            
+                                            {% if notification.related_url %}
+                                            <span class="badge bg-light text-dark">
+                                                <i class="fas fa-external-link-alt me-1"></i>Tıklayın
+                                            </span>
+                                            {% endif %}
+                                        </div>
                                     </div>
                                 </div>
-                                
-                                <!-- İşlem Butonları -->
-                                <div class="dropdown ms-3">
-                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            </div>
+                            
+                            <!-- İşlem Butonları (Sağ Üst) -->
+                            <div class="notification-actions position-absolute" style="top: 15px; right: 15px;">
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" onclick="event.stopPropagation();">
                                         <i class="fas fa-ellipsis-h"></i>
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end">
                                         {% if not notification.is_read %}
                                         <li>
-                                            <a class="dropdown-item" href="#" onclick="markAsRead({{ notification.id }})">
+                                            <a class="dropdown-item" href="#" onclick="event.stopPropagation(); markAsRead({{ notification.id }});">
                                                 <i class="fas fa-check me-2"></i>Okundu İşaretle
                                             </a>
                                         </li>
                                         {% endif %}
                                         <li>
-                                            <a class="dropdown-item text-danger" href="#" onclick="deleteNotification({{ notification.id }})">
+                                            <a class="dropdown-item text-danger" href="#" onclick="event.stopPropagation(); deleteNotification({{ notification.id }});">
                                                 <i class="fas fa-trash me-2"></i>Sil
                                             </a>
                                         </li>
@@ -105,6 +117,7 @@
 .notification-item {
     transition: all 0.3s ease;
     border-left: 4px solid transparent;
+    position: relative;
 }
 
 .notification-item.unread {
@@ -113,12 +126,62 @@
 }
 
 .notification-item:hover {
-    box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.1);
-    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    transform: translateY(-3px);
+}
+
+.notification-content {
+    transition: all 0.2s ease;
+}
+
+.notification-content:hover {
+    background-color: rgba(0, 123, 255, 0.05);
+    border-radius: 8px;
+    padding: 8px;
+    margin: -8px;
+}
+
+.notification-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: rgba(0, 123, 255, 0.1);
+}
+
+.notification-actions {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.notification-item:hover .notification-actions {
+    opacity: 1;
 }
 
 .empty-state {
     padding: 3rem 0;
+}
+
+.notification-item.unread .notification-content {
+    background: linear-gradient(45deg, rgba(0, 123, 255, 0.03), rgba(0, 123, 255, 0.08));
+}
+
+/* Animasyonlar */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.notification-item {
+    animation: slideIn 0.5s ease-out;
 }
 </style>
 
@@ -126,6 +189,12 @@
 <script>
 function getCsrfToken() {
     return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+
+// Modern bildirim tıklama işlevi
+function handleNotificationClick(notificationId) {
+    // Bildirime tıklandığında otomatik yönlendirme
+    window.location.href = `/notifications/${notificationId}/`;
 }
 
 function markAsRead(notificationId) {

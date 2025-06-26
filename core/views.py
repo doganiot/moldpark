@@ -675,6 +675,31 @@ def simple_notifications(request):
     })
 
 @login_required
+def notification_redirect(request, notification_id):
+    """Bildirimi okundu işaretle ve ilgili sayfaya yönlendir"""
+    try:
+        notification = SimpleNotification.objects.get(
+            id=notification_id,
+            user=request.user
+        )
+        
+        # Otomatik okundu işaretle
+        if not notification.is_read:
+            notification.mark_as_read()
+        
+        # İlgili URL varsa yönlendir
+        if notification.related_url:
+            return redirect(notification.related_url)
+        else:
+            # İlgili URL yoksa bildirimler sayfasına dön
+            messages.info(request, f'Bildirim: {notification.title}')
+            return redirect('core:simple_notifications')
+            
+    except SimpleNotification.DoesNotExist:
+        messages.error(request, 'Bildirim bulunamadı.')
+        return redirect('core:simple_notifications')
+
+@login_required
 def mark_notification_as_read(request, notification_id):
     """Bildirimi okundu olarak işaretle"""
     try:

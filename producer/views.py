@@ -9,6 +9,7 @@ from django.db.models import Q, Count
 from django.utils import timezone
 from django.http import JsonResponse, HttpResponse, Http404
 from notifications.signals import notify
+from core.utils import send_success_notification, send_order_notification, send_system_notification
 from center.models import Center
 from mold.models import EarMold, ModeledMold, RevisionRequest
 from .models import Producer, ProducerOrder, ProducerMessage, ProducerNetwork, ProducerProductionLog
@@ -957,34 +958,39 @@ def mold_upload_result(request, pk):
                 ear_mold.status = 'completed'
                 ear_mold.save()
             
-            # Merkeze bildirim gönder
+            # Merkeze basit bildirim gönder
             if revision_completed:
-                notify.send(
-                    sender=request.user,
-                    recipient=ear_mold.center.user,
-                    verb='revizyon talebi tamamlandı',
-                    description=f'{ear_mold.patient_name} {ear_mold.patient_surname} için revizyon talebi tamamlandı ve yeni dosya yüklendi. Sipariş teslim edildi.',
-                    action_object=producer_order
+                send_success_notification(
+                    ear_mold.center.user,
+                    'Revizyon Talebiniz Tamamlandı',
+                    f'{ear_mold.patient_name} {ear_mold.patient_surname} hastanız için revizyon talebiniz {producer.company_name} tarafından tamamlandı. Yeni kalıp dosyası hazır!',
+                    related_url=f'/mold/{ear_mold.id}/'
                 )
-                
-                # Revizyon talep eden merkeze özel bildirim
-                for revision_request in revision_requests:
-                    notify.send(
-                        sender=request.user,
-                        recipient=revision_request.center.user,
-                        verb='revizyon tamamlandı',
-                        description=f'{revision_request.title} - {revision_request.get_revision_type_display()} revizyonu tamamlandı.',
-                        action_object=revision_request,
-                        target=ear_mold
-                    )
             else:
-                notify.send(
-                    sender=request.user,
-                    recipient=ear_mold.center.user,
-                    verb='kalıp üretimi tamamlandı',
-                    description=f'{ear_mold.patient_name} {ear_mold.patient_surname} için kalıp üretimi tamamlandı ve dosya yüklendi. Sipariş teslim edildi.',
-                    action_object=producer_order
+                send_success_notification(
+                    ear_mold.center.user,
+                    'Kalıp Üretiminiz Tamamlandı',
+                    f'{ear_mold.patient_name} {ear_mold.patient_surname} hastanız için kalıp üretimi {producer.company_name} tarafından tamamlandı. Dosyayı indirebilirsiniz!',
+                    related_url=f'/mold/{ear_mold.id}/'
                 )
+            
+            # Admin'lere sistem bildirimi
+            admin_users = User.objects.filter(is_superuser=True)
+            for admin in admin_users:
+                if revision_completed:
+                    send_system_notification(
+                        admin,
+                        'Revizyon Talebi Tamamlandı',
+                        f'{producer.company_name} tarafından {ear_mold.center.name} merkezinin {ear_mold.patient_name} {ear_mold.patient_surname} hastası için revizyon talebi tamamlandı.',
+                        related_url=f'/admin-panel/'
+                    )
+                else:
+                    send_system_notification(
+                        admin,
+                        'Kalıp Üretimi Tamamlandı',
+                        f'{producer.company_name} tarafından {ear_mold.center.name} merkezinin {ear_mold.patient_name} {ear_mold.patient_surname} hastası için kalıp üretimi tamamlandı.',
+                        related_url=f'/admin-panel/'
+                    )
             
             # Başarı mesajı
             if revision_completed:
