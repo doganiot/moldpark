@@ -1,0 +1,212 @@
+{% extends 'base.html' %}
+
+{% block title %}Bildirimler - MoldPark{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <!-- Başlık -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="fas fa-bell me-2 text-primary"></i>Bildirimler
+                    </h2>
+                    <p class="text-muted mb-0">
+                        Toplam {{ notifications.count }} bildirim
+                        {% if unread_count > 0 %}
+                            - <span class="text-danger">{{ unread_count }} okunmamış</span>
+                        {% endif %}
+                    </p>
+                </div>
+                {% if unread_count > 0 %}
+                <button type="button" class="btn btn-outline-success" onclick="markAllAsRead()">
+                    <i class="fas fa-check-double me-1"></i>Tümünü Okundu İşaretle
+                </button>
+                {% endif %}
+            </div>
+
+            <!-- Bildirimler Listesi -->
+            {% if notifications %}
+                <div class="notification-list">
+                    {% for notification in notifications %}
+                    <div class="card mb-3 notification-item {% if not notification.is_read %}unread{% endif %}" data-id="{{ notification.id }}">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <i class="{{ notification.get_icon }} text-{{ notification.get_color }} me-2"></i>
+                                        <h6 class="mb-0 fw-bold">{{ notification.title }}</h6>
+                                        {% if not notification.is_read %}
+                                            <span class="badge bg-primary ms-2">Yeni</span>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <p class="text-muted mb-2">{{ notification.message }}</p>
+                                    
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <small class="text-muted">
+                                            <i class="fas fa-clock me-1"></i>
+                                            {{ notification.created_at|date:"d.m.Y H:i" }}
+                                            {% if notification.is_read %}
+                                                | Okundu: {{ notification.read_at|date:"d.m.Y H:i" }}
+                                            {% endif %}
+                                        </small>
+                                        
+                                        {% if notification.related_url %}
+                                        <a href="{{ notification.related_url }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-external-link-alt me-1"></i>Detay
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <!-- İşlem Butonları -->
+                                <div class="dropdown ms-3">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                        <i class="fas fa-ellipsis-h"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        {% if not notification.is_read %}
+                                        <li>
+                                            <a class="dropdown-item" href="#" onclick="markAsRead({{ notification.id }})">
+                                                <i class="fas fa-check me-2"></i>Okundu İşaretle
+                                            </a>
+                                        </li>
+                                        {% endif %}
+                                        <li>
+                                            <a class="dropdown-item text-danger" href="#" onclick="deleteNotification({{ notification.id }})">
+                                                <i class="fas fa-trash me-2"></i>Sil
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <!-- Boş Durum -->
+                <div class="text-center py-5">
+                    <div class="empty-state">
+                        <i class="fas fa-bell-slash fa-4x text-muted mb-3"></i>
+                        <h4 class="text-muted">Henüz bildirim yok</h4>
+                        <p class="text-muted">Yeni bildirimler burada görünecek.</p>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- CSS -->
+<style>
+.notification-item {
+    transition: all 0.3s ease;
+    border-left: 4px solid transparent;
+}
+
+.notification-item.unread {
+    background-color: #f8f9fa;
+    border-left-color: #007bff;
+}
+
+.notification-item:hover {
+    box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.empty-state {
+    padding: 3rem 0;
+}
+</style>
+
+<!-- JavaScript -->
+<script>
+function getCsrfToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+
+function markAsRead(notificationId) {
+    fetch(`/notifications/${notificationId}/read/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCsrfToken(),
+            'X-Requested-With': 'XMLHttpRequest',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const item = document.querySelector(`[data-id="${notificationId}"]`);
+            item.classList.remove('unread');
+            const badge = item.querySelector('.badge');
+            if (badge) badge.remove();
+            
+            // Sayacı güncelle
+            updateNotificationCount(data.unread_count);
+            location.reload();
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function markAllAsRead() {
+    fetch('/notifications/mark-all-read/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCsrfToken(),
+            'X-Requested-With': 'XMLHttpRequest',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function deleteNotification(notificationId) {
+    if (confirm('Bu bildirimi silmek istediğinizden emin misiniz?')) {
+        fetch(`/notifications/${notificationId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCsrfToken(),
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const item = document.querySelector(`[data-id="${notificationId}"]`);
+                item.remove();
+                updateNotificationCount(data.unread_count);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+}
+
+function updateNotificationCount(count) {
+    // Navbar'daki sayacı güncelle
+    const badge = document.querySelector('.notification-badge');
+    if (badge) {
+        if (count > 0) {
+            badge.textContent = count;
+            badge.style.display = 'inline';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+}
+</script>
+
+<!-- CSRF Token -->
+{% csrf_token %}
+{% endblock %} 

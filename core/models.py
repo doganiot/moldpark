@@ -6,20 +6,20 @@ from notifications.signals import notify
 from django.utils import timezone
 
 class ContactMessage(models.Model):
-    name = models.CharField('Ad Soyad', max_length=100)
+    name = models.CharField('İsim', max_length=100)
     email = models.EmailField('E-posta')
     subject = models.CharField('Konu', max_length=200)
     message = models.TextField('Mesaj')
-    is_read = models.BooleanField('Okundu', default=False)
     created_at = models.DateTimeField('Gönderilme Tarihi', auto_now_add=True)
+    is_read = models.BooleanField('Okundu', default=False)
+
+    def __str__(self):
+        return f"{self.name} - {self.subject}"
 
     class Meta:
         verbose_name = 'İletişim Mesajı'
         verbose_name_plural = 'İletişim Mesajları'
         ordering = ['-created_at']
-
-    def __str__(self):
-        return f'{self.name} - {self.subject}'
 
 @receiver(post_save, sender=ContactMessage)
 def notify_admin_new_contact(sender, instance, created, **kwargs):
@@ -151,24 +151,26 @@ class MessageRecipient(models.Model):
     """Toplu Mesajlar için Alıcı Listesi"""
     
     message = models.ForeignKey(Message, on_delete=models.CASCADE, related_name='recipients')
-    recipient = models.ForeignKey(User, on_delete=models.CASCADE)
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='Alıcı')
     is_read = models.BooleanField('Okundu', default=False)
     read_at = models.DateTimeField('Okunma Tarihi', blank=True, null=True)
+    is_archived = models.BooleanField('Arşivlendi', default=False)
 
     class Meta:
         verbose_name = 'Mesaj Alıcısı'
         verbose_name_plural = 'Mesaj Alıcıları'
-        unique_together = ('message', 'recipient')
-
-    def __str__(self):
-        return f'{self.message.subject} → {self.recipient.get_full_name()}'
+        unique_together = ['message', 'recipient']
 
     def mark_as_read(self):
         """Bu alıcı için mesajı okundu olarak işaretle"""
         if not self.is_read:
             self.is_read = True
             self.read_at = timezone.now()
-            self.save(update_fields=['is_read', 'read_at'])
+            self.save()
+
+    def __str__(self):
+        return f'{self.message.subject} → {self.recipient.get_full_name()}'
+
 
 class PricingPlan(models.Model):
     """Fiyatlandırma Planları"""
@@ -343,3 +345,66 @@ class PaymentHistory(models.Model):
     
     def __str__(self):
         return f'{self.user.username} - {self.amount} {self.currency} ({self.status})'
+
+
+# Basit Bildirim Sistemi
+class SimpleNotification(models.Model):
+    NOTIFICATION_TYPES = (
+        ('info', 'Bilgi'),
+        ('success', 'Başarılı'),
+        ('warning', 'Uyarı'),
+        ('error', 'Hata'),
+        ('system', 'Sistem'),
+        ('order', 'Sipariş'),
+        ('message', 'Mesaj'),
+    )
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='simple_notifications', verbose_name='Kullanıcı')
+    title = models.CharField('Başlık', max_length=100)
+    message = models.TextField('Mesaj', max_length=500)
+    notification_type = models.CharField('Tür', max_length=20, choices=NOTIFICATION_TYPES, default='info')
+    is_read = models.BooleanField('Okundu', default=False)
+    created_at = models.DateTimeField('Oluşturulma', auto_now_add=True)
+    read_at = models.DateTimeField('Okunma Tarihi', blank=True, null=True)
+    
+    # İsteğe bağlı referanslar
+    related_url = models.URLField('İlgili Link', blank=True, null=True)
+    related_object_id = models.PositiveIntegerField('İlgili Obje ID', blank=True, null=True)
+    
+    def mark_as_read(self):
+        if not self.is_read:
+            self.is_read = True
+            self.read_at = timezone.now()
+            self.save()
+    
+    def get_icon(self):
+        icons = {
+            'info': 'fas fa-info-circle',
+            'success': 'fas fa-check-circle', 
+            'warning': 'fas fa-exclamation-triangle',
+            'error': 'fas fa-times-circle',
+            'system': 'fas fa-cog',
+            'order': 'fas fa-shopping-cart',
+            'message': 'fas fa-envelope',
+        }
+        return icons.get(self.notification_type, 'fas fa-bell')
+    
+    def get_color(self):
+        colors = {
+            'info': 'primary',
+            'success': 'success',
+            'warning': 'warning', 
+            'error': 'danger',
+            'system': 'secondary',
+            'order': 'info',
+            'message': 'primary',
+        }
+        return colors.get(self.notification_type, 'primary')
+    
+    class Meta:
+        verbose_name = 'Basit Bildirim'
+        verbose_name_plural = 'Basit Bildirimler'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.username} - {self.title}"

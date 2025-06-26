@@ -1,5 +1,5 @@
 from django.db.models import Q
-from .models import Message, MessageRecipient
+from .models import Message, MessageRecipient, SimpleNotification
 from mold.models import RevisionRequest
 
 
@@ -34,15 +34,23 @@ def unread_messages(request):
             except:
                 pending_revision_requests = 0
         
+        # Basit bildirim sayısı
+        unread_notifications = SimpleNotification.objects.filter(
+            user=request.user,
+            is_read=False
+        ).count()
+        
         return {
             'unread_message_count': total_unread,
             'unread_direct_count': unread_direct,
             'unread_broadcast_count': unread_broadcast,
             'pending_revision_requests': pending_revision_requests,
+            'unread_notifications': unread_notifications,
         }
     except Exception as e:
         # Hata durumunda sıfır döndür
         return {
             'unread_message_count': 0,
-            'pending_revision_requests': 0
+            'pending_revision_requests': 0,
+            'unread_notifications': 0,
         } 

@@ -197,6 +197,16 @@
                             {% endif %}
                         {% endif %}
                         
+                        <!-- Bildirimler - Basit Sistem -->
+                        <li class="nav-item">
+                            <a class="nav-link position-relative" href="{% url 'core:simple_notifications' %}">
+                                <i class="fas fa-bell me-2"></i>Bildirimler
+                                {% if unread_notifications > 0 %}
+                                    <span class="badge bg-danger ms-1 notification-badge">{{ unread_notifications }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        
                         <!-- Mesajlaşma - Tüm giriş yapmış kullanıcılar için -->
                         <li class="nav-item">
                             <a class="nav-link position-relative" href="{% url 'core:message_list' %}">

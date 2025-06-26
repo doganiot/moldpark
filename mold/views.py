@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth.models import User
 from notifications.signals import notify
+from core.utils import send_success_notification, send_order_notification, send_system_notification
 from django.utils import timezone
 from .models import EarMold, Revision, ModeledMold, QualityCheck, RevisionRequest, MoldEvaluation
 from .forms import EarMoldForm, RevisionForm, ModeledMoldForm, QualityCheckForm, RevisionRequestForm, MoldEvaluationForm, PhysicalShipmentForm, TrackingUpdateForm
@@ -103,27 +104,22 @@ def mold_create(request):
                 mold.save()
                 print(f"DEBUG - Kalıp durumu güncellendi: {mold.status}")
                 
-                # ÜRETİCİYE BİLDİRİM GÖNDER
-                notify.send(
-                    sender=center,
-                    recipient=producer.user,
-                    verb='yeni kalıp siparişi gönderdi',
-                    action_object=order,
-                    description=f'{center.name} - {mold.patient_name} {mold.patient_surname} ({mold.get_mold_type_display()})',
-                    target=mold
+                # ÜRETİCİYE BASİT BİLDİRİM GÖNDER
+                send_order_notification(
+                    producer.user,
+                    'Yeni Kalıp Siparişi',
+                    f'{center.name} - {mold.patient_name} {mold.patient_surname} ({mold.get_mold_type_display()}) kalıbı için sipariş aldınız.',
+                    related_url=f'/producer/orders/{order.id}/',
+                    order_id=order.id
                 )
-                print(f"DEBUG - Üreticiye bildirim gönderildi")
                 
-                # MERKEZE ONAY BİLDİRİMİ
-                notify.send(
-                    sender=producer,
-                    recipient=request.user,
-                    verb='sipariş başarıyla oluşturuldu',
-                    action_object=order,
-                    description=f'Sipariş No: {order.order_number} - {producer.company_name} tarafından alındı.',
-                    target=mold
+                # MERKEZE BAŞARI BİLDİRİMİ
+                send_success_notification(
+                    request.user,
+                    'Kalıp Siparişi Oluşturuldu',
+                    f'Sipariş No: {order.order_number} - {producer.company_name} firmasına başarıyla gönderildi.',
+                    related_url=f'/mold/{mold.id}/'
                 )
-                print(f"DEBUG - Merkeze onay bildirimi gönderildi")
                 
                 messages.success(request, 
                     f'Kalıp başarıyla oluşturuldu ve {producer.company_name} firmasına sipariş gönderildi. '
@@ -140,17 +136,15 @@ def mold_create(request):
                     f'Lütfen yönetici ile iletişime geçin. Hata: {str(e)}'
                 )
             
-            # Admin bildirim
+            # Admin'lere basit bildirim
             admin_users = User.objects.filter(is_superuser=True)
             for admin in admin_users:
-                notify.send(
-                    sender=request.user,
-                    recipient=admin,
-                    verb='yeni bir kalıp yükledi',
-                    action_object=mold,
-                    description=f'{mold.patient_name} {mold.patient_surname} - {mold.get_mold_type_display()}'
+                send_system_notification(
+                    admin,
+                    'Yeni Kalıp Oluşturuldu',
+                    f'{request.user.center.name} - {mold.patient_name} {mold.patient_surname} ({mold.get_mold_type_display()}) kalıbı oluşturuldu.',
+                    related_url=f'/admin-panel/mold/{mold.id}/'
                 )
-            print(f"DEBUG - Admin bildirimleri gönderildi")
             
             return redirect('mold:mold_detail', pk=mold.pk)
         else:

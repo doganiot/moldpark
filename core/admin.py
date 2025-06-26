@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import ContactMessage, Message, MessageRecipient, PricingPlan, UserSubscription, PaymentHistory
+from .models import ContactMessage, Message, MessageRecipient, PricingPlan, UserSubscription, PaymentHistory, SimpleNotification
 
 @admin.register(ContactMessage)
 class ContactMessageAdmin(admin.ModelAdmin):
@@ -103,5 +103,28 @@ class PaymentHistoryAdmin(admin.ModelAdmin):
         }),
         ('Zaman Bilgileri', {
             'fields': ('created_at', 'updated_at')
+        }),
+    )
+
+
+@admin.register(SimpleNotification)
+class SimpleNotificationAdmin(admin.ModelAdmin):
+    list_display = ['user', 'title', 'notification_type', 'is_read', 'created_at']
+    list_filter = ['notification_type', 'is_read', 'created_at']
+    search_fields = ['user__username', 'user__email', 'title', 'message']
+    readonly_fields = ['created_at', 'read_at']
+    list_editable = ['is_read']
+    ordering = ['-created_at']
+    
+    fieldsets = (
+        ('Bildirim Bilgileri', {
+            'fields': ('user', 'title', 'message', 'notification_type')
+        }),
+        ('Durum', {
+            'fields': ('is_read', 'created_at', 'read_at')
+        }),
+        ('Ek Bilgiler', {
+            'fields': ('related_url', 'related_object_id'),
+            'classes': ('collapse',)
         }),
     )

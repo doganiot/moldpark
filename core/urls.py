@@ -35,4 +35,10 @@ urlpatterns = [
     path('api/smart-notifications-status/', api.smart_notifications_status_api, name='smart_notifications_status_api'),
     path('api/trigger-smart-notifications/', api.trigger_smart_notifications_api, name='trigger_smart_notifications_api'),
     path('api/performance-insights/', api.performance_insights_api, name='performance_insights_api'),
+    
+    # Basit Bildirim Sistemi
+    path('notifications/', views.simple_notifications, name='simple_notifications'),
+    path('notifications/<int:notification_id>/read/', views.mark_notification_as_read, name='mark_notification_read'),
+    path('notifications/mark-all-read/', views.mark_all_notifications_read, name='mark_all_notifications_read'),
+    path('notifications/<int:notification_id>/delete/', views.delete_notification, name='delete_notification'),
 ] 

@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from .models import ContactMessage, Message, MessageRecipient, PricingPlan, UserSubscription, PaymentHistory
+from .models import ContactMessage, Message, MessageRecipient, PricingPlan, UserSubscription, PaymentHistory, SimpleNotification
 from .forms import ContactForm, MessageForm, AdminMessageForm, MessageReplyForm
 from django.views.generic import TemplateView
 from django.contrib.auth.decorators import user_passes_test, login_required
@@ -19,6 +19,7 @@ from datetime import datetime, timedelta
 import json
 import logging
 from .smart_notifications import SmartNotificationManager
+from .utils import get_user_notifications, get_unread_count, mark_all_as_read, send_notification
 
 def home(request):
     # Fiyatlandırma planlarını al
@@ -661,3 +662,76 @@ def subscription_dashboard(request):
     }
     
     return render(request, 'core/subscription_dashboard.html', context)
+
+@login_required
+def simple_notifications(request):
+    """Kullanıcının bildirimlerini listele"""
+    notifications = get_user_notifications(request.user, limit=50)
+    unread_count = get_unread_count(request.user)
+    
+    return render(request, 'core/simple_notifications.html', {
+        'notifications': notifications,
+        'unread_count': unread_count,
+    })
+
+@login_required
+def mark_notification_as_read(request, notification_id):
+    """Bildirimi okundu olarak işaretle"""
+    try:
+        notification = SimpleNotification.objects.get(
+            id=notification_id,
+            user=request.user
+        )
+        notification.mark_as_read()
+        
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': True,
+                'unread_count': get_unread_count(request.user)
+            })
+        
+        return redirect('core:simple_notifications')
+        
+    except SimpleNotification.DoesNotExist:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'error': 'Bildirim bulunamadı'})
+        messages.error(request, 'Bildirim bulunamadı.')
+        return redirect('core:simple_notifications')
+
+@login_required 
+def mark_all_notifications_read(request):
+    """Tüm bildirimleri okundu olarak işaretle"""
+    if request.method == 'POST':
+        mark_all_as_read(request.user)
+        
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': True})
+        
+        messages.success(request, 'Tüm bildirimler okundu olarak işaretlendi.')
+    
+    return redirect('core:simple_notifications')
+
+@login_required
+def delete_notification(request, notification_id):
+    """Bildirimi sil"""
+    try:
+        notification = SimpleNotification.objects.get(
+            id=notification_id,
+            user=request.user
+        )
+        notification.delete()
+        
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': True,
+                'unread_count': get_unread_count(request.user)
+            })
+        
+        messages.success(request, 'Bildirim silindi.')
+        return redirect('core:simple_notifications')
+        
+    except SimpleNotification.DoesNotExist:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'error': 'Bildirim bulunamadı'})
+        messages.error(request, 'Bildirim bulunamadı.')
+        return redirect('core:simple_notifications')
