@@ -611,17 +611,7 @@ def mold_detail(request, pk):
             'data': log
         })
     
-    # Sadece bu siparişle ilgili mesajları ekle
-    related_messages = producer_order.messages.order_by('-created_at')
-    for message in related_messages:
-        activities.append({
-            'type': 'message',
-            'timestamp': message.created_at,
-            'title': message.subject,
-            'description': message.message[:100] + '...' if len(message.message) > 100 else message.message,
-            'sender': 'Üretici' if message.sender_is_producer else 'Merkez',
-            'data': message
-        })
+    # Mesajlaşma sistemi kaldırıldı - sadece production logları gösteriliyor
     
     # Aktiviteleri tarih sırasına göre sırala
     activities.sort(key=lambda x: x['timestamp'], reverse=True)
