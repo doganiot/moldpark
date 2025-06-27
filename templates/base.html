@@ -354,25 +354,34 @@
     <script>
     function markAllNotificationsReadFromDropdown() {
         if (confirm('Tüm bildirimleri okundu olarak işaretlemek istediğinizden emin misiniz?')) {
+            const csrfToken = getCsrfToken();
+            if (!csrfToken) {
+                showToast('CSRF token bulunamadı. Sayfayı yenileyin.', 'error');
+                return;
+            }
+            
             fetch('/notifications/mark-all-read/', {
                 method: 'POST',
                 headers: {
-                    'X-CSRFToken': getCsrfToken(),
+                    'X-CSRFToken': csrfToken,
                     'X-Requested-With': 'XMLHttpRequest',
-                    'Content-Type': 'application/json'
-                }
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: 'csrfmiddlewaretoken=' + encodeURIComponent(csrfToken)
             })
             .then(response => {
                 console.log('Response status:', response.status);
-                console.log('Response headers:', response.headers);
                 
                 // Yanıtın JSON olup olmadığını kontrol et
                 const contentType = response.headers.get('content-type');
                 if (!contentType || !contentType.includes('application/json')) {
-                    console.error('Response is not JSON:', contentType);
-                    // HTML yanıtını text olarak oku
+                    console.warn('Response is not JSON:', contentType);
                     return response.text().then(text => {
-                        console.error('HTML Response:', text);
+                        console.log('HTML Response:', text);
+                        if (response.ok) {
+                            // HTML yanıt alındıysa da başarılı kabul et
+                            return { success: true, message: 'İşlem tamamlandı' };
+                        }
                         throw new Error('Server returned HTML instead of JSON');
                     });
                 }

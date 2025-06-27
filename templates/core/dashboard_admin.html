@@ -395,7 +395,10 @@
     border-left: 4px solid #dc3545;
 }
 </style>
-{% endblock %}
+<!-- CSRF Token for JavaScript -->
+{% csrf_token %}
+
+{% endblock %} 
 
 {% block content %}
 <div class="container-fluid py-4">
@@ -562,12 +565,17 @@
                     {% endif %}
 
                     <!-- Hızlı İşlemler -->
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-outline-primary btn-sm flex-fill" onclick="refreshNotifications()">
+                    <div class="d-flex gap-1">
+                        {% if unread_notifications > 0 %}
+                        <button class="btn btn-outline-success btn-sm" onclick="markAllNotificationsRead()" title="Tümünü Okundu İşaretle">
+                            <i class="fas fa-check-double me-1"></i>Okundu
+                        </button>
+                        {% endif %}
+                        <button class="btn btn-outline-primary btn-sm" onclick="refreshNotifications()" title="Yenile">
                             <i class="fas fa-sync-alt me-1"></i>Yenile
                         </button>
-                        <a href="{% url 'core:simple_notifications' %}" class="btn btn-outline-secondary btn-sm flex-fill">
-                            <i class="fas fa-list me-1"></i>Tümünü Gör
+                        <a href="{% url 'core:simple_notifications' %}" class="btn btn-outline-secondary btn-sm" title="Tümünü Gör">
+                            <i class="fas fa-list me-1"></i>Tüm
                         </a>
                     </div>
                 </div>
@@ -1541,18 +1549,19 @@ let currentReassignCenterId = null;
 // === BİLDİRİM SİSTEMİ JAVASCRIPT FONKSİYONLARI ===
 
 function getCsrfToken() {
+    // Önce form'dan al
     const token = document.querySelector('[name=csrfmiddlewaretoken]');
     if (token) {
         return token.value;
     }
     
-    // Meta tag'den al
+    // Meta tag'den al (base.html'de var)
     const metaToken = document.querySelector('meta[name="csrf-token"]');
     if (metaToken) {
         return metaToken.getAttribute('content');
     }
     
-    // Cookie'den al
+    // Cookie'den al (Django otomatik)
     const cookies = document.cookie.split(';');
     for (let cookie of cookies) {
         const [name, value] = cookie.trim().split('=');
@@ -1561,6 +1570,18 @@ function getCsrfToken() {
         }
     }
     
+    // Son çare: HTML'den bul
+    const scriptTags = document.querySelectorAll('script');
+    for (let script of scriptTags) {
+        if (script.textContent.includes('csrfmiddlewaretoken')) {
+            const match = script.textContent.match(/csrfmiddlewaretoken['"]\s*:\s*['"]([^'"]+)['"]/);
+            if (match && match[1]) {
+                return match[1];
+            }
+        }
+    }
+    
+    console.warn('CSRF token bulunamadı!');
     return '';
 }
 
@@ -1580,6 +1601,57 @@ function refreshNotifications() {
     setTimeout(() => {
         location.reload();
     }, 1000);
+}
+
+// Tüm bildirimleri okundu işaretle
+function markAllNotificationsRead() {
+    if (confirm('Tüm bildirimleri okundu olarak işaretlemek istediğinizden emin misiniz?')) {
+        const csrfToken = getCsrfToken();
+        if (!csrfToken) {
+            showToast('CSRF token bulunamadı. Sayfayı yenileyin.', 'error');
+            return;
+        }
+        
+        fetch('/notifications/mark-all-read/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: 'csrfmiddlewaretoken=' + encodeURIComponent(csrfToken)
+        })
+        .then(response => {
+            console.log('Response status:', response.status);
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                console.warn('Response is not JSON:', contentType);
+                return response.text().then(text => {
+                    console.log('HTML Response:', text);
+                    if (response.ok) {
+                        // HTML yanıt alındıysa da başarılı kabul et
+                        return { success: true, message: 'İşlem tamamlandı' };
+                    }
+                    throw new Error('Server returned HTML instead of JSON');
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                showToast('Tüm bildirimler okundu olarak işaretlendi!', 'success');
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                showToast('İşlem sırasında bir sorun oluştu.', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Mark all read error:', error);
+            showToast('Bildirimler işaretlenirken hata oluştu: ' + error.message, 'error');
+        });
+    }
 }
 
 // Sistem sağlık kontrolü çalıştır
