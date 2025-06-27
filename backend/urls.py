@@ -84,9 +84,10 @@ urlpatterns = [
     
     # API ve Sistem URL'leri
     path('accounts/', include('allauth.urls')),
-    path('notifications/', include('notifications.urls', namespace='notifications')),
+    # Django-notifications-hq paketini spesifik path'e taşı
+    path('django-notifications/', include('notifications.urls', namespace='notifications')),
     
-    # Ana Uygulama URL'leri
+    # Ana Uygulama URL'leri (Core'daki notifications URL'leri öncelik alacak)
     path('', include('core.urls')),
     path('center/', include('center.urls')),
     path('mold/', include('mold.urls')),
