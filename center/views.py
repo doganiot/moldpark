@@ -31,16 +31,32 @@ def dashboard(request):
     
     # İstatistikleri hesapla
     total_molds = molds.count()
-    pending_molds = molds.filter(status='waiting').count()
+    
+    # Bekleyen kalıplar: Teslim edilmemiş, iptal edilmemiş ve tamamlanmamış olanlar
+    pending_molds = molds.exclude(status__in=['delivered', 'rejected', 'completed']).count()
+    
     processing_molds = molds.filter(status='processing').count()
     completed_molds = molds.filter(status='completed').count()
     
     # Son 5 kalıbı al
     recent_molds = molds.order_by('-created_at')[:5]
     
-    # Kullanılan kalıp hakkını güncelle (kalan hakkı hesapla)
-    used_molds = total_molds
-    remaining_limit = max(0, center.mold_limit - used_molds)
+    # Abonelik ve limit kontrolü
+    from core.models import UserSubscription
+    
+    try:
+        subscription = UserSubscription.objects.get(user=request.user, is_active=True)
+        used_molds = subscription.current_usage
+        remaining_limit = max(0, subscription.plan.limit_per_month - used_molds)
+        usage_percentage = int((used_molds / subscription.plan.limit_per_month) * 100) if subscription.plan.limit_per_month > 0 else 0
+        usage_offset = 327 - (327 * usage_percentage / 100)  # SVG circle için
+    except UserSubscription.DoesNotExist:
+        # Fallback eski sistem
+        used_molds = total_molds
+        remaining_limit = max(0, center.mold_limit - used_molds)
+        usage_percentage = int((used_molds / center.mold_limit) * 100) if center.mold_limit > 0 else 0
+        usage_offset = 327 - (327 * usage_percentage / 100)
+        subscription = None
     
     # Üretici ağ bilgileri
     producer_networks = ProducerNetwork.objects.filter(
@@ -59,6 +75,9 @@ def dashboard(request):
         'used_molds': used_molds,
         'remaining_limit': remaining_limit,
         'producer_networks': producer_networks,
+        'subscription': subscription,
+        'usage_percentage': usage_percentage,
+        'usage_offset': usage_offset,
     })
 
 @login_required

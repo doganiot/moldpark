@@ -950,12 +950,12 @@ def mold_upload_result(request, pk):
             
             # Siparişin durumunu güncelle - hangi durumda olursa olsun dosya yüklendiğinde tamamla
             if producer_order.status in ['received', 'designing', 'production', 'quality_check', 'packaging']:
-                producer_order.status = 'delivered'  # Dosya yüklendiğinde direkt tamamlandı olarak işaretle
+                producer_order.status = 'delivered'  # Sipariş teslim edildi
                 producer_order.actual_delivery = timezone.now()  # Gerçek teslimat zamanını kaydet
                 producer_order.save()
                 
-                # Kalıp durumunu da "tamamlandı" olarak güncelle
-                ear_mold.status = 'completed'
+                # Kalıp durumunu da "teslim edildi" olarak güncelle (tutarlılık için)
+                ear_mold.status = 'delivered'  # Completed yerine delivered - mantıklı akış
                 ear_mold.save()
             
             # Merkeze basit bildirim gönder
@@ -994,9 +994,9 @@ def mold_upload_result(request, pk):
             
             # Başarı mesajı
             if revision_completed:
-                messages.success(request, 'Revizyon talebi tamamlandı! Yeni kalıp dosyası başarıyla yüklendi. Kalıp durumu "Tamamlandı" olarak güncellendi ve sipariş teslim edildi.')
+                messages.success(request, 'Revizyon talebi tamamlandı! Yeni kalıp dosyası başarıyla yüklendi. Kalıp durumu "Teslim Edildi" olarak güncellendi.')
             else:
-                messages.success(request, 'Üretilen kalıp dosyası başarıyla yüklendi. Kalıp durumu "Tamamlandı" olarak güncellendi ve sipariş teslim edildi.')
+                messages.success(request, 'Üretilen kalıp dosyası başarıyla yüklendi. Kalıp durumu "Teslim Edildi" olarak güncellendi.')
             return redirect('producer:mold_detail', pk=pk)
         else:
             messages.error(request, 'Lütfen bir dosya seçin.')
@@ -1568,10 +1568,11 @@ def revision_request_respond(request, pk):
                 success_message = 'Revizyon talebi kabul edildi ve işleme alındı. Kalıp dosyası revizyona alındı.'
             else:
                 revision_request.status = 'rejected'
-                # Revizyon reddedildiğinde kalıp durumunu da "reddedildi" yap
-                revision_request.mold.status = 'rejected'
+                # Revizyon reddedildiğinde kalıp durumunu önceki durumuna (delivered) döndür
+                # Çünkü revizyon reddedilmesi kalıbın kendisinin reddedildiği anlamına gelmez
+                revision_request.mold.status = 'delivered'
                 revision_request.mold.save()
-                success_message = 'Revizyon talebi reddedildi. Kalıp durumu reddedildi olarak güncellendi.'
+                success_message = 'Revizyon talebi reddedildi. Kalıp durumu "Teslim Edildi" olarak güncellendi.'
             
             revision_request.producer_response = response_text
             revision_request.save()

@@ -41,7 +41,6 @@ class Producer(models.Model):
     established_year = models.IntegerField('Kuruluş Yılı', blank=True, null=True)
     
     # Sistem Ayarları
-    mold_limit = models.PositiveIntegerField("Aylık Kalıp Limiti", default=100)
     monthly_limit = models.IntegerField('Aylık Kalıp Limiti', validators=[MinValueValidator(1)], default=500)
     notification_preferences = models.CharField('Bildirim Tercihleri', max_length=200, default='system')
     
@@ -94,7 +93,7 @@ class Producer(models.Model):
     def get_remaining_limit(self):
         """Kalan kalıp limiti"""
         current_month_orders = self.get_current_month_orders()
-        return max(0, self.mold_limit - current_month_orders)
+        return max(0, self.monthly_limit - current_month_orders)
 
     def can_accept_order(self):
         """Yeni sipariş alabilir mi?"""
@@ -315,50 +314,7 @@ class ProducerOrder(models.Model):
         return color_map.get(self.status, 'light')
 
 
-class ProducerMessage(models.Model):
-    """Üretici-Merkez Mesajlaşma Sistemi"""
-    
-    MESSAGE_TYPE_CHOICES = (
-        ('order', 'Sipariş'),
-        ('technical', 'Teknik'),
-        ('administrative', 'İdari'),
-        ('complaint', 'Şikayet'),
-        ('general', 'Genel'),
-    )
-    
-    producer = models.ForeignKey(Producer, on_delete=models.CASCADE, related_name='messages')
-    center = models.ForeignKey(Center, on_delete=models.CASCADE, related_name='producer_messages')
-    sender_is_producer = models.BooleanField('Gönderen Üretici mi?', default=True)
-    
-    # Mesaj Bilgileri
-    message_type = models.CharField('Mesaj Türü', max_length=20, choices=MESSAGE_TYPE_CHOICES, default='general')
-    subject = models.CharField('Konu', max_length=200)
-    message = models.TextField('Mesaj')
-    
-    # Durum Bilgileri
-    is_read = models.BooleanField('Okundu', default=False)
-    is_archived = models.BooleanField('Arşivlendi', default=False)
-    is_urgent = models.BooleanField('Acil', default=False)
-    
-    # Ek Dosyalar
-    attachment = models.FileField('Ek Dosya', upload_to='producer_messages/', blank=True, null=True)
-    
-    # İlişkili Sipariş
-    related_order = models.ForeignKey(ProducerOrder, on_delete=models.SET_NULL, null=True, blank=True, related_name='messages')
-    
-    # Tarihler
-    created_at = models.DateTimeField('Gönderilme Tarihi', auto_now_add=True)
-    read_at = models.DateTimeField('Okunma Tarihi', blank=True, null=True)
-
-    class Meta:
-        verbose_name = 'Üretici Mesajı'
-        verbose_name_plural = 'Üretici Mesajları'
-        ordering = ['-created_at']
-
-    def __str__(self):
-        sender = self.producer.company_name if self.sender_is_producer else self.center.name
-        receiver = self.center.name if self.sender_is_producer else self.producer.company_name
-        return f'{sender} -> {receiver}: {self.subject}'
+# ProducerMessage modeli kaldırıldı - Merkezi mesajlaşma sistemi kullanılıyor
 
 
 class ProducerProductionLog(models.Model):

@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 from django.utils.html import format_html
 from django.urls import reverse
-from .models import Producer, ProducerOrder, ProducerMessage, ProducerNetwork, ProducerProductionLog
+from .models import Producer, ProducerOrder, ProducerNetwork, ProducerProductionLog
 
 
 @admin.register(Producer)
@@ -24,7 +24,7 @@ class ProducerAdmin(admin.ModelAdmin):
             'fields': ('tax_number', 'trade_registry', 'established_year')
         }),
         ('Sistem Ayarları', {
-            'fields': ('mold_limit', 'monthly_limit', 'notification_preferences')
+            'fields': ('monthly_limit', 'notification_preferences')
         }),
         ('Durum ve Kontrol', {
             'fields': ('is_active', 'is_verified')
@@ -102,12 +102,7 @@ class ProducerOrderAdmin(admin.ModelAdmin):
     )
 
 
-@admin.register(ProducerMessage)
-class ProducerMessageAdmin(admin.ModelAdmin):
-    list_display = ('subject', 'producer', 'center', 'sender_is_producer', 'message_type', 'is_read', 'created_at')
-    list_filter = ('message_type', 'sender_is_producer', 'is_read', 'is_urgent', 'created_at')
-    search_fields = ('subject', 'message', 'producer__company_name', 'center__name')
-    readonly_fields = ('created_at', 'read_at')
+# ProducerMessage admin kaldırıldı - Merkezi mesajlaşma sistemi kullanılıyor
 
 
 @admin.register(ProducerNetwork)

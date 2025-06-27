@@ -361,7 +361,6 @@ def revision_request_create(request, mold_id=None):
             revision_request = form.save(commit=False)
             revision_request.center = request.user.center
             # modeled_mold seçildiğinde mold otomatik olarak belirlenir
-            revision_request.mold = revision_request.modeled_mold.ear_mold
             revision_request.save()
             
             # Kalıp durumunu revizyon olarak güncelle

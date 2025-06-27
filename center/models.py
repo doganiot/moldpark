@@ -31,19 +31,4 @@ class Center(models.Model):
     def __str__(self):
         return self.name
 
-class CenterMessage(models.Model):
-    sender = models.ForeignKey(Center, on_delete=models.CASCADE, related_name='sent_messages', verbose_name='Gönderen')
-    receiver = models.ForeignKey(Center, on_delete=models.CASCADE, related_name='received_messages', verbose_name='Alıcı')
-    subject = models.CharField('Konu', max_length=200)
-    message = models.TextField('Mesaj')
-    is_read = models.BooleanField('Okundu', default=False)
-    is_archived = models.BooleanField('Arşivlendi', default=False)
-    created_at = models.DateTimeField('Gönderilme Tarihi', auto_now_add=True)
-
-    class Meta:
-        verbose_name = 'Merkez Mesajı'
-        verbose_name_plural = 'Merkez Mesajları'
-        ordering = ['-created_at']
-
-    def __str__(self):
-        return f'{self.sender} -> {self.receiver}: {self.subject}'
+# CenterMessage modeli kaldırıldı - Merkezi mesajlaşma sistemi kullanılıyor

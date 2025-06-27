@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Center, CenterMessage
+from .models import Center
 
 @admin.register(Center)
 class CenterAdmin(admin.ModelAdmin):
@@ -21,10 +21,4 @@ class CenterAdmin(admin.ModelAdmin):
         }),
     )
 
-@admin.register(CenterMessage)
-class CenterMessageAdmin(admin.ModelAdmin):
-    list_display = ('sender', 'receiver', 'subject', 'is_read', 'created_at')
-    list_filter = ('is_read', 'created_at')
-    search_fields = ('subject', 'message', 'sender__name', 'receiver__name')
-    readonly_fields = ('created_at',)
-    ordering = ('-created_at',)
+# CenterMessage admin kaldırıldı - Merkezi mesajlaşma sistemi kullanılıyor

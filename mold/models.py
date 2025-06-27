@@ -223,7 +223,6 @@ class RevisionRequest(models.Model):
     
     # Üretici merkezden gelen kalıp dosyasına referans
     modeled_mold = models.ForeignKey(ModeledMold, on_delete=models.CASCADE, related_name='revision_requests', verbose_name='Kalıp Dosyası')
-    mold = models.ForeignKey(EarMold, on_delete=models.CASCADE, related_name='revision_requests', verbose_name='Kalıp')
     center = models.ForeignKey(Center, on_delete=models.CASCADE, related_name='revision_requests', verbose_name='Merkez')
     
     # Revizyon Detayları
@@ -251,29 +250,13 @@ class RevisionRequest(models.Model):
         verbose_name_plural = 'Revizyon Talepleri'
         ordering = ['-created_at']
     
+    @property
+    def mold(self):
+        """Uyumluluk için - modeled_mold.ear_mold'a referans"""
+        return self.modeled_mold.ear_mold
+
     def __str__(self):
         return f'{self.modeled_mold.ear_mold.patient_name} - {self.get_revision_type_display()} ({self.get_status_display()})'
-    
-    def get_status_color(self):
-        """Durum rengi"""
-        colors = {
-            'pending': 'warning',
-            'accepted': 'info',
-            'rejected': 'danger',
-            'in_progress': 'secondary',
-            'completed': 'success',
-        }
-        return colors.get(self.status, 'secondary')
-    
-    def get_priority_color(self):
-        """Öncelik rengi"""
-        colors = {
-            'low': 'success',
-            'normal': 'info',
-            'high': 'warning',
-            'urgent': 'danger',
-        }
-        return colors.get(self.priority, 'info')
     
     def get_status_color(self):
         """Bootstrap renk sınıfı döndürür"""
