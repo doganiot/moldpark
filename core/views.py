@@ -4,7 +4,7 @@ from .models import ContactMessage, Message, MessageRecipient, PricingPlan, User
 from .forms import ContactForm, MessageForm, AdminMessageForm, MessageReplyForm
 from django.views.generic import TemplateView
 from django.contrib.auth.decorators import user_passes_test, login_required
-from center.models import Center, CenterMessage
+from center.models import Center
 from mold.models import EarMold
 from accounts.forms import CustomSignupForm
 from django.db.models import Q, Count, Avg
@@ -167,7 +167,8 @@ def admin_dashboard(request):
     
     centers = Center.objects.all()
     molds = EarMold.objects.all()
-    messages = CenterMessage.objects.order_by('-created_at')[:5]
+    # CenterMessage kaldırıldı - Merkezi mesajlaşma sistemi kullanılıyor
+    messages = []
     
     # Kullanıcı bilgileri için center ve producer verilerini hazırla
     center_users = []

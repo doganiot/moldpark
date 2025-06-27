@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
-from .models import Center, CenterMessage
+from .models import Center
 from .forms import CenterProfileForm, CenterLimitForm
 from .decorators import center_required
 from django.contrib.admin.views.decorators import staff_member_required
@@ -488,7 +488,7 @@ def delete_notification(request, notification_id):
 
 @staff_member_required
 def admin_message_list(request):
-    from .models import CenterMessage, Center
+    from .models import Center
     
     # Admin kullanıcıya Center yoksa otomatik oluştur
     if not hasattr(request.user, 'center'):
@@ -501,7 +501,8 @@ def admin_message_list(request):
         )
     
     # Tüm mesajları getir
-    messages = CenterMessage.objects.all().order_by('-created_at')
+    # CenterMessage kaldırıldı - Merkezi mesajlaşma sistemi kullanılıyor
+    messages = []
     
     # Filtreleme
     filter_type = request.GET.get('filter')
@@ -528,39 +529,25 @@ def admin_message_list(request):
 
 @staff_member_required
 def archive_message(request, message_id):
-    message = get_object_or_404(CenterMessage, id=message_id)
-    message.is_archived = True
-    message.save()
-    messages.success(request, 'Mesaj başarıyla arşivlendi.')
+    messages.error(request, 'Bu özellik artık kullanılmıyor. Merkezi mesajlaşma sistemi kullanın.')
     return redirect('center:admin_message_list')
 
 @staff_member_required
 def unarchive_message(request, message_id):
-    message = get_object_or_404(CenterMessage, id=message_id)
-    message.is_archived = False
-    message.save()
-    messages.success(request, 'Mesaj arşivden çıkarıldı.')
+    messages.error(request, 'Bu özellik artık kullanılmıyor. Merkezi mesajlaşma sistemi kullanın.')
     return redirect('center:admin_message_list')
 
 @staff_member_required
 def delete_message(request, message_id):
-    message = get_object_or_404(CenterMessage, id=message_id)
-    message.delete()
-    messages.success(request, 'Mesaj başarıyla silindi.')
+    messages.error(request, 'Bu özellik artık kullanılmıyor. Merkezi mesajlaşma sistemi kullanın.')
     return redirect('center:admin_message_list')
 
 @staff_member_required
 def admin_message_detail(request, message_id):
-    message = get_object_or_404(CenterMessage, id=message_id)
+    messages.error(request, 'Bu özellik artık kullanılmıyor. Merkezi mesajlaşma sistemi kullanın.')
+    return redirect('center:admin_message_list')
     
-    # Mesajı okundu olarak işaretle
-    if not message.is_read:
-        message.is_read = True
-        message.save()
-    
-    return render(request, 'center/message_detail.html', {
-        'message': message
-    })
+    # Bu fonksiyon artık kullanılmıyor
 
 @staff_member_required
 def admin_center_list(request):
