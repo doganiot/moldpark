@@ -280,6 +280,120 @@
         text-align: center;
     }
 }
+
+/* Bildirim Sistemi CSS */
+.bg-gradient-primary {
+    background: linear-gradient(45deg, #007bff, #0056b3) !important;
+}
+
+.bg-gradient-success {
+    background: linear-gradient(45deg, #28a745, #1e7e34) !important;
+}
+
+.alert-sm {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    border-radius: 0.375rem;
+}
+
+.notification-widget {
+    transition: all 0.3s ease;
+}
+
+.notification-widget:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.system-health-status {
+    position: relative;
+    overflow: hidden;
+}
+
+.system-health-status::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, rgba(40, 167, 69, 0.1), rgba(40, 167, 69, 0.05));
+}
+
+.notification-types-list {
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.notification-types-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.notification-types-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.notification-types-list::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 2px;
+}
+
+.notification-types-list::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+.suggestions-list {
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.suggestions-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.suggestions-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.suggestions-list::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 2px;
+}
+
+.suggestions-list::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+.notification-badge-pulse {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(255, 193, 7, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 193, 7, 0);
+    }
+}
+
+.system-status-healthy {
+    background: linear-gradient(45deg, rgba(40, 167, 69, 0.1), rgba(40, 167, 69, 0.05));
+    border-left: 4px solid #28a745;
+}
+
+.system-status-warning {
+    background: linear-gradient(45deg, rgba(255, 193, 7, 0.1), rgba(255, 193, 7, 0.05));
+    border-left: 4px solid #ffc107;
+}
+
+.system-status-critical {
+    background: linear-gradient(45deg, rgba(220, 53, 69, 0.1), rgba(220, 53, 69, 0.05));
+    border-left: 4px solid #dc3545;
+}
 </style>
 {% endblock %}
 
@@ -395,6 +509,135 @@
             <div class="stat-number">{{ stats.rejected_molds }}</div>
             <div class="stat-label">Reddedildi</div>
         </a>
+    </div>
+
+    <!-- Bildirim Sistemi Widget'ları -->
+    <div class="row g-4 mb-4">
+        <!-- Sistem Bildirim İstatistikleri -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-gradient-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">
+                            <i class="fas fa-bell me-2"></i>Sistem Bildirimleri
+                        </h6>
+                        <span class="badge bg-white text-primary">Son 24 Saat</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Bildirim İstatistikleri -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <div class="text-center p-3 bg-light rounded">
+                                <div class="h4 mb-1 text-primary">{{ notification_stats.total_notifications_24h }}</div>
+                                <small class="text-muted">Toplam Bildirim</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center p-3 bg-warning bg-opacity-10 rounded">
+                                <div class="h4 mb-1 text-warning">{{ notification_stats.unread_notifications }}</div>
+                                <small class="text-muted">Okunmamış</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bildirim Türleri -->
+                    {% if notification_stats.notification_types %}
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2">
+                            <i class="fas fa-chart-pie me-1"></i>Bildirim Türleri
+                        </h6>
+                        <div style="max-height: 150px; overflow-y: auto;">
+                            {% for verb, count in notification_stats.notification_types.items %}
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="small">
+                                    <i class="fas fa-dot-circle me-1 text-info"></i>
+                                    {{ verb|title }}
+                                </span>
+                                <span class="badge bg-secondary rounded-pill">{{ count }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Hızlı İşlemler -->
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-primary btn-sm flex-fill" onclick="refreshNotifications()">
+                            <i class="fas fa-sync-alt me-1"></i>Yenile
+                        </button>
+                        <a href="{% url 'core:simple_notifications' %}" class="btn btn-outline-secondary btn-sm flex-fill">
+                            <i class="fas fa-list me-1"></i>Tümünü Gör
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Akıllı Öneriler ve Sistem Sağlığı -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-gradient-success text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">
+                            <i class="fas fa-heartbeat me-2"></i>Sistem Sağlığı
+                        </h6>
+                        <span class="badge bg-white text-success">{{ system_health.status|title }}</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Sistem Durumu -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <div class="text-center p-2 bg-light rounded">
+                                <div class="h6 mb-1 text-success">{{ system_health.uptime_days }}</div>
+                                <small class="text-muted">Çalışma Günü</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center p-2 bg-light rounded">
+                                <div class="h6 mb-1 text-info">{{ system_health.active_users_24h }}</div>
+                                <small class="text-muted">Aktif Kullanıcı</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Akıllı Öneriler -->
+                    {% if smart_suggestions %}
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2">
+                            <i class="fas fa-lightbulb me-1"></i>Öneriler
+                        </h6>
+                        <div style="max-height: 150px; overflow-y: auto;">
+                            {% for suggestion in smart_suggestions %}
+                            <div class="alert alert-{{ suggestion.type }} alert-sm mb-2 py-2">
+                                <strong>{{ suggestion.title }}</strong><br>
+                                <small>{{ suggestion.message }}</small>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-3">
+                        <i class="fas fa-check-circle text-success fa-2x mb-2"></i>
+                        <div class="text-muted">
+                            <small>Sistem sağlıklı durumda</small>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Sistem İşlemleri -->
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-success btn-sm flex-fill" onclick="runSystemHealthCheck()">
+                            <i class="fas fa-stethoscope me-1"></i>Sağlık Kontrolü
+                        </button>
+                        <button class="btn btn-outline-info btn-sm flex-fill" onclick="sendTestNotification()">
+                            <i class="fas fa-paper-plane me-1"></i>Test Bildirimi
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- MoldPark Special Section -->
@@ -1294,6 +1537,132 @@
 <script>
 // Global değişken
 let currentReassignCenterId = null;
+
+// === BİLDİRİM SİSTEMİ JAVASCRIPT FONKSİYONLARI ===
+
+function getCsrfToken() {
+    const token = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (token) {
+        return token.value;
+    }
+    
+    // Meta tag'den al
+    const metaToken = document.querySelector('meta[name="csrf-token"]');
+    if (metaToken) {
+        return metaToken.getAttribute('content');
+    }
+    
+    // Cookie'den al
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+        const [name, value] = cookie.trim().split('=');
+        if (name === 'csrftoken') {
+            return value;
+        }
+    }
+    
+    return '';
+}
+
+function showToast(message, type = 'info') {
+    // Bootstrap toast yoksa basit alert kullan
+    if (typeof bootstrap !== 'undefined' && bootstrap.Toast) {
+        // Bootstrap toast kodu buraya eklenebilir
+        alert(message);
+    } else {
+        alert(message);
+    }
+}
+
+// Bildirimleri yenile
+function refreshNotifications() {
+    showToast('Bildirimler yenileniyor...', 'info');
+    setTimeout(() => {
+        location.reload();
+    }, 1000);
+}
+
+// Sistem sağlık kontrolü çalıştır
+function runSystemHealthCheck() {
+    if (confirm('Sistem sağlık kontrolü çalıştırmak istediğinizden emin misiniz?')) {
+        fetch('/api/run-health-check/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCsrfToken(),
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                console.warn('Response is not JSON:', contentType);
+                return response.text().then(text => {
+                    console.log('HTML Response:', text);
+                    throw new Error('Server returned HTML instead of JSON');
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'success') {
+                showToast('Sistem sağlık kontrolü tamamlandı!', 'success');
+                setTimeout(() => {
+                    location.reload();
+                }, 2000);
+            } else {
+                showToast('Sağlık kontrolü sırasında sorun tespit edildi.', 'warning');
+            }
+        })
+        .catch(error => {
+            console.error('Health check error:', error);
+            showToast('Sağlık kontrolü çalıştırılamadı: ' + error.message, 'error');
+        });
+    }
+}
+
+// Test bildirimi gönder
+function sendTestNotification() {
+    if (confirm('Test bildirimi göndermek istediğinizden emin misiniz?')) {
+        fetch('/api/trigger-smart-notifications/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCsrfToken(),
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                'type': 'admin',
+                'dry_run': 'false'
+            })
+        })
+        .then(response => {
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                console.warn('Response is not JSON:', contentType);
+                return response.text().then(text => {
+                    console.log('HTML Response:', text);
+                    throw new Error('Server returned HTML instead of JSON');
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'sent') {
+                showToast('Test bildirimi başarıyla gönderildi!', 'success');
+                setTimeout(() => {
+                    refreshNotifications();
+                }, 2000);
+            } else {
+                showToast('Test bildirimi gönderilemedi.', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Test notification error:', error);
+            showToast('Test bildirimi gönderilemedi: ' + error.message, 'error');
+        });
+    }
+}
 
 // Ağ yeniden atama fonksiyonu
 function reassignNetwork(centerId, centerName) {
