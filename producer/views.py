@@ -12,7 +12,7 @@ from notifications.signals import notify
 from core.utils import send_success_notification, send_order_notification, send_system_notification
 from center.models import Center
 from mold.models import EarMold, ModeledMold, RevisionRequest
-from .models import Producer, ProducerOrder, ProducerMessage, ProducerNetwork, ProducerProductionLog
+from .models import Producer, ProducerOrder, ProducerNetwork, ProducerProductionLog
 from .forms import (
     ProducerRegistrationForm, ProducerProfileForm, ProducerOrderForm, 
     ProducerOrderUpdateForm, ProductionLogForm
