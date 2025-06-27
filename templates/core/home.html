@@ -851,36 +851,7 @@ document.addEventListener('DOMContentLoaded', function() {
         heroObserver.observe(heroSection);
     }
     
-    // Smooth scroll for anchor links
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function (e) {
-            e.preventDefault();
-            const href = this.getAttribute('href');
-            
-            // Boş href veya sadece # içeren linkleri güvenli şekilde kontrol et
-            if (!href || href === '#' || href.length <= 1) {
-                return; // Boş href'lerde işlem yapma
-            }
-            
-            // Geçerli ID formatını kontrol et (HTML5 standartlarına uygun)
-            if (!/^#[a-zA-Z][\w-]*$/.test(href)) {
-                console.warn('Invalid anchor href:', href);
-                return;
-            }
-            
-            try {
-                const target = document.querySelector(href);
-                if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-                }
-            } catch (error) {
-                console.error('Error in smooth scroll:', error, 'href:', href);
-            }
-        });
-    });
+    // Ana sayfaya özel smooth scroll animasyonları (global koruma base.html'de mevcut)
 });
 </script>
 {% endblock %} 

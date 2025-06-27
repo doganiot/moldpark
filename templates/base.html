@@ -419,24 +419,39 @@
     }
 
     function getCsrfToken() {
-        const token = document.querySelector('[name=csrfmiddlewaretoken]');
-        if (token) {
-            return token.value;
-        }
-        
-        // Meta tag'den al
-        const metaToken = document.querySelector('meta[name="csrf-token"]');
-        if (metaToken) {
-            return metaToken.getAttribute('content');
-        }
-        
-        // Cookie'den al
-        const cookies = document.cookie.split(';');
-        for (let cookie of cookies) {
-            const [name, value] = cookie.trim().split('=');
-            if (name === 'csrftoken') {
-                return value;
+        try {
+            // Form'dan al
+            const token = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (token && token.value) {
+                return token.value;
             }
+            
+            // Meta tag'den al
+            const metaToken = document.querySelector('meta[name="csrf-token"]');
+            if (metaToken) {
+                return metaToken.getAttribute('content');
+            }
+            
+            // Cookie'den al
+            const cookies = document.cookie.split(';');
+            for (let cookie of cookies) {
+                const [name, value] = cookie.trim().split('=');
+                if (name === 'csrftoken') {
+                    return value;
+                }
+            }
+            
+            // Script tag'den al (son seçenek)
+            const scriptTags = document.querySelectorAll('script');
+            for (let script of scriptTags) {
+                const content = script.textContent || script.innerText;
+                const match = content.match(/csrftoken['"]\s*:\s*['"]([^'"]+)['"]/);
+                if (match) {
+                    return match[1];
+                }
+            }
+        } catch (error) {
+            console.error('Error getting CSRF token:', error);
         }
         
         return '';
@@ -451,6 +466,45 @@
             alert(message);
         }
     }
+
+    // Global anchor link koruma sistemi - DOMException hatalarını önler
+    document.addEventListener('DOMContentLoaded', function() {
+        // Tüm anchor linkler için global koruma
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                const href = this.getAttribute('href');
+                
+                // Boş href veya sadece # içeren linkleri güvenli şekilde kontrol et
+                if (!href || href === '#' || href.length <= 1) {
+                    // Bootstrap dropdown, modal vb. için href="#" gerekli olabilir
+                    // Bu durumda event'i durdurmuyoruz
+                    return;
+                }
+                
+                // Geçerli ID formatını kontrol et (HTML5 standartlarına uygun)
+                if (!/^#[a-zA-Z][\w-]*$/.test(href)) {
+                    console.warn('Invalid anchor href:', href);
+                    e.preventDefault();
+                    return;
+                }
+                
+                try {
+                    // querySelector'i güvenli şekilde kullan
+                    const target = document.querySelector(href);
+                    if (target) {
+                        e.preventDefault();
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error in anchor link handler:', error, 'href:', href);
+                    e.preventDefault();
+                }
+            });
+        });
+    });
     </script>
 
     <!-- Messages -->
