@@ -145,7 +145,7 @@ class RevisionRequestAdmin(admin.ModelAdmin):
                 send_error_notification(
                     user=revision_request.center.user,
                     title="Revizyon Talebi Reddedildi",
-                    message=f"{revision_request.mold.patient_name} - {revision_request.get_revision_type_display()} revizyon talebiniz admin tarafından reddedildi. Kalıp durumu 'Teslim Edildi' olarak güncellendi.",
+                    message=f"{revision_request.mold.patient_name} {revision_request.mold.patient_surname} - {revision_request.get_revision_type_display()} revizyon talebiniz admin tarafından reddedildi. Kalıp durumu 'Teslim Edildi' olarak güncellendi.",
                     related_url=f"/mold/{revision_request.mold.id}/"
                 )
                 
@@ -166,8 +166,8 @@ class RevisionRequestAdmin(admin.ModelAdmin):
                 revision_request.modeled_mold.status = 'waiting'
                 revision_request.modeled_mold.save()
                 
-                # Kalıp durumunu güncelle
-                revision_request.mold.status = 'revision'
+                # Kalıp durumunu "processing" (işleniyor) olarak güncelle
+                revision_request.mold.status = 'processing'
                 revision_request.mold.save()
                 
                 # Merkeze bildirim gönder
@@ -193,8 +193,8 @@ class RevisionRequestAdmin(admin.ModelAdmin):
                 revision_request.resolved_at = timezone.now()
                 revision_request.save()
                 
-                # Kalıp durumunu güncelle
-                revision_request.mold.status = 'completed'
+                # Kalıp durumunu "delivered" (teslim edildi) olarak güncelle
+                revision_request.mold.status = 'delivered'
                 revision_request.mold.save()
                 
                 # Merkeze bildirim gönder

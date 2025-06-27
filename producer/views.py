@@ -1474,9 +1474,11 @@ def revision_request_list(request):
     """Üretici için revizyon talepleri listesi"""
     producer = request.user.producer
     
-    # Sadece bu üreticinin kalıp dosyalarına yapılan revizyon taleplerini getir
+    # Sadece bu üreticinin aktif revizyon taleplerini getir (tamamlanan ve reddedilen hariç)
     revision_requests = RevisionRequest.objects.filter(
         modeled_mold__ear_mold__producer_orders__producer=producer
+    ).exclude(
+        status__in=['completed', 'rejected']  # Tamamlanan ve reddedilen revizyonları listeden çıkar
     ).select_related(
         'modeled_mold__ear_mold', 'center'
     ).distinct().order_by('-created_at')
@@ -1557,11 +1559,11 @@ def revision_request_respond(request, pk):
                 revision_request.modeled_mold.status = 'waiting'  # Revizyon için beklemeye al
                 revision_request.modeled_mold.save()
                 
-                # Kalıp durumunu güncelle
-                revision_request.mold.status = 'revision'
+                # Kalıp durumunu "processing" (işleniyor) olarak güncelle
+                revision_request.mold.status = 'processing'
                 revision_request.mold.save()
                 
-                success_message = 'Revizyon talebi kabul edildi ve işleme alındı. Kalıp dosyası revizyona alındı.'
+                success_message = 'Revizyon talebi kabul edildi ve işleme alındı. Kalıp "İşleniyor" durumuna geçti.'
             else:
                 revision_request.status = 'rejected'
                 # Revizyon reddedildiğinde kalıp durumunu önceki durumuna (delivered) döndür
@@ -1586,17 +1588,17 @@ def revision_request_respond(request, pk):
             # Yeni basit bildirim sistemi ile de gönder
             from core.utils import send_error_notification, send_warning_notification
             if action == "accept":
-                send_warning_notification(
+                send_success_notification(
                     user=revision_request.center.user,
                     title="Revizyon Talebi Kabul Edildi",
-                    message=f"{revision_request.mold.patient_name} - {revision_request.get_revision_type_display()} revizyon talebiniz {producer.company_name} tarafından kabul edildi ve işleme alındı.",
+                    message=f"{revision_request.mold.patient_name} {revision_request.mold.patient_surname} - {revision_request.get_revision_type_display()} revizyon talebiniz {producer.company_name} tarafından kabul edildi ve işleme alındı. Kalıp 'İşleniyor' durumuna geçti.",
                     related_url=f"/mold/{revision_request.mold.id}/"
                 )
             else:
                 send_error_notification(
                     user=revision_request.center.user,
                     title="Revizyon Talebi Reddedildi",
-                    message=f"{revision_request.mold.patient_name} - {revision_request.get_revision_type_display()} revizyon talebiniz {producer.company_name} tarafından reddedildi. Kalıp durumu 'Reddedildi' olarak güncellendi.",
+                    message=f"{revision_request.mold.patient_name} {revision_request.mold.patient_surname} - {revision_request.get_revision_type_display()} revizyon talebiniz {producer.company_name} tarafından reddedildi. Kalıp durumu 'Teslim Edildi' olarak güncellendi.",
                     related_url=f"/mold/{revision_request.mold.id}/"
                 )
             
