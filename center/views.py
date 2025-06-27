@@ -45,16 +45,16 @@ def dashboard(request):
     from core.models import UserSubscription
     
     try:
-        subscription = UserSubscription.objects.get(user=request.user, is_active=True)
-        used_molds = subscription.current_usage
-        remaining_limit = max(0, subscription.plan.limit_per_month - used_molds)
-        usage_percentage = int((used_molds / subscription.plan.limit_per_month) * 100) if subscription.plan.limit_per_month > 0 else 0
+        subscription = UserSubscription.objects.get(user=request.user, status='active')
+        used_molds = subscription.models_used_this_month
+        remaining_limit = max(0, subscription.plan.monthly_model_limit - used_molds) if subscription.plan.monthly_model_limit else 999999
+        usage_percentage = int((used_molds / subscription.plan.monthly_model_limit) * 100) if subscription.plan.monthly_model_limit and subscription.plan.monthly_model_limit > 0 else 0
         usage_offset = 327 - (327 * usage_percentage / 100)  # SVG circle için
     except UserSubscription.DoesNotExist:
         # Fallback eski sistem
         used_molds = total_molds
-        remaining_limit = max(0, center.mold_limit - used_molds)
-        usage_percentage = int((used_molds / center.mold_limit) * 100) if center.mold_limit > 0 else 0
+        remaining_limit = max(0, center.monthly_limit - used_molds)
+        usage_percentage = int((used_molds / center.monthly_limit) * 100) if center.monthly_limit > 0 else 0
         usage_offset = 327 - (327 * usage_percentage / 100)
         subscription = None
     
