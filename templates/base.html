@@ -362,7 +362,23 @@
                     'Content-Type': 'application/json'
                 }
             })
-            .then(response => response.json())
+            .then(response => {
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                
+                // Yanıtın JSON olup olmadığını kontrol et
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    console.error('Response is not JSON:', contentType);
+                    // HTML yanıtını text olarak oku
+                    return response.text().then(text => {
+                        console.error('HTML Response:', text);
+                        throw new Error('Server returned HTML instead of JSON');
+                    });
+                }
+                
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
                     // Navbar'daki badge'i gizle
@@ -387,8 +403,8 @@
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
-                showToast('Bir hata oluştu!', 'error');
+                console.error('Fetch Error:', error);
+                showToast('Bir hata oluştu: ' + error.message, 'error');
             });
         }
     }
@@ -518,7 +534,7 @@
                         </li>
                         <li class="mb-2">
                             <i class="fas fa-map-marker-alt me-2 text-primary"></i>
-                            <small class="text-muted">İstanbul, Türkiye</small>
+                            <small class="text-muted">Trabzon, Türkiye</small>
                         </li>
                     </ul>
                 </div>
