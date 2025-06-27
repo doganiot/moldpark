@@ -1478,7 +1478,7 @@ def revision_request_list(request):
     revision_requests = RevisionRequest.objects.filter(
         modeled_mold__ear_mold__producer_orders__producer=producer
     ).select_related(
-        'modeled_mold__ear_mold', 'center', 'mold'
+        'modeled_mold__ear_mold', 'center'
     ).distinct().order_by('-created_at')
     
     # Filtreleme
@@ -1513,7 +1513,7 @@ def revision_request_detail(request, pk):
     # Sadece bu üreticinin kalıp dosyalarına yapılan revizyon talebini getir
     revision_request = get_object_or_404(
         RevisionRequest.objects.select_related(
-            'modeled_mold__ear_mold', 'center', 'mold'
+            'modeled_mold__ear_mold', 'center'
         ),
         pk=pk,
         modeled_mold__ear_mold__producer_orders__producer=producer
@@ -1540,7 +1540,7 @@ def revision_request_respond(request, pk):
     
     revision_request = get_object_or_404(
         RevisionRequest.objects.select_related(
-            'modeled_mold__ear_mold', 'center', 'mold'
+            'modeled_mold__ear_mold', 'center'
         ),
         pk=pk,
         modeled_mold__ear_mold__producer_orders__producer=producer
