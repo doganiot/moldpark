@@ -175,8 +175,8 @@ def producer_dashboard(request):
     remaining_limit = producer.get_remaining_limit()
     
     # Yüzde hesaplama
-    if producer.mold_limit > 0:
-        usage_percentage = round((monthly_orders * 100) / producer.mold_limit, 1)
+    if producer.monthly_limit > 0:
+        usage_percentage = round((monthly_orders * 100) / producer.monthly_limit, 1)
     else:
         usage_percentage = 0
     
@@ -354,7 +354,17 @@ def network_remove(request, center_id):
             # MoldPark üretim merkezini bul veya oluştur
             try:
                 moldpark_producer = Producer.objects.get(
-                    company_name='MoldPark Üretim Merkezi'
+                    company_name='MoldPark Üretim Merkezi',
+                    contact_person='MoldPark Merkezi',
+                    phone='0212-555-0100',
+                    email='uretim@moldpark.com',
+                    address='İstanbul, Türkiye',
+                    tax_number='9876543210',
+                    trade_registry='İstanbul-987654',
+                    established_year=2024,
+                    monthly_limit=5000,
+                    is_active=True,
+                    is_verified=True
                 )
                 
                 # MoldPark ağına otomatik bağla
@@ -395,17 +405,13 @@ def network_remove(request, center_id):
                 moldpark_producer = Producer.objects.create(
                     user=moldpark_user,
                     company_name='MoldPark Üretim Merkezi',
-                    brand_name='MoldPark',
-                    description='MoldPark platformunun resmi üretim merkezi',
-                    producer_type='hybrid',
-                    address='Teknoloji Geliştirme Bölgesi, İnovasyon Caddesi No:15, 34906 Pendik/İstanbul',
-                    phone='(216) 555-0100',
-                    contact_email='uretim@moldpark.com',
-                    website='https://www.moldpark.com',
+                    contact_person='MoldPark Merkezi',
+                    phone='0212-555-0100',
+                    email='uretim@moldpark.com',
+                    address='İstanbul, Türkiye',
                     tax_number='9876543210',
                     trade_registry='İstanbul-987654',
                     established_year=2024,
-                    mold_limit=1000,
                     monthly_limit=5000,
                     is_active=True,
                     is_verified=True
@@ -537,7 +543,7 @@ def mold_list(request):
         # Limit bilgileri
         'monthly_orders': monthly_orders,
         'remaining_limit': remaining_limit,
-        'usage_percentage': round((monthly_orders * 100) / producer.mold_limit, 1) if producer.mold_limit > 0 else 0,
+        'usage_percentage': round((monthly_orders * 100) / producer.monthly_limit, 1) if producer.monthly_limit > 0 else 0,
     }
     
     return render(request, 'producer/mold_list.html', context)
@@ -1163,12 +1169,12 @@ def admin_producer_update_limit(request, pk):
     producer = get_object_or_404(Producer, pk=pk)
     
     if request.method == 'POST':
-        new_limit = request.POST.get('mold_limit')
+        new_limit = request.POST.get('monthly_limit')
         if new_limit:
             try:
-                producer.mold_limit = int(new_limit)
+                producer.monthly_limit = int(new_limit)
                 producer.save()
-                messages.success(request, f'{producer.company_name} kalıp limiti güncellendi.')
+                messages.success(request, f'{producer.company_name} aylık kalıp limiti güncellendi.')
             except ValueError:
                 messages.error(request, 'Geçersiz limit değeri.')
     
