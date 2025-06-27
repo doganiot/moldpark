@@ -19,9 +19,11 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.auth.decorators import user_passes_test
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, HttpResponse
 from django.shortcuts import redirect
 from django.contrib import messages
+from django.views.static import serve
+import os
 
 def admin_access_check(user):
     """Admin paneline sadece superuser erişimi kontrolü"""
@@ -49,12 +51,33 @@ def custom_admin_view(request):
     # Superuser ise normal admin site'a yönlendir
     return redirect('/django-admin/')
 
+def service_worker_view(request):
+    """Service Worker dosyasını serve et"""
+    try:
+        sw_path = os.path.join(settings.STATIC_ROOT or settings.BASE_DIR / 'static', 'sw.js')
+        if not os.path.exists(sw_path):
+            sw_path = os.path.join(settings.BASE_DIR, 'static', 'sw.js')
+        
+        with open(sw_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        response = HttpResponse(content, content_type='application/javascript')
+        response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response['Pragma'] = 'no-cache'
+        response['Expires'] = '0'
+        return response
+    except FileNotFoundError:
+        return HttpResponse('Service Worker not found', status=404)
+
 # Admin site'ı güvenli hale getir
 admin.site.site_header = "MoldPark Yönetim Paneli"
 admin.site.site_title = "MoldPark Admin"
 admin.site.index_title = "Sistem Yönetimi"
 
 urlpatterns = [
+    # SERVICE WORKER
+    path('sw.js', service_worker_view, name='service_worker'),
+    
     # GÜVENLİ ADMIN ERİŞİMİ
     path('admin/', custom_admin_view, name='admin_redirect'),
     path('django-admin/', admin.site.urls),  # Gerçek admin panel
