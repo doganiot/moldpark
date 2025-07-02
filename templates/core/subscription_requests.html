@@ -1,0 +1,312 @@
+{% extends 'base.html' %}
+
+{% block title %}Abonelik Taleplerim - MoldPark{% endblock %}
+
+{% block extra_css %}
+<style>
+.requests-hero {
+    background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-700) 50%, var(--primary-800) 100%);
+    color: white;
+    padding: 4rem 0 6rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.requests-hero::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="white" stroke-width="0.5" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+}
+
+.requests-hero .container {
+    position: relative;
+    z-index: 2;
+}
+
+.requests-card {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    overflow: hidden;
+    margin-top: -3rem;
+    position: relative;
+    z-index: 3;
+}
+
+.request-item {
+    border: 2px solid var(--gray-200);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.request-item.pending {
+    border-color: var(--warning-300);
+    background: linear-gradient(135deg, var(--warning-50), var(--warning-100));
+}
+
+.request-item.approved {
+    border-color: var(--success-300);
+    background: linear-gradient(135deg, var(--success-50), var(--success-100));
+}
+
+.request-item.rejected {
+    border-color: var(--danger-300);
+    background: linear-gradient(135deg, var(--danger-50), var(--danger-100));
+}
+
+.status-badge {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    border-radius: 50px;
+}
+
+.current-subscription-card {
+    background: linear-gradient(135deg, var(--success-100), var(--success-200));
+    border: 2px solid var(--success-300);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--gray-600);
+}
+
+.empty-state i {
+    font-size: 4rem;
+    color: var(--gray-400);
+    margin-bottom: 1rem;
+}
+
+.btn-action {
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-cancel {
+    background: var(--danger-500);
+    border-color: var(--danger-500);
+    color: white;
+}
+
+.btn-cancel:hover {
+    background: var(--danger-600);
+    border-color: var(--danger-600);
+    color: white;
+    transform: translateY(-1px);
+}
+
+.timeline-item {
+    position: relative;
+    padding-left: 3rem;
+    margin-bottom: 1rem;
+}
+
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: 0.75rem;
+    top: 0.5rem;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--primary-500);
+}
+
+.timeline-item:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 1.15rem;
+    top: 1.5rem;
+    width: 2px;
+    height: 100%;
+    background: var(--gray-300);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="requests-hero">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 text-center">
+                <h1 class="display-4 fw-bold mb-3">Abonelik Taleplerim</h1>
+                <p class="lead">Gönderdiğiniz abonelik taleplerinin durumunu takip edin</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container mb-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="requests-card">
+                <div class="p-4">
+                    {% if current_subscription %}
+                    <div class="current-subscription-card">
+                        <h4 class="text-success mb-3">
+                            <i class="fas fa-check-circle me-2"></i>
+                            Aktif Aboneliğiniz
+                        </h4>
+                        <div class="row text-start">
+                            <div class="col-md-3">
+                                <strong>Plan:</strong><br>
+                                <span class="h5 text-primary">{{ current_subscription.plan.name }}</span>
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Durum:</strong><br>
+                                <span class="badge bg-success fs-6">{{ current_subscription.get_status_display }}</span>
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Başlangıç:</strong><br>
+                                {{ current_subscription.start_date|date:"d.m.Y" }}
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Bu Ay Kullanılan:</strong><br>
+                                {{ current_subscription.models_used_this_month }} model
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3>
+                            <i class="fas fa-list me-2"></i>
+                            Taleplerim ({{ requests.count }})
+                        </h3>
+                        <a href="{% url 'core:request_subscription' %}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>
+                            Yeni Talep
+                        </a>
+                    </div>
+
+                    {% if requests %}
+                        {% for request in requests %}
+                        <div class="request-item {{ request.status }}">
+                            <div class="status-badge badge 
+                                {% if request.status == 'pending' %}bg-warning text-dark
+                                {% elif request.status == 'approved' %}bg-success
+                                {% else %}bg-danger{% endif %}">
+                                {{ request.get_status_display }}
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <h5 class="mb-2">{{ request.plan.name }}</h5>
+                                    <div class="mb-3">
+                                        <small class="text-muted">
+                                            <i class="fas fa-calendar me-1"></i>
+                                            Talep Tarihi: {{ request.created_at|date:"d.m.Y H:i" }}
+                                        </small>
+                                        {% if request.processed_at %}
+                                        <small class="text-muted ms-3">
+                                            <i class="fas fa-check me-1"></i>
+                                            İşlenme: {{ request.processed_at|date:"d.m.Y H:i" }}
+                                        </small>
+                                        {% endif %}
+                                    </div>
+
+                                    {% if request.user_notes %}
+                                    <div class="mb-3">
+                                        <strong>Notlarınız:</strong>
+                                        <p class="text-muted mb-0">{{ request.user_notes }}</p>
+                                    </div>
+                                    {% endif %}
+
+                                    {% if request.admin_notes %}
+                                    <div class="mb-3">
+                                        <strong>Admin Notları:</strong>
+                                        <p class="text-muted mb-0">{{ request.admin_notes }}</p>
+                                    </div>
+                                    {% endif %}
+
+                                    {% if request.processed_by %}
+                                    <div class="mb-2">
+                                        <small class="text-muted">
+                                            <i class="fas fa-user me-1"></i>
+                                            İşleyen: {{ request.processed_by.get_full_name|default:request.processed_by.username }}
+                                        </small>
+                                    </div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="col-md-4 text-end">
+                                    <div class="mb-3">
+                                        <div class="h6 text-primary">{{ request.plan.get_price_display }}</div>
+                                        <div class="text-muted">{{ request.plan.get_limit_display }}</div>
+                                    </div>
+
+                                    {% if request.status == 'pending' %}
+                                    <a href="{% url 'core:subscription_request_cancel' request.id %}" 
+                                       class="btn btn-action btn-cancel btn-sm">
+                                        <i class="fas fa-times me-1"></i>
+                                        İptal Et
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Zaman çizelgesi -->
+                            <div class="mt-3 pt-3 border-top">
+                                <h6 class="mb-3">Talep Süreci</h6>
+                                <div class="timeline-item">
+                                    <div class="text-muted">
+                                        <strong>{{ request.created_at|date:"d.m.Y H:i" }}</strong> - Talep gönderildi
+                                    </div>
+                                </div>
+                                {% if request.processed_at %}
+                                <div class="timeline-item">
+                                    <div class="text-muted">
+                                        <strong>{{ request.processed_at|date:"d.m.Y H:i" }}</strong> - 
+                                        {% if request.status == 'approved' %}
+                                            Talep onaylandı ve abonelik oluşturuldu
+                                        {% else %}
+                                            Talep reddedildi
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% else %}
+                                <div class="timeline-item">
+                                    <div class="text-warning">
+                                        <i class="fas fa-clock me-1"></i>
+                                        Admin onayı bekleniyor...
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-state">
+                            <i class="fas fa-inbox"></i>
+                            <h4>Henüz talep göndermediniz</h4>
+                            <p class="text-muted">Abonelik planlarından birine talep göndererek platforma erişim sağlayabilirsiniz.</p>
+                            <a href="{% url 'core:request_subscription' %}" class="btn btn-primary">
+                                <i class="fas fa-plus me-2"></i>
+                                İlk Talebimi Gönder
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

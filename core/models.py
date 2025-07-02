@@ -176,10 +176,12 @@ class PricingPlan(models.Model):
     """Fiyatlandırma Planları"""
     
     PLAN_TYPE_CHOICES = [
+        ('trial', 'Ücretsiz Deneme'),
         ('pay_per_use', 'Kullandıkça Öde'),
         ('center_basic', 'İşitme Merkezi - Temel'),
         ('center_professional', 'İşitme Merkezi - Profesyonel'),
         ('producer', 'Üretici Merkez'),
+        ('enterprise', 'Kurumsal'),
     ]
     
     name = models.CharField('Plan Adı', max_length=100)
@@ -219,9 +221,14 @@ class PricingPlan(models.Model):
     
     def get_limit_display(self):
         """Limit görüntüleme"""
-        if self.monthly_model_limit:
-            return f'{self.monthly_model_limit} model/ay'
-        return 'Sınırsız'
+        if self.plan_type == 'enterprise' or self.monthly_model_limit == -1:
+            return 'İletişim Gerekli'
+        elif self.monthly_model_limit == 0:
+            return 'Sınırsız'
+        elif self.monthly_model_limit:
+            return f'{self.monthly_model_limit} kalıp/ay'
+        else:
+            return 'Sınırsız'
 
 
 class UserSubscription(models.Model):
@@ -344,7 +351,104 @@ class PaymentHistory(models.Model):
         ordering = ['-created_at']
     
     def __str__(self):
-        return f'{self.user.username} - {self.amount} {self.currency} ({self.status})'
+        return f'{self.user.get_full_name()} - {self.amount} {self.currency} - {self.get_status_display()}'
+
+
+class SubscriptionRequest(models.Model):
+    """Abonelik Talepleri"""
+    
+    STATUS_CHOICES = [
+        ('pending', 'Beklemede'),
+        ('approved', 'Onaylandı'),
+        ('rejected', 'Reddedildi'),
+    ]
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='subscription_requests', verbose_name='Kullanıcı')
+    plan = models.ForeignKey(PricingPlan, on_delete=models.CASCADE, related_name='requests', verbose_name='Talep Edilen Plan')
+    
+    # Talep Bilgileri
+    status = models.CharField('Durum', max_length=10, choices=STATUS_CHOICES, default='pending')
+    user_notes = models.TextField('Kullanıcı Notları', blank=True, help_text='Talep ile ilgili özel notlarınız')
+    admin_notes = models.TextField('Admin Notları', blank=True, help_text='Admin tarafından eklenen notlar')
+    
+    # Tarihler
+    created_at = models.DateTimeField('Talep Tarihi', auto_now_add=True)
+    processed_at = models.DateTimeField('İşlenme Tarihi', null=True, blank=True)
+    processed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='processed_subscription_requests', verbose_name='İşleyen Admin')
+    
+    class Meta:
+        verbose_name = 'Abonelik Talebi'
+        verbose_name_plural = 'Abonelik Talepleri'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.user.get_full_name()} - {self.plan.name} - {self.get_status_display()}'
+    
+    def approve(self, admin_user, admin_notes=''):
+        """Talebi onayla ve abonelik oluştur"""
+        if self.status != 'pending':
+            return False
+            
+        self.status = 'approved'
+        self.processed_at = timezone.now()
+        self.processed_by = admin_user
+        if admin_notes:
+            self.admin_notes = admin_notes
+        self.save()
+        
+        # Mevcut aboneliği güncelle veya yeni oluştur
+        try:
+            existing_subscription = UserSubscription.objects.get(user=self.user)
+            # Mevcut aboneliği güncelle
+            existing_subscription.plan = self.plan
+            existing_subscription.start_date = timezone.now()
+            existing_subscription.status = 'active'
+            existing_subscription.models_used_this_month = 0  # Aylık kullanımı sıfırla
+            existing_subscription.last_reset_date = timezone.now()
+            existing_subscription.save()
+            subscription = existing_subscription
+        except UserSubscription.DoesNotExist:
+            # Yeni abonelik oluştur
+            subscription = UserSubscription.objects.create(
+                user=self.user,
+                plan=self.plan,
+                start_date=timezone.now(),
+                status='active'
+            )
+        
+        # Kullanıcıya bildirim gönder
+        SimpleNotification.objects.create(
+            user=self.user,
+            title='Abonelik Talebi Onaylandı',
+            message=f'{self.plan.name} planı talebiniz onaylandı. Artık platforma erişim sağlayabilirsiniz.',
+            notification_type='success',
+            related_url='/subscription/'
+        )
+        
+        return subscription
+    
+    def reject(self, admin_user, admin_notes=''):
+        """Talebi reddet"""
+        if self.status != 'pending':
+            return False
+            
+        self.status = 'rejected'
+        self.processed_at = timezone.now()
+        self.processed_by = admin_user
+        if admin_notes:
+            self.admin_notes = admin_notes
+        self.save()
+        
+        # Kullanıcıya bildirim gönder
+        SimpleNotification.objects.create(
+            user=self.user,
+            title='Abonelik Talebi Reddedildi',
+            message=f'{self.plan.name} planı talebiniz reddedildi. Detaylar için iletişime geçebilirsiniz.',
+            notification_type='warning',
+            related_url='/contact/'
+        )
+        
+        return True
 
 
 # Basit Bildirim Sistemi

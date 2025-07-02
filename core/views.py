@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from .models import ContactMessage, Message, MessageRecipient, PricingPlan, UserSubscription, PaymentHistory, SimpleNotification
-from .forms import ContactForm, MessageForm, AdminMessageForm, MessageReplyForm
+from .models import ContactMessage, Message, MessageRecipient, PricingPlan, UserSubscription, PaymentHistory, SimpleNotification, SubscriptionRequest
+from .forms import ContactForm, MessageForm, AdminMessageForm, MessageReplyForm, SubscriptionRequestForm
 from django.views.generic import TemplateView
 from django.contrib.auth.decorators import user_passes_test, login_required
 from center.models import Center
@@ -324,6 +324,73 @@ def admin_dashboard(request):
         'delivered_molds': molds.filter(status='delivered').count(),
     }
     
+    # === ABONELİK TALEPLERİ YÖNETİMİ ===
+    from .models import PricingPlan, UserSubscription, SubscriptionRequest
+    
+    # Beklemede olan abonelik talepleri
+    pending_requests = SubscriptionRequest.objects.filter(
+        status='pending'
+    ).select_related('user', 'plan').order_by('-created_at')
+    
+    # Son 7 günde işlenen talepler
+    last_week = timezone.now() - timedelta(days=7)
+    recent_processed_requests = SubscriptionRequest.objects.filter(
+        processed_at__gte=last_week
+    ).select_related('user', 'plan', 'processed_by').order_by('-processed_at')
+    
+    # Abonelik istatistikleri
+    all_subscriptions = UserSubscription.objects.all()
+    subscription_stats = {
+        'total_subscriptions': all_subscriptions.count(),
+        'active_subscriptions': all_subscriptions.filter(status='active').count(),
+        'trial_users': all_subscriptions.filter(plan__plan_type='trial', status='active').count(),
+        'paid_users': all_subscriptions.filter(status='active').exclude(plan__plan_type='trial').count(),
+        'pending_requests': pending_requests.count(),
+        'total_requests': SubscriptionRequest.objects.count(),
+        'approved_requests': SubscriptionRequest.objects.filter(status='approved').count(),
+        'rejected_requests': SubscriptionRequest.objects.filter(status='rejected').count(),
+    }
+    
+    # Plan türlerine göre dağılım
+    subscription_by_plan = {}
+    for plan in PricingPlan.objects.filter(is_active=True):
+        count = all_subscriptions.filter(plan=plan, status='active').count()
+        subscription_by_plan[plan.name] = {
+            'count': count,
+            'plan_type': plan.plan_type,
+            'price': plan.price_usd
+        }
+    
+    # Deneme paketi tükenen kullanıcılar
+    trial_expired_users = []
+    trial_subscriptions = all_subscriptions.filter(plan__plan_type='trial', status='active')
+    for sub in trial_subscriptions:
+        remaining = sub.get_remaining_models()
+        if remaining is not None and remaining <= 0:
+            trial_expired_users.append({
+                'user': sub.user,
+                'subscription': sub,
+                'center_name': getattr(sub.user, 'center', None),
+            })
+    
+    # Deneme paketi neredeyse tükenen kullanıcılar
+    trial_warning_users = []
+    for sub in trial_subscriptions:
+        remaining = sub.get_remaining_models()
+        if remaining is not None and 0 < remaining <= 1:
+            trial_warning_users.append({
+                'user': sub.user,
+                'subscription': sub,
+                'remaining': remaining,
+                'center_name': getattr(sub.user, 'center', None),
+            })
+    
+    # Aylık gelir hesaplaması (demo)
+    monthly_revenue = 0
+    for sub in all_subscriptions.filter(status='active'):
+        if sub.plan.is_monthly:
+            monthly_revenue += float(sub.plan.price_usd)
+    
     # İstatistikler
     stats = {
         'total_centers': centers.count() + 1,  # MoldPark dahil
@@ -342,6 +409,13 @@ def admin_dashboard(request):
         'moldpark_orders': len(moldpark_orders),
         'moldpark_active_orders': len([o for o in moldpark_orders if o.status in ['received', 'designing', 'production', 'quality_check']]),
         'total_users': len(center_users) + len(producer_users),
+        # Abonelik istatistikleri
+        'total_subscriptions': subscription_stats['total_subscriptions'],
+        'active_subscriptions': subscription_stats['active_subscriptions'],
+        'trial_users': subscription_stats['trial_users'],
+        'paid_users': subscription_stats['paid_users'],
+        'pending_requests': subscription_stats['pending_requests'],
+        'monthly_revenue': monthly_revenue,
     }
     
     context = {
@@ -363,8 +437,47 @@ def admin_dashboard(request):
         'system_health': system_health,
         'smart_suggestions': smart_suggestions,
         'unread_notifications': notification_stats['unread_notifications'] + simple_notification_stats['unread_simple_notifications'],
+        # Abonelik yönetimi context'leri
+        'pending_requests': pending_requests,
+        'recent_processed_requests': recent_processed_requests,
+        'subscription_stats': subscription_stats,
+        'subscription_by_plan': subscription_by_plan,
+        'trial_expired_users': trial_expired_users,
+        'trial_warning_users': trial_warning_users,
     }
     return render(request, 'core/dashboard_admin.html', context)
+
+@user_passes_test(lambda u: u.is_superuser)
+def admin_approve_subscription_request(request, request_id):
+    """Admin tarafından abonelik talebi onaylama"""
+    if request.method == 'POST':
+        subscription_request = get_object_or_404(SubscriptionRequest, id=request_id, status='pending')
+        
+        admin_notes = request.POST.get('admin_notes', '')
+        success = subscription_request.approve(request.user, admin_notes)
+        
+        if success:
+            messages.success(request, f'{subscription_request.user.get_full_name()} kullanıcısının {subscription_request.plan.name} talebi onaylandı.')
+        else:
+            messages.error(request, 'Talep onaylanırken bir hata oluştu.')
+    
+    return redirect('core:admin_dashboard')
+
+@user_passes_test(lambda u: u.is_superuser)
+def admin_reject_subscription_request(request, request_id):
+    """Admin tarafından abonelik talebi reddetme"""
+    if request.method == 'POST':
+        subscription_request = get_object_or_404(SubscriptionRequest, id=request_id, status='pending')
+        
+        admin_notes = request.POST.get('admin_notes', 'Talep reddedildi.')
+        success = subscription_request.reject(request.user, admin_notes)
+        
+        if success:
+            messages.success(request, f'{subscription_request.user.get_full_name()} kullanıcısının {subscription_request.plan.name} talebi reddedildi.')
+        else:
+            messages.error(request, 'Talep reddedilirken bir hata oluştu.')
+    
+    return redirect('core:admin_dashboard')
 
 @login_required
 def message_list(request):
@@ -685,24 +798,160 @@ def privacy_policy(request):
     return render(request, 'core/privacy.html')
 
 def pricing(request):
-    """Fiyatlandırma sayfası"""
-    plans = PricingPlan.objects.filter(is_active=True).order_by('price_usd')
-    
-    # Kullanıcının mevcut aboneliği
-    current_subscription = None
-    if request.user.is_authenticated:
-        try:
-            current_subscription = UserSubscription.objects.get(user=request.user, status='active')
-        except UserSubscription.DoesNotExist:
-            pass
+    """Fiyatlandırma sayfası - artık talep sistemi ile çalışıyor"""
+    plans = PricingPlan.objects.filter(is_active=True).exclude(plan_type='trial').order_by('price_usd')
     
     context = {
-        'plans': plans,
-        'current_subscription': current_subscription,
-        'usd_to_try_rate': 32.0,  # Güncel kur
+        'plans': plans
     }
     
+    # Giriş yapmış kullanıcı için ek bilgiler
+    if request.user.is_authenticated:
+        # Kullanıcının mevcut aboneliği
+        try:
+            current_subscription = UserSubscription.objects.get(user=request.user)
+            context['current_subscription'] = current_subscription
+        except UserSubscription.DoesNotExist:
+            context['current_subscription'] = None
+        
+        # Beklemede olan talepler
+        pending_requests = SubscriptionRequest.objects.filter(
+            user=request.user,
+            status='pending'
+        ).select_related('plan')
+        context['pending_requests'] = pending_requests
+        
+        # Geçmiş talepler
+        past_requests = SubscriptionRequest.objects.filter(
+            user=request.user,
+            status__in=['approved', 'rejected']
+        ).select_related('plan').order_by('-created_at')[:5]
+        context['past_requests'] = past_requests
+    
     return render(request, 'core/pricing.html', context)
+
+@login_required
+def request_subscription(request):
+    """Abonelik Talep Sayfası"""
+    if request.method == 'POST':
+        # Eğer pricing sayfasından plan_id geliyorsa direkt talep oluştur
+        plan_id = request.POST.get('plan_id')
+        if plan_id:
+            try:
+                plan = PricingPlan.objects.get(id=plan_id, is_active=True)
+                
+                # Mevcut abonelik kontrolü
+                try:
+                    current_subscription = UserSubscription.objects.get(user=request.user, status='active')
+                    if current_subscription.plan == plan:
+                        messages.info(request, 'Bu plana zaten abone durumdasınız.')
+                        return redirect('core:pricing')
+                except UserSubscription.DoesNotExist:
+                    pass
+                
+                # Beklemede olan talep kontrolü
+                existing_request = SubscriptionRequest.objects.filter(
+                    user=request.user,
+                    plan=plan,
+                    status='pending'
+                ).first()
+                
+                if existing_request:
+                    messages.warning(request, 
+                        f'{plan.name} planı için zaten beklemede olan bir talebiniz bulunuyor.')
+                    return redirect('core:pricing')
+                
+                # Yeni talep oluştur
+                subscription_request = SubscriptionRequest.objects.create(
+                    user=request.user,
+                    plan=plan,
+                    user_notes=f'Fiyatlandırma sayfasından {plan.name} planı için talep gönderildi.',
+                    status='pending'
+                )
+                
+                messages.success(
+                    request, 
+                    f'🎉 {plan.name} planı için talebiniz başarıyla gönderildi! '
+                    f'Admin onayından sonra e-posta ile bilgilendirileceksiniz.'
+                )
+                return redirect('core:subscription_requests')
+                
+            except PricingPlan.DoesNotExist:
+                messages.error(request, 'Seçilen plan bulunamadı.')
+                return redirect('core:pricing')
+        
+        # Normal form submission
+        form = SubscriptionRequestForm(request.POST, user=request.user)
+        if form.is_valid():
+            subscription_request = form.save()
+            messages.success(
+                request, 
+                f'{subscription_request.plan.name} planı için talebiniz başarıyla gönderildi. Admin onayından sonra bilgilendirileceksiniz.'
+            )
+            return redirect('core:subscription_requests')
+    else:
+        form = SubscriptionRequestForm(user=request.user)
+    
+    # Mevcut abonelik bilgisi
+    current_subscription = None
+    try:
+        current_subscription = UserSubscription.objects.get(user=request.user)
+    except UserSubscription.DoesNotExist:
+        pass
+    
+    # Beklemede olan talepler
+    pending_requests = SubscriptionRequest.objects.filter(
+        user=request.user,
+        status='pending'
+    ).select_related('plan')
+    
+    # Mevcut planlar
+    available_plans = PricingPlan.objects.filter(is_active=True).exclude(plan_type='trial').order_by('price_usd')
+    
+    return render(request, 'core/request_subscription.html', {
+        'form': form,
+        'current_subscription': current_subscription,
+        'pending_requests': pending_requests,
+        'available_plans': available_plans
+    })
+
+@login_required
+def subscription_requests(request):
+    """Kullanıcının Abonelik Talepleri"""
+    requests = SubscriptionRequest.objects.filter(
+        user=request.user
+    ).select_related('plan', 'processed_by').order_by('-created_at')
+    
+    # Mevcut abonelik
+    current_subscription = None
+    try:
+        current_subscription = UserSubscription.objects.get(user=request.user)
+    except UserSubscription.DoesNotExist:
+        pass
+    
+    return render(request, 'core/subscription_requests.html', {
+        'requests': requests,
+        'current_subscription': current_subscription
+    })
+
+@login_required
+def subscription_request_cancel(request, request_id):
+    """Beklemede olan talebi iptal et"""
+    subscription_request = get_object_or_404(
+        SubscriptionRequest,
+        id=request_id,
+        user=request.user,
+        status='pending'
+    )
+    
+    if request.method == 'POST':
+        subscription_request.delete()
+        messages.success(request, 'Abonelik talebiniz iptal edildi.')
+        return redirect('core:subscription_requests')
+    
+    return render(request, 'core/subscription_request_cancel.html', {
+        'subscription_request': subscription_request
+    })
 
 @login_required
 def subscribe_to_plan(request, plan_id):
@@ -869,3 +1118,7 @@ def delete_notification(request, notification_id):
             return JsonResponse({'success': False, 'error': 'Bildirim bulunamadı'})
         messages.error(request, 'Bildirim bulunamadı.')
         return redirect('core:simple_notifications')
+
+def features(request):
+    """Özellikler sayfasını görüntüler."""
+    return render(request, 'core/features.html')

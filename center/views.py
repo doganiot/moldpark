@@ -26,59 +26,267 @@ def dashboard(request):
         messages.error(request, "Profiliniz eksik. Lütfen merkez bilgilerinizi tamamlayın.")
         return redirect('center:profile')
     
-    # Tüm kalıpları al
+    # TEMEL İSTATİSTİKLER
     molds = center.molds.all()
-    
-    # İstatistikleri hesapla
     total_molds = molds.count()
     
-    # Bekleyen kalıplar: Teslim edilmemiş, iptal edilmemiş ve tamamlanmamış olanlar
-    pending_molds = molds.exclude(status__in=['delivered', 'rejected', 'completed']).count()
+    # Durum bazlı istatistikler
+    status_stats = {
+        'waiting': molds.filter(status='waiting').count(),
+        'processing': molds.filter(status='processing').count(),
+        'completed': molds.filter(status='completed').count(),
+        'delivered': molds.filter(status='delivered').count(),
+        'revision': molds.filter(status='revision').count(),
+        'rejected': molds.filter(status='rejected').count(),
+        'shipping': molds.filter(status='shipping').count(),
+    }
     
-    processing_molds = molds.filter(status='processing').count()
-    completed_molds = molds.filter(status='completed').count()
+    pending_molds = status_stats['waiting'] + status_stats['processing']
+    active_molds = total_molds - status_stats['delivered'] - status_stats['rejected']
     
-    # Son 5 kalıbı al
-    recent_molds = molds.order_by('-created_at')[:5]
+    # Kulak yönü istatistikleri
+    ear_side_stats = {
+        'right': molds.filter(ear_side='right').count(),
+        'left': molds.filter(ear_side='left').count(),
+    }
     
-    # Abonelik ve limit kontrolü
-    from core.models import UserSubscription
+    # Kalıp türü istatistikleri  
+    mold_type_stats = {}
+    for choice in EarMold.MOLD_TYPE_CHOICES:
+        mold_type_stats[choice[0]] = molds.filter(mold_type=choice[0]).count()
+    
+    # ZAMAN BAZLI İSTATİSTİKLER
+    from datetime import datetime, timedelta
+    today = timezone.now().date()
+    this_week_start = today - timedelta(days=today.weekday())
+    this_month_start = today.replace(day=1)
+    last_30_days = today - timedelta(days=30)
+    
+    time_stats = {
+        'today': molds.filter(created_at__date=today).count(),
+        'this_week': molds.filter(created_at__date__gte=this_week_start).count(),
+        'this_month': molds.filter(created_at__date__gte=this_month_start).count(),
+        'last_30_days': molds.filter(created_at__date__gte=last_30_days).count(),
+    }
+    
+    # ABONELİK VE LİMİT KONTROLÜ
+    from core.models import UserSubscription, SubscriptionRequest
+    
+    subscription = None
+    subscription_requests = None
+    subscription_alerts = []
+    usage_percentage = 0
+    usage_offset = 327
+    has_active_subscription = False
     
     try:
         subscription = UserSubscription.objects.get(user=request.user, status='active')
+        has_active_subscription = True
         used_molds = subscription.models_used_this_month
-        remaining_limit = max(0, subscription.plan.monthly_model_limit - used_molds) if subscription.plan.monthly_model_limit else 999999
-        usage_percentage = int((used_molds / subscription.plan.monthly_model_limit) * 100) if subscription.plan.monthly_model_limit and subscription.plan.monthly_model_limit > 0 else 0
-        usage_offset = 327 - (327 * usage_percentage / 100)  # SVG circle için
+        monthly_limit = subscription.plan.monthly_model_limit or 999999
+        remaining_limit = max(0, monthly_limit - used_molds)
+        
+        if monthly_limit > 0:
+            usage_percentage = min(100, int((used_molds / monthly_limit) * 100))
+            usage_offset = 327 - (327 * usage_percentage / 100)
+        
+        # Subscription reset kontrolü
+        subscription.reset_monthly_usage_if_needed()
+        
+        # ABONELİK UYARILARI
+        if subscription.plan.plan_type == 'trial':
+            if remaining_limit == 0:
+                subscription_alerts.append({
+                    'type': 'danger',
+                    'icon': 'fas fa-exclamation-triangle',
+                    'title': 'Deneme Paketiniz Tükendi!',
+                    'message': 'Kalıp oluşturmaya devam etmek için bir abonelik planı seçin.',
+                    'action_text': 'Planları Görüntüle',
+                    'action_url': '/pricing/'
+                })
+            elif remaining_limit <= 2:
+                subscription_alerts.append({
+                    'type': 'warning',
+                    'icon': 'fas fa-clock',
+                    'title': f'Deneme Paketinizde {remaining_limit} Kalıp Kaldı',
+                    'message': 'Planları incelemeyi unutmayın!',
+                    'action_text': 'Planlar',
+                    'action_url': '/pricing/'
+                })
+        else:
+            if usage_percentage >= 90:
+                subscription_alerts.append({
+                    'type': 'warning',
+                    'icon': 'fas fa-chart-line',
+                    'title': f'Aylık Limitinizin %{usage_percentage}\'ını Kullandınız',
+                    'message': f'{monthly_limit - used_molds} kalıp hakkınız kaldı.',
+                    'action_text': 'Planı Yükselt',
+                    'action_url': '/pricing/'
+                })
+            elif remaining_limit == 0:
+                subscription_alerts.append({
+                    'type': 'danger',
+                    'icon': 'fas fa-ban',
+                    'title': 'Aylık Limitiniz Doldu',
+                    'message': 'Daha fazla kalıp oluşturmak için planınızı yükseltin.',
+                    'action_text': 'Planı Yükselt',
+                    'action_url': '/pricing/'
+                })
+        
+        # Plan bitiş tarihi kontrolü (eğer varsa)
+        if hasattr(subscription, 'expires_at') and subscription.expires_at:
+            from datetime import timedelta
+            days_left = (subscription.expires_at - timezone.now()).days
+            if days_left <= 7:
+                subscription_alerts.append({
+                    'type': 'info',
+                    'icon': 'fas fa-calendar-alt',
+                    'title': f'Aboneliğiniz {days_left} Gün Sonra Sona Eriyor',
+                    'message': 'Yenilemeyi unutmayın!',
+                    'action_text': 'Yenile',
+                    'action_url': '/subscription-dashboard/'
+                })
+        
     except UserSubscription.DoesNotExist:
-        # Fallback eski sistem
-        used_molds = total_molds
-        remaining_limit = max(0, center.monthly_limit - used_molds)
-        usage_percentage = int((used_molds / center.monthly_limit) * 100) if center.monthly_limit > 0 else 0
-        usage_offset = 327 - (327 * usage_percentage / 100)
-        subscription = None
+        used_molds = 0
+        remaining_limit = 0
+        monthly_limit = 0
+        
+        # ABONELİK YOK UYARISI
+        subscription_alerts.append({
+            'type': 'danger',
+            'icon': 'fas fa-crown',
+            'title': 'Aktif Aboneliğiniz Bulunmuyor',
+            'message': 'Kalıp oluşturmak için bir abonelik planı seçmeniz gerekiyor.',
+            'action_text': 'Abonelik Seç',
+            'action_url': '/pricing/'
+        })
+        
+        # Beklemede olan abonelik talepleri
+        subscription_requests = SubscriptionRequest.objects.filter(
+            user=request.user, 
+            status='pending'
+        ).select_related('plan').order_by('-created_at')[:3]
+        
+        if subscription_requests.exists():
+            subscription_alerts.append({
+                'type': 'info',
+                'icon': 'fas fa-hourglass-half',
+                'title': f'{subscription_requests.count()} Abonelik Talebiniz İnceleniyor',
+                'message': 'Talebiniz incelenirken beklemede kalan deneme paketinizi kullanabilirsiniz.',
+                'action_text': 'Taleplerim',
+                'action_url': '/subscription-requests/'
+            })
     
-    # Üretici ağ bilgileri
+    # ÜRETİCİ AĞ BİLGİLERİ
     producer_networks = ProducerNetwork.objects.filter(
         center=center, 
         status='active'
     ).select_related('producer')
     
-    return render(request, 'center/dashboard.html', {
+    network_stats = {
+        'active_networks': producer_networks.count(),
+        'total_networks': ProducerNetwork.objects.filter(center=center).count(),
+        'pending_networks': ProducerNetwork.objects.filter(center=center, status='pending').count(),
+    }
+    
+    # SON AKTİVİTELER
+    recent_molds = molds.select_related().order_by('-created_at')[:8]
+    
+    # Son 7 güne ait günlük aktivite
+    daily_activity = []
+    for i in range(7):
+        day = today - timedelta(days=i)
+        day_molds = molds.filter(created_at__date=day).count()
+        daily_activity.append({
+            'date': day,
+            'count': day_molds,
+            'day_name': day.strftime('%a')
+        })
+    daily_activity.reverse()
+    
+    # BİLDİRİMLER
+    from core.models import SimpleNotification
+    unread_notifications = SimpleNotification.objects.filter(
+        user=request.user, 
+        is_read=False
+    ).order_by('-created_at')[:5]
+    
+    # PERFORMANS İSTATİSTİKLERİ
+    if total_molds > 0:
+        completion_rate = int((status_stats['completed'] + status_stats['delivered']) / total_molds * 100)
+        average_processing_time = "2-3 gün"  # Bu gerçek hesaplanabilir
+    else:
+        completion_rate = 0
+        average_processing_time = "N/A"
+    
+    # FİZİKSEL GÖNDERİM İSTATİSTİKLERİ
+    physical_shipments = molds.filter(is_physical_shipment=True)
+    shipment_stats = {
+        'total_physical': physical_shipments.count(),
+        'digital_scans': molds.filter(is_physical_shipment=False).count(),
+        'in_transit': physical_shipments.filter(shipment_status='in_transit').count(),
+        'delivered_to_producer': physical_shipments.filter(shipment_status='delivered_to_producer').count(),
+    }
+    
+    # HızLI İSTATİSTİK KARTLARI
+    quick_stats = [
+        {
+            'title': 'Bu Hafta',
+            'value': time_stats['this_week'],
+            'icon': 'fas fa-calendar-week',
+            'color': 'primary'
+        },
+        {
+            'title': 'Bu Ay',
+            'value': time_stats['this_month'],
+            'icon': 'fas fa-calendar-alt',
+            'color': 'success'
+        },
+        {
+            'title': 'Aktif Ağlar',
+            'value': network_stats['active_networks'],
+            'icon': 'fas fa-network-wired',
+            'color': 'info'
+        },
+        {
+            'title': 'Tamamlanan',
+            'value': status_stats['completed'] + status_stats['delivered'],
+            'icon': 'fas fa-check-circle',
+            'color': 'success'
+        }
+    ]
+    
+    context = {
         'center': center,
-        'molds': molds,
         'total_molds': total_molds,
+        'status_stats': status_stats,
         'pending_molds': pending_molds,
-        'processing_molds': processing_molds,
-        'completed_molds': completed_molds,
-        'recent_molds': recent_molds,
-        'used_molds': used_molds,
-        'remaining_limit': remaining_limit,
-        'producer_networks': producer_networks,
+        'active_molds': active_molds,
+        'ear_side_stats': ear_side_stats,
+        'mold_type_stats': mold_type_stats,
+        'time_stats': time_stats,
         'subscription': subscription,
+        'subscription_requests': subscription_requests,
+        'used_molds': used_molds if subscription else 0,
+        'remaining_limit': remaining_limit if subscription else 0,
+        'monthly_limit': monthly_limit if subscription else 0,
         'usage_percentage': usage_percentage,
         'usage_offset': usage_offset,
-    })
+        'producer_networks': producer_networks,
+        'network_stats': network_stats,
+        'recent_molds': recent_molds,
+        'daily_activity': daily_activity,
+        'unread_notifications': unread_notifications,
+        'completion_rate': completion_rate,
+        'average_processing_time': average_processing_time,
+        'shipment_stats': shipment_stats,
+        'subscription_alerts': subscription_alerts,
+        'quick_stats': quick_stats,
+        'has_active_subscription': has_active_subscription,
+    }
+    
+    return render(request, 'center/dashboard.html', context)
 
 @login_required
 def profile(request):

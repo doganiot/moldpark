@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Özellikler - MoldPark{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Hero Section -->
+    <div class="text-center mb-5">
+        <h1 class="display-4 fw-bold mb-3">MoldPark Özellikleri</h1>
+        <p class="lead text-muted">Kulak kalıbı yönetiminde profesyonel çözümler</p>
+    </div>
+
+    <!-- Ana Özellikler -->
+    <div class="row g-4 mb-5">
+        <!-- Kalıp Yönetimi -->
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="text-primary mb-3">
+                        <i class="fas fa-cube fa-2x"></i>
+                    </div>
+                    <h3 class="h5 card-title">Kalıp Yönetimi</h3>
+                    <p class="card-text text-muted">Tüm kalıp süreçlerinizi tek platformdan yönetin. Siparişten teslimata kadar her aşamayı takip edin.</p>
+                    <ul class="list-unstyled text-muted small">
+                        <li><i class="fas fa-check text-success me-2"></i>Detaylı kalıp bilgileri</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Durum takibi</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Revizyon yönetimi</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Üretici Ağı -->
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="text-success mb-3">
+                        <i class="fas fa-network-wired fa-2x"></i>
+                    </div>
+                    <h3 class="h5 card-title">Üretici Ağı</h3>
+                    <p class="card-text text-muted">Güvenilir üretici merkezleriyle çalışın. İhtiyaçlarınıza uygun üreticiyi seçin ve hızlı teslimat alın.</p>
+                    <ul class="list-unstyled text-muted small">
+                        <li><i class="fas fa-check text-success me-2"></i>Doğrulanmış üreticiler</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Kalite kontrol</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Hızlı iletişim</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bildirim Sistemi -->
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="text-info mb-3">
+                        <i class="fas fa-bell fa-2x"></i>
+                    </div>
+                    <h3 class="h5 card-title">Akıllı Bildirimler</h3>
+                    <p class="card-text text-muted">Kalıp süreçlerinizi anlık takip edin. Önemli güncellemelerden anında haberdar olun.</p>
+                    <ul class="list-unstyled text-muted small">
+                        <li><i class="fas fa-check text-success me-2"></i>Durum bildirimleri</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Revizyon talepleri</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Teslimat takibi</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detaylı Özellikler -->
+    <div class="row g-4">
+        <!-- Sol Sütun -->
+        <div class="col-lg-6">
+            <div class="bg-light rounded-3 p-4 h-100">
+                <h3 class="h4 mb-4">İşitme Merkezleri İçin</h3>
+                <div class="d-flex mb-3">
+                    <div class="flex-shrink-0 text-primary me-3">
+                        <i class="fas fa-tasks"></i>
+                    </div>
+                    <div>
+                        <h4 class="h6 mb-1">Kolay Sipariş Yönetimi</h4>
+                        <p class="text-muted small mb-0">Kalıp siparişlerinizi hızlıca oluşturun ve takip edin.</p>
+                    </div>
+                </div>
+                <div class="d-flex mb-3">
+                    <div class="flex-shrink-0 text-primary me-3">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div>
+                        <h4 class="h6 mb-1">Detaylı Raporlama</h4>
+                        <p class="text-muted small mb-0">Kalıp istatistiklerinizi ve performans verilerinizi analiz edin.</p>
+                    </div>
+                </div>
+                <div class="d-flex">
+                    <div class="flex-shrink-0 text-primary me-3">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    <div>
+                        <h4 class="h6 mb-1">Üretici İletişimi</h4>
+                        <p class="text-muted small mb-0">Üreticilerle doğrudan iletişim kurarak süreci hızlandırın.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sağ Sütun -->
+        <div class="col-lg-6">
+            <div class="bg-light rounded-3 p-4 h-100">
+                <h3 class="h4 mb-4">Üretici Merkezler İçin</h3>
+                <div class="d-flex mb-3">
+                    <div class="flex-shrink-0 text-success me-3">
+                        <i class="fas fa-industry"></i>
+                    </div>
+                    <div>
+                        <h4 class="h6 mb-1">Üretim Takibi</h4>
+                        <p class="text-muted small mb-0">Üretim süreçlerinizi optimize edin ve verimliliği artırın.</p>
+                    </div>
+                </div>
+                <div class="d-flex mb-3">
+                    <div class="flex-shrink-0 text-success me-3">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div>
+                        <h4 class="h6 mb-1">Müşteri Yönetimi</h4>
+                        <p class="text-muted small mb-0">İşitme merkezi müşterilerinizi ve siparişlerini yönetin.</p>
+                    </div>
+                </div>
+                <div class="d-flex">
+                    <div class="flex-shrink-0 text-success me-3">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <div>
+                        <h4 class="h6 mb-1">Teslimat Planlaması</h4>
+                        <p class="text-muted small mb-0">Teslimat süreçlerinizi planlayın ve optimize edin.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CTA Section -->
+    <div class="text-center mt-5">
+        <h2 class="h3 mb-4">MoldPark'a Katılın</h2>
+        <p class="text-muted mb-4">Kulak kalıbı yönetiminde profesyonel çözümler için hemen başlayın.</p>
+        <div class="d-flex justify-content-center gap-3">
+            <a href="{% url 'account_signup' %}" class="btn btn-primary">
+                <i class="fas fa-clinic-medical me-2"></i>İşitme Merkezi Kaydı
+            </a>
+            <a href="{% url 'producer:register' %}" class="btn btn-success">
+                <i class="fas fa-industry me-2"></i>Üretici Merkez Kaydı
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %} 

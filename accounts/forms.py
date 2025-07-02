@@ -133,6 +133,44 @@ class CustomSignupForm(SignupForm):
                 notification_preferences=self.cleaned_data.get('notification_preferences', ['system'])
             )
             
+            # OTOMATIK DENEME PAKETİ VER
+            from core.models import PricingPlan, UserSubscription, SimpleNotification
+            try:
+                # Deneme paketini al
+                trial_plan = PricingPlan.objects.get(plan_type='trial', is_active=True)
+                
+                # Deneme aboneliği oluştur
+                subscription = UserSubscription.objects.create(
+                    user=user,
+                    plan=trial_plan,
+                    status='active',
+                    models_used_this_month=0,
+                    amount_paid=0,
+                    currency='USD'
+                )
+                
+                # Hoşgeldin bildirimi gönder
+                SimpleNotification.objects.create(
+                    user=user,
+                    title='🎉 Hoş Geldiniz!',
+                    message=f'Size özel {trial_plan.monthly_model_limit} kalıp gönderme hakkı hediye ettik! Platformu keşfetmeye başlayın.',
+                    notification_type='success',
+                    related_url='/subscription/'
+                )
+                
+            except PricingPlan.DoesNotExist:
+                # Deneme paketi yoksa normal devam et ama admin'i bilgilendir
+                from django.contrib.auth.models import User as AdminUser
+                admin_users = AdminUser.objects.filter(is_superuser=True)
+                for admin in admin_users:
+                    SimpleNotification.objects.create(
+                        user=admin,
+                        title='⚠️ Deneme Paketi Bulunamadı',
+                        message=f'Yeni kullanıcı {user.username} için deneme paketi atanamadı. Deneme paketi oluşturulmalı.',
+                        notification_type='warning',
+                        related_url='/admin/core/pricingplan/'
+                    )
+            
             # OTOMATIK ÜRETİCİ AĞ BAĞLANTISI OLUŞTUR
             producer_id = self.cleaned_data.get('producer_network')
             if producer_id:

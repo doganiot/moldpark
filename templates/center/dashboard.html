@@ -1,37 +1,47 @@
 {% extends 'base.html' %}
 {% load humanize %}
 {% load static %}
+{% load moldpark_extras %}
 
 {% block title %}Dashboard - {{ center.name }}{% endblock %}
 
 {% block extra_css %}
 <style>
-.hero-section {
-    background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-700) 50%, var(--primary-800) 100%);
-    color: white;
-    position: relative;
-    overflow: hidden;
-    border-radius: 20px;
-    margin-bottom: 2rem;
+:root {
+    --dashboard-primary: #6366f1;
+    --dashboard-success: #10b981;
+    --dashboard-warning: #f59e0b;
+    --dashboard-danger: #ef4444;
+    --dashboard-info: #3b82f6;
+    --dashboard-gray: #6b7280;
 }
 
-.hero-section::before {
+.dashboard-hero {
+    background: linear-gradient(135deg, var(--dashboard-primary) 0%, #8b5cf6 50%, #ec4899 100%);
+    color: white;
+    border-radius: 24px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.dashboard-hero::before {
     content: '';
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1" fill="white" opacity="0.2"/></pattern></defs><rect width="100" height="100" fill="url(%23dots)"/></svg>');
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1.5" fill="white" opacity="0.3"/></pattern></defs><rect width="100" height="100" fill="url(%23dots)"/></svg>');
 }
 
-.hero-content {
+.dashboard-hero .content {
     position: relative;
     z-index: 2;
-    padding: 2rem;
 }
 
-.avatar-section {
+.hero-avatar {
     width: 80px;
     height: 80px;
     border-radius: 20px;
@@ -42,59 +52,164 @@
     justify-content: center;
     font-size: 2rem;
     margin-bottom: 1rem;
+    border: 2px solid rgba(255, 255, 255, 0.3);
 }
 
-.quick-stats {
+.hero-stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
     gap: 1rem;
-    margin-top: 1.5rem;
+    margin-top: 2rem;
+}
+
+.hero-stat {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    padding: 1.5rem 1rem;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+}
+
+.hero-stat:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateY(-2px);
+}
+
+.hero-stat-number {
+    font-size: 2rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+}
+
+.hero-stat-label {
+    font-size: 0.875rem;
+    opacity: 0.9;
+}
+
+.dashboard-card {
+    background: white;
+    border-radius: 20px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    height: 100%;
+    transition: all 0.3s ease;
+}
+
+.dashboard-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #f1f5f9;
+}
+
+.card-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    font-size: 1.25rem;
+}
+
+.stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
 }
 
 .stat-item {
-    background: rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(10px);
+    background: #f8fafc;
     border-radius: 12px;
     padding: 1rem;
     text-align: center;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.stat-item:hover {
+    border-color: var(--dashboard-primary);
+    background: rgba(99, 102, 241, 0.05);
 }
 
 .stat-number {
-    font-size: 1.5rem;
-    font-weight: 800;
+    font-size: 1.75rem;
+    font-weight: 700;
     margin-bottom: 0.25rem;
 }
 
-.progress-ring {
+.stat-label {
+    font-size: 0.875rem;
+    color: var(--dashboard-gray);
+    font-weight: 500;
+}
+
+.quick-action {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    border-radius: 16px;
+    padding: 1.5rem;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    height: 100%;
+}
+
+.quick-action:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    color: inherit;
+    border-color: var(--dashboard-primary);
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
+}
+
+.action-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.progress-circle {
     width: 120px;
     height: 120px;
     position: relative;
-    margin: 0 auto 1rem;
+    margin: 0 auto;
 }
 
-.progress-ring svg {
+.progress-circle svg {
     width: 100%;
     height: 100%;
     transform: rotate(-90deg);
 }
 
-.progress-ring-circle {
+.progress-circle-bg {
     fill: none;
+    stroke: #e5e7eb;
     stroke-width: 8;
-    r: 52;
-    cx: 60;
-    cy: 60;
 }
 
-.progress-ring-track {
-    stroke: rgba(255, 255, 255, 0.2);
-}
-
-.progress-ring-fill {
-    stroke: #10b981;
+.progress-circle-fill {
+    fill: none;
+    stroke: var(--dashboard-success);
+    stroke-width: 8;
     stroke-linecap: round;
-    transition: stroke-dashoffset 0.5s ease;
+    transition: stroke-dashoffset 0.8s ease;
 }
 
 .progress-text {
@@ -102,24 +217,182 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-size: 1.2rem;
+    text-align: center;
+}
+
+.progress-percentage {
+    font-size: 1.5rem;
     font-weight: 700;
-    color: white;
+    color: var(--dashboard-success);
+}
+
+.progress-label {
+    font-size: 0.75rem;
+    color: var(--dashboard-gray);
+}
+
+.activity-chart {
+    height: 200px;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    border-radius: 12px;
+    padding: 1rem;
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.activity-bar {
+    background: var(--dashboard-primary);
+    border-radius: 4px 4px 0 0;
+    min-height: 4px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: end;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.activity-bar:hover {
+    background: var(--dashboard-success);
+    transform: scale(1.1);
+}
+
+.activity-bar::after {
+    content: attr(data-count);
+    position: absolute;
+    top: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--dashboard-gray);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.activity-bar:hover::after {
+    opacity: 1;
+}
+
+.notification-item {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    border-radius: 12px;
+    margin-bottom: 0.75rem;
+    border: 2px solid #f1f5f9;
+    transition: all 0.3s ease;
+}
+
+.notification-item:hover {
+    border-color: var(--dashboard-primary);
+    background: rgba(99, 102, 241, 0.05);
+}
+
+.notification-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+}
+
+.mold-table {
+    margin-top: 1rem;
+}
+
+.mold-table .table {
+    margin-bottom: 0;
+}
+
+.mold-table .table th {
+    border-top: none;
+    border-bottom: 2px solid #e5e7eb;
+    font-weight: 600;
+    color: var(--dashboard-gray);
+    background: #f8fafc;
+}
+
+.mold-table .table td {
+    border-top: 1px solid #f1f5f9;
+    vertical-align: middle;
+    padding: 1rem 0.75rem;
+}
+
+.mold-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    font-size: 1rem;
+}
+
+.status-badge {
+    padding: 0.5rem 1rem;
+    border-radius: 50px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ear-side-chart {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 200px;
+    position: relative;
+}
+
+.ear-side-item {
+    flex: 1;
+    text-align: center;
+    padding: 1rem;
+    border-radius: 12px;
+    margin: 0 0.5rem;
+    border: 2px solid #f1f5f9;
+    transition: all 0.3s ease;
+}
+
+.ear-side-item:hover {
+    border-color: var(--dashboard-primary);
+    background: rgba(99, 102, 241, 0.05);
+}
+
+.no-data-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--dashboard-gray);
+}
+
+.no-data-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
 }
 
 @media (max-width: 768px) {
-    .quick-stats {
+    .dashboard-hero {
+        padding: 1.5rem;
+    }
+    
+    .hero-stats {
         grid-template-columns: repeat(2, 1fr);
     }
     
-    .hero-content {
-        padding: 1.5rem;
-        text-align: center;
+    .stat-grid {
+        grid-template-columns: 1fr;
     }
     
-    .progress-ring {
-        width: 100px;
-        height: 100px;
+    .activity-chart {
+        height: 150px;
     }
 }
 </style>
@@ -127,182 +400,207 @@
 
 {% block content %}
 <div class="container-fluid py-4">
-    <!-- Modern Hero Section -->
-    <div class="hero-section">
-        <div class="hero-content">
+    <!-- Hero Section -->
+    <div class="dashboard-hero">
+        <div class="content">
             <div class="row align-items-center">
                 <div class="col-lg-8">
                     <div class="d-flex align-items-start">
-                        <div class="avatar-section me-4">
+                        <div class="hero-avatar me-4">
                             <i class="fas fa-clinic-medical"></i>
                         </div>
                         <div class="flex-grow-1">
-                            <h1 class="h2 fw-bold mb-2">Hoş geldiniz, {{ center.name }}</h1>
-                            <p class="mb-1 opacity-90">
+                            <h1 class="h2 fw-bold mb-2">
+                                Hoş geldiniz, {{ center.name }}
+                            </h1>
+                            <p class="mb-2 opacity-90">
                                 <i class="fas fa-map-marker-alt me-2"></i>{{ center.address }}
                             </p>
-                            <p class="mb-0 opacity-75">
+                            <p class="mb-2 opacity-75">
                                 <i class="fas fa-phone me-2"></i>{{ center.phone }}
                             </p>
                             
-                            <!-- Subscription Status -->
                             {% if subscription %}
                             <div class="mt-3">
                                 <div class="badge bg-white bg-opacity-20 px-3 py-2 rounded-pill">
                                     <i class="fas fa-crown me-2"></i>
-                                    {{ subscription.plan.name }} Planı - {{ remaining_limit }} kalıp kaldı
+                                    {{ subscription.plan.name }} - {{ remaining_limit }} kalıp kaldı
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if subscription_requests %}
+                            <div class="mt-2">
+                                <div class="badge bg-warning bg-opacity-20 px-3 py-2 rounded-pill">
+                                    <i class="fas fa-clock me-2"></i>
+                                    {{ subscription_requests.count }} abonelik talebi beklemede
                                 </div>
                             </div>
                             {% endif %}
                         </div>
                     </div>
                     
-                    <!-- Quick Stats -->
-                    <div class="quick-stats">
-                        <div class="stat-item">
-                            <div class="stat-number">{{ used_molds }}</div>
-                            <div class="small opacity-75">Bu Ay Kullanılan</div>
+                    <!-- Hero Quick Stats -->
+                    <div class="hero-stats">
+                        <div class="hero-stat">
+                            <div class="hero-stat-number">{{ time_stats.today }}</div>
+                            <div class="hero-stat-label">Bugün</div>
                         </div>
-                        <div class="stat-item">
-                            <div class="stat-number">{{ remaining_limit }}</div>
-                            <div class="small opacity-75">Kalan Limit</div>
+                        <div class="hero-stat">
+                            <div class="hero-stat-number">{{ time_stats.this_week }}</div>
+                            <div class="hero-stat-label">Bu Hafta</div>
                         </div>
-                        <div class="stat-item">
-                            <div class="stat-number">{{ pending_molds }}</div>
-                            <div class="small opacity-75">Bekleyen</div>
+                        <div class="hero-stat">
+                            <div class="hero-stat-number">{{ pending_molds }}</div>
+                            <div class="hero-stat-label">Bekleyen</div>
                         </div>
-                        <div class="stat-item">
-                            <div class="stat-number">{{ molds.count }}</div>
-                            <div class="small opacity-75">Toplam Kalıp</div>
+                        <div class="hero-stat">
+                            <div class="hero-stat-number">{{ total_molds }}</div>
+                            <div class="hero-stat-label">Toplam Kalıp</div>
                         </div>
                     </div>
                 </div>
                 
                 <div class="col-lg-4 text-center d-none d-lg-block">
-                    <!-- Usage Progress Ring -->
-                    <div class="progress-ring">
+                    <!-- Usage Progress Circle -->
+                    {% if subscription %}
+                    <div class="progress-circle">
                         <svg>
-                            <circle class="progress-ring-circle progress-ring-track"></circle>
-                            <circle class="progress-ring-circle progress-ring-fill" 
+                            <circle class="progress-circle-bg" cx="60" cy="60" r="52"></circle>
+                            <circle class="progress-circle-fill" cx="60" cy="60" r="52"
                                     stroke-dasharray="327" 
                                     stroke-dashoffset="{{ usage_offset|default:245 }}"></circle>
                         </svg>
                         <div class="progress-text">
-                            {{ usage_percentage|default:25 }}%<br>
-                            <small style="font-size: 0.7rem;">Kullanım</small>
+                            <div class="progress-percentage">{{ usage_percentage }}%</div>
+                            <div class="progress-label">Kullanım</div>
                         </div>
                     </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Quick Actions Grid -->
-    <div class="row g-4 mb-4">
+    <!-- Main Dashboard Grid -->
+    <div class="row g-4">
+        <!-- Quick Actions -->
         <div class="col-lg-8">
-            <h4 class="fw-bold mb-3">
-                <i class="fas fa-bolt text-warning me-2"></i>Hızlı İşlemler
-            </h4>
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <a href="{% url 'mold:mold_create' %}" class="quick-action-card text-decoration-none">
-                        <div class="quick-action-icon bg-primary bg-opacity-10">
-                            <i class="fas fa-plus text-primary"></i>
-                        </div>
-                        <h6 class="quick-action-title">Yeni Kalıp Oluştur</h6>
-                        <p class="quick-action-desc">3D tarama dosyası yükleyerek hızlıca yeni kalıp siparişi verin</p>
-                    </a>
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <div class="card-icon bg-primary bg-opacity-10">
+                        <i class="fas fa-bolt text-primary"></i>
+                    </div>
+                    <h5 class="fw-bold mb-0">Hızlı İşlemler</h5>
                 </div>
-                <div class="col-md-6">
-                    <a href="{% url 'mold:mold_list' %}" class="quick-action-card text-decoration-none">
-                        <div class="quick-action-icon bg-info bg-opacity-10">
-                            <i class="fas fa-list text-info"></i>
-                        </div>
-                        <h6 class="quick-action-title">Kalıplarım</h6>
-                        <p class="quick-action-desc">Mevcut kalıplarınızı görüntüleyin ve durumlarını takip edin</p>
-                    </a>
-                </div>
-                <div class="col-md-6">
-                    <a href="{% url 'mold:revision_request_create' %}" class="quick-action-card text-decoration-none">
-                        <div class="quick-action-icon bg-warning bg-opacity-10">
-                            <i class="fas fa-edit text-warning"></i>
-                        </div>
-                        <h6 class="quick-action-title">Revizyon Talebi</h6>
-                        <p class="quick-action-desc">Mevcut kalıplarınız için revizyon talebinde bulunun</p>
-                    </a>
-                </div>
-                <div class="col-md-6">
-                    <a href="{% url 'center:network_management' %}" class="quick-action-card text-decoration-none">
-                        <div class="quick-action-icon bg-success bg-opacity-10">
-                            <i class="fas fa-network-wired text-success"></i>
-                        </div>
-                        <h6 class="quick-action-title">Üretici Ağları</h6>
-                        <p class="quick-action-desc">Bağlı olduğunuz üretici merkezlerini yönetin</p>
-                    </a>
+                
+                <div class="row g-3">
+                    <div class="col-md-6 col-lg-3">
+                        <a href="{% url 'mold:mold_create' %}" class="quick-action">
+                            <div class="action-icon bg-primary bg-opacity-10">
+                                <i class="fas fa-plus text-primary"></i>
+                            </div>
+                            <h6 class="fw-bold mb-2">Yeni Kalıp</h6>
+                            <p class="text-muted small mb-0">3D tarama yükle</p>
+                        </a>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <a href="{% url 'mold:mold_list' %}" class="quick-action">
+                            <div class="action-icon bg-info bg-opacity-10">
+                                <i class="fas fa-cube text-info"></i>
+                            </div>
+                            <h6 class="fw-bold mb-2">Kalıplarım</h6>
+                            <p class="text-muted small mb-0">Durumları takip et</p>
+                        </a>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <a href="{% url 'center:network_management' %}" class="quick-action">
+                            <div class="action-icon bg-success bg-opacity-10">
+                                <i class="fas fa-network-wired text-success"></i>
+                            </div>
+                            <h6 class="fw-bold mb-2">Üretici Ağı</h6>
+                            <p class="text-muted small mb-0">Ağları yönet</p>
+                        </a>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        {% if subscription %}
+                        <a href="{% url 'core:subscription_dashboard' %}" class="quick-action">
+                            <div class="action-icon bg-warning bg-opacity-10">
+                                <i class="fas fa-crown text-warning"></i>
+                            </div>
+                            <h6 class="fw-bold mb-2">Abonelik</h6>
+                            <p class="text-muted small mb-0">Planı yönet</p>
+                        </a>
+                        {% else %}
+                        <a href="{% url 'core:pricing' %}" class="quick-action">
+                            <div class="action-icon bg-warning bg-opacity-10">
+                                <i class="fas fa-shopping-cart text-warning"></i>
+                            </div>
+                            <h6 class="fw-bold mb-2">Plan Seç</h6>
+                            <p class="text-muted small mb-0">Abonelik başlat</p>
+                        </a>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
         
+        <!-- Statistics Overview -->
         <div class="col-lg-4">
-            <!-- Statistics Widget -->
             <div class="dashboard-card">
-                <h6 class="fw-bold d-flex align-items-center mb-3">
-                    <div class="dashboard-card-icon bg-success bg-opacity-10 me-3" style="width: 40px; height: 40px; font-size: 1rem;">
+                <div class="card-header">
+                    <div class="card-icon bg-success bg-opacity-10">
                         <i class="fas fa-chart-pie text-success"></i>
                     </div>
-                    Bu Ay İstatistikler
-                </h6>
+                    <h5 class="fw-bold mb-0">Durum İstatistikleri</h5>
+                </div>
                 
-                <div class="row g-3 text-center">
-                    <div class="col-6">
-                        <div class="status-card status-info">
-                            <div class="dashboard-card-number" style="font-size: 1.5rem;">{{ used_molds }}</div>
-                            <div class="dashboard-card-label" style="font-size: 0.75rem;">Kullanılan</div>
-                        </div>
+                <div class="stat-grid">
+                    <div class="stat-item">
+                        <div class="stat-number text-warning">{{ status_stats.waiting }}</div>
+                        <div class="stat-label">Bekleyen</div>
                     </div>
-                    <div class="col-6">
-                        <div class="status-card status-success">
-                            <div class="dashboard-card-number" style="font-size: 1.5rem;">{{ remaining_limit }}</div>
-                            <div class="dashboard-card-label" style="font-size: 0.75rem;">Kalan</div>
-                        </div>
+                    <div class="stat-item">
+                        <div class="stat-number text-info">{{ status_stats.processing }}</div>
+                        <div class="stat-label">İşlenen</div>
                     </div>
-                    <div class="col-6">
-                        <div class="status-card status-warning">
-                            <div class="dashboard-card-number" style="font-size: 1.5rem;">2</div>
-                            <div class="dashboard-card-label" style="font-size: 0.75rem;">Bekleyen</div>
-                        </div>
+                    <div class="stat-item">
+                        <div class="stat-number text-success">{{ status_stats.completed }}</div>
+                        <div class="stat-label">Tamamlanan</div>
                     </div>
-                    <div class="col-6">
-                        <div class="status-card status-info">
-                            <div class="dashboard-card-number" style="font-size: 1.5rem;">8</div>
-                            <div class="dashboard-card-label" style="font-size: 0.75rem;">Tamamlanan</div>
-                        </div>
+                    <div class="stat-item">
+                        <div class="stat-number text-primary">{{ status_stats.delivered }}</div>
+                        <div class="stat-label">Teslim</div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Recent Activity & Subscription Info -->
-    <div class="row g-4">
+    <!-- Second Row -->
+    <div class="row g-4 mt-2">
+        <!-- Recent Molds -->
         <div class="col-lg-8">
-            <!-- Recent Molds -->
             <div class="dashboard-card">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h6 class="fw-bold mb-0">
-                        <i class="fas fa-clock text-primary me-2"></i>Son Kalıplar
-                    </h6>
-                    <a href="{% url 'mold:mold_list' %}" class="btn btn-outline-primary btn-sm">
-                        Tümünü Gör <i class="fas fa-arrow-right ms-1"></i>
-                    </a>
+                <div class="card-header">
+                    <div class="card-icon bg-info bg-opacity-10">
+                        <i class="fas fa-history text-info"></i>
+                    </div>
+                    <h5 class="fw-bold mb-0">Son Kalıplar</h5>
+                    <div class="ms-auto">
+                        <a href="{% url 'mold:mold_list' %}" class="btn btn-outline-primary btn-sm">
+                            Tümünü Gör <i class="fas fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
                 </div>
                 
-                {% if molds %}
-                <div class="table-responsive">
-                    <table class="table table-hover">
+                {% if recent_molds %}
+                <div class="mold-table">
+                    <table class="table">
                         <thead>
                             <tr>
-                                <th>Kalıp</th>
+                                <th>Hasta</th>
+                                <th>Kulak</th>
                                 <th>Tür</th>
                                 <th>Durum</th>
                                 <th>Tarih</th>
@@ -310,41 +608,46 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for mold in molds|slice:":5" %}
+                            {% for mold in recent_molds %}
                             <tr>
                                 <td>
                                     <div class="d-flex align-items-center">
-                                        <div class="me-3">
-                                            <div class="bg-primary bg-opacity-10 rounded p-2">
-                                                <i class="fas fa-cube text-primary"></i>
-                                            </div>
+                                        <div class="mold-avatar bg-primary bg-opacity-10">
+                                            <i class="fas fa-user text-primary"></i>
                                         </div>
                                         <div>
-                                            <div class="fw-semibold">{{ mold.patient_name|title }}</div>
-                                            <small class="text-muted">{{ mold.ear_side|capfirst }} kulak</small>
+                                            <div class="fw-semibold">{{ mold.patient_name }} {{ mold.patient_surname }}</div>
+                                            <small class="text-muted">{{ mold.patient_age }} yaş</small>
                                         </div>
                                     </div>
+                                </td>
+                                <td>
+                                    <span class="badge {% if mold.ear_side == 'right' %}bg-info{% else %}bg-warning{% endif %}">
+                                        {% if mold.ear_side == 'right' %}
+                                            <i class="fas fa-arrow-right me-1"></i>Sağ
+                                        {% else %}
+                                            <i class="fas fa-arrow-left me-1"></i>Sol
+                                        {% endif %}
+                                    </span>
                                 </td>
                                 <td>
                                     <span class="badge bg-secondary">{{ mold.get_mold_type_display }}</span>
                                 </td>
                                 <td>
                                     {% if mold.status == 'waiting' %}
-                                        <span class="badge bg-warning">Bekliyor</span>
+                                        <span class="status-badge text-warning bg-warning bg-opacity-10">Bekliyor</span>
                                     {% elif mold.status == 'processing' %}
-                                        <span class="badge bg-info">İşleniyor</span>
+                                        <span class="status-badge text-info bg-info bg-opacity-10">İşleniyor</span>
                                     {% elif mold.status == 'completed' %}
-                                        <span class="badge bg-success">Tamamlandı</span>
+                                        <span class="status-badge text-success bg-success bg-opacity-10">Tamamlandı</span>
                                     {% elif mold.status == 'delivered' %}
-                                        <span class="badge bg-primary">Teslim Edildi</span>
+                                        <span class="status-badge text-primary bg-primary bg-opacity-10">Teslim</span>
                                     {% elif mold.status == 'revision' %}
-                                        <span class="badge bg-danger">Revizyon</span>
-                                    {% elif mold.status == 'rejected' %}
-                                        <span class="badge bg-dark">Reddedildi</span>
+                                        <span class="status-badge text-danger bg-danger bg-opacity-10">Revizyon</span>
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <small class="text-muted">{{ mold.created_at|date:"d M Y" }}</small>
+                                    <small class="text-muted">{{ mold.created_at|date:"d.m.Y" }}</small>
                                 </td>
                                 <td>
                                     <a href="{% url 'mold:mold_detail' mold.id %}" class="btn btn-outline-primary btn-sm">
@@ -357,10 +660,12 @@
                     </table>
                 </div>
                 {% else %}
-                <div class="text-center py-5">
-                    <i class="fas fa-cube fa-3x text-muted mb-3"></i>
-                    <h6 class="text-muted">Henüz kalıp bulunmuyor</h6>
-                    <p class="text-muted small mb-3">İlk kalıbınızı oluşturmak için başlayın</p>
+                <div class="no-data-state">
+                    <div class="no-data-icon">
+                        <i class="fas fa-cube"></i>
+                    </div>
+                    <h6>Henüz kalıp bulunmuyor</h6>
+                    <p class="text-muted">İlk kalıbınızı oluşturmak için başlayın</p>
                     <a href="{% url 'mold:mold_create' %}" class="btn btn-primary">
                         <i class="fas fa-plus me-2"></i>Yeni Kalıp Oluştur
                     </a>
@@ -369,13 +674,17 @@
             </div>
         </div>
         
+        <!-- Sidebar Stats -->
         <div class="col-lg-4">
-            <!-- Subscription Details -->
+            <!-- Subscription Status -->
             {% if subscription %}
-            <div class="dashboard-card">
-                <h6 class="fw-bold mb-3">
-                    <i class="fas fa-crown text-warning me-2"></i>Abonelik Durumu
-                </h6>
+            <div class="dashboard-card mb-4">
+                <div class="card-header">
+                    <div class="card-icon bg-warning bg-opacity-10">
+                        <i class="fas fa-crown text-warning"></i>
+                    </div>
+                    <h5 class="fw-bold mb-0">Abonelik</h5>
+                </div>
                 
                 <div class="text-center mb-3">
                     <div class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill fs-6">
@@ -383,85 +692,185 @@
                     </div>
                 </div>
                 
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="small">Aylık Kullanım</span>
-                        <span class="small fw-bold">{{ used_molds }}/{{ subscription.plan.monthly_limit }}</span>
-                    </div>
-                    <div class="progress" style="height: 6px;">
-                        <div class="progress-bar bg-primary" role="progressbar" 
-                             style="width: {{ usage_percentage }}%"></div>
-                    </div>
-                </div>
-                
-                <div class="row g-2 text-center mb-3">
+                <div class="row g-2 text-center">
                     <div class="col-6">
-                        <div class="status-card status-success">
-                            <div class="fw-bold">{{ remaining_limit }}</div>
-                            <small>Kalan Hak</small>
+                        <div class="stat-item">
+                            <div class="stat-number text-success">{{ remaining_limit }}</div>
+                            <div class="stat-label">Kalan</div>
                         </div>
                     </div>
                     <div class="col-6">
-                        <div class="status-card status-info">
-                            <div class="fw-bold">{{ subscription.plan.price_usd }}$</div>
-                            <small>Aylık Ücret</small>
+                        <div class="stat-item">
+                            <div class="stat-number text-info">{{ used_molds }}</div>
+                            <div class="stat-label">Kullanılan</div>
                         </div>
                     </div>
                 </div>
                 
-                <div class="d-grid">
-                    <a href="{% url 'core:subscription_dashboard' %}" class="btn btn-outline-primary btn-sm">
-                        <i class="fas fa-cog me-2"></i>Abonelik Yönetimi
-                    </a>
-                </div>
-            </div>
-            {% else %}
-            <div class="dashboard-card">
-                <h6 class="fw-bold mb-3">
-                    <i class="fas fa-exclamation-triangle text-warning me-2"></i>Abonelik Gerekli
-                </h6>
-                <p class="text-muted small mb-3">
-                    Kalıp oluşturmak için bir abonelik planı seçmeniz gerekmektedir.
-                </p>
-                <div class="d-grid">
-                    <a href="{% url 'core:pricing' %}" class="btn btn-primary">
-                        <i class="fas fa-crown me-2"></i>Plan Seç
-                    </a>
+                <div class="mt-3">
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-primary" role="progressbar" style="width: {{ usage_percentage }}%"></div>
+                    </div>
+                    <div class="d-flex justify-content-between mt-2">
+                        <small class="text-muted">%{{ usage_percentage }} kullanıldı</small>
+                        <small class="text-muted">${{ subscription.plan.price_usd }}/ay</small>
+                    </div>
                 </div>
             </div>
             {% endif %}
+            
+            <!-- Ear Side Distribution -->
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <div class="card-icon bg-info bg-opacity-10">
+                        <i class="fas fa-chart-donut text-info"></i>
+                    </div>
+                    <h5 class="fw-bold mb-0">Kulak Dağılımı</h5>
+                </div>
+                
+                {% if total_molds > 0 %}
+                <div class="ear-side-chart">
+                    <div class="ear-side-item">
+                        <div class="stat-number text-info">{{ ear_side_stats.right }}</div>
+                        <div class="stat-label">
+                            <i class="fas fa-arrow-right me-1"></i>Sağ Kulak
+                        </div>
+                        <div class="mt-2">
+                            <div class="progress" style="height: 6px;">
+                                <div class="progress-bar bg-info" style="width: {% widthratio ear_side_stats.right total_molds 100 %}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="ear-side-item">
+                        <div class="stat-number text-warning">{{ ear_side_stats.left }}</div>
+                        <div class="stat-label">
+                            <i class="fas fa-arrow-left me-1"></i>Sol Kulak
+                        </div>
+                        <div class="mt-2">
+                            <div class="progress" style="height: 6px;">
+                                <div class="progress-bar bg-warning" style="width: {% widthratio ear_side_stats.left total_molds 100 %}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="no-data-state">
+                    <div class="no-data-icon">
+                        <i class="fas fa-chart-pie"></i>
+                    </div>
+                    <p>Henüz veri yok</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Third Row -->
+    <div class="row g-4 mt-2">
+        <!-- Activity Chart -->
+        <div class="col-lg-8">
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <div class="card-icon bg-success bg-opacity-10">
+                        <i class="fas fa-chart-line text-success"></i>
+                    </div>
+                    <h5 class="fw-bold mb-0">Son 7 Gün Aktivitesi</h5>
+                </div>
+                
+                <div class="activity-chart">
+                    {% for day in daily_activity %}
+                    <div class="activity-bar" 
+                         style="height: {% if day.count > 0 %}{{ day.count|mul:20|add:20 }}px{% else %}4px{% endif %};"
+                         data-count="{{ day.count }}"
+                         title="{{ day.date|date:'d M' }} - {{ day.count }} kalıp">
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="d-flex justify-content-between mt-3">
+                    {% for day in daily_activity %}
+                    <small class="text-muted">{{ day.day_name }}</small>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Notifications -->
+        <div class="col-lg-4">
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <div class="card-icon bg-danger bg-opacity-10">
+                        <i class="fas fa-bell text-danger"></i>
+                    </div>
+                    <h5 class="fw-bold mb-0">Bildirimler</h5>
+                    {% if unread_notifications %}
+                    <div class="badge bg-danger">{{ unread_notifications.count }}</div>
+                    {% endif %}
+                </div>
+                
+                {% if unread_notifications %}
+                    {% for notification in unread_notifications %}
+                    <div class="notification-item">
+                        <div class="notification-icon bg-{{ notification.get_color }} bg-opacity-10">
+                            <i class="{{ notification.get_icon }} text-{{ notification.get_color }}"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h6 class="fw-semibold mb-1">{{ notification.title }}</h6>
+                            <p class="text-muted small mb-1">{{ notification.message|truncatechars:60 }}</p>
+                            <small class="text-muted">{{ notification.created_at|timesince }} önce</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    
+                    <div class="text-center mt-3">
+                        <a href="{% url 'core:simple_notifications' %}" class="btn btn-outline-primary btn-sm">
+                            Tüm Bildirimleri Gör
+                        </a>
+                    </div>
+                {% else %}
+                <div class="no-data-state">
+                    <div class="no-data-icon">
+                        <i class="fas fa-bell-slash"></i>
+                    </div>
+                    <p>Yeni bildirim yok</p>
+                </div>
+                {% endif %}
+            </div>
         </div>
     </div>
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Animate progress ring
-    const progressRing = document.querySelector('.progress-ring-fill');
-    if (progressRing) {
+    // Animate progress circle
+    const progressCircle = document.querySelector('.progress-circle-fill');
+    if (progressCircle) {
         const circumference = 2 * Math.PI * 52;
-        progressRing.style.strokeDasharray = circumference;
+        progressCircle.style.strokeDasharray = circumference;
         
-        // Get usage percentage from template or calculate
-        const usedMolds = {{ used_molds|default:0 }};
-        const totalLimit = {{ subscription.plan.monthly_limit|default:30 }};
-        const percentage = (usedMolds / totalLimit) * 100;
-        const offset = circumference - (percentage / 100) * circumference;
-        
+        // Animate to final position
         setTimeout(() => {
-            progressRing.style.strokeDashoffset = offset;
+            progressCircle.style.strokeDashoffset = '{{ usage_offset|default:245 }}';
         }, 500);
     }
     
-    // Show notification for low usage
-    const remainingLimit = {{ remaining_limit|default:30 }};
-    if (remainingLimit <= 5 && window.moldparkApp) {
-        window.moldparkApp.showNotification(
-            `Aylık kalıp limitinizin ${remainingLimit} adet hakkı kalmıştır.`,
-            'warning',
-            8000
-        );
-    }
+    // Activity chart hover effects
+    const activityBars = document.querySelectorAll('.activity-bar');
+    activityBars.forEach(bar => {
+        bar.addEventListener('mouseenter', function() {
+            this.style.background = 'var(--dashboard-success)';
+        });
+        
+        bar.addEventListener('mouseleave', function() {
+            this.style.background = 'var(--dashboard-primary)';
+        });
+    });
+    
+    // Auto-refresh every 5 minutes
+    setTimeout(() => {
+        location.reload();
+    }, 300000);
 });
 </script>
 {% endblock %} 

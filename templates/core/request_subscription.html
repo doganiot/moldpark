@@ -1,0 +1,231 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Abonelik Talebi - MoldPark{% endblock %}
+
+{% block extra_css %}
+<style>
+.request-hero {
+    background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-700) 50%, var(--primary-800) 100%);
+    color: white;
+    padding: 4rem 0 6rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.request-hero::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="white" stroke-width="0.5" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+}
+
+.request-hero .container {
+    position: relative;
+    z-index: 2;
+}
+
+.request-card {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    overflow: hidden;
+    margin-top: -3rem;
+    position: relative;
+    z-index: 3;
+}
+
+.card-header-custom {
+    background: var(--gradient-primary);
+    color: white;
+    padding: 2rem;
+    text-align: center;
+}
+
+.current-subscription-card {
+    background: linear-gradient(135deg, var(--success-100), var(--success-200));
+    border: 2px solid var(--success-300);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.pending-requests-card {
+    background: linear-gradient(135deg, var(--warning-100), var(--warning-200));
+    border: 2px solid var(--warning-300);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.plan-selection {
+    border: 2px solid var(--gray-200);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.plan-selection:hover {
+    border-color: var(--primary-400);
+    background: var(--primary-50);
+}
+
+.plan-selection.selected {
+    border-color: var(--primary-500);
+    background: var(--primary-100);
+}
+
+.btn-request {
+    background: var(--gradient-primary);
+    border: none;
+    padding: 1rem 2rem;
+    border-radius: 12px;
+    color: white;
+    font-weight: 600;
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+}
+
+.btn-request:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(79, 70, 229, 0.4);
+    color: white;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="request-hero">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 text-center">
+                <h1 class="display-4 fw-bold mb-3">Abonelik Talebi</h1>
+                <p class="lead">İhtiyacınıza uygun planı seçin ve talebinizi gönderin</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container mb-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="request-card">
+                <div class="card-header-custom">
+                    <h3 class="mb-0">
+                        <i class="fas fa-paper-plane me-2"></i>
+                        Yeni Abonelik Talebi
+                    </h3>
+                </div>
+                
+                <div class="p-4">
+                    {% if current_subscription %}
+                    <div class="current-subscription-card">
+                        <h5 class="text-success mb-3">
+                            <i class="fas fa-check-circle me-2"></i>
+                            Mevcut Aboneliğiniz
+                        </h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Plan:</strong> {{ current_subscription.plan.name }}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Durum:</strong> 
+                                <span class="badge bg-success">{{ current_subscription.get_status_display }}</span>
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-md-6">
+                                <strong>Başlangıç:</strong> {{ current_subscription.start_date|date:"d.m.Y" }}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Bu Ay Kullanılan:</strong> {{ current_subscription.models_used_this_month }} model
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if pending_requests %}
+                    <div class="pending-requests-card">
+                        <h5 class="text-warning mb-3">
+                            <i class="fas fa-clock me-2"></i>
+                            Beklemede Olan Talepleriniz
+                        </h5>
+                        {% for request in pending_requests %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <strong>{{ request.plan.name }}</strong>
+                                <small class="text-muted d-block">{{ request.created_at|date:"d.m.Y H:i" }}</small>
+                            </div>
+                            <span class="badge bg-warning">Beklemede</span>
+                        </div>
+                        {% endfor %}
+                        <div class="mt-3">
+                            <a href="{% url 'core:subscription_requests' %}" class="btn btn-sm btn-outline-warning">
+                                Tüm Taleplerinizi Görün
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <form method="post" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Plan Seçimi</label>
+                            {{ form.plan }}
+                            {% if form.plan.help_text %}
+                                <div class="form-text text-warning">{{ form.plan.help_text }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="{{ form.user_notes.id_for_label }}" class="form-label fw-bold">
+                                {{ form.user_notes.label }}
+                            </label>
+                            {{ form.user_notes }}
+                            <div class="form-text">{{ form.user_notes.help_text }}</div>
+                        </div>
+
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {{ form.non_field_errors }}
+                            </div>
+                        {% endif %}
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-request">
+                                <i class="fas fa-paper-plane me-2"></i>
+                                Talebimi Gönder
+                            </button>
+                            <a href="{% url 'core:pricing' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>
+                                Planları İncele
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Plan seçimi highlight
+    const planSelect = document.getElementById('plan-select');
+    if (planSelect) {
+        planSelect.addEventListener('change', function() {
+            // Seçili planı highlight et
+            console.log('Plan seçildi:', this.value);
+        });
+    }
+});
+</script>
+{% endblock %} 

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import ContactMessage, Message, MessageRecipient, PricingPlan, UserSubscription, PaymentHistory, SimpleNotification
+from .models import ContactMessage, Message, MessageRecipient, PricingPlan, UserSubscription, PaymentHistory, SimpleNotification, SubscriptionRequest
 
 @admin.register(ContactMessage)
 class ContactMessageAdmin(admin.ModelAdmin):
@@ -128,3 +128,46 @@ class SimpleNotificationAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+
+
+@admin.register(SubscriptionRequest)
+class SubscriptionRequestAdmin(admin.ModelAdmin):
+    list_display = ('user', 'plan', 'status', 'created_at', 'processed_at', 'processed_by')
+    list_filter = ('status', 'plan__plan_type', 'created_at', 'processed_at')
+    search_fields = ('user__username', 'user__email', 'plan__name', 'user_notes', 'admin_notes')
+    readonly_fields = ('created_at',)
+    ordering = ['-created_at']
+    
+    actions = ['approve_requests', 'reject_requests']
+    
+    fieldsets = (
+        ('Talep Bilgileri', {
+            'fields': ('user', 'plan', 'status')
+        }),
+        ('Notlar', {
+            'fields': ('user_notes', 'admin_notes')
+        }),
+        ('İşlem Bilgileri', {
+            'fields': ('processed_by', 'processed_at', 'created_at')
+        }),
+    )
+    
+    def approve_requests(self, request, queryset):
+        """Seçilen talepleri onayla"""
+        approved_count = 0
+        for subscription_request in queryset.filter(status='pending'):
+            if subscription_request.approve(request.user):
+                approved_count += 1
+        
+        self.message_user(request, f'{approved_count} talep onaylandı.')
+    approve_requests.short_description = "Seçilen talepleri onayla"
+    
+    def reject_requests(self, request, queryset):
+        """Seçilen talepleri reddet"""
+        rejected_count = 0
+        for subscription_request in queryset.filter(status='pending'):
+            if subscription_request.reject(request.user, 'Toplu reddetme'):
+                rejected_count += 1
+        
+        self.message_user(request, f'{rejected_count} talep reddedildi.')
+    reject_requests.short_description = "Seçilen talepleri reddet"

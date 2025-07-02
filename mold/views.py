@@ -8,7 +8,7 @@ from core.utils import send_success_notification, send_order_notification, send_
 from django.utils import timezone
 from .models import EarMold, Revision, ModeledMold, QualityCheck, RevisionRequest, MoldEvaluation
 from .forms import EarMoldForm, RevisionForm, ModeledMoldForm, QualityCheckForm, RevisionRequestForm, MoldEvaluationForm, PhysicalShipmentForm, TrackingUpdateForm
-from center.decorators import center_required
+from center.decorators import center_required, subscription_required
 from django.contrib.auth.decorators import permission_required
 from producer.models import ProducerNetwork, ProducerOrder
 import uuid
@@ -19,23 +19,10 @@ def mold_list(request):
     molds = request.user.center.molds.all()
     return render(request, 'mold/mold_list.html', {'molds': molds})
 
-@login_required
-@center_required
+@subscription_required
 def mold_create(request):
     center = request.user.center
-    
-    # DEBUG: Merkez bilgilerini logla
-    print(f"DEBUG - Merkez: {center.name} (ID: {center.id})")
-    print(f"DEBUG - Kullanıcı: {request.user.username} (ID: {request.user.id})")
-    
-    # Kalıp hakkı kontrolü
-    used_molds = center.molds.count()
-    print(f"DEBUG - Kullanılan kalıp sayısı: {used_molds}/{center.mold_limit}")
-    
-    if used_molds >= center.mold_limit:
-        print(f"DEBUG - HATA: Kalıp limiti aşıldı!")
-        messages.error(request, f'Kalıp hakkınız dolmuş. Maksimum {center.mold_limit} kalıp oluşturabilirsiniz.')
-        return redirect('mold:mold_list')
+    subscription = request.user.subscription
     
     # Üretici ağ kontrolü
     active_networks = ProducerNetwork.objects.filter(
@@ -43,45 +30,49 @@ def mold_create(request):
         status='active'
     )
     
-    print(f"DEBUG - Aktif ağ sayısı: {active_networks.count()}")
-    for network in active_networks:
-        print(f"DEBUG - Ağ: {network.producer.company_name} (Durum: {network.status}, Doğrulanmış: {network.producer.is_verified})")
-    
     if not active_networks.exists():
-        print(f"DEBUG - HATA: Aktif üretici ağı bulunamadı!")
-        
-        # Tüm network durumlarını kontrol et
-        all_networks = ProducerNetwork.objects.filter(center=center)
-        print(f"DEBUG - Toplam network sayısı: {all_networks.count()}")
-        for network in all_networks:
-            print(f"DEBUG - Network: {network.producer.company_name} - Durum: {network.status}")
-        
-        messages.error(request, 'Kalıp siparişi verebilmek için bir üretici ağına katılmanız gerekiyor.')
+        messages.error(request, 
+            '🏭 Kalıp siparişi verebilmek için bir üretici ağına katılmanız gerekiyor.')
         return redirect('center:network_management')
     
     if request.method == 'POST':
-        print(f"DEBUG - POST isteği alındı")
         form = EarMoldForm(request.POST, request.FILES, user=request.user)
         
         if form.is_valid():
-            print(f"DEBUG - Form geçerli")
-            # Tekrar kontrol et (eş zamanlı işlemler için)
-            if center.molds.count() >= center.mold_limit:
-                print(f"DEBUG - HATA: POST sırasında kalıp limiti aşıldı!")
-                messages.error(request, f'Kalıp hakkınız dolmuş. Maksimum {center.mold_limit} kalıp oluşturabilirsiniz.')
+            # ABONELİK KOTASI KULLAN
+            try:
+                if not subscription.can_create_model():
+                    messages.error(request, 
+                        '❌ Kalıp kotanız doldu. Lütfen aboneliğinizi kontrol edin.')
+                    return redirect('core:subscription_dashboard')
+                
+                subscription.use_model_quota()
+            except Exception as e:
+                messages.error(request, 
+                    '⚠️ Kalıp kotası kullanılırken hata oluştu. Lütfen tekrar deneyin.')
                 return redirect('mold:mold_list')
             
             mold = form.save(commit=False)
             mold.center = center
             mold.save()
-            print(f"DEBUG - Kalıp oluşturuldu: {mold.id}")
+            
+            # Deneme paketi tükenme uyarısı
+            remaining_models = subscription.get_remaining_models()
+            if subscription.plan.plan_type == 'trial' and remaining_models <= 1:
+                if remaining_models == 0:
+                    messages.warning(request, 
+                        '🎯 Deneme paketiniz tükendi! '
+                        'Daha fazla kalıp oluşturmak için bir abonelik planı seçin.')
+                else:
+                    messages.info(request, 
+                        f'📊 Deneme paketinizde {remaining_models} kalıp hakkınız kaldı. '
+                        f'Planlara göz atmayı unutmayın!')
             
             # ÜRETİCİ SİPARİŞİ OTOMATIK OLUŞTUR
             try:
                 # Aktif ağlardan ilkini seç (gelecekte kullanıcı seçebilir)
                 selected_network = active_networks.first()
                 producer = selected_network.producer
-                print(f"DEBUG - Seçilen üretici: {producer.company_name}")
                 
                 # Sipariş oluştur
                 order = ProducerOrder.objects.create(
@@ -97,12 +88,10 @@ def mold_create(request):
                              4 if form.cleaned_data.get('priority') == 'high' else 2
                     )
                 )
-                print(f"DEBUG - Sipariş oluşturuldu: {order.order_number}")
                 
                 # Kalıp durumunu güncelle
                 mold.status = 'processing'
                 mold.save()
-                print(f"DEBUG - Kalıp durumu güncellendi: {mold.status}")
                 
                 # ÜRETİCİYE BASİT BİLDİRİM GÖNDER
                 send_order_notification(
@@ -122,19 +111,17 @@ def mold_create(request):
                 )
                 
                 messages.success(request, 
-                    f'Kalıp başarıyla oluşturuldu ve {producer.company_name} firmasına sipariş gönderildi. '
+                    f'✅ Kalıp başarıyla oluşturuldu ve {producer.company_name} firmasına sipariş gönderildi. '
                     f'Sipariş No: {order.order_number}'
                 )
                 
             except Exception as e:
-                print(f"DEBUG - SİPARİŞ OLUŞTURMA HATASI: {str(e)}")
                 # Sipariş oluşturulamazsa kalıbı beklemede bırak
                 mold.status = 'waiting'
                 mold.save()
                 messages.warning(request, 
-                    'Kalıp oluşturuldu ancak sipariş oluşturulurken bir hata oluştu. '
-                    f'Lütfen yönetici ile iletişime geçin. Hata: {str(e)}'
-                )
+                    '⚠️ Kalıp oluşturuldu ancak sipariş oluşturulurken bir hata oluştu. '
+                    f'Lütfen yönetici ile iletişime geçin.')
             
             # Admin'lere basit bildirim
             admin_users = User.objects.filter(is_superuser=True)
@@ -148,7 +135,6 @@ def mold_create(request):
             
             return redirect('mold:mold_detail', pk=mold.pk)
         else:
-            print(f"DEBUG - Form geçersiz! Hatalar: {form.errors}")
             for field, errors in form.errors.items():
                 print(f"DEBUG - {field}: {errors}")
     else:
@@ -156,18 +142,18 @@ def mold_create(request):
         form = EarMoldForm(user=request.user)
     
     # Kalan hak bilgisini template'e gönder
-    remaining_limit = center.mold_limit - used_molds
+    remaining_limit = center.mold_limit - center.molds.count()
     
     print(f"DEBUG - Template'e gönderilen veriler:")
     print(f"  - remaining_limit: {remaining_limit}")
-    print(f"  - used_molds: {used_molds}")
+    print(f"  - used_molds: {center.molds.count()}")
     print(f"  - total_limit: {center.mold_limit}")
     print(f"  - active_networks: {active_networks.count()}")
     
     return render(request, 'mold/mold_form.html', {
         'form': form,
         'remaining_limit': remaining_limit,
-        'used_molds': used_molds,
+        'used_molds': center.molds.count(),
         'total_limit': center.mold_limit,
         'active_networks': active_networks
     })

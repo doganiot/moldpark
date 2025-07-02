@@ -3,6 +3,12 @@ from django.core.validators import MinValueValidator, MaxValueValidator, FileExt
 from center.models import Center
 from django.core.exceptions import ValidationError
 from .validators import validate_file_size
+from django.utils.translation import gettext_lazy as _
+
+def validate_scan_file_size(value):
+    filesize = value.size
+    if filesize > 104857600:  # 100MB
+        raise ValidationError(_('Maksimum dosya boyutu 100MB olabilir.'))
 
 class EarMold(models.Model):
     MOLD_TYPE_CHOICES = (
@@ -32,6 +38,11 @@ class EarMold(models.Model):
         ('M', 'Erkek'),
         ('F', 'Kadın'),
     )
+
+    EAR_SIDE_CHOICES = (
+        ('right', 'Sağ'),
+        ('left', 'Sol'),
+    )
     
     # Kargo durumu seçenekleri
     SHIPMENT_STATUS_CHOICES = (
@@ -47,9 +58,23 @@ class EarMold(models.Model):
     patient_surname = models.CharField('Hasta Soyadı', max_length=100)
     patient_age = models.IntegerField('Yaş', validators=[MinValueValidator(0), MaxValueValidator(150)])
     patient_gender = models.CharField('Cinsiyet', max_length=1, choices=GENDER_CHOICES)
+    ear_side = models.CharField('Kulak Yönü', max_length=5, choices=EAR_SIDE_CHOICES, default='right')
     mold_type = models.CharField('Kalıp Tipi', max_length=10, choices=MOLD_TYPE_CHOICES)
     vent_diameter = models.FloatField('Vent Çapı', validators=[MinValueValidator(0.0)])
-    scan_file = models.FileField('Tarama Dosyası', upload_to='scans/', blank=True, null=True)
+    scan_file = models.FileField(
+        'Tarama Dosyası',
+        upload_to='scans/',
+        validators=[
+            FileExtensionValidator(
+                allowed_extensions=['stl', 'obj', 'ply', 'zip', 'rar'],
+                message='Sadece STL, OBJ, PLY, ZIP ve RAR dosyaları yüklenebilir.'
+            ),
+            validate_scan_file_size
+        ],
+        null=True,
+        blank=True,
+        help_text='STL, OBJ, PLY, ZIP veya RAR formatında tarama dosyası yükleyin (Maks. 100MB)'
+    )
     notes = models.TextField('Notlar', blank=True)
     status = models.CharField('Durum', max_length=20, choices=STATUS_CHOICES, default='waiting')
     quality_score = models.IntegerField('Kalite Puanı', validators=[MinValueValidator(0), MaxValueValidator(100)], null=True, blank=True)

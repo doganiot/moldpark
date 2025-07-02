@@ -1,5 +1,5 @@
 from django import forms
-from .models import ContactMessage, Message, User
+from .models import ContactMessage, Message, User, SubscriptionRequest, PricingPlan
 
 class ContactForm(forms.ModelForm):
     class Meta:
@@ -157,3 +157,71 @@ class MessageReplyForm(forms.ModelForm):
                 self.original_message.mark_as_replied()
         
         return reply 
+
+
+class SubscriptionRequestForm(forms.ModelForm):
+    """Abonelik Talep Formu"""
+    
+    class Meta:
+        model = SubscriptionRequest
+        fields = ['plan', 'user_notes']
+        widgets = {
+            'plan': forms.Select(attrs={
+                'class': 'form-select',
+                'id': 'plan-select'
+            }),
+            'user_notes': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Abonelik talebinizle ilgili özel notlarınız varsa yazabilirsiniz...'
+            })
+        }
+        
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+        # Sadece aktif planları göster (trial hariç)
+        self.fields['plan'].queryset = PricingPlan.objects.filter(
+            is_active=True
+        ).exclude(plan_type='trial')
+        
+        # Plan seçimi zorunlu
+        self.fields['plan'].required = True
+        
+        # Eğer kullanıcının beklemede talebi varsa uyarı ver
+        if self.user:
+            pending_requests = SubscriptionRequest.objects.filter(
+                user=self.user,
+                status='pending'
+            )
+            if pending_requests.exists():
+                self.fields['plan'].help_text = "UYARI: Zaten beklemede abonelik talebiniz bulunmaktadır."
+                
+    def clean(self):
+        cleaned_data = super().clean()
+        plan = cleaned_data.get('plan')
+        
+        if self.user and plan:
+            # Aynı plan için beklemede talep kontrolü
+            existing_request = SubscriptionRequest.objects.filter(
+                user=self.user,
+                plan=plan,
+                status='pending'
+            ).exists()
+            
+            if existing_request:
+                raise forms.ValidationError(f'{plan.name} planı için zaten beklemede bir talebiniz bulunmaktadır.')
+            
+        return cleaned_data
+    
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        
+        if self.user:
+            instance.user = self.user
+            
+        if commit:
+            instance.save()
+            
+        return instance 

@@ -11,11 +11,23 @@ urlpatterns = [
     path('terms/', views.terms_of_service, name='terms'),
     path('privacy/', views.privacy_policy, name='privacy'),
     path('pricing/', views.pricing, name='pricing'),
+    path('features/', views.features, name='features'),
     path('subscribe/<int:plan_id>/', views.subscribe_to_plan, name='subscribe_to_plan'),
     path('subscription/', views.subscription_dashboard, name='subscription_dashboard'),
+    
+    # Abonelik Talep Sistemi
+    path('subscription/request/', views.request_subscription, name='request_subscription'),
+    path('subscription/requests/', views.subscription_requests, name='subscription_requests'),
+    path('subscription/requests/<int:request_id>/cancel/', views.subscription_request_cancel, name='subscription_request_cancel'),
+    
     # Admin Dashboard - Multiple URL aliases for better UX
     path('admin-panel/', views.admin_dashboard, name='admin_dashboard'),
     path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard_alt'),
+    
+    # Admin Abonelik Yönetimi
+    path('admin/subscription-requests/<int:request_id>/approve/', views.admin_approve_subscription_request, name='admin_approve_subscription_request'),
+    path('admin/subscription-requests/<int:request_id>/reject/', views.admin_reject_subscription_request, name='admin_reject_subscription_request'),
+    
     path('api/system-status/', SystemStatusAPI.as_view(), name='api_system_status'),
     path('api/production-pipeline/', production_pipeline_api, name='api_production_pipeline'),
     path('api/alerts/', alerts_api, name='api_alerts'),

@@ -10,7 +10,7 @@ class EarMoldForm(forms.ModelForm):
             ('digital', 'Dijital Tarama (STL/OBJ/PLY dosyası)'),
             ('physical', 'Fiziksel Kalıp Gönderimi'),
         ],
-        widget=forms.RadioSelect(attrs={'class': 'form-check-input'}),
+        widget=forms.Select(attrs={'class': 'form-select'}),
         initial='digital',
         help_text='Dijital tarama dosyası göndermek veya fiziksel kalıp göndermek istediğinizi seçin'
     )
@@ -45,7 +45,7 @@ class EarMoldForm(forms.ModelForm):
         model = EarMold
         fields = [
             'patient_name', 'patient_surname', 'patient_age', 'patient_gender',
-            'mold_type', 'vent_diameter', 'scan_file', 'notes',
+            'ear_side', 'mold_type', 'vent_diameter', 'scan_file', 'notes',
             'priority', 'special_instructions'
         ]
         widgets = {
@@ -53,6 +53,7 @@ class EarMoldForm(forms.ModelForm):
             'patient_surname': forms.TextInput(attrs={'class': 'form-control'}),
             'patient_age': forms.NumberInput(attrs={'class': 'form-control', 'min': 0, 'max': 150}),
             'patient_gender': forms.Select(attrs={'class': 'form-select'}),
+            'ear_side': forms.Select(attrs={'class': 'form-select'}),
             'mold_type': forms.Select(attrs={'class': 'form-select'}),
             'vent_diameter': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1', 'min': '0'}),
             'scan_file': forms.FileInput(attrs={'class': 'form-control'}),
@@ -65,31 +66,32 @@ class EarMoldForm(forms.ModelForm):
             }),
         }
         
-    def clean_scan_file(self):
-        scan_file = self.cleaned_data.get('scan_file')
-        order_type = self.data.get('order_type')  # form data'dan al
+    def clean(self):
+        cleaned_data = super().clean()
+        order_type = cleaned_data.get('order_type')
+        scan_file = cleaned_data.get('scan_file')
         
-        if order_type == 'digital' and not scan_file:
-            raise forms.ValidationError('Dijital tarama türü için dosya yüklenmesi zorunludur.')
+        if order_type == 'digital':
+            if not scan_file:
+                self.add_error('scan_file', 'Dijital tarama türü için dosya yüklenmesi zorunludur.')
+            elif scan_file:
+                # Dosya uzantısı kontrolü
+                allowed_extensions = ['stl', 'obj', 'ply', 'zip', 'rar']
+                ext = scan_file.name.split('.')[-1].lower()
+                if ext not in allowed_extensions:
+                    self.add_error('scan_file', 'Sadece STL, OBJ, PLY, ZIP ve RAR dosyaları yüklenebilir.')
+                
+                # Dosya boyutu kontrolü (100MB)
+                if scan_file.size > 104857600:  # 100MB in bytes
+                    self.add_error('scan_file', 'Dosya boyutu 100MB\'dan büyük olamaz.')
         
-        if scan_file:
-            # Dosya uzantısı kontrolü
-            allowed_extensions = ['stl', 'obj', 'ply', 'zip', 'rar']
-            ext = scan_file.name.split('.')[-1].lower()
-            if ext not in allowed_extensions:
-                raise forms.ValidationError('Sadece STL, OBJ, PLY, ZIP ve RAR dosyaları yüklenebilir.')
-            
-            # Dosya boyutu kontrolü (100MB)
-            if scan_file.size > 104857600:
-                raise forms.ValidationError('Dosya boyutu 100MB\'dan büyük olamaz.')
-        
-        return scan_file
+        return cleaned_data
         
     def save(self, commit=True):
         instance = super().save(commit=False)
         
         # order_type'a göre is_physical_shipment ayarla
-        order_type = self.data.get('order_type', 'digital')
+        order_type = self.cleaned_data.get('order_type', 'digital')
         instance.is_physical_shipment = (order_type == 'physical')
         
         # Fiziksel gönderim ise scan_file'ı temizle

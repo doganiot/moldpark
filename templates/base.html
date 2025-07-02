@@ -28,11 +28,21 @@
     <!-- Modern Navbar -->
     <nav class="navbar navbar-expand-lg fixed-top navbar-modern">
         <div class="container">
+            {% if not user.is_authenticated or not user.center and not user.is_staff and not user.producer %}
             <a class="navbar-brand d-flex align-items-center" href="{% url 'core:home' %}">
+            {% elif user.is_staff %}
+            <a class="navbar-brand d-flex align-items-center" href="{% url 'center:admin_dashboard' %}">
+            {% elif user.producer %}
+            <a class="navbar-brand d-flex align-items-center" href="{% url 'producer:dashboard' %}">
+            {% else %}
+            <a class="navbar-brand d-flex align-items-center" href="{% url 'center:dashboard' %}">
+            {% endif %}
                 <img src="{% static 'images/moldpark_logo.jpg' %}" alt="MoldPark Logo" 
                      class="me-2 brand-logo shadow-sm" 
                      style="width: 160px; height: 50px; object-fit: contain; border-radius: 8px;">
+                {% if not user.is_authenticated or not user.center and not user.is_staff and not user.producer %}
                 <span class="brand-text fw-bold fs-4 d-none d-sm-inline">MoldPark</span>
+                {% endif %}
             </a>
             
             <!-- Quick Actions for Mobile -->
@@ -125,12 +135,14 @@
                 </div>
                 
                 <ul class="navbar-nav me-auto">
+                    {% if not user.is_authenticated or not user.center and not user.is_staff and not user.producer %}
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'core:home' %}">Ana Sayfa</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'core:pricing' %}">Fiyatlandırma</a>
                     </li>
+                    {% endif %}
                     
                     {% if user.is_authenticated %}
                         {% if user.is_staff or user.is_superuser %}
@@ -157,7 +169,6 @@
                                     {% endif %}
                                 </a>
                             </li>
-
                         {% elif user.center %}
                             {% if not user.is_staff and not user.is_superuser %}
                             <li class="nav-item">
@@ -562,7 +573,7 @@
                     <ul class="list-unstyled">
                         <li class="mb-2"><a href="{% url 'core:home' %}" class="text-muted text-decoration-none hover-primary">Ana Sayfa</a></li>
                         <li class="mb-2"><a href="{% url 'core:pricing' %}" class="text-muted text-decoration-none hover-primary">Fiyatlandırma</a></li>
-                        <li class="mb-2"><a href="#features" class="text-muted text-decoration-none hover-primary">Özellikler</a></li>
+                        <li class="mb-2"><a href="{% url 'core:features' %}" class="text-muted text-decoration-none hover-primary">Özellikler</a></li>
                         <li class="mb-2"><a href="#register" class="text-muted text-decoration-none hover-primary">Kayıt Ol</a></li>
                     </ul>
                 </div>

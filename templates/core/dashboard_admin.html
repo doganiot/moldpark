@@ -718,6 +718,14 @@
                     <span class="badge bg-info ms-1">{{ stats.total_users }}</span>
                 </button>
             </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="subscriptions-tab" data-bs-toggle="tab" data-bs-target="#subscriptions" type="button" role="tab">
+                    <i class="fas fa-crown me-2"></i>Abonelik Yönetimi
+                    {% if stats.pending_requests > 0 %}
+                    <span class="badge bg-warning ms-1">{{ stats.pending_requests }}</span>
+                    {% endif %}
+                </button>
+            </li>
             {% if moldpark_producer %}
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="moldpark-orders-tab" data-bs-toggle="tab" data-bs-target="#moldpark-orders" type="button" role="tab">
@@ -1490,6 +1498,253 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- Abonelik Yönetimi Sekmesi -->
+                <div class="tab-pane fade" id="subscriptions" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="mb-0">
+                            <i class="fas fa-crown text-warning me-2"></i>Abonelik Yönetimi
+                        </h5>
+                        <div class="d-flex gap-2">
+                            <span class="badge bg-warning">{{ stats.pending_requests }} Bekleyen Talep</span>
+                            <span class="badge bg-success">{{ stats.active_subscriptions }} Aktif Abonelik</span>
+                        </div>
+                    </div>
+
+                    <!-- Abonelik İstatistikleri -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-body text-center">
+                                    <div class="h3 mb-2 text-primary">{{ stats.total_subscriptions }}</div>
+                                    <small class="text-muted">Toplam Abonelik</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-body text-center">
+                                    <div class="h3 mb-2 text-success">{{ stats.active_subscriptions }}</div>
+                                    <small class="text-muted">Aktif Abonelik</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-body text-center">
+                                    <div class="h3 mb-2 text-info">{{ stats.trial_users }}</div>
+                                    <small class="text-muted">Deneme Kullanıcıları</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-body text-center">
+                                    <div class="h3 mb-2 text-warning">${{ stats.monthly_revenue|floatformat:0 }}</div>
+                                    <small class="text-muted">Aylık Gelir</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bekleyen Abonelik Talepleri -->
+                    {% if pending_requests %}
+                    <div class="card border-warning mb-4">
+                        <div class="card-header bg-warning text-dark">
+                            <h6 class="mb-0">
+                                <i class="fas fa-clock me-2"></i>Bekleyen Abonelik Talepleri
+                                <span class="badge bg-dark ms-2">{{ pending_requests|length }}</span>
+                            </h6>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-striped mb-0">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Kullanıcı</th>
+                                            <th>Merkez</th>
+                                            <th>Talep Edilen Plan</th>
+                                            <th>Tarih</th>
+                                            <th>İşlemler</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for request in pending_requests %}
+                                        <tr>
+                                            <td>
+                                                <strong>{{ request.user.get_full_name|default:request.user.username }}</strong><br>
+                                                <small class="text-muted">{{ request.user.email }}</small>
+                                            </td>
+                                            <td>
+                                                {% if request.user.center %}{{ request.user.center.name }}{% else %}-{% endif %}
+                                            </td>
+                                            <td>
+                                                <div class="d-flex flex-column">
+                                                    <strong class="text-primary">{{ request.plan.name }}</strong>
+                                                    <small class="text-muted">${{ request.plan.price_usd }}/ay</small>
+                                                    <small class="badge bg-secondary w-fit">{{ request.plan.model_limit }} kalıp</small>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <small>{{ request.created_at|date:"d.m.Y H:i" }}</small>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <button class="btn btn-success" 
+                                                            onclick="approveSubscriptionRequest({{ request.id }}, '{{ request.user.get_full_name|default:request.user.username }}')"
+                                                            title="Onayla">
+                                                        <i class="fas fa-check"></i>
+                                                    </button>
+                                                    <button class="btn btn-danger" 
+                                                            onclick="rejectSubscriptionRequest({{ request.id }}, '{{ request.user.get_full_name|default:request.user.username }}')"
+                                                            title="Reddet">
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Şu anda bekleyen abonelik talebi bulunmuyor.
+                    </div>
+                    {% endif %}
+
+                    <!-- Plan Dağılımı -->
+                    <div class="card border-info mb-4">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="mb-0">
+                                <i class="fas fa-chart-pie me-2"></i>Plan Dağılımı
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                {% for plan_name, plan_data in subscription_by_plan.items %}
+                                <div class="col-md-6 col-lg-4 mb-3">
+                                    <div class="card border-0 bg-light">
+                                        <div class="card-body text-center">
+                                            <div class="h4 mb-2 
+                                                {% if plan_data.plan_type == 'trial' %}text-secondary
+                                                {% elif plan_data.plan_type == 'basic' %}text-info
+                                                {% elif plan_data.plan_type == 'standard' %}text-primary
+                                                {% elif plan_data.plan_type == 'premium' %}text-warning
+                                                {% else %}text-dark{% endif %}">
+                                                {{ plan_data.count }}
+                                            </div>
+                                            <div class="fw-bold">{{ plan_name }}</div>
+                                            <small class="text-muted">${{ plan_data.price }}/ay</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <div class="col-12">
+                                    <p class="text-muted text-center">Henüz aktif abonelik bulunmuyor.</p>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Deneme Paketi Uyarıları -->
+                    {% if trial_expired_users or trial_warning_users %}
+                    <div class="card border-danger mb-4">
+                        <div class="card-header bg-danger text-white">
+                            <h6 class="mb-0">
+                                <i class="fas fa-exclamation-triangle me-2"></i>Deneme Paketi Uyarıları
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            {% if trial_expired_users %}
+                            <div class="alert alert-danger">
+                                <strong>Deneme Paketi Tükenen Kullanıcılar:</strong>
+                                <ul class="mb-0 mt-2">
+                                    {% for item in trial_expired_users %}
+                                    <li>
+                                        <strong>{{ item.user.get_full_name|default:item.user.username }}</strong>
+                                        {% if item.center_name %} - {{ item.center_name.name }}{% endif %}
+                                        <small class="text-muted">({{ item.user.email }})</small>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            {% endif %}
+
+                            {% if trial_warning_users %}
+                            <div class="alert alert-warning">
+                                <strong>Deneme Paketi Az Kalan Kullanıcılar:</strong>
+                                <ul class="mb-0 mt-2">
+                                    {% for item in trial_warning_users %}
+                                    <li>
+                                        <strong>{{ item.user.get_full_name|default:item.user.username }}</strong>
+                                        {% if item.center_name %} - {{ item.center_name.name }}{% endif %}
+                                        <small class="text-muted">({{ item.remaining }} kalıp kaldı)</small>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Son İşlenen Talepler -->
+                    {% if recent_processed_requests %}
+                    <div class="card border-success">
+                        <div class="card-header bg-success text-white">
+                            <h6 class="mb-0">
+                                <i class="fas fa-history me-2"></i>Son 7 Günde İşlenen Talepler
+                            </h6>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-striped mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Kullanıcı</th>
+                                            <th>Plan</th>
+                                            <th>Durum</th>
+                                            <th>işlenen Tarih</th>
+                                            <th>İşleyen Admin</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for request in recent_processed_requests %}
+                                        <tr>
+                                            <td>
+                                                <strong>{{ request.user.get_full_name|default:request.user.username }}</strong><br>
+                                                <small class="text-muted">{{ request.user.email }}</small>
+                                            </td>
+                                            <td>{{ request.plan.name }}</td>
+                                            <td>
+                                                <span class="badge bg-{{ request.status|yesno:'success,danger' }}">
+                                                    {% if request.status == 'approved' %}Onaylandı
+                                                    {% elif request.status == 'rejected' %}Reddedildi
+                                                    {% else %}{{ request.status }}{% endif %}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <small>{{ request.processed_at|date:"d.m.Y H:i" }}</small>
+                                            </td>
+                                            <td>
+                                                {% if request.processed_by %}
+                                                    {{ request.processed_by.get_full_name|default:request.processed_by.username }}
+                                                {% else %}-{% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
@@ -1785,6 +2040,74 @@ document.getElementById('reassignNetworkForm').addEventListener('submit', functi
         });
     }
 });
+
+// === ABONELİK YÖNETİMİ FONKSİYONLARI ===
+
+// Abonelik talebini onayla
+function approveSubscriptionRequest(requestId, userName) {
+    if (confirm(`${userName} kullanıcısının abonelik talebini onaylamak istediğinizden emin misiniz?`)) {
+        const adminNotes = prompt('İsteğe bağlı admin notu girin:') || '';
+        
+        const formData = new FormData();
+        formData.append('csrfmiddlewaretoken', getCsrfToken());
+        formData.append('admin_notes', adminNotes);
+        
+        fetch(`/admin/subscription-requests/${requestId}/approve/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+        })
+        .then(response => {
+            if (response.ok) {
+                showToast(`${userName} kullanıcısının talebi onaylandı!`, 'success');
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                showToast('Talep onaylanırken bir hata oluştu.', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Approve error:', error);
+            showToast('Talep onaylanırken bir hata oluştu: ' + error.message, 'error');
+        });
+    }
+}
+
+// Abonelik talebini reddet
+function rejectSubscriptionRequest(requestId, userName) {
+    if (confirm(`${userName} kullanıcısının abonelik talebini reddetmek istediğinizden emin misiniz?`)) {
+        const adminNotes = prompt('Ret nedeni girin:', 'Talep reddedildi.') || 'Talep reddedildi.';
+        
+        const formData = new FormData();
+        formData.append('csrfmiddlewaretoken', getCsrfToken());
+        formData.append('admin_notes', adminNotes);
+        
+        fetch(`/admin/subscription-requests/${requestId}/reject/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+        })
+        .then(response => {
+            if (response.ok) {
+                showToast(`${userName} kullanıcısının talebi reddedildi.`, 'warning');
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                showToast('Talep reddedilirken bir hata oluştu.', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Reject error:', error);
+            showToast('Talep reddedilirken bir hata oluştu: ' + error.message, 'error');
+        });
+    }
+}
 </script>
 
 {% endblock %} 
