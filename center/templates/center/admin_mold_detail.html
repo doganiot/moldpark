@@ -436,28 +436,28 @@
                                         <h6 class="mb-0">Değerlendirme {{ forloop.counter }}</h6>
                                         <small class="text-muted">{{ evaluation.created_at|date:"d.m.Y H:i" }}</small>
                                     </div>
-                                    <div class="row text-center mb-2">
-                                        <div class="col-3">
-                                            <strong>{{ evaluation.quality_rating }}</strong>
-                                            <br>
-                                            <small class="text-muted">Kalite</small>
-                                        </div>
-                                        <div class="col-3">
-                                            <strong>{{ evaluation.speed_rating }}</strong>
-                                            <br>
-                                            <small class="text-muted">Hız</small>
-                                        </div>
-                                        <div class="col-3">
-                                            <strong>{{ evaluation.communication_rating }}</strong>
-                                            <br>
-                                            <small class="text-muted">İletişim</small>
-                                        </div>
-                                        <div class="col-3">
-                                            <strong>{{ evaluation.overall_satisfaction }}</strong>
-                                            <br>
-                                            <small class="text-muted">Genel</small>
-                                        </div>
-                                    </div>
+                                                                         <div class="row text-center mb-2">
+                                         <div class="col-3">
+                                             <strong class="text-{{ evaluation.get_quality_color }}">{{ evaluation.quality_score }}</strong>
+                                             <br>
+                                             <small class="text-muted">Kalite</small>
+                                         </div>
+                                         <div class="col-3">
+                                             <strong class="text-{{ evaluation.get_speed_color }}">{{ evaluation.speed_score }}</strong>
+                                             <br>
+                                             <small class="text-muted">Hız</small>
+                                         </div>
+                                         <div class="col-3">
+                                             <strong>{{ evaluation.communication_score|default:"—" }}</strong>
+                                             <br>
+                                             <small class="text-muted">İletişim</small>
+                                         </div>
+                                         <div class="col-3">
+                                             <strong>{{ evaluation.overall_satisfaction }}</strong>
+                                             <br>
+                                             <small class="text-muted">Genel</small>
+                                         </div>
+                                     </div>
                                     {% if evaluation.feedback %}
                                     <div class="mt-2">
                                         <small><strong>Geri Bildirim:</strong></small>

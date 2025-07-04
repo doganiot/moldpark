@@ -367,19 +367,19 @@ class MoldEvaluationForm(forms.ModelForm):
         ]
         widgets = {
             'quality_score': forms.Select(
-                choices=[(i, f'{i}/10') for i in range(1, 11)],
+                choices=[(i, str(i)) for i in range(10, 0, -1)],
                 attrs={'class': 'form-select'}
             ),
             'speed_score': forms.Select(
-                choices=[(i, f'{i}/10') for i in range(1, 11)],
+                choices=[(i, str(i)) for i in range(10, 0, -1)],
                 attrs={'class': 'form-select'}
             ),
             'communication_score': forms.Select(
-                choices=[('', 'Değerlendirme Yok')] + [(i, f'{i}/10') for i in range(1, 11)],
+                choices=[('', 'Değerlendirme Yok')] + [(i, str(i)) for i in range(10, 0, -1)],
                 attrs={'class': 'form-select'}
             ),
             'packaging_score': forms.Select(
-                choices=[('', 'Değerlendirme Yok')] + [(i, f'{i}/10') for i in range(1, 11)],
+                choices=[('', 'Değerlendirme Yok')] + [(i, str(i)) for i in range(10, 0, -1)],
                 attrs={'class': 'form-select'}
             ),
             'positive_feedback': forms.Textarea(attrs={
@@ -398,7 +398,7 @@ class MoldEvaluationForm(forms.ModelForm):
                 'placeholder': 'Önerilerinizi yazınız...'
             }),
             'overall_satisfaction': forms.Select(
-                choices=[(i, f'{i}/10') for i in range(1, 11)],
+                choices=[(i, str(i)) for i in range(10, 0, -1)],
                 attrs={'class': 'form-select'}
             ),
             'would_recommend': forms.Select(
