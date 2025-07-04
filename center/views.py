@@ -531,16 +531,74 @@ def admin_mold_list(request):
 
 @staff_member_required
 def admin_mold_detail(request, pk):
-    from mold.models import EarMold
+    """Admin için kapsamlı kalıp detayları - tüm geçmiş ve dosyalar"""
+    from mold.models import EarMold, RevisionRequest, MoldEvaluation
+    from producer.models import ProducerOrder
     from mold.forms import ModeledMoldForm
+    
     mold = get_object_or_404(EarMold, pk=pk)
+    
+    # Sipariş geçmişi - tüm üretici siparişleri
+    producer_orders = ProducerOrder.objects.filter(
+        ear_mold=mold
+    ).select_related('producer').order_by('-created_at')
+    
+    # İşlenmiş modeller - indirilebilir dosyalar
+    modeled_files = mold.modeled_files.all().order_by('-created_at')
+    
+    # Revizyon talepleri
+    revision_requests = RevisionRequest.objects.filter(
+        modeled_mold__ear_mold=mold
+    ).select_related('modeled_mold').order_by('-created_at')
+    
+    # Kalıp değerlendirmeleri
+    evaluations = MoldEvaluation.objects.filter(
+        ear_mold=mold
+    ).order_by('-created_at')
+    
+    # Üretici ağ bilgisi
+    active_network = mold.center.producer_networks.filter(status='active').first()
+    
+    # İstatistikler
+    stats = {
+        'total_orders': producer_orders.count(),
+        'completed_orders': producer_orders.filter(status='delivered').count(),
+        'total_files': modeled_files.count(),
+        'approved_files': modeled_files.filter(status='approved').count(),
+        'total_revisions': revision_requests.count(),
+        'pending_revisions': revision_requests.filter(status__in=['pending', 'in_progress']).count(),
+        'total_evaluations': evaluations.count(),
+    }
+    
+    # Dosya boyutları hesaplama
+    total_scan_size = 0
+    total_model_size = 0
+    
+    if mold.scan_file and hasattr(mold.scan_file, 'size'):
+        total_scan_size = mold.scan_file.size
+    
+    for model in modeled_files:
+        if model.file and hasattr(model.file, 'size'):
+            total_model_size += model.file.size
+    
     status_choices = EarMold._meta.get_field('status').choices
     model_form = ModeledMoldForm()
-    return render(request, 'center/admin_mold_detail.html', {
-        'mold': mold, 
+    
+    context = {
+        'mold': mold,
+        'producer_orders': producer_orders,
+        'modeled_files': modeled_files,
+        'revision_requests': revision_requests,
+        'evaluations': evaluations,
+        'active_network': active_network,
+        'stats': stats,
+        'total_scan_size': total_scan_size,
+        'total_model_size': total_model_size,
         'status_choices': status_choices,
-        'model_form': model_form
-    })
+        'model_form': model_form,
+    }
+    
+    return render(request, 'center/admin_mold_detail.html', context)
 
 @staff_member_required
 def admin_mold_update_status(request, pk):
