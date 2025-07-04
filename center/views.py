@@ -26,6 +26,7 @@ def dashboard(request):
         messages.error(request, "Profiliniz eksik. Lütfen merkez bilgilerinizi tamamlayın.")
         return redirect('center:profile')
     
+
     # TEMEL İSTATİSTİKLER
     molds = center.molds.all()
     total_molds = molds.count()
@@ -79,6 +80,7 @@ def dashboard(request):
     usage_offset = 327
     has_active_subscription = False
     
+
     try:
         subscription = UserSubscription.objects.get(user=request.user, status='active')
         has_active_subscription = True
@@ -148,6 +150,7 @@ def dashboard(request):
                 })
         
     except UserSubscription.DoesNotExist:
+
         used_molds = 0
         remaining_limit = 0
         monthly_limit = 0
@@ -168,6 +171,7 @@ def dashboard(request):
             status='pending'
         ).select_related('plan').order_by('-created_at')[:3]
         
+
         if subscription_requests.exists():
             subscription_alerts.append({
                 'type': 'info',
@@ -178,6 +182,7 @@ def dashboard(request):
                 'action_url': '/subscription-requests/'
             })
     
+
     # ÜRETİCİ AĞ BİLGİLERİ
     producer_networks = ProducerNetwork.objects.filter(
         center=center, 

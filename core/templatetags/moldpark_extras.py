@@ -587,4 +587,12 @@ def div(value, arg):
             return 0
         return float(value) / float(arg)
     except (ValueError, TypeError):
-        return 0 
+        return 0
+
+
+@register.filter
+def add_class(field, css_class):
+    """Form field'ına CSS class ekler"""
+    if hasattr(field, 'as_widget'):
+        return field.as_widget(attrs={'class': css_class})
+    return field 

@@ -1,6 +1,10 @@
 {% extends 'base.html' %}
-{% load crispy_forms_tags %}
+{% load static %}
 {% load moldpark_extras %}
+
+{% block title %}
+{% if mold %}Kalıp Düzenle{% else %}Yeni Kalıp Oluştur{% endif %} - MoldPark
+{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -14,240 +18,304 @@
     --gray-100: #f3f4f6;
     --gray-200: #e5e7eb;
     --gray-300: #d1d5db;
-    --gray-400: #9ca3af;
     --gray-500: #6b7280;
-    --gray-600: #4b5563;
     --gray-700: #374151;
     --gray-800: #1f2937;
 }
 
 .form-container {
-    max-width: 800px;
+    max-width: 900px;
     margin: 0 auto;
     padding: 2rem 1rem;
 }
 
 .form-header {
     text-align: center;
-    margin-bottom: 2rem;
+    margin-bottom: 3rem;
 }
 
 .form-title {
-    font-size: 1.5rem;
-    font-weight: 600;
+    font-size: 2rem;
+    font-weight: 700;
     color: var(--gray-800);
     margin-bottom: 0.5rem;
 }
 
 .form-subtitle {
     color: var(--gray-500);
-    font-size: 0.875rem;
+    font-size: 1rem;
 }
 
 .form-card {
     background: white;
-    border-radius: 12px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border-radius: 16px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     overflow: hidden;
-    margin-bottom: 1.5rem;
+    margin-bottom: 2rem;
+    border: 1px solid var(--gray-200);
 }
 
 .card-header {
-    padding: 1rem;
-    border-bottom: 1px solid var(--gray-200);
     background: var(--gray-50);
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--gray-200);
 }
 
 .card-header h3 {
-    font-size: 1rem;
+    font-size: 1.25rem;
     font-weight: 600;
     color: var(--gray-700);
     margin: 0;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.75rem;
 }
 
 .card-body {
-    padding: 1.5rem;
+    padding: 2rem;
 }
 
-.form-grid {
+.form-section {
+    margin-bottom: 2rem;
+}
+
+.form-row {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
 }
 
 .form-group {
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
 }
 
 .form-group label {
     display: block;
     font-size: 0.875rem;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--gray-700);
     margin-bottom: 0.5rem;
 }
 
 .form-control {
     width: 100%;
-    padding: 0.625rem;
-    border: 1px solid var(--gray-300);
-    border-radius: 6px;
+    padding: 0.75rem;
+    border: 2px solid var(--gray-300);
+    border-radius: 8px;
     font-size: 0.875rem;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
+    background-color: white;
 }
 
 .form-control:focus {
     border-color: var(--primary);
-    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
     outline: none;
 }
 
-.select-group {
-    position: relative;
+.form-control:disabled {
+    background-color: var(--gray-50);
+    color: var(--gray-500);
+    cursor: not-allowed;
 }
 
-.select-group::after {
-    content: '';
+.form-select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem;
+}
+
+/* Radio button styles */
+.radio-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.radio-option {
+    position: relative;
+    border: 2px solid var(--gray-300);
+    border-radius: 12px;
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+
+.radio-option:hover {
+    border-color: var(--primary-light);
+    background: var(--gray-50);
+}
+
+.radio-option.selected {
+    border-color: var(--primary);
+    background: rgba(79, 70, 229, 0.05);
+}
+
+.radio-option input[type="radio"] {
     position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
+    opacity: 0;
     width: 0;
     height: 0;
-    border-left: 4px solid transparent;
-    border-right: 4px solid transparent;
-    border-top: 4px solid var(--gray-500);
-    pointer-events: none;
 }
 
-.order-type-selector {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-}
-
-.order-type-option {
-    border: 1px solid var(--gray-200);
-    border-radius: 8px;
-    padding: 1rem;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.order-type-option:hover {
-    border-color: var(--primary-light);
-    background: var(--gray-50);
-}
-
-.order-type-option.selected {
-    border-color: var(--primary);
-    background: rgba(79, 70, 229, 0.05);
-}
-
-.order-type-option i {
-    font-size: 1.5rem;
+.radio-option-icon {
+    font-size: 2rem;
     color: var(--primary);
     margin-bottom: 0.5rem;
 }
 
-.ear-side-selector {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
-    margin-bottom: 1.5rem;
+.radio-option-title {
+    font-weight: 600;
+    color: var(--gray-800);
+    margin-bottom: 0.25rem;
 }
 
-.ear-side-option {
-    border: 1px solid var(--gray-200);
-    border-radius: 8px;
-    padding: 1rem;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.2s;
+.radio-option-desc {
+    font-size: 0.875rem;
+    color: var(--gray-500);
 }
 
-.ear-side-option:hover {
-    border-color: var(--primary-light);
-    background: var(--gray-50);
-}
-
-.ear-side-option.selected {
-    border-color: var(--primary);
-    background: rgba(79, 70, 229, 0.05);
-}
-
-.ear-side-option i {
-    font-size: 1.25rem;
-    color: var(--primary);
-    margin-bottom: 0.5rem;
-}
-
+/* File upload styles */
 .file-upload-area {
     border: 2px dashed var(--gray-300);
-    border-radius: 8px;
-    padding: 2rem 1rem;
+    border-radius: 12px;
+    padding: 3rem 2rem;
     text-align: center;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
+    background: var(--gray-50);
 }
 
 .file-upload-area:hover {
     border-color: var(--primary);
-    background: var(--gray-50);
+    background: rgba(79, 70, 229, 0.05);
+}
+
+.file-upload-area.drag-over {
+    border-color: var(--primary);
+    background: rgba(79, 70, 229, 0.1);
 }
 
 .file-upload-icon {
-    font-size: 2rem;
+    font-size: 3rem;
     color: var(--primary);
     margin-bottom: 1rem;
 }
 
-.btn-submit {
-    background: var(--primary);
-    color: white;
-    border: none;
-    border-radius: 6px;
-    padding: 0.75rem 1.5rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
+.file-upload-text {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--gray-700);
+    margin-bottom: 0.5rem;
 }
 
-.btn-submit:hover {
+.file-upload-hint {
+    font-size: 0.875rem;
+    color: var(--gray-500);
+}
+
+.file-info {
+    background: var(--success);
+    color: white;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-top: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+/* Action buttons */
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--gray-200);
+}
+
+.btn {
+    padding: 0.75rem 2rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: white;
+}
+
+.btn-primary:hover {
     background: var(--primary-light);
     transform: translateY(-1px);
 }
 
-.btn-cancel {
-    background: var(--gray-100);
+.btn-secondary {
+    background: white;
     color: var(--gray-700);
-    border: 1px solid var(--gray-300);
-    border-radius: 6px;
-    padding: 0.75rem 1.5rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
+    border: 2px solid var(--gray-300);
 }
 
-.btn-cancel:hover {
-    background: var(--gray-200);
+.btn-secondary:hover {
+    background: var(--gray-50);
+    border-color: var(--gray-400);
 }
 
-@media (max-width: 640px) {
-    .form-grid {
+/* Alert styles */
+.alert {
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    border: 1px solid;
+}
+
+.alert-warning {
+    background: #fef3cd;
+    border-color: #facc15;
+    color: #92400e;
+}
+
+.alert-info {
+    background: #dbeafe;
+    border-color: #60a5fa;
+    color: #1e40af;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .form-container {
+        padding: 1rem;
+    }
+    
+    .form-row {
         grid-template-columns: 1fr;
     }
     
-    .order-type-selector,
-    .ear-side-selector {
+    .radio-group {
         grid-template-columns: 1fr;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .btn {
+        justify-content: center;
     }
 }
 </style>
@@ -257,318 +325,429 @@
 <div class="form-container">
     <!-- Form Header -->
     <div class="form-header">
-        <h2 class="form-title">
-            {% if object %}Kalıp Düzenle{% else %}Yeni Kalıp Oluştur{% endif %}
-        </h2>
-        <p class="form-subtitle">
-            {% if object %}
-                {{ object.patient_name }} {{ object.patient_surname }} için kalıp düzenleme
+        <h1 class="form-title">
+            {% if mold %}
+                Kalıp Düzenle
             {% else %}
-                Kalıp siparişi oluşturmak için formu doldurun
+                Yeni Kalıp Oluştur
+            {% endif %}
+        </h1>
+        <p class="form-subtitle">
+            {% if mold %}
+                {{ mold.patient_name }} {{ mold.patient_surname }} için kalıp düzenleme
+            {% else %}
+                Kalıp siparişi oluşturmak için aşağıdaki formu doldurun
             {% endif %}
         </p>
     </div>
 
-    <form method="post" enctype="multipart/form-data">
+    <!-- Network warning -->
+    {% if not active_networks %}
+    <div class="alert alert-warning">
+        <div class="d-flex align-items-center">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <div>
+                <strong>Uyarı:</strong> Kalıp siparişi verebilmek için önce bir üretici ağına katılmanız gerekiyor.
+                <a href="{% url 'center:network_management' %}" class="ms-2">Üretici Ağları</a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Subscription info -->
+    {% if subscription %}
+    <div class="alert alert-info">
+        <div class="d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-crown me-2"></i>
+                <div>
+                    <strong>{{ subscription.plan.name }}</strong> - 
+                    {{ remaining_limit }} kalıp hakkınız kaldı
+                </div>
+            </div>
+            <a href="{% url 'core:subscription_dashboard' %}" class="btn btn-sm btn-outline-primary">
+                Abonelik Yönet
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data" id="moldForm">
         {% csrf_token %}
 
-        <!-- Sipariş Türü -->
+        <!-- 1. Sipariş Türü -->
         <div class="form-card">
             <div class="card-header">
-                <h3><i class="fas fa-cube me-2"></i>Sipariş Türü</h3>
+                <h3>
+                    <i class="fas fa-cube"></i>
+                    Sipariş Türü
+                </h3>
             </div>
             <div class="card-body">
-                <div class="order-type-selector">
-                    <div class="order-type-option {% if not object.is_physical_shipment %}selected{% endif %}" data-type="digital">
-                        <i class="fas fa-cloud-upload-alt"></i>
-                        <h4 class="h6 mb-1">Dijital Tarama</h4>
-                        <p class="small text-muted mb-0">STL/OBJ/PLY dosyası</p>
+                <div class="radio-group">
+                    <div class="radio-option" data-type="digital" id="option-digital">
+                        <input type="radio" name="order_type" value="digital" 
+                               {% if not mold or not mold.is_physical_shipment %}checked{% endif %}>
+                        <div class="radio-option-icon">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                        </div>
+                        <div class="radio-option-title">Dijital Tarama</div>
+                        <div class="radio-option-desc">STL/OBJ/PLY dosyası yükle</div>
                     </div>
-                    <div class="order-type-option {% if object.is_physical_shipment %}selected{% endif %}" data-type="physical">
-                        <i class="fas fa-box"></i>
-                        <h4 class="h6 mb-1">Fiziksel Kalıp</h4>
-                        <p class="small text-muted mb-0">Kargo ile gönderim</p>
-                    </div>
-                </div>
-                <div style="display: none;">{{ form.order_type }}</div>
-            </div>
-        </div>
-
-        <!-- Hasta Bilgileri -->
-        <div class="form-card">
-            <div class="card-header">
-                <h3><i class="fas fa-user me-2"></i>Hasta Bilgileri</h3>
-            </div>
-            <div class="card-body">
-                <div class="form-grid">
-                    <div class="form-group">
-                        {{ form.patient_name|as_crispy_field }}
-                    </div>
-                    <div class="form-group">
-                        {{ form.patient_surname|as_crispy_field }}
-                    </div>
-                    <div class="form-group">
-                        {{ form.patient_age|as_crispy_field }}
-                    </div>
-                    <div class="form-group">
-                        {{ form.patient_gender|as_crispy_field }}
+                    <div class="radio-option" data-type="physical" id="option-physical">
+                        <input type="radio" name="order_type" value="physical"
+                               {% if mold and mold.is_physical_shipment %}checked{% endif %}>
+                        <div class="radio-option-icon">
+                            <i class="fas fa-box"></i>
+                        </div>
+                        <div class="radio-option-title">Fiziksel Kalıp</div>
+                        <div class="radio-option-desc">Kargo ile gönderim</div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Kalıp Özellikleri -->
+        <!-- 2. Hasta Bilgileri -->
         <div class="form-card">
             <div class="card-header">
-                <h3><i class="fas fa-sliders-h me-2"></i>Kalıp Özellikleri</h3>
+                <h3>
+                    <i class="fas fa-user"></i>
+                    Hasta Bilgileri
+                </h3>
             </div>
             <div class="card-body">
-                <div class="ear-side-selector">
-                    <div class="ear-side-option {% if form.initial.ear_side == 'right' %}selected{% endif %}" data-side="right">
-                        <i class="fas fa-arrow-right"></i>
-                        <h4 class="h6 mb-0">Sağ Kulak</h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="{{ form.patient_name.id_for_label }}">{{ form.patient_name.label }}</label>
+                        {{ form.patient_name|add_class:"form-control" }}
                     </div>
-                    <div class="ear-side-option {% if form.initial.ear_side == 'left' %}selected{% endif %}" data-side="left">
-                        <i class="fas fa-arrow-left"></i>
-                        <h4 class="h6 mb-0">Sol Kulak</h4>
+                    <div class="form-group">
+                        <label for="{{ form.patient_surname.id_for_label }}">{{ form.patient_surname.label }}</label>
+                        {{ form.patient_surname|add_class:"form-control" }}
                     </div>
                 </div>
-                <div style="display: none;">{{ form.ear_side }}</div>
-                
-                <div class="form-grid">
+                <div class="form-row">
                     <div class="form-group">
-                        {{ form.mold_type|as_crispy_field }}
+                        <label for="{{ form.patient_age.id_for_label }}">{{ form.patient_age.label }}</label>
+                        {{ form.patient_age|add_class:"form-control" }}
                     </div>
                     <div class="form-group">
-                        {{ form.vent_diameter|as_crispy_field }}
+                        <label for="{{ form.patient_gender.id_for_label }}">{{ form.patient_gender.label }}</label>
+                        {{ form.patient_gender|add_class:"form-control form-select" }}
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Dosya Yükleme -->
-        <div id="digital-upload-section" class="form-card" {% if object.is_physical_shipment %}style="display: none;"{% endif %}>
+        <!-- 3. Kalıp Özellikleri -->
+        <div class="form-card">
             <div class="card-header">
-                <h3><i class="fas fa-file-upload me-2"></i>Tarama Dosyası</h3>
+                <h3>
+                    <i class="fas fa-sliders-h"></i>
+                    Kalıp Özellikleri
+                </h3>
             </div>
             <div class="card-body">
-                {% if object and object.scan_file %}
-                    <div class="alert alert-info mb-3">
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <div>
-                                <strong>Mevcut Dosya:</strong>
-                                {{ object.scan_file.name|cut:"scans/" }}
-                                <small class="text-muted">({{ object.scan_file.size|filesizeformat }})</small>
+                <!-- Kulak Yönü -->
+                <div class="form-section">
+                    <label>{{ form.ear_side.label }}</label>
+                    <div class="radio-group">
+                        <div class="radio-option" data-side="right" id="side-right">
+                            <input type="radio" name="ear_side" value="right"
+                                   {% if form.ear_side.value == 'right' %}checked{% endif %}>
+                            <div class="radio-option-icon">
+                                <i class="fas fa-arrow-right"></i>
                             </div>
+                            <div class="radio-option-title">Sağ Kulak</div>
+                        </div>
+                        <div class="radio-option" data-side="left" id="side-left">
+                            <input type="radio" name="ear_side" value="left"
+                                   {% if form.ear_side.value == 'left' or form.ear_side.value == None %}checked{% endif %}>
+                            <div class="radio-option-icon">
+                                <i class="fas fa-arrow-left"></i>
+                            </div>
+                            <div class="radio-option-title">Sol Kulak</div>
                         </div>
                     </div>
-                {% endif %}
-                
-                <div class="file-upload-area">
-                    <i class="fas fa-cloud-upload-alt file-upload-icon"></i>
-                    <h5 class="mb-2">Dosya Yükle</h5>
-                    <p class="text-muted small mb-0">
-                        Dosyayı sürükleyip bırakın veya seçmek için tıklayın<br>
-                        Desteklenen formatlar: STL, OBJ, PLY, ZIP, RAR (Maks. 100MB)
-                    </p>
-                    <div class="file-input-container" style="display: none;">
-                        {{ form.scan_file }}
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="{{ form.mold_type.id_for_label }}">{{ form.mold_type.label }}</label>
+                        {{ form.mold_type|add_class:"form-control form-select" }}
                     </div>
+                    <div class="form-group">
+                        <label for="{{ form.vent_diameter.id_for_label }}">{{ form.vent_diameter.label }}</label>
+                        {{ form.vent_diameter|add_class:"form-control" }}
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="{{ form.priority.id_for_label }}">{{ form.priority.label }}</label>
+                    {{ form.priority|add_class:"form-control form-select" }}
                 </div>
             </div>
         </div>
 
-        <!-- Notlar -->
-        <div class="form-card">
+                 <!-- 4. Dosya Yükleme (Sadece dijital için) -->
+         <div class="form-card" id="file-upload-section" style="display: {% if not mold or not mold.is_physical_shipment %}block{% else %}none{% endif %}">
             <div class="card-header">
-                <h3><i class="fas fa-sticky-note me-2"></i>Notlar</h3>
+                <h3>
+                    <i class="fas fa-file-upload"></i>
+                    Tarama Dosyası
+                </h3>
             </div>
             <div class="card-body">
-                <div class="form-group mb-3">
-                    {{ form.notes|as_crispy_field }}
+                {% if mold and mold.scan_file %}
+                <div class="file-info">
+                    <i class="fas fa-check-circle"></i>
+                    <div>
+                        <strong>Mevcut Dosya:</strong>
+                        {{ mold.scan_file.name|cut:"scans/" }}
+                        <small>({{ mold.scan_file.size|filesizeformat }})</small>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <div class="file-upload-area" id="fileUploadArea">
+                    <div class="file-upload-icon">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                    </div>
+                    <div class="file-upload-text">Dosya yüklemek için tıklayın</div>
+                    <div class="file-upload-hint">
+                        veya dosyayı buraya sürükleyip bırakın<br>
+                        <small>Desteklenen formatlar: STL, OBJ, PLY, ZIP, RAR (Maks. 100MB)</small>
+                    </div>
+                    {{ form.scan_file|add_class:"form-control" }}
+                    <style>
+                        #id_scan_file {
+                            display: none;
+                        }
+                    </style>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. Notlar ve Talimatlar -->
+        <div class="form-card">
+            <div class="card-header">
+                <h3>
+                    <i class="fas fa-sticky-note"></i>
+                    Notlar ve Talimatlar
+                </h3>
+            </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+                    {{ form.notes|add_class:"form-control" }}
                 </div>
                 <div class="form-group">
-                    {{ form.special_instructions|as_crispy_field }}
+                    <label for="{{ form.special_instructions.id_for_label }}">{{ form.special_instructions.label }}</label>
+                    {{ form.special_instructions|add_class:"form-control" }}
                 </div>
             </div>
         </div>
 
         <!-- Form Actions -->
-        <div class="text-end mt-4">
-            <a href="{% url 'mold:mold_list' %}" class="btn-cancel me-2">
-                <i class="fas fa-times me-1"></i>İptal
+        <div class="form-actions">
+            <a href="{% url 'mold:mold_list' %}" class="btn btn-secondary">
+                <i class="fas fa-times"></i>
+                İptal
             </a>
-            <button type="submit" class="btn-submit">
-                <i class="fas fa-save me-1"></i>
-                {% if object %}Güncelle{% else %}Oluştur{% endif %}
+            <button type="submit" class="btn btn-primary" id="submitBtn">
+                <i class="fas fa-save"></i>
+                {% if mold %}Güncelle{% else %}Oluştur{% endif %}
             </button>
         </div>
     </form>
 </div>
+{% endblock %}
 
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Order type selector
-    const orderTypeOptions = document.querySelectorAll('.order-type-option');
-    const orderTypeSelect = document.querySelector('select[name="order_type"]');
-    const digitalSection = document.getElementById('digital-upload-section');
+    // Form elementleri
+    const moldForm = document.getElementById('moldForm');
+    const orderTypeOptions = document.querySelectorAll('.radio-option[data-type]');
+    const earSideOptions = document.querySelectorAll('.radio-option[data-side]');
+    const fileUploadSection = document.getElementById('file-upload-section');
+    const fileUploadArea = document.getElementById('fileUploadArea');
+    const fileInput = document.querySelector('input[type="file"]');
+    const submitBtn = document.getElementById('submitBtn');
+
+    // Initialize form state
+    initializeFormState();
     
-    if (orderTypeSelect && orderTypeOptions.length > 0) {
-        // Set initial state
-        const initialType = orderTypeSelect.value;
-        orderTypeOptions.forEach(option => {
-            if (option.dataset.type === initialType) {
-                option.classList.add('selected');
-            }
-        });
-        
-        // Show/hide sections
-        if (digitalSection) {
-            digitalSection.style.display = initialType === 'digital' ? 'block' : 'none';
+    // Event listeners
+    setupOrderTypeToggle();
+    setupEarSideToggle();
+    setupFileUpload();
+    setupFormValidation();
+
+    function initializeFormState() {
+        // Order type initial state
+        const checkedOrderType = document.querySelector('input[name="order_type"]:checked');
+        if (checkedOrderType) {
+            updateOrderTypeUI(checkedOrderType.value);
         }
         
-        // Handle option clicks
+        // Ear side initial state
+        const checkedEarSide = document.querySelector('input[name="ear_side"]:checked');
+        if (checkedEarSide) {
+            updateEarSideUI(checkedEarSide.value);
+        }
+    }
+
+    function setupOrderTypeToggle() {
         orderTypeOptions.forEach(option => {
             option.addEventListener('click', function() {
                 const type = this.dataset.type;
+                const radioInput = this.querySelector('input[type="radio"]');
                 
-                // Update visual selection
-                orderTypeOptions.forEach(opt => opt.classList.remove('selected'));
-                this.classList.add('selected');
+                // Update radio selection
+                radioInput.checked = true;
                 
-                // Update select value
-                orderTypeSelect.value = type;
-                
-                // Show/hide sections
-                if (digitalSection) {
-                    digitalSection.style.display = type === 'digital' ? 'block' : 'none';
-                }
+                // Update UI
+                updateOrderTypeUI(type);
             });
         });
     }
-    
-    // Ear side selector
-    const earSideOptions = document.querySelectorAll('.ear-side-option');
-    const earSideSelect = document.querySelector('select[name="ear_side"]');
-    
-    if (earSideSelect && earSideOptions.length > 0) {
-        // Set initial selection
-        const initialSide = earSideSelect.value;
-        earSideOptions.forEach(option => {
-            if (option.dataset.side === initialSide) {
-                option.classList.add('selected');
-            }
-        });
-        
-        // Handle option clicks
+
+    function setupEarSideToggle() {
         earSideOptions.forEach(option => {
             option.addEventListener('click', function() {
                 const side = this.dataset.side;
+                const radioInput = this.querySelector('input[type="radio"]');
                 
-                // Update visual selection
-                earSideOptions.forEach(opt => opt.classList.remove('selected'));
-                this.classList.add('selected');
+                // Update radio selection
+                radioInput.checked = true;
                 
-                // Update select value
-                earSideSelect.value = side;
+                // Update UI
+                updateEarSideUI(side);
             });
         });
     }
-    
-    // File upload
-    const fileUploadArea = document.querySelector('.file-upload-area');
-    const fileInput = document.querySelector('input[type="file"]');
-    
-    if (fileUploadArea && fileInput) {
-        fileUploadArea.addEventListener('click', (e) => {
+
+    function updateOrderTypeUI(type) {
+        // Update visual selection
+        orderTypeOptions.forEach(opt => opt.classList.remove('selected'));
+        document.getElementById(`option-${type}`).classList.add('selected');
+        
+        // Show/hide file upload section
+        if (fileUploadSection) {
+            fileUploadSection.style.display = type === 'digital' ? 'block' : 'none';
+        }
+    }
+
+    function updateEarSideUI(side) {
+        // Update visual selection
+        earSideOptions.forEach(opt => opt.classList.remove('selected'));
+        document.getElementById(`side-${side}`).classList.add('selected');
+    }
+
+    function setupFileUpload() {
+        if (!fileUploadArea || !fileInput) return;
+
+        // Click to upload
+        fileUploadArea.addEventListener('click', function(e) {
             if (e.target !== fileInput) {
                 fileInput.click();
             }
         });
-        
-        fileUploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            fileUploadArea.classList.add('border-primary');
-        });
-        
-        fileUploadArea.addEventListener('dragleave', () => {
-            fileUploadArea.classList.remove('border-primary');
-        });
-        
-        fileUploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            fileUploadArea.classList.remove('border-primary');
-            
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                const file = files[0];
-                const ext = file.name.split('.').pop().toLowerCase();
-                const allowedExtensions = ['stl', 'obj', 'ply', 'zip', 'rar'];
-                
-                if (!allowedExtensions.includes(ext)) {
-                    alert('Sadece STL, OBJ, PLY, ZIP ve RAR dosyaları yüklenebilir.');
-                    return;
-                }
-                
-                if (file.size > 104857600) { // 100MB
-                    alert('Dosya boyutu 100MB\'dan büyük olamaz.');
-                    return;
-                }
-                
-                fileInput.files = files;
-                updateFileInfo(file);
-            }
-        });
-        
+
+        // Drag and drop
+        fileUploadArea.addEventListener('dragover', handleDragOver);
+        fileUploadArea.addEventListener('dragleave', handleDragLeave);
+        fileUploadArea.addEventListener('drop', handleDrop);
+
+        // File input change
         fileInput.addEventListener('change', function() {
             if (this.files.length > 0) {
-                const file = this.files[0];
-                const ext = file.name.split('.').pop().toLowerCase();
-                const allowedExtensions = ['stl', 'obj', 'ply', 'zip', 'rar'];
-                
-                if (!allowedExtensions.includes(ext)) {
-                    alert('Sadece STL, OBJ, PLY, ZIP ve RAR dosyaları yüklenebilir.');
-                    this.value = '';
-                    return;
-                }
-                
-                if (file.size > 104857600) { // 100MB
-                    alert('Dosya boyutu 100MB\'dan büyük olamaz.');
-                    this.value = '';
-                    return;
-                }
-                
-                updateFileInfo(file);
+                handleFileSelect(this.files[0]);
             }
         });
+    }
+
+    function handleDragOver(e) {
+        e.preventDefault();
+        fileUploadArea.classList.add('drag-over');
+    }
+
+    function handleDragLeave(e) {
+        e.preventDefault();
+        fileUploadArea.classList.remove('drag-over');
+    }
+
+    function handleDrop(e) {
+        e.preventDefault();
+        fileUploadArea.classList.remove('drag-over');
         
-        function updateFileInfo(file) {
-            const fileName = file.name;
-            const fileSize = (file.size / 1024 / 1024).toFixed(2);
-            
-            const fileInfo = document.createElement('div');
-            fileInfo.className = 'alert alert-success mt-3 mb-0';
-            fileInfo.innerHTML = `
-                <div class="d-flex align-items-center">
-                    <i class="fas fa-check-circle me-2"></i>
-                    <div>
-                        <strong>${fileName}</strong>
-                        <small class="text-muted d-block">${fileSize} MB</small>
-                    </div>
-                </div>
-            `;
-            
-            const existingInfo = fileUploadArea.querySelector('.alert');
-            if (existingInfo) {
-                existingInfo.remove();
-            }
-            
-            fileUploadArea.appendChild(fileInfo);
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            handleFileSelect(files[0]);
+            fileInput.files = files;
         }
+    }
+
+    function handleFileSelect(file) {
+        // Validate file
+        const allowedExtensions = ['stl', 'obj', 'ply', 'zip', 'rar'];
+        const fileExt = file.name.split('.').pop().toLowerCase();
+        const maxSize = 100 * 1024 * 1024; // 100MB
+
+        if (!allowedExtensions.includes(fileExt)) {
+            alert('Sadece STL, OBJ, PLY, ZIP ve RAR dosyaları yüklenebilir.');
+            return;
+        }
+
+        if (file.size > maxSize) {
+            alert('Dosya boyutu 100MB\'dan büyük olamaz.');
+            return;
+        }
+
+        // Show file info
+        showFileInfo(file);
+    }
+
+    function showFileInfo(file) {
+        const fileSize = (file.size / 1024 / 1024).toFixed(2);
+        
+        // Remove existing file info
+        const existingInfo = fileUploadArea.querySelector('.file-info');
+        if (existingInfo) {
+            existingInfo.remove();
+        }
+
+        // Create file info element
+        const fileInfo = document.createElement('div');
+        fileInfo.className = 'file-info';
+        fileInfo.innerHTML = `
+            <i class="fas fa-check-circle"></i>
+            <div>
+                <strong>${file.name}</strong>
+                <small>(${fileSize} MB)</small>
+            </div>
+        `;
+
+        fileUploadArea.appendChild(fileInfo);
+    }
+
+    function setupFormValidation() {
+        moldForm.addEventListener('submit', function(e) {
+            const orderType = document.querySelector('input[name="order_type"]:checked')?.value;
+            const fileInput = document.querySelector('input[type="file"]');
+            
+            if (orderType === 'digital' && (!fileInput.files || fileInput.files.length === 0)) {
+                e.preventDefault();
+                alert('Dijital tarama türü için dosya yüklenmesi zorunludur.');
+                return false;
+            }
+
+            // Disable submit button to prevent double submission
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> İşleniyor...';
+        });
     }
 });
 </script>
-{% endblock %}
 {% endblock %}

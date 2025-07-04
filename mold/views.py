@@ -12,613 +12,747 @@ from center.decorators import center_required, subscription_required
 from django.contrib.auth.decorators import permission_required
 from producer.models import ProducerNetwork, ProducerOrder
 import uuid
+import logging
+
+logger = logging.getLogger(__name__)
 
 @login_required
 @center_required
 def mold_list(request):
-    molds = request.user.center.molds.all()
-    return render(request, 'mold/mold_list.html', {'molds': molds})
+    """Kalıp listesi görünümü"""
+    try:
+        center = request.user.center
+        molds = center.molds.all().order_by('-created_at')
+        
+        # İstatistikler
+        stats = {
+            'total': molds.count(),
+            'waiting': molds.filter(status='waiting').count(),
+            'processing': molds.filter(status='processing').count(),
+            'completed': molds.filter(status='completed').count(),
+            'delivered': molds.filter(status='delivered').count(),
+        }
+        
+        return render(request, 'mold/mold_list.html', {
+            'molds': molds,
+            'stats': stats
+        })
+    except Exception as e:
+        logger.error(f"Mold list error: {e}")
+        messages.error(request, 'Kalıp listesi yüklenirken bir hata oluştu.')
+        return redirect('center:dashboard')
 
+@login_required
+@center_required
 @subscription_required
 def mold_create(request):
-    center = request.user.center
-    subscription = request.user.subscription
-    
-    # Üretici ağ kontrolü
-    active_networks = ProducerNetwork.objects.filter(
-        center=center,
-        status='active'
-    )
-    
-    if not active_networks.exists():
-        messages.error(request, 
-            '🏭 Kalıp siparişi verebilmek için bir üretici ağına katılmanız gerekiyor.')
-        return redirect('center:network_management')
-    
-    if request.method == 'POST':
-        form = EarMoldForm(request.POST, request.FILES, user=request.user)
+    """Yeni kalıp oluşturma - Tamamen yeniden yazıldı"""
+    try:
+        center = request.user.center
         
-        if form.is_valid():
-            # ABONELİK KOTASI KULLAN
-            try:
-                if not subscription.can_create_model():
-                    messages.error(request, 
-                        '❌ Kalıp kotanız doldu. Lütfen aboneliğinizi kontrol edin.')
-                    return redirect('core:subscription_dashboard')
-                
-                subscription.use_model_quota()
-            except Exception as e:
+        # Abonelik kontrolü
+        try:
+            subscription = request.user.subscription
+            if not subscription.can_create_model():
                 messages.error(request, 
-                    '⚠️ Kalıp kotası kullanılırken hata oluştu. Lütfen tekrar deneyin.')
-                return redirect('mold:mold_list')
+                    '❌ Kalıp kotanız doldu. Lütfen aboneliğinizi kontrol edin.')
+                return redirect('core:subscription_dashboard')
+        except Exception as e:
+            logger.error(f"Subscription check error: {e}")
+            messages.error(request, 
+                '⚠️ Abonelik bilgileriniz kontrol edilemiyor. Lütfen tekrar deneyin.')
+            return redirect('core:subscription_dashboard')
+        
+        # Üretici ağ kontrolü
+        active_networks = ProducerNetwork.objects.filter(
+            center=center,
+            status='active'
+        )
+        
+        if not active_networks.exists():
+            messages.error(request, 
+                '🏭 Kalıp siparişi verebilmek için bir üretici ağına katılmanız gerekiyor.')
+            return redirect('center:network_management')
+        
+        if request.method == 'POST':
+            form = EarMoldForm(request.POST, request.FILES, user=request.user)
             
-            mold = form.save(commit=False)
-            mold.center = center
-            mold.save()
-            
-            # Deneme paketi tükenme uyarısı
-            remaining_models = subscription.get_remaining_models()
-            if subscription.plan.plan_type == 'trial' and remaining_models <= 1:
-                if remaining_models == 0:
-                    messages.warning(request, 
-                        '🎯 Deneme paketiniz tükendi! '
-                        'Daha fazla kalıp oluşturmak için bir abonelik planı seçin.')
-                else:
-                    messages.info(request, 
-                        f'📊 Deneme paketinizde {remaining_models} kalıp hakkınız kaldı. '
-                        f'Planlara göz atmayı unutmayın!')
-            
-            # ÜRETİCİ SİPARİŞİ OTOMATIK OLUŞTUR
-            try:
-                # Aktif ağlardan ilkini seç (gelecekte kullanıcı seçebilir)
-                selected_network = active_networks.first()
-                producer = selected_network.producer
-                
-                # Sipariş oluştur
-                order = ProducerOrder.objects.create(
-                    producer=producer,
-                    center=center,
-                    ear_mold=mold,
-                    order_number=f'PRD-{uuid.uuid4().hex[:8].upper()}',
-                    status='received',
-                    priority=form.cleaned_data.get('priority', 'normal'),
-                    producer_notes=form.cleaned_data.get('special_instructions', ''),
-                    estimated_delivery=timezone.now() + timezone.timedelta(
-                        days=7 if form.cleaned_data.get('priority') == 'normal' else 
-                             4 if form.cleaned_data.get('priority') == 'high' else 2
+            if form.is_valid():
+                try:
+                    # Kalıbı oluştur
+                    mold = form.save()
+                    
+                    # Abonelik kotasını kullan
+                    subscription.use_model_quota()
+                    
+                    # Üretici seç (şimdilik ilk aktif ağ)
+                    selected_network = active_networks.first()
+                    producer = selected_network.producer
+                    
+                    # Sipariş oluştur
+                    order = ProducerOrder.objects.create(
+                        producer=producer,
+                        center=center,
+                        ear_mold=mold,
+                        order_number=f'PRD-{uuid.uuid4().hex[:8].upper()}',
+                        status='received',
+                        priority=mold.priority,
+                        producer_notes=mold.special_instructions,
+                        estimated_delivery=timezone.now() + timezone.timedelta(
+                            days=7 if mold.priority == 'normal' else 
+                                 4 if mold.priority == 'high' else 2
+                        )
                     )
-                )
-                
-                # Kalıp durumunu güncelle
-                mold.status = 'processing'
-                mold.save()
-                
-                # ÜRETİCİYE BASİT BİLDİRİM GÖNDER
-                send_order_notification(
-                    producer.user,
-                    'Yeni Kalıp Siparişi Aldınız',
-                    f'{center.name} merkezinden {mold.patient_name} {mold.patient_surname} hastası için {mold.get_mold_type_display()} kalıbı siparişi aldınız. Sipariş No: {order.order_number}',
-                    related_url=f'/producer/orders/{order.id}/',
-                    order_id=order.id
-                )
-                
-                # MERKEZE BAŞARI BİLDİRİMİ
-                send_success_notification(
-                    request.user,
-                    'Kalıp Siparişi Başarıyla Oluşturuldu',
-                    f'Kalıbınız {producer.company_name} firmasına gönderildi. Sipariş takip numarası: {order.order_number}. Tahmini teslimat: {order.estimated_delivery.strftime("%d.%m.%Y")}',
-                    related_url=f'/mold/{mold.id}/'
-                )
-                
-                messages.success(request, 
-                    f'✅ Kalıp başarıyla oluşturuldu ve {producer.company_name} firmasına sipariş gönderildi. '
-                    f'Sipariş No: {order.order_number}'
-                )
-                
-            except Exception as e:
-                # Sipariş oluşturulamazsa kalıbı beklemede bırak
-                mold.status = 'waiting'
-                mold.save()
-                messages.warning(request, 
-                    '⚠️ Kalıp oluşturuldu ancak sipariş oluşturulurken bir hata oluştu. '
-                    f'Lütfen yönetici ile iletişime geçin.')
-            
-            # Admin'lere basit bildirim
-            admin_users = User.objects.filter(is_superuser=True)
-            for admin in admin_users:
-                send_system_notification(
-                    admin,
-                    'Yeni Kalıp Siparişi Sisteme Eklendi',
-                    f'{request.user.center.name} merkezi tarafından {mold.patient_name} {mold.patient_surname} hastası için {mold.get_mold_type_display()} kalıbı oluşturuldu ve {producer.company_name} firmasına sipariş verildi.',
-                    related_url=f'/admin-panel/'
-                )
-            
-            return redirect('mold:mold_detail', pk=mold.pk)
+                    
+                    # Kalıp durumunu güncelle
+                    mold.status = 'processing'
+                    mold.save()
+                    
+                    # Bildirimler gönder
+                    try:
+                        # Üreticiye bildirim
+                        send_order_notification(
+                            producer.user,
+                            'Yeni Kalıp Siparişi',
+                            f'{center.name} merkezinden {mold.patient_name} {mold.patient_surname} '
+                            f'hastası için {mold.get_mold_type_display()} kalıbı siparişi aldınız. '
+                            f'Sipariş No: {order.order_number}',
+                            related_url=f'/producer/orders/{order.id}/',
+                            order_id=order.id
+                        )
+                        
+                        # Merkeze başarı bildirimi
+                        send_success_notification(
+                            request.user,
+                            'Kalıp Siparişi Oluşturuldu',
+                            f'Kalıbınız {producer.company_name} firmasına gönderildi. '
+                            f'Sipariş No: {order.order_number}. '
+                            f'Tahmini teslimat: {order.estimated_delivery.strftime("%d.%m.%Y")}',
+                            related_url=f'/mold/{mold.id}/'
+                        )
+                        
+                        # Admin'lere sistem bildirimi
+                        admin_users = User.objects.filter(is_superuser=True)
+                        for admin in admin_users:
+                            send_system_notification(
+                                admin,
+                                'Yeni Kalıp Siparişi',
+                                f'{center.name} merkezi tarafından {mold.get_mold_type_display()} '
+                                f'kalıbı oluşturuldu ve {producer.company_name} firmasına sipariş verildi.',
+                                related_url='/admin-panel/'
+                            )
+                    except Exception as e:
+                        logger.error(f"Notification error: {e}")
+                        # Bildirim hatası kalıp oluşturmayı etkilemesin
+                    
+                    # Kota uyarıları
+                    remaining_models = subscription.get_remaining_models()
+                    if subscription.plan.plan_type == 'trial' and remaining_models <= 2:
+                        if remaining_models == 0:
+                            messages.warning(request, 
+                                '🎯 Deneme paketiniz tükendi! '
+                                'Daha fazla kalıp oluşturmak için bir abonelik planı seçin.')
+                        else:
+                            messages.info(request, 
+                                f'📊 Deneme paketinizde {remaining_models} kalıp hakkınız kaldı.')
+                    
+                    # Başarı mesajı
+                    if mold.is_physical_shipment:
+                        messages.success(request, 
+                            f'✅ Fiziksel kalıp siparişi başarıyla oluşturuldu! '
+                            f'Kalıbı {producer.company_name} firmasına kargo ile gönderebilirsiniz. '
+                            f'Sipariş No: {order.order_number}')
+                    else:
+                        messages.success(request, 
+                            f'✅ Dijital kalıp siparişi başarıyla oluşturuldu! '
+                            f'Dosyanız {producer.company_name} firmasına gönderildi. '
+                            f'Sipariş No: {order.order_number}')
+                    
+                    return redirect('mold:mold_detail', pk=mold.pk)
+                    
+                except Exception as e:
+                    logger.error(f"Mold creation error: {e}")
+                    messages.error(request, 
+                        '❌ Kalıp oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.')
+                    
+            else:
+                # Form hataları
+                for field, errors in form.errors.items():
+                    for error in errors:
+                        messages.error(request, f'{field}: {error}')
         else:
-            for field, errors in form.errors.items():
-                print(f"DEBUG - {field}: {errors}")
-    else:
-        print(f"DEBUG - GET isteği - Form oluşturuluyor")
-        form = EarMoldForm(user=request.user)
-    
-    # Kalan hak bilgisini template'e gönder
-    remaining_limit = center.mold_limit - center.molds.count()
-    
-    print(f"DEBUG - Template'e gönderilen veriler:")
-    print(f"  - remaining_limit: {remaining_limit}")
-    print(f"  - used_molds: {center.molds.count()}")
-    print(f"  - total_limit: {center.mold_limit}")
-    print(f"  - active_networks: {active_networks.count()}")
-    
-    return render(request, 'mold/mold_form.html', {
-        'form': form,
-        'remaining_limit': remaining_limit,
-        'used_molds': center.molds.count(),
-        'total_limit': center.mold_limit,
-        'active_networks': active_networks
-    })
+            form = EarMoldForm(user=request.user)
+        
+        # Template context
+        context = {
+            'form': form,
+            'active_networks': active_networks,
+            'subscription': subscription,
+            'remaining_limit': subscription.get_remaining_models() if subscription else 0,
+        }
+        
+        return render(request, 'mold/mold_form.html', context)
+        
+    except Exception as e:
+        logger.error(f"Mold create view error: {e}")
+        messages.error(request, 'Kalıp oluşturma sayfası yüklenirken bir hata oluştu.')
+        return redirect('center:dashboard')
 
 @login_required
 @center_required
 def mold_detail(request, pk):
-    mold = get_object_or_404(EarMold, pk=pk)
-    if mold.center != request.user.center and not request.user.is_superuser:
-        raise PermissionDenied
-    
-    # İlgili sipariş bilgilerini al
-    producer_orders = mold.producer_orders.all().order_by('-created_at')
-    model_form = ModeledMoldForm()
-    
-    # Onaylanmış kalıp dosyası var mı kontrol et
-    has_approved_files = mold.modeled_files.filter(status='approved').exists()
-    
-    return render(request, 'mold/mold_detail.html', {
-        'mold': mold,
-        'model_form': model_form,
-        'producer_orders': producer_orders,
-        'has_approved_files': has_approved_files,
-    })
+    """Kalıp detay görünümü"""
+    try:
+        mold = get_object_or_404(EarMold, pk=pk)
+        
+        # Yetki kontrolü
+        if mold.center != request.user.center and not request.user.is_superuser:
+            raise PermissionDenied
+        
+        # İlgili veriler
+        producer_orders = mold.producer_orders.all().order_by('-created_at')
+        modeled_files = mold.modeled_files.all().order_by('-created_at')
+        evaluations = mold.evaluations.all().order_by('-created_at')
+        revision_requests = RevisionRequest.objects.filter(
+            modeled_mold__ear_mold=mold
+        ).order_by('-created_at')
+        
+        # Delivery address
+        delivery_address = mold.get_delivery_address()
+        
+        # Template context
+        context = {
+            'mold': mold,
+            'producer_orders': producer_orders,
+            'modeled_files': modeled_files,
+            'evaluations': evaluations,
+            'revision_requests': revision_requests,
+            'delivery_address': delivery_address,
+            'can_evaluate': modeled_files.filter(status='approved').exists(),
+        }
+        
+        return render(request, 'mold/mold_detail.html', context)
+        
+    except PermissionDenied:
+        messages.error(request, 'Bu kalıbı görüntüleme yetkiniz yok.')
+        return redirect('mold:mold_list')
+    except Exception as e:
+        logger.error(f"Mold detail error: {e}")
+        messages.error(request, 'Kalıp detayları yüklenirken bir hata oluştu.')
+        return redirect('mold:mold_list')
 
 @login_required
 @center_required
 def mold_edit(request, pk):
-    mold = get_object_or_404(EarMold, pk=pk)
-    if mold.center != request.user.center and not request.user.is_superuser:
-        raise PermissionDenied
-    
-    if request.method == 'POST':
-        form = EarMoldForm(request.POST, request.FILES, instance=mold, user=request.user)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Kalıp başarıyla güncellendi.')
-            return redirect('mold:mold_detail', pk=mold.pk)
-    else:
-        form = EarMoldForm(instance=mold, user=request.user)
-    
-    return render(request, 'mold/mold_form.html', {'form': form, 'mold': mold})
-
-@login_required
-@center_required
-def mold_delete(request, pk):
-    mold = get_object_or_404(EarMold, pk=pk)
-    if mold.center != request.user.center and not request.user.is_superuser:
-        raise PermissionDenied
-    
-    if request.method == 'POST':
-        mold.delete()
-        messages.success(request, 'Kalıp başarıyla silindi.')
-        return redirect('mold:mold_list')
-    
-    return render(request, 'mold/mold_confirm_delete.html', {'mold': mold})
-
-@login_required
-def revision_create(request, pk):
-    mold = get_object_or_404(EarMold, pk=pk)
-    if mold.center != request.user.center and not request.user.is_superuser:
-        raise PermissionDenied
-    
-    if request.method == 'POST':
-        form = RevisionForm(request.POST)
-        if form.is_valid():
-            revision = form.save(commit=False)
-            revision.mold = mold
-            revision.save()
-            
-            # Update mold status
-            mold.status = 'revision'
-            mold.save()
-            
-            # İlgili üretici siparişlerini güncelle
-            producer_orders = mold.producer_orders.filter(status__in=['received', 'designing', 'production'])
-            for order in producer_orders:
-                order.status = 'designing'  # Revizyon için tasarıma geri dön
-                order.save()
-                
-                # ÜRETİCİYE REVİZYON BİLDİRİMİ
-                notify.send(
-                    sender=request.user,
-                    recipient=order.producer.user,
-                    verb='revizyon talep etti',
-                    action_object=revision,
-                    description=f'Sipariş: {order.order_number} - {revision.description[:100]}',
-                    target=mold
-                )
-            
-            # Admin bildirim
-            admin_users = User.objects.filter(is_superuser=True)
-            for admin in admin_users:
-                notify.send(
-                    sender=request.user,
-                    recipient=admin,
-                    verb='revizyon talep etti',
-                    action_object=revision,
-                    description=revision.description[:100] + '...' if len(revision.description) > 100 else revision.description
-                )
-            
-            messages.success(request, 'Revizyon talebi başarıyla oluşturuldu ve üreticiye bildirildi.')
-            return redirect('mold:mold_detail', pk=mold.pk)
-    else:
-        form = RevisionForm()
-    
-    return render(request, 'mold/revision_form.html', {'form': form, 'mold': mold})
-
-@login_required
-@permission_required('mold.add_modeledmold')
-def upload_model(request, mold_id):
-    mold = get_object_or_404(EarMold, pk=mold_id)
-    
-    if request.method == 'POST':
-        form = ModeledMoldForm(request.POST, request.FILES)
-        if form.is_valid():
-            model = form.save(commit=False)
-            model.ear_mold = mold
-            model.save()
-            
-            messages.success(request, 'Model başarıyla yüklendi.')
-            
-            # Merkeze bildirim gönder
-            notify.send(
-                sender=request.user,
-                recipient=mold.center.user,
-                verb='yeni bir model yükledi',
-                target=mold,
-                description=f'{mold.patient_name} isimli hasta için yeni bir model yüklendi.'
-            )
-        else:
-            messages.error(request, 'Model yüklenirken bir hata oluştu.')
-    
-    return redirect('mold:mold_detail', pk=mold_id)
-
-@login_required
-@permission_required('mold.delete_modeledmold')
-def delete_modeled_mold(request, pk):
-    model = get_object_or_404(ModeledMold, pk=pk)
-    mold_id = model.ear_mold.id
-    
+    """Kalıp düzenleme görünümü"""
     try:
-        model.delete()
-        messages.success(request, 'Model başarıyla silindi.')
+        mold = get_object_or_404(EarMold, pk=pk)
+        
+        # Yetki kontrolü
+        if mold.center != request.user.center and not request.user.is_superuser:
+            raise PermissionDenied
+        
+        # Düzenleme sınırlamaları
+        if mold.status in ['completed', 'delivered']:
+            messages.warning(request, 
+                'Tamamlanmış kalıplar düzenlenemez. Revizyon talebi oluşturabilirsiniz.')
+            return redirect('mold:mold_detail', pk=mold.pk)
+        
+        if request.method == 'POST':
+            form = EarMoldForm(request.POST, request.FILES, instance=mold, user=request.user)
+            if form.is_valid():
+                form.save()
+                messages.success(request, 'Kalıp başarıyla güncellendi.')
+                return redirect('mold:mold_detail', pk=mold.pk)
+        else:
+            form = EarMoldForm(instance=mold, user=request.user)
+        
+        return render(request, 'mold/mold_form.html', {
+            'form': form, 
+            'mold': mold,
+            'is_edit': True
+        })
+        
+    except PermissionDenied:
+        messages.error(request, 'Bu kalıbı düzenleme yetkiniz yok.')
+        return redirect('mold:mold_list')
     except Exception as e:
-        messages.error(request, 'Model silinirken bir hata oluştu.')
-    
-    return redirect('mold:mold_detail', pk=mold_id)
+        logger.error(f"Mold edit error: {e}")
+        messages.error(request, 'Kalıp düzenleme sayfası yüklenirken bir hata oluştu.')
+        return redirect('mold:mold_list')
 
 @login_required
+@center_required  
+def mold_delete(request, pk):
+    """Kalıp silme görünümü"""
+    try:
+        mold = get_object_or_404(EarMold, pk=pk)
+        
+        # Yetki kontrolü
+        if mold.center != request.user.center and not request.user.is_superuser:
+            raise PermissionDenied
+        
+        # Silme sınırlamaları
+        if mold.status in ['processing', 'completed', 'delivered']:
+            messages.error(request, 
+                'İşlemde olan veya tamamlanmış kalıplar silinemez.')
+            return redirect('mold:mold_detail', pk=mold.pk)
+        
+        if request.method == 'POST':
+            patient_name = f"{mold.patient_name} {mold.patient_surname}"
+            mold.delete()
+            messages.success(request, f'{patient_name} hastasının kalıbı başarıyla silindi.')
+            return redirect('mold:mold_list')
+        
+        return render(request, 'mold/mold_confirm_delete.html', {'mold': mold})
+        
+    except PermissionDenied:
+        messages.error(request, 'Bu kalıbı silme yetkiniz yok.')
+        return redirect('mold:mold_list')
+    except Exception as e:
+        logger.error(f"Mold delete error: {e}")
+        messages.error(request, 'Kalıp silme işleminde bir hata oluştu.')
+        return redirect('mold:mold_list')
+
+@login_required
+@center_required
+def revision_create(request, pk):
+    """Revizyon oluşturma view'ı"""
+    try:
+        mold = get_object_or_404(EarMold, pk=pk)
+        
+        # Yetki kontrolü
+        if mold.center != request.user.center and not request.user.is_superuser:
+            raise PermissionDenied
+            
+        if request.method == 'POST':
+            form = RevisionForm(request.POST, request.FILES)
+            if form.is_valid():
+                revision = form.save(commit=False)
+                revision.mold = mold
+                revision.created_by = request.user
+                revision.save()
+                
+                messages.success(request, 'Revizyon talebi başarıyla oluşturuldu.')
+                return redirect('mold:mold_detail', pk=mold.pk)
+        else:
+            form = RevisionForm()
+            
+        return render(request, 'mold/revision_form.html', {
+            'form': form,
+            'mold': mold
+        })
+        
+    except PermissionDenied:
+        messages.error(request, 'Bu kalıp için revizyon oluşturma yetkiniz yok.')
+        return redirect('mold:mold_list')
+    except Exception as e:
+        logger.error(f"Revision create error: {e}")
+        messages.error(request, 'Revizyon oluşturulurken bir hata oluştu.')
+        return redirect('mold:mold_list')
+
+@login_required
+@center_required
 def quality_check(request, pk):
-    if not request.user.is_superuser:
-        raise PermissionDenied
-    
-    mold = get_object_or_404(EarMold, pk=pk)
-    if request.method == 'POST':
-        form = QualityCheckForm(request.POST)
-        if form.is_valid():
-            check = form.save(commit=False)
-            check.mold = mold
-            check.save()
+    """Kalite kontrolü view'ı"""
+    try:
+        mold = get_object_or_404(EarMold, pk=pk)
+        
+        # Yetki kontrolü
+        if mold.center != request.user.center and not request.user.is_superuser:
+            raise PermissionDenied
             
-            # Update mold quality score
-            mold.quality_score = check.score
-            mold.save()
-            
-            messages.success(request, 'Kalite kontrol başarıyla kaydedildi.')
-            return redirect('mold:mold_detail', pk=mold.pk)
-    else:
-        form = QualityCheckForm()
-    
-    return render(request, 'mold/quality_form.html', {'form': form, 'mold': mold})
-
-
-# YENİ VİEW'LAR - REVİZYON VE DEĞERLENDİRME SİSTEMİ
-
-@login_required
-@center_required
-def revision_request_create(request, mold_id=None):
-    """Revizyon talebi oluşturma"""
-    mold = None
-    if mold_id:
-        mold = get_object_or_404(EarMold, pk=mold_id)
-        # Sadece kalıbın sahibi revizyon talep edebilir
-        if mold.center != request.user.center:
-            raise PermissionDenied("Bu kalıp için revizyon talep etme yetkiniz yok.")
-    
-    if request.method == 'POST':
-        form = RevisionRequestForm(request.POST, request.FILES, center=request.user.center)
-        if form.is_valid():
-            revision_request = form.save(commit=False)
-            revision_request.center = request.user.center
-            # modeled_mold seçildiğinde mold otomatik olarak belirlenir
-            revision_request.save()
-            
-            # Kalıp durumunu revizyon olarak güncelle
-            mold = revision_request.mold
-            mold.status = 'revision'
-            mold.save()
-            
-            # Referans alınan kalıp dosyasını da revizyona düş
-            revision_request.modeled_mold.status = 'waiting'  # Revizyon için beklemeye al
-            revision_request.modeled_mold.save()
-            
-            # Admin'lere bildirim gönder
-            admin_users = User.objects.filter(is_superuser=True)
-            for admin in admin_users:
-                notify.send(
-                    sender=request.user,
-                    recipient=admin,
-                    verb='revizyon talebi oluşturdu',
-                    action_object=revision_request,
-                    description=f'{mold.patient_name} {mold.patient_surname} - {revision_request.get_revision_type_display()}',
-                    target=mold
-                )
-            
-            # İlgili üreticiye bildirim gönder
-            producer_orders = mold.producer_orders.filter(status='delivered')
-            for order in producer_orders:
-                notify.send(
-                    sender=request.user,
-                    recipient=order.producer.user,
-                    verb='revizyon talebi oluşturdu',
-                    action_object=revision_request,
-                    description=f'Sipariş: {order.order_number} - {revision_request.title}',
-                    target=mold
-                )
-            
-            messages.success(request, 'Revizyon talebiniz başarıyla oluşturuldu ve ilgili taraflara bildirildi.')
-            return redirect('mold:mold_detail', pk=mold.pk)
-    else:
-        form = RevisionRequestForm(center=request.user.center)
-    
-    return render(request, 'mold/revision_request_form.html', {
-        'form': form,
-        'mold': mold
-    })
-
-
-@login_required
-@center_required
-def revision_request_list(request):
-    """Revizyon talepleri listesi"""
-    revision_requests = RevisionRequest.objects.filter(
-        center=request.user.center
-    ).order_by('-created_at')
-    
-    # Filtreleme
-    status_filter = request.GET.get('status')
-    if status_filter:
-        revision_requests = revision_requests.filter(status=status_filter)
-    
-    return render(request, 'mold/revision_request_list.html', {
-        'revision_requests': revision_requests,
-        'status_filter': status_filter,
-        'status_choices': RevisionRequest.STATUS_CHOICES
-    })
-
-
-@login_required
-@center_required
-def revision_request_detail(request, pk):
-    """Revizyon talebi detayı"""
-    revision_request = get_object_or_404(RevisionRequest, pk=pk)
-    
-    # Sadece kendi taleplerini görebilir
-    if revision_request.center != request.user.center and not request.user.is_superuser:
-        raise PermissionDenied
-    
-    return render(request, 'mold/revision_request_detail.html', {
-        'revision_request': revision_request
-    })
-
-
-@login_required
-@center_required
-def mold_evaluation_create(request, mold_id):
-    """Kalıp değerlendirmesi oluşturma"""
-    mold = get_object_or_404(EarMold, pk=mold_id)
-    
-    # Sadece kalıbın sahibi değerlendirme yapabilir
-    if mold.center != request.user.center:
-        raise PermissionDenied("Bu kalıp için değerlendirme yapma yetkiniz yok.")
-    
-    # Kalıp teslim edilmiş olmalı
-    if mold.status != 'delivered':
-        messages.error(request, 'Değerlendirme sadece teslim edilmiş kalıplar için yapılabilir.')
-        return redirect('mold:mold_detail', pk=mold_id)
-    
-    # Daha önce değerlendirme yapılmış mı kontrol et
-    existing_evaluation = MoldEvaluation.objects.filter(
-        mold=mold,
-        center=request.user.center
-    ).first()
-    
-    if existing_evaluation:
-        messages.info(request, 'Bu kalıp için zaten bir değerlendirme yapmışsınız. Mevcut değerlendirmenizi güncelleyebilirsiniz.')
-        return redirect('mold:mold_evaluation_edit', pk=existing_evaluation.pk)
-    
-    if request.method == 'POST':
-        form = MoldEvaluationForm(request.POST)
-        if form.is_valid():
-            evaluation = form.save(commit=False)
-            evaluation.mold = mold
-            evaluation.center = request.user.center
-            evaluation.save()
-            
-            # İlgili üreticiye bildirim gönder
-            producer_orders = mold.producer_orders.filter(status='delivered')
-            for order in producer_orders:
-                notify.send(
-                    sender=request.user,
-                    recipient=order.producer.user,
-                    verb='kalıp değerlendirmesi yaptı',
-                    action_object=evaluation,
-                    description=f'Kalite: {evaluation.quality_score}/10, Hız: {evaluation.speed_score}/10',
-                    target=mold
-                )
-            
-            # Admin'lere bildirim gönder
-            admin_users = User.objects.filter(is_superuser=True)
-            for admin in admin_users:
-                notify.send(
-                    sender=request.user,
-                    recipient=admin,
-                    verb='kalıp değerlendirmesi yaptı',
-                    action_object=evaluation,
-                    description=f'{mold.patient_name} {mold.patient_surname} - Genel: {evaluation.overall_satisfaction}/10',
-                    target=mold
-                )
-            
-            messages.success(request, 'Değerlendirmeniz başarıyla kaydedildi. Geri bildiriminiz için teşekkürler!')
-            return redirect('mold:mold_detail', pk=mold_id)
-    else:
-        form = MoldEvaluationForm()
-    
-    return render(request, 'mold/mold_evaluation_form.html', {
-        'form': form,
-        'mold': mold
-    })
-
-
-@login_required
-@center_required
-def mold_evaluation_edit(request, pk):
-    """Kalıp değerlendirmesi düzenleme"""
-    evaluation = get_object_or_404(MoldEvaluation, pk=pk)
-    
-    # Sadece kendi değerlendirmelerini düzenleyebilir
-    if evaluation.center != request.user.center:
-        raise PermissionDenied("Bu değerlendirmeyi düzenleme yetkiniz yok.")
-    
-    if request.method == 'POST':
-        form = MoldEvaluationForm(request.POST, instance=evaluation)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Değerlendirmeniz başarıyla güncellendi.')
-            return redirect('mold:mold_detail', pk=evaluation.mold.pk)
-    else:
-        form = MoldEvaluationForm(instance=evaluation)
-    
-    return render(request, 'mold/mold_evaluation_form.html', {
-        'form': form,
-        'mold': evaluation.mold,
-        'evaluation': evaluation
-    })
-
-
-@login_required
-@center_required
-def mold_evaluation_list(request):
-    """Kalıp değerlendirmeleri listesi"""
-    evaluations = MoldEvaluation.objects.filter(
-        center=request.user.center
-    ).select_related('mold').order_by('-created_at')
-    
-    return render(request, 'mold/mold_evaluation_list.html', {
-        'evaluations': evaluations
-    })
-
-@login_required
-@center_required
-def update_tracking(request, pk):
-    """Fiziksel kalıp için kargo takip numarası güncelleme"""
-    mold = get_object_or_404(EarMold, pk=pk)
-    
-    # Yetki kontrolü
-    if mold.center != request.user.center and not request.user.is_superuser:
-        raise PermissionDenied
-    
-    # Sadece fiziksel gönderim için
-    if not mold.is_physical_shipment:
-        messages.error(request, 'Bu kalıp dijital gönderim için oluşturulmuş, kargo takibi yapılamaz.')
-        return redirect('mold:mold_detail', pk=pk)
-    
-    if request.method == 'POST':
-        form = TrackingUpdateForm(request.POST, instance=mold)
-        if form.is_valid():
-            updated_mold = form.save(commit=False)
-            
-            # Kargo gönderildi olarak işaretle
-            if updated_mold.tracking_number and updated_mold.shipment_status == 'not_shipped':
-                updated_mold.shipment_status = 'shipped'
-                updated_mold.shipment_date = timezone.now()
-            
-            updated_mold.save()
-            
-            # İlgili siparişi bul ve güncelle
-            try:
-                producer_order = ProducerOrder.objects.get(ear_mold=mold)
+        if request.method == 'POST':
+            form = QualityCheckForm(request.POST)
+            if form.is_valid():
+                quality_check = form.save(commit=False)
+                quality_check.mold = mold
+                quality_check.checked_by = request.user
+                quality_check.save()
                 
-                # Üreticiye bildirim gönder
-                notify.send(
-                    sender=request.user,
-                    recipient=producer_order.producer.user,
-                    verb='fiziksel kalıp kargo bilgilerini güncelledi',
-                    action_object=mold,
-                    description=f'Kargo Takip: {updated_mold.tracking_number} - {updated_mold.get_shipment_status_display_custom()}',
-                    target=producer_order
-                )
-                
-                # Sipariş notunu güncelle
-                if updated_mold.tracking_number:
-                    producer_order.producer_notes += f'\n[{timezone.now().strftime("%d.%m.%Y %H:%M")}] Kargo Takip: {updated_mold.tracking_number}'
-                    producer_order.save()
-                
-            except ProducerOrder.DoesNotExist:
-                pass
+                messages.success(request, 'Kalite kontrolü başarıyla kaydedildi.')
+                return redirect('mold:mold_detail', pk=mold.pk)
+        else:
+            form = QualityCheckForm()
             
-            messages.success(request, 'Kargo bilgileri başarıyla güncellendi.')
-            return redirect('mold:mold_detail', pk=pk)
-    else:
-        form = TrackingUpdateForm(instance=mold)
-    
-    return render(request, 'mold/tracking_update.html', {
-        'form': form,
-        'mold': mold
-    })
-
+        return render(request, 'mold/quality_check.html', {
+            'form': form,
+            'mold': mold
+        })
+        
+    except PermissionDenied:
+        messages.error(request, 'Bu kalıp için kalite kontrolü yetkiniz yok.')
+        return redirect('mold:mold_list')
+    except Exception as e:
+        logger.error(f"Quality check error: {e}")
+        messages.error(request, 'Kalite kontrolü yapılırken bir hata oluştu.')
+        return redirect('mold:mold_list')
 
 @login_required
 @center_required
 def physical_shipment_detail(request, pk):
-    """Fiziksel kalıp gönderimi detayları ve kargo adresi"""
-    mold = get_object_or_404(EarMold, pk=pk)
-    
-    # Yetki kontrolü
-    if mold.center != request.user.center and not request.user.is_superuser:
-        raise PermissionDenied
-    
-    # Sadece fiziksel gönderim için
-    if not mold.is_physical_shipment:
-        messages.error(request, 'Bu kalıp dijital gönderim için oluşturulmuş.')
-        return redirect('mold:mold_detail', pk=pk)
-    
-    # İlgili siparişi bul
+    """Fiziksel kalıp gönderim detayı view'ı"""
     try:
-        producer_order = ProducerOrder.objects.get(ear_mold=mold)
-        producer = producer_order.producer
-    except ProducerOrder.DoesNotExist:
-        producer = None
-        producer_order = None
-    
-    return render(request, 'mold/physical_shipment_detail.html', {
-        'mold': mold,
-        'producer': producer,
-        'producer_order': producer_order
-    })
+        mold = get_object_or_404(EarMold, pk=pk)
+        
+        # Yetki kontrolü
+        if mold.center != request.user.center and not request.user.is_superuser:
+            raise PermissionDenied
+            
+        if not mold.is_physical_shipment:
+            messages.error(request, 'Bu kalıp fiziksel gönderim türünde değil.')
+            return redirect('mold:mold_detail', pk=mold.pk)
+            
+        # Üretici bilgisi
+        active_orders = mold.producer_orders.filter(status__in=['received', 'processing']).first()
+        producer = active_orders.producer if active_orders else None
+        
+        return render(request, 'mold/physical_shipment_detail.html', {
+            'mold': mold,
+            'producer': producer,
+            'active_order': active_orders
+        })
+        
+    except PermissionDenied:
+        messages.error(request, 'Bu kalıp detaylarını görüntüleme yetkiniz yok.')
+        return redirect('mold:mold_list')
+    except Exception as e:
+        logger.error(f"Physical shipment detail error: {e}")
+        messages.error(request, 'Fiziksel gönderim detayları yüklenirken bir hata oluştu.')
+        return redirect('mold:mold_list')
+
+@login_required
+@center_required
+def update_tracking(request, pk):
+    """Kargo takip güncelleme view'ı"""
+    try:
+        mold = get_object_or_404(EarMold, pk=pk)
+        
+        # Yetki kontrolü
+        if mold.center != request.user.center and not request.user.is_superuser:
+            raise PermissionDenied
+            
+        if not mold.is_physical_shipment:
+            messages.error(request, 'Bu kalıp fiziksel gönderim türünde değil.')
+            return redirect('mold:mold_detail', pk=mold.pk)
+            
+        if request.method == 'POST':
+            form = TrackingUpdateForm(request.POST, instance=mold)
+            if form.is_valid():
+                mold = form.save()
+                
+                # Kargo durumu güncelleme bildirimi
+                try:
+                    # Üretici bilgisi
+                    active_order = mold.producer_orders.filter(status__in=['received', 'processing']).first()
+                    if active_order:
+                        producer = active_order.producer
+                        
+                        # Üreticiye bildirim
+                        send_order_notification(
+                            producer.user,
+                            'Kargo Takip Güncellendi',
+                            f'{mold.center.name} merkezi tarafından {mold.tracking_number} takip numaralı '
+                            f'kargo bilgileri güncellendi. Durum: {mold.get_shipment_status_display()}',
+                            related_url=f'/producer/orders/{active_order.id}/'
+                        )
+                        
+                except Exception as e:
+                    logger.error(f"Tracking notification error: {e}")
+                
+                messages.success(request, 'Kargo takip bilgileri başarıyla güncellendi.')
+                return redirect('mold:physical_shipment_detail', pk=mold.pk)
+        else:
+            form = TrackingUpdateForm(instance=mold)
+            
+        return render(request, 'mold/tracking_update.html', {
+            'form': form,
+            'mold': mold
+        })
+        
+    except PermissionDenied:
+        messages.error(request, 'Bu kalıp için kargo takip güncelleme yetkiniz yok.')
+        return redirect('mold:mold_list')
+    except Exception as e:
+        logger.error(f"Tracking update error: {e}")
+        messages.error(request, 'Kargo takip güncelleme yapılırken bir hata oluştu.')
+        return redirect('mold:mold_list')
+
+@login_required
+@center_required
+def revision_request_create(request, mold_id=None):
+    """Revizyon talebi oluşturma view'ı"""
+    try:
+        mold = None
+        if mold_id:
+            mold = get_object_or_404(EarMold, pk=mold_id)
+            
+            # Yetki kontrolü
+            if mold.center != request.user.center and not request.user.is_superuser:
+                raise PermissionDenied
+                
+            # Revizyon talebi oluşturma sınırlamaları
+            if mold.status not in ['delivered', 'completed']:
+                messages.error(request, 'Sadece teslim edilmiş kalıplar için revizyon talebi oluşturabilirsiniz.')
+                return redirect('mold:mold_detail', pk=mold.pk)
+                
+        if request.method == 'POST':
+            form = RevisionRequestForm(request.POST, request.FILES, user=request.user)
+            if form.is_valid():
+                revision_request = form.save(commit=False)
+                revision_request.center = request.user.center
+                revision_request.save()
+                
+                # Revizyon talebi bildirimi
+                try:
+                    # Üreticiye bildirim
+                    producer = revision_request.modeled_mold.producer
+                    send_order_notification(
+                        producer.user,
+                        'Yeni Revizyon Talebi',
+                        f'{request.user.center.name} merkezi tarafından revizyon talebi oluşturuldu. '
+                        f'Talep türü: {revision_request.get_revision_type_display()}',
+                        related_url=f'/producer/revision-requests/{revision_request.id}/'
+                    )
+                    
+                    # Admin'lere bildirim
+                    admin_users = User.objects.filter(is_superuser=True)
+                    for admin in admin_users:
+                        send_system_notification(
+                            admin,
+                            'Yeni Revizyon Talebi',
+                            f'{request.user.center.name} merkezi tarafından revizyon talebi oluşturuldu.',
+                            related_url='/admin-panel/'
+                        )
+                        
+                except Exception as e:
+                    logger.error(f"Revision request notification error: {e}")
+                
+                messages.success(request, 'Revizyon talebi başarıyla oluşturuldu.')
+                return redirect('mold:revision_request_detail', pk=revision_request.pk)
+        else:
+            initial_data = {'ear_mold': mold} if mold else {}
+            form = RevisionRequestForm(user=request.user, initial=initial_data)
+            
+        return render(request, 'mold/revision_request_form.html', {
+            'form': form,
+            'mold': mold
+        })
+        
+    except PermissionDenied:
+        messages.error(request, 'Bu kalıp için revizyon talebi oluşturma yetkiniz yok.')
+        return redirect('mold:mold_list')
+    except Exception as e:
+        logger.error(f"Revision request create error: {e}")
+        messages.error(request, 'Revizyon talebi oluşturulurken bir hata oluştu.')
+        return redirect('mold:mold_list')
+
+@login_required
+@center_required
+def revision_request_list(request):
+    """Revizyon talepleri listesi view'ı"""
+    try:
+        center = request.user.center
+        revision_requests = RevisionRequest.objects.filter(
+            center=center
+        ).order_by('-created_at')
+        
+        return render(request, 'mold/revision_request_list.html', {
+            'revision_requests': revision_requests
+        })
+        
+    except Exception as e:
+        logger.error(f"Revision request list error: {e}")
+        messages.error(request, 'Revizyon talepleri yüklenirken bir hata oluştu.')
+        return redirect('center:dashboard')
+
+@login_required
+@center_required
+def revision_request_detail(request, pk):
+    """Revizyon talebi detay view'ı"""
+    try:
+        revision_request = get_object_or_404(RevisionRequest, pk=pk)
+        
+        # Yetki kontrolü
+        if revision_request.center != request.user.center and not request.user.is_superuser:
+            raise PermissionDenied
+            
+        return render(request, 'mold/revision_request_detail.html', {
+            'revision_request': revision_request
+        })
+        
+    except PermissionDenied:
+        messages.error(request, 'Bu revizyon talebi detaylarını görüntüleme yetkiniz yok.')
+        return redirect('mold:revision_request_list')
+    except Exception as e:
+        logger.error(f"Revision request detail error: {e}")
+        messages.error(request, 'Revizyon talebi detayları yüklenirken bir hata oluştu.')
+        return redirect('mold:revision_request_list')
+
+@login_required
+@center_required
+def mold_evaluation_create(request, mold_id):
+    """Kalıp değerlendirme oluşturma view'ı"""
+    try:
+        mold = get_object_or_404(EarMold, pk=mold_id)
+        
+        # Yetki kontrolü
+        if mold.center != request.user.center and not request.user.is_superuser:
+            raise PermissionDenied
+            
+        # Değerlendirme sınırlamaları
+        if mold.status not in ['delivered', 'completed']:
+            messages.error(request, 'Sadece teslim edilmiş kalıplar için değerlendirme yapabilirsiniz.')
+            return redirect('mold:mold_detail', pk=mold.pk)
+            
+        # Zaten değerlendirme yapılmış mı?
+        existing_evaluation = MoldEvaluation.objects.filter(
+            mold=mold,
+            center=request.user.center
+        ).first()
+        
+        if existing_evaluation:
+            messages.info(request, 'Bu kalıp için zaten değerlendirme yapılmış.')
+            return redirect('mold:mold_detail', pk=mold.pk)
+            
+        if request.method == 'POST':
+            form = MoldEvaluationForm(request.POST)
+            if form.is_valid():
+                evaluation = form.save(commit=False)
+                evaluation.mold = mold
+                evaluation.center = request.user.center
+                evaluation.save()
+                
+                messages.success(request, 'Kalıp değerlendirmesi başarıyla kaydedildi.')
+                return redirect('mold:mold_detail', pk=mold.pk)
+        else:
+            form = MoldEvaluationForm()
+            
+        return render(request, 'mold/mold_evaluation_form.html', {
+            'form': form,
+            'mold': mold
+        })
+        
+    except PermissionDenied:
+        messages.error(request, 'Bu kalıp için değerlendirme yapma yetkiniz yok.')
+        return redirect('mold:mold_list')
+    except Exception as e:
+        logger.error(f"Mold evaluation create error: {e}")
+        messages.error(request, 'Kalıp değerlendirmesi yapılırken bir hata oluştu.')
+        return redirect('mold:mold_list')
+
+@login_required
+@center_required
+def mold_evaluation_edit(request, pk):
+    """Kalıp değerlendirme düzenleme view'ı"""
+    try:
+        evaluation = get_object_or_404(MoldEvaluation, pk=pk)
+        
+        # Yetki kontrolü
+        if evaluation.center != request.user.center and not request.user.is_superuser:
+            raise PermissionDenied
+            
+        if request.method == 'POST':
+            form = MoldEvaluationForm(request.POST, instance=evaluation)
+            if form.is_valid():
+                form.save()
+                
+                messages.success(request, 'Kalıp değerlendirmesi başarıyla güncellendi.')
+                return redirect('mold:mold_detail', pk=evaluation.mold.pk)
+        else:
+            form = MoldEvaluationForm(instance=evaluation)
+            
+        return render(request, 'mold/mold_evaluation_form.html', {
+            'form': form,
+            'evaluation': evaluation,
+            'mold': evaluation.mold
+        })
+        
+    except PermissionDenied:
+        messages.error(request, 'Bu değerlendirmeyi düzenleme yetkiniz yok.')
+        return redirect('mold:mold_list')
+    except Exception as e:
+        logger.error(f"Mold evaluation edit error: {e}")
+        messages.error(request, 'Kalıp değerlendirmesi düzenlenirken bir hata oluştu.')
+        return redirect('mold:mold_list')
+
+@login_required
+@center_required
+def mold_evaluation_list(request):
+    """Kalıp değerlendirmeleri listesi view'ı"""
+    try:
+        center = request.user.center
+        evaluations = MoldEvaluation.objects.filter(
+            center=center
+        ).order_by('-created_at')
+        
+        return render(request, 'mold/mold_evaluation_list.html', {
+            'evaluations': evaluations
+        })
+        
+    except Exception as e:
+        logger.error(f"Mold evaluation list error: {e}")
+        messages.error(request, 'Kalıp değerlendirmeleri yüklenirken bir hata oluştu.')
+        return redirect('center:dashboard')
+
+@login_required
+def upload_model(request, mold_id):
+    """Model dosyası yükleme view'ı - Üreticiler için"""
+    try:
+        mold = get_object_or_404(EarMold, pk=mold_id)
+        
+        # Sadece üreticiler kullanabilir
+        if not hasattr(request.user, 'producer'):
+            messages.error(request, 'Bu işlem sadece üreticiler tarafından yapılabilir.')
+            return redirect('core:home')
+            
+        # Model yükleme işlemi
+        if request.method == 'POST':
+            form = ModeledMoldForm(request.POST, request.FILES)
+            if form.is_valid():
+                modeled_mold = form.save(commit=False)
+                modeled_mold.ear_mold = mold
+                modeled_mold.producer = request.user.producer
+                modeled_mold.save()
+                
+                messages.success(request, 'Model dosyası başarıyla yüklendi.')
+                return redirect('producer:mold_detail', pk=mold.pk)
+        else:
+            form = ModeledMoldForm()
+            
+        return render(request, 'mold/upload_model.html', {
+            'form': form,
+            'mold': mold
+        })
+        
+    except Exception as e:
+        logger.error(f"Upload model error: {e}")
+        messages.error(request, 'Model dosyası yüklenirken bir hata oluştu.')
+        return redirect('producer:dashboard')
+
+@login_required
+def delete_modeled_mold(request, pk):
+    """Model dosyası silme view'ı - Üreticiler için"""
+    try:
+        modeled_mold = get_object_or_404(ModeledMold, pk=pk)
+        
+        # Sadece üretici kendi modelini silebilir
+        if not hasattr(request.user, 'producer') or modeled_mold.producer != request.user.producer:
+            messages.error(request, 'Bu modeli silme yetkiniz yok.')
+            return redirect('core:home')
+            
+        if request.method == 'POST':
+            mold_id = modeled_mold.ear_mold.id
+            modeled_mold.delete()
+            
+            messages.success(request, 'Model dosyası başarıyla silindi.')
+            return redirect('producer:mold_detail', pk=mold_id)
+            
+        return render(request, 'mold/delete_modeled_mold.html', {
+            'modeled_mold': modeled_mold
+        })
+        
+    except Exception as e:
+        logger.error(f"Delete modeled mold error: {e}")
+        messages.error(request, 'Model dosyası silinirken bir hata oluştu.')
+        return redirect('producer:dashboard')

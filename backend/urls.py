@@ -83,7 +83,8 @@ urlpatterns = [
     path('django-admin/', admin.site.urls),  # Gerçek admin panel
     
     # API ve Sistem URL'leri
-    path('accounts/', include('allauth.urls')),
+    path('accounts/', include('allauth.urls')),  # allauth URL'leri (eski haline döndü)
+    path('app-accounts/', include('accounts.urls')),  # accounts app URL'leri
     # Django-notifications-hq paketini spesifik path'e taşı
     path('django-notifications/', include('notifications.urls', namespace='notifications')),
     

@@ -1,109 +1,72 @@
 from django import forms
 from .models import EarMold, Revision, ModeledMold, QualityCheck, RevisionRequest, MoldEvaluation
 from producer.models import Producer, ProducerNetwork
+from django.core.exceptions import ValidationError
 
 class EarMoldForm(forms.ModelForm):
-    # Sipariş türü seçimi (artık modelde is_physical_shipment ile kontrol edilecek)
+    # Sipariş türü seçimi
     order_type = forms.ChoiceField(
         label='Sipariş Türü',
         choices=[
             ('digital', 'Dijital Tarama (STL/OBJ/PLY dosyası)'),
             ('physical', 'Fiziksel Kalıp Gönderimi'),
         ],
-        widget=forms.Select(attrs={'class': 'form-select'}),
+        widget=forms.RadioSelect(attrs={'class': 'form-check-input'}),
         initial='digital',
         help_text='Dijital tarama dosyası göndermek veya fiziksel kalıp göndermek istediğinizi seçin'
-    )
-    
-    # Aciliyet durumu
-    PRIORITY_CHOICES = [
-        ('normal', 'Normal (5-7 iş günü)'),
-        ('high', 'Yüksek (3-4 iş günü)'),
-        ('urgent', 'Acil (1-2 iş günü)'),
-    ]
-    
-    priority = forms.ChoiceField(
-        label='Öncelik',
-        choices=PRIORITY_CHOICES,
-        widget=forms.Select(attrs={'class': 'form-select'}),
-        initial='normal',
-        help_text='Sipariş önceliğini belirleyin'
-    )
-    
-    # Özel talimatlar
-    special_instructions = forms.CharField(
-        label='Özel Talimatlar',
-        widget=forms.Textarea(attrs={
-            'rows': 3,
-            'class': 'form-control',
-            'placeholder': 'Üretici için özel talimatlar varsa yazınız...'
-        }),
-        required=False
     )
 
     class Meta:
         model = EarMold
         fields = [
-            'patient_name', 'patient_surname', 'patient_age', 'patient_gender',
-            'ear_side', 'mold_type', 'vent_diameter', 'scan_file', 'notes',
-            'priority', 'special_instructions'
+            'order_type', 'patient_name', 'patient_surname', 'patient_age', 'patient_gender',
+            'ear_side', 'mold_type', 'vent_diameter', 'scan_file', 'notes', 
+            'priority', 'special_instructions', 'is_physical_shipment'
         ]
         widgets = {
-            'patient_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'patient_surname': forms.TextInput(attrs={'class': 'form-control'}),
-            'patient_age': forms.NumberInput(attrs={'class': 'form-control', 'min': 0, 'max': 150}),
+            'patient_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Hasta adını girin'
+            }),
+            'patient_surname': forms.TextInput(attrs={
+                'class': 'form-control', 
+                'placeholder': 'Hasta soyadını girin'
+            }),
+            'patient_age': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': 0,
+                'max': 150,
+                'placeholder': 'Yaş'
+            }),
             'patient_gender': forms.Select(attrs={'class': 'form-select'}),
-            'ear_side': forms.Select(attrs={'class': 'form-select'}),
+            'ear_side': forms.RadioSelect(attrs={'class': 'form-check-input'}),
             'mold_type': forms.Select(attrs={'class': 'form-select'}),
-            'vent_diameter': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1', 'min': '0'}),
-            'scan_file': forms.FileInput(attrs={'class': 'form-control'}),
-            'notes': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
+            'vent_diameter': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.1',
+                'min': '0',
+                'placeholder': '2.0'
+            }),
+            'scan_file': forms.FileInput(attrs={
+                'class': 'form-control',
+                'accept': '.stl,.obj,.ply,.zip,.rar'
+            }),
+            'notes': forms.Textarea(attrs={
+                'rows': 4,
+                'class': 'form-control',
+                'placeholder': 'Kalıp ile ilgili özel notlar...'
+            }),
             'priority': forms.Select(attrs={'class': 'form-select'}),
             'special_instructions': forms.Textarea(attrs={
                 'rows': 3,
                 'class': 'form-control',
-                'placeholder': 'Üretici için özel talimatlar varsa yazınız...'
+                'placeholder': 'Üretici için özel talimatlar...'
             }),
         }
         
-    def clean(self):
-        cleaned_data = super().clean()
-        order_type = cleaned_data.get('order_type')
-        scan_file = cleaned_data.get('scan_file')
-        
-        if order_type == 'digital':
-            if not scan_file:
-                self.add_error('scan_file', 'Dijital tarama türü için dosya yüklenmesi zorunludur.')
-            elif scan_file:
-                # Dosya uzantısı kontrolü
-                allowed_extensions = ['stl', 'obj', 'ply', 'zip', 'rar']
-                ext = scan_file.name.split('.')[-1].lower()
-                if ext not in allowed_extensions:
-                    self.add_error('scan_file', 'Sadece STL, OBJ, PLY, ZIP ve RAR dosyaları yüklenebilir.')
-                
-                # Dosya boyutu kontrolü (100MB)
-                if scan_file.size > 104857600:  # 100MB in bytes
-                    self.add_error('scan_file', 'Dosya boyutu 100MB\'dan büyük olamaz.')
-        
-        return cleaned_data
-        
-    def save(self, commit=True):
-        instance = super().save(commit=False)
-        
-        # order_type'a göre is_physical_shipment ayarla
-        order_type = self.cleaned_data.get('order_type', 'digital')
-        instance.is_physical_shipment = (order_type == 'physical')
-        
-        # Fiziksel gönderim ise scan_file'ı temizle
-        if instance.is_physical_shipment and instance.scan_file:
-            instance.scan_file = None
-            
-        if commit:
-            instance.save()
-        return instance
-
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user', None)
+        self.center = getattr(self.user, 'center', None) if self.user else None
         super().__init__(*args, **kwargs)
         
         # Instance varsa order_type'ı set et
@@ -113,20 +76,92 @@ class EarMoldForm(forms.ModelForm):
             else:
                 self.fields['order_type'].initial = 'digital'
         
-        # Eğer merkez ağında üretici yoksa form devre dışı bırak
-        if self.user and hasattr(self.user, 'center'):
-            try:
-                active_networks = ProducerNetwork.objects.filter(
-                    center=self.user.center,
-                    status='active'
-                ).exists()
+        # Üretici ağı kontrolü
+        if self.center:
+            active_networks = ProducerNetwork.objects.filter(
+                center=self.center,
+                status='active'
+            ).exists()
+            
+            if not active_networks:
+                # Ağ yoksa formu devre dışı bırak
+                for field_name, field in self.fields.items():
+                    if field_name != 'order_type':  # Order type hariç tüm alanları disable et
+                        field.disabled = True
+                        field.help_text = '⚠️ Kalıp siparişi verebilmek için önce bir üretici ağına katılmanız gerekiyor.'
+        
+        # Dosya alanını dinamik yap
+        self.fields['scan_file'].required = False  # Başlangıçta opsiyonel
+        
+    def clean(self):
+        cleaned_data = super().clean()
+        order_type = cleaned_data.get('order_type')
+        scan_file = cleaned_data.get('scan_file')
+        
+        # Sipariş türüne göre validasyon
+        if order_type == 'digital':
+            # is_physical_shipment false olacak
+            cleaned_data['is_physical_shipment'] = False
+            
+            if not scan_file:
+                raise ValidationError({
+                    'scan_file': 'Dijital tarama türü için dosya yüklenmesi zorunludur.'
+                })
+            elif scan_file:
+                # Dosya uzantısı kontrolü
+                allowed_extensions = ['stl', 'obj', 'ply', 'zip', 'rar']
+                ext = scan_file.name.split('.')[-1].lower()
+                if ext not in allowed_extensions:
+                    raise ValidationError({
+                        'scan_file': 'Sadece STL, OBJ, PLY, ZIP ve RAR dosyaları yüklenebilir.'
+                    })
                 
-                if not active_networks:
-                    for field in self.fields:
-                        self.fields[field].disabled = True
-                    self.fields['notes'].help_text = 'UYARI: Kalıp siparişi verebilmek için bir üretici ağına katılmanız gerekiyor.'
-            except:
-                pass
+                # Dosya boyutu kontrolü (100MB)
+                if scan_file.size > 104857600:  # 100MB in bytes
+                    raise ValidationError({
+                        'scan_file': 'Dosya boyutu 100MB\'dan büyük olamaz.'
+                    })
+        
+        elif order_type == 'physical':
+            # is_physical_shipment true olacak
+            cleaned_data['is_physical_shipment'] = True
+            
+            # Fiziksel gönderimde dosya opsiyonel
+            if scan_file:
+                # Dosya yüklenmişse uyarı ver
+                self.add_error(None, 
+                    'Fiziksel kalıp gönderimi seçtiniz. Yüklenen dosya işlenmeyecektir.')
+        
+        # Üretici ağı kontrolü
+        if self.center:
+            active_networks = ProducerNetwork.objects.filter(
+                center=self.center,
+                status='active'
+            ).exists()
+            
+            if not active_networks:
+                raise ValidationError(
+                    'Kalıp siparişi verebilmek için önce bir üretici ağına katılmanız gerekiyor.'
+                )
+        
+        return cleaned_data
+    
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        
+        # Sipariş türüne göre is_physical_shipment ayarla
+        order_type = self.cleaned_data.get('order_type')
+        if order_type:
+            instance.is_physical_shipment = (order_type == 'physical')
+        
+        # Center'ı ata
+        if self.center:
+            instance.center = self.center
+            
+        if commit:
+            instance.save()
+            
+        return instance
 
 
 class PhysicalShipmentForm(forms.ModelForm):
@@ -139,19 +174,7 @@ class PhysicalShipmentForm(forms.ModelForm):
             'estimated_delivery', 'shipment_notes'
         ]
         widgets = {
-            'carrier_company': forms.Select(attrs={
-                'class': 'form-select',
-            }, choices=[
-                ('', 'Kargo firması seçin'),
-                ('aras', 'Aras Kargo'),
-                ('yurtici', 'Yurtiçi Kargo'),
-                ('mng', 'MNG Kargo'),
-                ('ptt', 'PTT Kargo'),
-                ('ups', 'UPS'),
-                ('dhl', 'DHL'),
-                ('fedex', 'FedEx'),
-                ('other', 'Diğer'),
-            ]),
+            'carrier_company': forms.Select(attrs={'class': 'form-select'}),
             'tracking_number': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Kargo takip numarasını girin'
@@ -177,45 +200,28 @@ class PhysicalShipmentForm(forms.ModelForm):
         # Sadece fiziksel gönderim için kullanılabilir
         if self.instance and not self.instance.is_physical_shipment:
             for field in self.fields:
-                self.fields[field].widget.attrs['disabled'] = True
-                
-        # Kargo firması seçildiğinde otomatik tamamlama
-        if self.instance and self.instance.tracking_number and not self.instance.carrier_company:
-            # Takip numarasından kargo firmasını tahmin etmeye çalış
-            tracking = self.instance.tracking_number.upper()
-            if tracking.startswith('1Z'):
-                self.fields['carrier_company'].initial = 'ups'
-            elif len(tracking) == 12 and tracking.isdigit():
-                self.fields['carrier_company'].initial = 'aras'
-            elif len(tracking) == 10 and tracking.isdigit():
-                self.fields['carrier_company'].initial = 'yurtici'
+                self.fields[field].disabled = True
+                self.fields[field].help_text = 'Bu kalıp dijital tarama olarak oluşturulmuş.'
 
 
 class TrackingUpdateForm(forms.ModelForm):
-    """Sadece kargo takip numarası güncelleme formu"""
+    """Kargo takip güncelleme formu"""
     
     class Meta:
         model = EarMold
-        fields = ['tracking_number', 'shipment_status', 'carrier_company']
+        fields = ['tracking_number', 'shipment_status', 'carrier_company', 'shipment_notes']
         widgets = {
             'tracking_number': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Kargo takip numarasını girin'
+                'placeholder': 'Takip numarası'
             }),
             'shipment_status': forms.Select(attrs={'class': 'form-select'}),
-            'carrier_company': forms.Select(attrs={
-                'class': 'form-select',
-            }, choices=[
-                ('', 'Kargo firması seçin'),
-                ('aras', 'Aras Kargo'),
-                ('yurtici', 'Yurtiçi Kargo'),
-                ('mng', 'MNG Kargo'),
-                ('ptt', 'PTT Kargo'),
-                ('ups', 'UPS'),
-                ('dhl', 'DHL'),
-                ('fedex', 'FedEx'),
-                ('other', 'Diğer'),
-            ]),
+            'carrier_company': forms.Select(attrs={'class': 'form-select'}),
+            'shipment_notes': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 2,
+                'placeholder': 'Güncelleme notları...'
+            }),
         }
 
 class RevisionForm(forms.ModelForm):
@@ -304,9 +310,14 @@ class RevisionRequestForm(forms.ModelForm):
         }
     
     def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
         center = kwargs.pop('center', None)
         super().__init__(*args, **kwargs)
         
+        # User'dan center'ı al
+        if user and hasattr(user, 'center'):
+            center = user.center
+            
         if center:
             # Sadece bu merkeze ait ve onaylanmış kalıp dosyalarını göster
             self.fields['modeled_mold'].queryset = ModeledMold.objects.filter(

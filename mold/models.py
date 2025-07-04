@@ -4,6 +4,7 @@ from center.models import Center
 from django.core.exceptions import ValidationError
 from .validators import validate_file_size
 from django.utils.translation import gettext_lazy as _
+from django.utils import timezone
 
 def validate_scan_file_size(value):
     filesize = value.size
@@ -53,6 +54,18 @@ class EarMold(models.Model):
         ('returned', 'İade Edildi'),
     )
     
+    # Kargo firmaları
+    CARRIER_CHOICES = (
+        ('aras', 'Aras Kargo'),
+        ('yurtici', 'Yurtiçi Kargo'),
+        ('mng', 'MNG Kargo'),
+        ('ptt', 'PTT Kargo'),
+        ('ups', 'UPS'),
+        ('dhl', 'DHL'),
+        ('fedex', 'FedEx'),
+        ('other', 'Diğer'),
+    )
+    
     center = models.ForeignKey(Center, on_delete=models.CASCADE, related_name='molds', verbose_name='Merkez')
     patient_name = models.CharField('Hasta Adı', max_length=100)
     patient_surname = models.CharField('Hasta Soyadı', max_length=100)
@@ -61,6 +74,8 @@ class EarMold(models.Model):
     ear_side = models.CharField('Kulak Yönü', max_length=5, choices=EAR_SIDE_CHOICES, default='right')
     mold_type = models.CharField('Kalıp Tipi', max_length=10, choices=MOLD_TYPE_CHOICES)
     vent_diameter = models.FloatField('Vent Çapı', validators=[MinValueValidator(0.0)])
+    
+    # Scan file - artık isteğe bağlı (fiziksel gönderim için)
     scan_file = models.FileField(
         'Tarama Dosyası',
         upload_to='scans/',
@@ -75,6 +90,7 @@ class EarMold(models.Model):
         blank=True,
         help_text='STL, OBJ, PLY, ZIP veya RAR formatında tarama dosyası yükleyin (Maks. 100MB)'
     )
+    
     notes = models.TextField('Notlar', blank=True)
     status = models.CharField('Durum', max_length=20, choices=STATUS_CHOICES, default='waiting')
     quality_score = models.IntegerField('Kalite Puanı', validators=[MinValueValidator(0), MaxValueValidator(100)], null=True, blank=True)
@@ -86,15 +102,15 @@ class EarMold(models.Model):
     tracking_number = models.CharField('Kargo Takip Numarası', max_length=100, blank=True, null=True)
     shipment_date = models.DateTimeField('Kargo Gönderim Tarihi', blank=True, null=True)
     shipment_status = models.CharField('Kargo Durumu', max_length=30, choices=SHIPMENT_STATUS_CHOICES, default='not_shipped')
-    carrier_company = models.CharField('Kargo Firması', max_length=100, blank=True, null=True)
+    carrier_company = models.CharField('Kargo Firması', max_length=20, choices=CARRIER_CHOICES, blank=True, null=True)
     estimated_delivery = models.DateField('Tahmini Teslimat Tarihi', blank=True, null=True)
     shipment_notes = models.TextField('Kargo Notları', blank=True, help_text='Kargo ile ilgili özel talimatlar')
     
-    # Öncelik ve özel talimatlar (formdan gelen alanlar için)
+    # Öncelik ve özel talimatlar
     priority = models.CharField('Öncelik', max_length=20, default='normal', choices=[
-        ('normal', 'Normal'),
-        ('high', 'Yüksek'),
-        ('urgent', 'Acil'),
+        ('normal', 'Normal (5-7 iş günü)'),
+        ('high', 'Yüksek (3-4 iş günü)'),
+        ('urgent', 'Acil (1-2 iş günü)'),
     ])
     special_instructions = models.TextField('Özel Talimatlar', blank=True)
 
@@ -105,6 +121,23 @@ class EarMold(models.Model):
 
     def __str__(self):
         return f'{self.patient_name} {self.patient_surname} - {self.get_mold_type_display()}'
+
+    def clean(self):
+        super().clean()
+        # Dijital gönderim için dosya zorunlu
+        if not self.is_physical_shipment and not self.scan_file:
+            raise ValidationError({'scan_file': 'Dijital tarama için dosya yüklenmesi zorunludur.'})
+        
+        # Fiziksel gönderim için dosya isteğe bağlı
+        if self.is_physical_shipment and self.scan_file:
+            # Fiziksel gönderimde dosya varsa uyarı ver ama engelleme
+            pass
+
+    def save(self, *args, **kwargs):
+        # Fiziksel gönderimde dosya varsa temizle
+        if self.is_physical_shipment and self.scan_file:
+            self.scan_file = None
+        super().save(*args, **kwargs)
 
     def get_status_color(self):
         """Durum için Bootstrap renk sınıfı döndürür"""
@@ -146,6 +179,36 @@ class EarMold(models.Model):
             'urgent': 'danger',
         }
         return color_map.get(self.priority, 'secondary')
+        
+    def get_priority_display_custom(self):
+        """Türkçe öncelik adını döndürür"""
+        priority_map = {
+            'normal': 'Normal (5-7 iş günü)',
+            'high': 'Yüksek (3-4 iş günü)',
+            'urgent': 'Acil (1-2 iş günü)',
+        }
+        return priority_map.get(self.priority, self.priority)
+        
+    def get_delivery_address(self):
+        """Üretici adresini döndürür"""
+        try:
+            # İlk aktif üretici ağını bul
+            from producer.models import ProducerNetwork
+            network = ProducerNetwork.objects.filter(
+                center=self.center,
+                status='active'
+            ).first()
+            
+            if network and network.producer:
+                return {
+                    'company': network.producer.company_name,
+                    'address': network.producer.address,
+                    'phone': network.producer.phone,
+                    'contact_email': network.producer.contact_email
+                }
+        except:
+            pass
+        return None
 
 class Revision(models.Model):
     REVISION_TYPE_CHOICES = [
