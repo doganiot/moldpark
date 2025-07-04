@@ -15,7 +15,7 @@ def center_required(view_func):
     def _wrapped_view(request, *args, **kwargs):
         if not hasattr(request.user, 'center'):
             messages.error(request, 'Bu sayfaya erişmek için bir işitme merkezi hesabına sahip olmanız gerekiyor.')
-            return redirect('accounts:login')
+            return redirect('account_login')
         return view_func(request, *args, **kwargs)
     return _wrapped_view
 
