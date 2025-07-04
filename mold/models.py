@@ -294,19 +294,27 @@ class RevisionRequest(models.Model):
         ('other', 'Diğer'),
     ]
     
+    # Genişletilmiş status seçenekleri
     STATUS_CHOICES = [
-        ('pending', 'Beklemede'),
-        ('accepted', 'Kabul Edildi'),
-        ('rejected', 'Reddedildi'),
-        ('in_progress', 'İşlemde'),
-        ('completed', 'Tamamlandı'),
+        ('pending', 'Beklemede'),           # İşitme merkezi talepte bulundu
+        ('admin_review', 'Admin İncelemesi'),  # Admin onayı bekliyor
+        ('approved', 'Onaylandı'),          # Admin onayladı
+        ('rejected', 'Reddedildi'),         # Admin reddetti
+        ('producer_review', 'Üretici İncelemesi'),  # Üretici inceliyor
+        ('accepted', 'Kabul Edildi'),       # Üretici kabul etti
+        ('producer_rejected', 'Üretici Reddetti'),  # Üretici reddetti
+        ('in_progress', 'İşlemde'),         # Revizyon yapılıyor
+        ('quality_check', 'Kalite Kontrol'),  # Kalite kontrolde
+        ('ready_for_delivery', 'Teslimat Hazır'),  # Teslimat için hazır
+        ('completed', 'Tamamlandı'),        # Süreç tamamlandı
+        ('cancelled', 'İptal Edildi'),      # İptal edildi
     ]
     
     PRIORITY_CHOICES = [
-        ('low', 'Düşük'),
-        ('normal', 'Normal'),
-        ('high', 'Yüksek'),
-        ('urgent', 'Acil'),
+        ('low', 'Düşük (7-10 iş günü)'),
+        ('normal', 'Normal (5-7 iş günü)'),
+        ('high', 'Yüksek (3-4 iş günü)'),
+        ('urgent', 'Acil (1-2 iş günü)'),
     ]
     
     # Üretici merkezden gelen kalıp dosyasına referans
@@ -320,23 +328,44 @@ class RevisionRequest(models.Model):
     priority = models.CharField('Öncelik', max_length=10, choices=PRIORITY_CHOICES, default='normal')
     
     # Durum Bilgileri
-    status = models.CharField('Durum', max_length=15, choices=STATUS_CHOICES, default='pending')
+    status = models.CharField('Durum', max_length=20, choices=STATUS_CHOICES, default='pending')
     admin_notes = models.TextField('Admin Notları', blank=True)
     producer_response = models.TextField('Üretici Yanıtı', blank=True)
+    rejection_reason = models.TextField('Red Nedeni', blank=True)
     
     # Ek Dosyalar
     reference_image = models.ImageField('Referans Görsel', upload_to='revision_requests/', blank=True, null=True)
     attachment = models.FileField('Ek Dosya', upload_to='revision_requests/', blank=True, null=True)
     
-    # Tarihler
+    # Süreç Takibi - Tarihler
     created_at = models.DateTimeField('Oluşturulma Tarihi', auto_now_add=True)
     updated_at = models.DateTimeField('Güncellenme Tarihi', auto_now=True)
+    admin_reviewed_at = models.DateTimeField('Admin İnceleme Tarihi', blank=True, null=True)
+    producer_reviewed_at = models.DateTimeField('Üretici İnceleme Tarihi', blank=True, null=True)
+    work_started_at = models.DateTimeField('İş Başlama Tarihi', blank=True, null=True)
+    quality_checked_at = models.DateTimeField('Kalite Kontrol Tarihi', blank=True, null=True)
+    completed_at = models.DateTimeField('Tamamlanma Tarihi', blank=True, null=True)
     resolved_at = models.DateTimeField('Çözülme Tarihi', blank=True, null=True)
+    
+    # Beklenen Teslim Tarihi
+    expected_delivery = models.DateField('Beklenen Teslim Tarihi', blank=True, null=True)
+    
+    # Süreç Metrikleri
+    total_days = models.IntegerField('Toplam Gün', default=0)
+    admin_response_time = models.DurationField('Admin Yanıt Süresi', blank=True, null=True)
+    producer_response_time = models.DurationField('Üretici Yanıt Süresi', blank=True, null=True)
+    
+    # Süreç Takibi
+    process_steps = models.JSONField('Süreç Adımları', default=list, blank=True)
     
     class Meta:
         verbose_name = 'Revizyon Talebi'
         verbose_name_plural = 'Revizyon Talepleri'
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['status', 'priority']),
+            models.Index(fields=['created_at', 'status']),
+        ]
     
     @property
     def mold(self):
@@ -350,10 +379,17 @@ class RevisionRequest(models.Model):
         """Bootstrap renk sınıfı döndürür"""
         color_map = {
             'pending': 'warning',
-            'accepted': 'info',
+            'admin_review': 'info',
+            'approved': 'success', 
             'rejected': 'danger',
+            'producer_review': 'primary',
+            'accepted': 'success',
+            'producer_rejected': 'danger',
             'in_progress': 'primary',
+            'quality_check': 'info',
+            'ready_for_delivery': 'success',
             'completed': 'success',
+            'cancelled': 'secondary',
         }
         return color_map.get(self.status, 'secondary')
     
@@ -366,6 +402,188 @@ class RevisionRequest(models.Model):
             'urgent': 'danger',
         }
         return color_map.get(self.priority, 'primary')
+    
+    def get_progress_percentage(self):
+        """Süreç tamamlanma yüzdesi"""
+        status_progress = {
+            'pending': 10,
+            'admin_review': 20,
+            'approved': 30,
+            'rejected': 0,
+            'producer_review': 40,
+            'accepted': 50,
+            'producer_rejected': 0,
+            'in_progress': 70,
+            'quality_check': 85,
+            'ready_for_delivery': 95,
+            'completed': 100,
+            'cancelled': 0,
+        }
+        return status_progress.get(self.status, 0)
+    
+    def get_expected_completion_date(self):
+        """Beklenen tamamlanma tarihi"""
+        if self.expected_delivery:
+            return self.expected_delivery
+        
+        priority_days = {
+            'low': 10,
+            'normal': 7,
+            'high': 4,
+            'urgent': 2,
+        }
+        
+        from datetime import timedelta
+        days = priority_days.get(self.priority, 7)
+        return self.created_at.date() + timedelta(days=days)
+    
+    def is_overdue(self):
+        """Süreç gecikmede mi?"""
+        if self.status in ['completed', 'cancelled']:
+            return False
+        
+        from datetime import date
+        expected_date = self.get_expected_completion_date()
+        return date.today() > expected_date
+    
+    def add_process_step(self, step_name, description="", user=None):
+        """Süreç adımı ekle"""
+        from django.utils import timezone
+        
+        step = {
+            'step': step_name,
+            'description': description,
+            'timestamp': timezone.now().isoformat(),
+            'user': user.username if user else 'System',
+        }
+        
+        if not self.process_steps:
+            self.process_steps = []
+        
+        self.process_steps.append(step)
+        self.save()
+    
+    def calculate_response_times(self):
+        """Yanıt sürelerini hesapla"""
+        if self.admin_reviewed_at:
+            self.admin_response_time = self.admin_reviewed_at - self.created_at
+        
+        if self.producer_reviewed_at and self.admin_reviewed_at:
+            self.producer_response_time = self.producer_reviewed_at - self.admin_reviewed_at
+        
+        if self.completed_at:
+            self.total_days = (self.completed_at.date() - self.created_at.date()).days
+    
+    def save(self, *args, **kwargs):
+        """Revizyon talebi kaydedilirken otomatik işlemler"""
+        from django.utils import timezone
+        
+        # Status değişikliklerini takip et
+        if self.pk:
+            old_instance = RevisionRequest.objects.get(pk=self.pk)
+            if old_instance.status != self.status:
+                # Status değişti - tarih güncelle
+                now = timezone.now()
+                
+                if self.status == 'admin_review':
+                    self.admin_reviewed_at = now
+                elif self.status == 'producer_review':
+                    self.producer_reviewed_at = now
+                elif self.status == 'in_progress':
+                    self.work_started_at = now
+                elif self.status == 'quality_check':
+                    self.quality_checked_at = now
+                elif self.status == 'completed':
+                    self.completed_at = now
+                    self.resolved_at = now
+                
+                # Süreç adımı ekle
+                self.add_process_step(
+                    f"Status {old_instance.get_status_display()} → {self.get_status_display()}"
+                )
+        
+        # Yanıt sürelerini hesapla
+        self.calculate_response_times()
+        
+        super().save(*args, **kwargs)
+    
+    def get_next_steps(self):
+        """Sonraki adımları döndür"""
+        next_steps = {
+            'pending': ['Admin onayı bekleniyor'],
+            'admin_review': ['Admin onayını bekliyor'],
+            'approved': ['Üretici incelemesi'],
+            'rejected': ['Süreç sonlandırıldı'],
+            'producer_review': ['Üretici kararı bekleniyor'],
+            'accepted': ['Revizyon işlemi başlayacak'],
+            'producer_rejected': ['Üretici reddetti - süreç incelenmeli'],
+            'in_progress': ['Revizyon yapılıyor'],
+            'quality_check': ['Kalite kontrol ediliyor'],
+            'ready_for_delivery': ['Teslimat yapılacak'],
+            'completed': ['Süreç tamamlandı'],
+            'cancelled': ['İptal edildi'],
+        }
+        return next_steps.get(self.status, [])
+    
+    def get_timeline_data(self):
+        """Zaman çizelgesi verilerini döndür"""
+        timeline = []
+        
+        if self.created_at:
+            timeline.append({
+                'date': self.created_at,
+                'title': 'Revizyon Talebi Oluşturuldu',
+                'description': f'{self.center.company_name} tarafından revizyon talep edildi',
+                'status': 'pending',
+                'icon': 'fas fa-plus',
+            })
+        
+        if self.admin_reviewed_at:
+            timeline.append({
+                'date': self.admin_reviewed_at,
+                'title': 'Admin İncelemesi',
+                'description': 'Admin tarafından incelendi',
+                'status': 'admin_review',
+                'icon': 'fas fa-user-shield',
+            })
+        
+        if self.producer_reviewed_at:
+            timeline.append({
+                'date': self.producer_reviewed_at,
+                'title': 'Üretici İncelemesi',
+                'description': 'Üretici tarafından incelendi',
+                'status': 'producer_review',
+                'icon': 'fas fa-industry',
+            })
+        
+        if self.work_started_at:
+            timeline.append({
+                'date': self.work_started_at,
+                'title': 'İş Başladı',
+                'description': 'Revizyon işlemi başladı',
+                'status': 'in_progress',
+                'icon': 'fas fa-tools',
+            })
+        
+        if self.quality_checked_at:
+            timeline.append({
+                'date': self.quality_checked_at,
+                'title': 'Kalite Kontrol',
+                'description': 'Kalite kontrol yapıldı',
+                'status': 'quality_check',
+                'icon': 'fas fa-check-circle',
+            })
+        
+        if self.completed_at:
+            timeline.append({
+                'date': self.completed_at,
+                'title': 'Tamamlandı',
+                'description': 'Revizyon süreci tamamlandı',
+                'status': 'completed',
+                'icon': 'fas fa-flag-checkered',
+            })
+        
+        return sorted(timeline, key=lambda x: x['date'])
 
 
 class MoldEvaluation(models.Model):

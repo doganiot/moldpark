@@ -11,8 +11,13 @@ def center_required(view_func):
     Decorator to ensure user has a center
     """
     @wraps(view_func)
-    @login_required
     def _wrapped_view(request, *args, **kwargs):
+        # Giriş yapılmış mı kontrol et
+        if not request.user.is_authenticated:
+            messages.error(request, 'Bu sayfaya erişmek için giriş yapmanız gerekiyor.')
+            return redirect('account_login')
+        
+        # Center hesabı var mı kontrol et
         if not hasattr(request.user, 'center'):
             messages.error(request, 'Bu sayfaya erişmek için bir işitme merkezi hesabına sahip olmanız gerekiyor.')
             return redirect('account_login')
@@ -24,7 +29,6 @@ def subscription_required(view_func):
     Decorator to ensure user has valid subscription for creating models
     """
     @wraps(view_func)
-    @login_required
     @center_required
     def _wrapped_view(request, *args, **kwargs):
         try:

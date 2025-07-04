@@ -229,6 +229,9 @@ def mold_detail(request, pk):
             'revision_requests': revision_requests,
             'delivery_address': delivery_address,
             'can_evaluate': modeled_files.filter(status='approved').exists(),
+            'has_approved_files': modeled_files.filter(status='approved').exists(),
+            'can_request_revision': mold.status in ['delivered', 'completed'] and modeled_files.filter(status='approved').exists(),
+            'has_pending_revision': revision_requests.filter(status__in=['pending', 'accepted', 'in_progress']).exists(),
         }
         
         return render(request, 'mold/mold_detail.html', context)
@@ -484,6 +487,8 @@ def revision_request_create(request, mold_id=None):
     """Revizyon talebi oluşturma view'ı"""
     try:
         mold = None
+        selected_modeled_mold = None
+        
         if mold_id:
             mold = get_object_or_404(EarMold, pk=mold_id)
             
@@ -495,6 +500,15 @@ def revision_request_create(request, mold_id=None):
             if mold.status not in ['delivered', 'completed']:
                 messages.error(request, 'Sadece teslim edilmiş kalıplar için revizyon talebi oluşturabilirsiniz.')
                 return redirect('mold:mold_detail', pk=mold.pk)
+            
+            # Bu kalıp için onaylanmış modeled mold var mı?
+            approved_models = mold.modeled_files.filter(status='approved')
+            if not approved_models.exists():
+                messages.error(request, 'Bu kalıp için onaylanmış model dosyası bulunamadı.')
+                return redirect('mold:mold_detail', pk=mold.pk)
+            
+            # İlk onaylanmış modeli seç
+            selected_modeled_mold = approved_models.first()
                 
         if request.method == 'POST':
             form = RevisionRequestForm(request.POST, request.FILES, user=request.user)
@@ -506,14 +520,19 @@ def revision_request_create(request, mold_id=None):
                 # Revizyon talebi bildirimi
                 try:
                     # Üreticiye bildirim
-                    producer = revision_request.modeled_mold.producer
-                    send_order_notification(
-                        producer.user,
-                        'Yeni Revizyon Talebi',
-                        f'{request.user.center.name} merkezi tarafından revizyon talebi oluşturuldu. '
-                        f'Talep türü: {revision_request.get_revision_type_display()}',
-                        related_url=f'/producer/revision-requests/{revision_request.id}/'
-                    )
+                    ear_mold = revision_request.modeled_mold.ear_mold
+                    producer_orders = ear_mold.producer_orders.filter(status='delivered').first()
+                    
+                    if producer_orders:
+                        producer = producer_orders.producer
+                        send_order_notification(
+                            producer.user,
+                            'Yeni Revizyon Talebi',
+                            f'{request.user.center.name} merkezi tarafından "{ear_mold.patient_name} {ear_mold.patient_surname}" '
+                            f'hastasının kalıbı için revizyon talebi oluşturuldu. '
+                            f'Talep türü: {revision_request.get_revision_type_display()}',
+                            related_url=f'/producer/revision-requests/{revision_request.id}/'
+                        )
                     
                     # Admin'lere bildirim
                     admin_users = User.objects.filter(is_superuser=True)
@@ -521,22 +540,39 @@ def revision_request_create(request, mold_id=None):
                         send_system_notification(
                             admin,
                             'Yeni Revizyon Talebi',
-                            f'{request.user.center.name} merkezi tarafından revizyon talebi oluşturuldu.',
+                            f'{request.user.center.name} merkezi tarafından "{ear_mold.patient_name} {ear_mold.patient_surname}" '
+                            f'hastasının kalıbı için revizyon talebi oluşturuldu.',
                             related_url='/admin-panel/'
                         )
                         
                 except Exception as e:
                     logger.error(f"Revision request notification error: {e}")
                 
-                messages.success(request, 'Revizyon talebi başarıyla oluşturuldu.')
-                return redirect('mold:revision_request_detail', pk=revision_request.pk)
+                messages.success(request, 
+                    f'✅ Revizyon talebi başarıyla oluşturuldu! '
+                    f'Talep türü: {revision_request.get_revision_type_display()}')
+                
+                # Kalıp detayına yönlendir
+                if mold:
+                    return redirect('mold:mold_detail', pk=mold.pk)
+                else:
+                    return redirect('mold:revision_request_detail', pk=revision_request.pk)
         else:
-            initial_data = {'ear_mold': mold} if mold else {}
+            initial_data = {}
+            if selected_modeled_mold:
+                initial_data['modeled_mold'] = selected_modeled_mold
+            
             form = RevisionRequestForm(user=request.user, initial=initial_data)
+            
+            # Belirli kalıp için revizyon talep ediyorsa, sadece o kalıbın modellerini göster
+            if mold:
+                form.fields['modeled_mold'].queryset = mold.modeled_files.filter(status='approved')
+                form.fields['modeled_mold'].help_text = f'{mold.patient_name} {mold.patient_surname} hastasının kalıbı için hangi model dosyasında revizyon istiyorsunuz?'
             
         return render(request, 'mold/revision_request_form.html', {
             'form': form,
-            'mold': mold
+            'mold': mold,
+            'selected_modeled_mold': selected_modeled_mold
         })
         
     except PermissionDenied:
@@ -555,10 +591,33 @@ def revision_request_list(request):
         center = request.user.center
         revision_requests = RevisionRequest.objects.filter(
             center=center
-        ).order_by('-created_at')
+        ).select_related('mold', 'modeled_mold').order_by('-created_at')
+        
+        # Filtreleme
+        status = request.GET.get('status')
+        if status:
+            revision_requests = revision_requests.filter(status=status)
+            
+        revision_type = request.GET.get('revision_type')
+        if revision_type:
+            revision_requests = revision_requests.filter(revision_type=revision_type)
+            
+        priority = request.GET.get('priority')
+        if priority:
+            revision_requests = revision_requests.filter(priority=priority)
+        
+        # İstatistikler
+        all_requests = RevisionRequest.objects.filter(center=center)
+        stats = {
+            'pending': all_requests.filter(status='pending').count(),
+            'accepted': all_requests.filter(status='accepted').count(),
+            'in_progress': all_requests.filter(status='in_progress').count(),
+            'completed': all_requests.filter(status='completed').count(),
+        }
         
         return render(request, 'mold/revision_request_list.html', {
-            'revision_requests': revision_requests
+            'revision_requests': revision_requests,
+            'stats': stats,
         })
         
     except Exception as e:

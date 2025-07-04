@@ -1,0 +1,722 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Revizyon Talepleri - {{ producer_center.company_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .revision-card {
+        transition: all 0.3s ease;
+        border: none;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    
+    .revision-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+    
+    .status-header {
+        padding: 15px 20px;
+        color: white;
+        font-weight: 600;
+        position: relative;
+    }
+    
+    .status-header::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: rgba(255,255,255,0.3);
+    }
+    
+    .status-producer_review { background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); }
+    .status-accepted { background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%); }
+    .status-in_progress { background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); }
+    .status-quality_check { background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%); }
+    .status-ready_for_delivery { background: linear-gradient(135deg, #20c997 0%, #1ba085 100%); }
+    .status-completed { background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%); }
+    .status-rejected { background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); }
+    .status-producer_rejected { background: linear-gradient(135deg, #6c757d 0%, #545b62 100%); }
+    
+    .progress-ring {
+        width: 60px;
+        height: 60px;
+        position: relative;
+    }
+    
+    .progress-ring svg {
+        width: 100%;
+        height: 100%;
+        transform: rotate(-90deg);
+    }
+    
+    .progress-ring circle {
+        fill: none;
+        stroke-width: 4;
+        stroke-linecap: round;
+    }
+    
+    .progress-ring .background {
+        stroke: #e9ecef;
+    }
+    
+    .progress-ring .progress {
+        stroke: #007bff;
+        stroke-dasharray: 157;
+        stroke-dashoffset: 157;
+        animation: progress-animation 2s ease-out forwards;
+    }
+    
+    @keyframes progress-animation {
+        to {
+            stroke-dashoffset: calc(157 - (157 * var(--progress)) / 100);
+        }
+    }
+    
+    .progress-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 12px;
+        font-weight: 600;
+        color: #495057;
+    }
+    
+    .priority-badge {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        padding: 4px 8px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    
+    .priority-urgent { background: #dc3545; color: white; }
+    .priority-high { background: #fd7e14; color: white; }
+    .priority-normal { background: #17a2b8; color: white; }
+    .priority-low { background: #6c757d; color: white; }
+    
+    .stats-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 15px;
+        padding: 25px;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+    
+    .stats-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    
+    .stats-card h3 {
+        font-size: 2.5rem;
+        margin-bottom: 5px;
+        font-weight: 700;
+    }
+    
+    .filter-section {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    
+    .action-buttons .btn {
+        border-radius: 20px;
+        padding: 6px 16px;
+        font-size: 13px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .action-buttons .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .overdue-alert {
+        background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+        color: white;
+        padding: 8px 15px;
+        border-radius: 20px;
+        font-size: 12px;
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+    
+    .timeline-mini {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        margin-top: 10px;
+    }
+    
+    .timeline-step {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #dee2e6;
+        transition: all 0.3s ease;
+    }
+    
+    .timeline-step.completed {
+        background: #28a745;
+        box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.3);
+    }
+    
+    .timeline-step.current {
+        background: #007bff;
+        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.3);
+        animation: pulse-current 1.5s infinite;
+    }
+    
+    @keyframes pulse-current {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.2); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="h3 mb-1">
+                        <i class="fas fa-tools text-primary me-2"></i>
+                        Revizyon Talepleri
+                    </h2>
+                    <p class="text-muted mb-0">Size gelen revizyon taleplerini yönetin</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-primary" onclick="location.reload()">
+                        <i class="fas fa-sync-alt me-1"></i>Yenile
+                    </button>
+                    <a href="{% url 'producer:dashboard' %}" class="btn btn-primary">
+                        <i class="fas fa-arrow-left me-1"></i>Dashboard
+                    </a>
+                </div>
+            </div>
+            
+            <!-- İstatistikler -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <h3>{{ total_count }}</h3>
+                        <small>Toplam Talep</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <h3>{{ pending_count }}</h3>
+                        <small>Yanıt Bekleyen</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <h3>{{ in_progress_count }}</h3>
+                        <small>İşlemde</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <h3>{{ overdue_count }}</h3>
+                        <small>Geciken</small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Filtreler -->
+            <div class="filter-section">
+                <form method="get" class="row g-3">
+                    <div class="col-md-3">
+                        <label for="status" class="form-label">Durum</label>
+                        <select name="status" id="status" class="form-select">
+                            <option value="">Tümü</option>
+                            <option value="producer_review" {% if status_filter == 'producer_review' %}selected{% endif %}>İnceleme Bekleyen</option>
+                            <option value="accepted" {% if status_filter == 'accepted' %}selected{% endif %}>Kabul Edildi</option>
+                            <option value="in_progress" {% if status_filter == 'in_progress' %}selected{% endif %}>İşlemde</option>
+                            <option value="quality_check" {% if status_filter == 'quality_check' %}selected{% endif %}>Kalite Kontrol</option>
+                            <option value="ready_for_delivery" {% if status_filter == 'ready_for_delivery' %}selected{% endif %}>Teslimat Hazır</option>
+                            <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Tamamlandı</option>
+                            <option value="producer_rejected" {% if status_filter == 'producer_rejected' %}selected{% endif %}>Reddedildi</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="priority" class="form-label">Öncelik</label>
+                        <select name="priority" id="priority" class="form-select">
+                            <option value="">Tümü</option>
+                            <option value="urgent" {% if priority_filter == 'urgent' %}selected{% endif %}>Acil</option>
+                            <option value="high" {% if priority_filter == 'high' %}selected{% endif %}>Yüksek</option>
+                            <option value="normal" {% if priority_filter == 'normal' %}selected{% endif %}>Normal</option>
+                            <option value="low" {% if priority_filter == 'low' %}selected{% endif %}>Düşük</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="search" class="form-label">Arama</label>
+                        <input type="text" name="search" id="search" class="form-control" 
+                               placeholder="Hasta adı, merkez, açıklama..." value="{{ search_query }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">&nbsp;</label>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-search me-1"></i>Filtrele
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Revizyon Talepleri -->
+            <div class="row">
+                {% for revision in revision_requests %}
+                <div class="col-lg-6 col-xl-4 mb-4">
+                    <div class="revision-card h-100">
+                        <div class="status-header status-{{ revision.status }}">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-hashtag me-1"></i>{{ revision.id }}
+                                    </h6>
+                                    <small>{{ revision.get_status_display }}</small>
+                                </div>
+                                <div class="progress-ring" style="--progress: {{ revision.get_progress_percentage }}">
+                                    <svg>
+                                        <circle class="background" cx="30" cy="30" r="25"></circle>
+                                        <circle class="progress" cx="30" cy="30" r="25"></circle>
+                                    </svg>
+                                    <div class="progress-text">{{ revision.get_progress_percentage }}%</div>
+                                </div>
+                            </div>
+                            <div class="priority-badge priority-{{ revision.priority }}">
+                                {{ revision.get_priority_display }}
+                            </div>
+                        </div>
+                        
+                        <div class="card-body">
+                            <!-- Temel Bilgiler -->
+                            <h6 class="card-title mb-3">{{ revision.title }}</h6>
+                            
+                            <div class="mb-3">
+                                <small class="text-muted d-block">
+                                    <i class="fas fa-user me-1"></i>
+                                    {{ revision.mold.patient_name }} {{ revision.mold.patient_surname }}
+                                </small>
+                                <small class="text-muted d-block">
+                                    <i class="fas fa-building me-1"></i>
+                                    {{ revision.center.company_name }}
+                                </small>
+                                <small class="text-muted d-block">
+                                    <i class="fas fa-calendar me-1"></i>
+                                    {{ revision.created_at|date:"d.m.Y H:i" }}
+                                </small>
+                            </div>
+                            
+                            <!-- Revizyon Türü -->
+                            <div class="mb-3">
+                                <span class="badge bg-info">{{ revision.get_revision_type_display }}</span>
+                            </div>
+                            
+                            <!-- Açıklama -->
+                            <p class="text-muted small mb-3">
+                                {{ revision.description|truncatewords:15 }}
+                            </p>
+                            
+                            <!-- Zaman Bilgisi -->
+                            <div class="mb-3">
+                                {% if revision.is_overdue %}
+                                <div class="overdue-alert">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                    Gecikme: {{ revision.get_overdue_days }} gün
+                                </div>
+                                {% else %}
+                                <small class="text-success">
+                                    <i class="fas fa-clock me-1"></i>
+                                    Hedef: {{ revision.get_expected_completion_date|date:"d.m.Y" }}
+                                </small>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Mini Timeline -->
+                            <div class="timeline-mini">
+                                <div class="timeline-step {% if revision.status != 'producer_review' %}completed{% else %}current{% endif %}"></div>
+                                <div class="timeline-step {% if revision.status in 'accepted,in_progress,quality_check,ready_for_delivery,completed' %}completed{% elif revision.status == 'accepted' %}current{% endif %}"></div>
+                                <div class="timeline-step {% if revision.status in 'in_progress,quality_check,ready_for_delivery,completed' %}completed{% elif revision.status == 'in_progress' %}current{% endif %}"></div>
+                                <div class="timeline-step {% if revision.status in 'quality_check,ready_for_delivery,completed' %}completed{% elif revision.status == 'quality_check' %}current{% endif %}"></div>
+                                <div class="timeline-step {% if revision.status in 'ready_for_delivery,completed' %}completed{% elif revision.status == 'ready_for_delivery' %}current{% endif %}"></div>
+                                <div class="timeline-step {% if revision.status == 'completed' %}completed{% endif %}"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="card-footer bg-light">
+                            <div class="action-buttons">
+                                <!-- Durum Bazında Butonlar -->
+                                {% if revision.status == 'producer_review' %}
+                                <button class="btn btn-success btn-sm" onclick="respondToRevision({{ revision.id }}, 'accept')">
+                                    <i class="fas fa-check me-1"></i>Kabul Et
+                                </button>
+                                <button class="btn btn-danger btn-sm" onclick="respondToRevision({{ revision.id }}, 'reject')">
+                                    <i class="fas fa-times me-1"></i>Reddet
+                                </button>
+                                {% elif revision.status == 'accepted' %}
+                                <button class="btn btn-primary btn-sm" onclick="startWork({{ revision.id }})">
+                                    <i class="fas fa-play me-1"></i>Çalışmaya Başla
+                                </button>
+                                {% elif revision.status == 'in_progress' %}
+                                <button class="btn btn-warning btn-sm" onclick="completeWork({{ revision.id }})">
+                                    <i class="fas fa-check-circle me-1"></i>Tamamla
+                                </button>
+                                {% endif %}
+                                
+                                <a href="{% url 'producer:revision_request_detail' revision.id %}" 
+                                   class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-eye me-1"></i>Detay
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12">
+                    <div class="text-center py-5">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">Henüz revizyon talebi yok</h5>
+                        <p class="text-muted">Yeni revizyon talepleri burada görünecektir.</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Sayfalama -->
+            {% if revision_requests.has_other_pages %}
+            <div class="row mt-4">
+                <div class="col-12">
+                    <nav aria-label="Sayfalama">
+                        <ul class="pagination justify-content-center">
+                            {% if revision_requests.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ revision_requests.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if priority_filter %}&priority={{ priority_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">
+                                    <i class="fas fa-chevron-left"></i>
+                                </a>
+                            </li>
+                            {% endif %}
+                            
+                            {% for num in revision_requests.paginator.page_range %}
+                            <li class="page-item {% if revision_requests.number == num %}active{% endif %}">
+                                <a class="page-link" href="?page={{ num }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if priority_filter %}&priority={{ priority_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">
+                                    {{ num }}
+                                </a>
+                            </li>
+                            {% endfor %}
+                            
+                            {% if revision_requests.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ revision_requests.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if priority_filter %}&priority={{ priority_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">
+                                    <i class="fas fa-chevron-right"></i>
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Revizyon Yanıt Modal -->
+<div class="modal fade" id="responseModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Revizyon Talebine Yanıt</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="responseForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="response" class="form-label">Yanıtınız</label>
+                        <textarea class="form-control" id="response" name="response" rows="4" 
+                                  placeholder="Revizyon talebi ile ilgili görüşlerinizi yazın..."></textarea>
+                    </div>
+                    <div id="acceptFields" style="display: none;">
+                        <div class="mb-3">
+                            <label for="estimated_days" class="form-label">Tahmini Süre (Gün)</label>
+                            <input type="number" class="form-control" id="estimated_days" name="estimated_days" 
+                                   value="7" min="1" max="30">
+                        </div>
+                    </div>
+                    <div id="rejectFields" style="display: none;">
+                        <div class="mb-3">
+                            <label for="reason" class="form-label">Red Nedeni <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="reason" name="reason" rows="3" 
+                                      placeholder="Red nedenini detaylı açıklayın..."></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-primary" onclick="confirmResponse()">
+                    <i class="fas fa-paper-plane me-1"></i>Gönder
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Çalışma Başlat Modal -->
+<div class="modal fade" id="startWorkModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Çalışmaya Başla</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Bu revizyon talebi için çalışmaya başlamak istediğinizden emin misiniz?</p>
+                <p class="text-muted">Çalışma başladığında süreç takibi başlayacaktır.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-primary" onclick="confirmStartWork()">
+                    <i class="fas fa-play me-1"></i>Başla
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Çalışma Tamamla Modal -->
+<div class="modal fade" id="completeWorkModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Çalışmayı Tamamla</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="completeWorkForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="revised_file" class="form-label">Revize Edilmiş Dosya</label>
+                        <input type="file" class="form-control" id="revised_file" name="revised_file" 
+                               accept=".stl,.obj,.ply,.zip,.rar">
+                        <div class="form-text">STL, OBJ, PLY, ZIP, RAR dosyalarını kabul eder.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="completion_notes" class="form-label">Tamamlama Notları</label>
+                        <textarea class="form-control" id="completion_notes" name="completion_notes" rows="3" 
+                                  placeholder="Revizyon çalışması ile ilgili notlarınızı yazın..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-success" onclick="confirmCompleteWork()">
+                    <i class="fas fa-check-circle me-1"></i>Tamamla
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentRevisionId = null;
+let currentAction = null;
+
+function respondToRevision(revisionId, action) {
+    currentRevisionId = revisionId;
+    currentAction = action;
+    
+    // Modal içeriğini ayarla
+    if (action === 'accept') {
+        document.getElementById('acceptFields').style.display = 'block';
+        document.getElementById('rejectFields').style.display = 'none';
+        document.querySelector('#responseModal .modal-title').textContent = 'Revizyon Talebini Kabul Et';
+        document.querySelector('#responseModal .btn-primary').innerHTML = '<i class="fas fa-check me-1"></i>Kabul Et';
+        document.querySelector('#responseModal .btn-primary').className = 'btn btn-success';
+    } else {
+        document.getElementById('acceptFields').style.display = 'none';
+        document.getElementById('rejectFields').style.display = 'block';
+        document.querySelector('#responseModal .modal-title').textContent = 'Revizyon Talebini Reddet';
+        document.querySelector('#responseModal .btn-primary').innerHTML = '<i class="fas fa-times me-1"></i>Reddet';
+        document.querySelector('#responseModal .btn-primary').className = 'btn btn-danger';
+    }
+    
+    const modal = new bootstrap.Modal(document.getElementById('responseModal'));
+    modal.show();
+}
+
+function confirmResponse() {
+    if (!currentRevisionId || !currentAction) return;
+    
+    const response = document.getElementById('response').value.trim();
+    
+    if (currentAction === 'reject') {
+        const reason = document.getElementById('reason').value.trim();
+        if (!reason) {
+            alert('Red nedeni zorunludur.');
+            return;
+        }
+    }
+    
+    const formData = {
+        action: currentAction,
+        response: response,
+        estimated_days: document.getElementById('estimated_days').value,
+        reason: document.getElementById('reason').value
+    };
+    
+    fetch(`/producer/revisions/${currentRevisionId}/respond/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCsrfToken(),
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Başarılı', data.message, 'success');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showToast('Hata', data.message, 'error');
+        }
+        bootstrap.Modal.getInstance(document.getElementById('responseModal')).hide();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('Hata', 'Bir hata oluştu', 'error');
+    });
+}
+
+function startWork(revisionId) {
+    currentRevisionId = revisionId;
+    const modal = new bootstrap.Modal(document.getElementById('startWorkModal'));
+    modal.show();
+}
+
+function confirmStartWork() {
+    if (!currentRevisionId) return;
+    
+    fetch(`/producer/revisions/${currentRevisionId}/start-work/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCsrfToken(),
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Başarılı', data.message, 'success');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showToast('Hata', data.message, 'error');
+        }
+        bootstrap.Modal.getInstance(document.getElementById('startWorkModal')).hide();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('Hata', 'Bir hata oluştu', 'error');
+    });
+}
+
+function completeWork(revisionId) {
+    currentRevisionId = revisionId;
+    const modal = new bootstrap.Modal(document.getElementById('completeWorkModal'));
+    modal.show();
+}
+
+function confirmCompleteWork() {
+    if (!currentRevisionId) return;
+    
+    const formData = new FormData(document.getElementById('completeWorkForm'));
+    
+    fetch(`/producer/revisions/${currentRevisionId}/complete-work/`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': getCsrfToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Başarılı', data.message, 'success');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showToast('Hata', data.message, 'error');
+        }
+        bootstrap.Modal.getInstance(document.getElementById('completeWorkModal')).hide();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('Hata', 'Bir hata oluştu', 'error');
+    });
+}
+
+function getCsrfToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+
+function showToast(title, message, type) {
+    const toastHtml = `
+        <div class="toast align-items-center text-white bg-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'warning'} border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body">
+                    <strong>${title}:</strong> ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    `;
+    
+    let toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toast-container';
+        toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+        document.body.appendChild(toastContainer);
+    }
+    
+    toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+    const toastElement = toastContainer.lastElementChild;
+    const toast = new bootstrap.Toast(toastElement);
+    toast.show();
+    
+    toastElement.addEventListener('hidden.bs.toast', () => {
+        toastElement.remove();
+    });
+}
+</script>
+{% endblock %} 

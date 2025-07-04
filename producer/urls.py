@@ -20,7 +20,7 @@ urlpatterns = [
     path('molds/', views.mold_list, name='mold_list'),  # Artık producer_orders listesi
     path('molds/<int:pk>/', views.mold_detail, name='mold_detail'),  # pk = order.id
     path('molds/<int:pk>/download/', views.mold_download, name='mold_download'),  # pk = order.id
-    path('molds/<int:pk>/download/<int:file_id>/', views.mold_download_file, name='mold_download_file'),  # pk = order.id
+
     path('molds/<int:pk>/upload-result/', views.mold_upload_result, name='mold_upload_result'),  # pk = order.id
     
     # Mesaj Sistemi - Kaldırıldı (Sadece Admin Dashboard üzerinden)
@@ -31,13 +31,13 @@ urlpatterns = [
     path('network/remove/<int:center_id>/', views.network_remove, name='network_remove'),
     
     # Revizyon Talepleri
-    path('revision-requests/', views.revision_request_list, name='revision_request_list'),
-    path('revision-requests/<int:pk>/', views.revision_request_detail, name='revision_request_detail'),
-    path('revision-requests/<int:pk>/respond/', views.revision_request_respond, name='revision_request_respond'),
+    path('revisions/', views.revision_requests, name='revision_requests'),
+    path('revisions/<int:request_id>/', views.revision_request_detail, name='revision_request_detail'),
+    path('revisions/<int:request_id>/respond/', views.revision_request_respond, name='revision_request_respond'),
+    path('revisions/<int:request_id>/start-work/', views.revision_start_work, name='revision_start_work'),
+    path('revisions/<int:request_id>/complete-work/', views.revision_complete_work, name='revision_complete_work'),
     
-    # Sabit Dosya İndirme Linkleri (Ana Tarama Dosyaları)
-    path('files/scan/<int:mold_id>/', views.permanent_scan_download, name='permanent_scan_download'),
-    path('files/model/<int:file_id>/', views.permanent_model_download, name='permanent_model_download'),
+    # Sabit Dosya İndirme Linkleri - Kaldırıldı (Şimdilik mold_download kullanılıyor)
     
     # Admin URLs (Ana yönetim paneli için - sadece superuser erişimi)
     path('admin/producers/', views.admin_producer_list, name='admin_producer_list'),

@@ -1,0 +1,359 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Revizyon Talebi Detayları - MoldPark{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'mold:mold_list' %}">Kalıplarım</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'mold:revision_request_list' %}">Revizyon Talepleri</a></li>
+                    <li class="breadcrumb-item active">{{ revision_request.title }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Revizyon Talebi Detayları -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0">
+                            <i class="fas fa-tools me-2"></i>{{ revision_request.title }}
+                        </h4>
+                        <span class="badge bg-{{ revision_request.get_status_color }} fs-6">
+                            {{ revision_request.get_status_display }}
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Temel Bilgiler -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6 class="mb-3"><i class="fas fa-info-circle me-1"></i>Temel Bilgiler</h6>
+                            <dl class="row">
+                                <dt class="col-sm-5">Revizyon Türü:</dt>
+                                <dd class="col-sm-7">{{ revision_request.get_revision_type_display }}</dd>
+                                
+                                <dt class="col-sm-5">Öncelik:</dt>
+                                <dd class="col-sm-7">
+                                    <span class="badge bg-{{ revision_request.get_priority_color }}">
+                                        {{ revision_request.get_priority_display }}
+                                    </span>
+                                </dd>
+                                
+                                <dt class="col-sm-5">Oluşturulma:</dt>
+                                <dd class="col-sm-7">{{ revision_request.created_at|date:"d.m.Y H:i" }}</dd>
+                                
+                                {% if revision_request.resolved_at %}
+                                <dt class="col-sm-5">Çözülme:</dt>
+                                <dd class="col-sm-7">{{ revision_request.resolved_at|date:"d.m.Y H:i" }}</dd>
+                                {% endif %}
+                            </dl>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="mb-3"><i class="fas fa-cube me-1"></i>Kalıp Bilgileri</h6>
+                            <dl class="row">
+                                <dt class="col-sm-5">Hasta:</dt>
+                                <dd class="col-sm-7">{{ revision_request.mold.patient_name }} {{ revision_request.mold.patient_surname }}</dd>
+                                
+                                <dt class="col-sm-5">Kalıp Türü:</dt>
+                                <dd class="col-sm-7">{{ revision_request.mold.get_mold_type_display }}</dd>
+                                
+                                <dt class="col-sm-5">Model Dosyası:</dt>
+                                <dd class="col-sm-7">
+                                    <a href="{{ revision_request.modeled_mold.file.url }}" class="text-decoration-none" target="_blank">
+                                        <i class="fas fa-download me-1"></i>
+                                        {{ revision_request.modeled_mold.file.name|cut:"modeled/"|truncatechars:25 }}
+                                    </a>
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+
+                    <!-- Açıklama -->
+                    <div class="mb-4">
+                        <h6><i class="fas fa-comment-alt me-1"></i>Detaylı Açıklama</h6>
+                        <div class="p-3 bg-light rounded">
+                            {{ revision_request.description|linebreaks }}
+                        </div>
+                    </div>
+
+                    <!-- Ekli Dosyalar -->
+                    {% if revision_request.reference_image or revision_request.attachment %}
+                    <div class="mb-4">
+                        <h6><i class="fas fa-paperclip me-1"></i>Ekli Dosyalar</h6>
+                        <div class="row">
+                            {% if revision_request.reference_image %}
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <small><i class="fas fa-image me-1"></i>Referans Görseli</small>
+                                    </div>
+                                    <div class="card-body text-center">
+                                        <img src="{{ revision_request.reference_image.url }}" 
+                                             class="img-fluid rounded" 
+                                             style="max-height: 200px;"
+                                             alt="Referans Görseli">
+                                        <br>
+                                        <a href="{{ revision_request.reference_image.url }}" 
+                                           class="btn btn-sm btn-outline-primary mt-2" 
+                                           target="_blank">
+                                            <i class="fas fa-external-link-alt me-1"></i>Büyük Görüntüle
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if revision_request.attachment %}
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <small><i class="fas fa-file me-1"></i>Ek Dosya</small>
+                                    </div>
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-file-alt fa-3x text-primary mb-2"></i>
+                                        <br>
+                                        <a href="{{ revision_request.attachment.url }}" 
+                                           class="btn btn-sm btn-outline-primary" 
+                                           download>
+                                            <i class="fas fa-download me-1"></i>
+                                            {{ revision_request.attachment.name|cut:"revision_requests/"|truncatechars:20 }}
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Üretici Yanıtı -->
+                    {% if revision_request.producer_response %}
+                    <div class="mb-4">
+                        <h6><i class="fas fa-reply me-1"></i>Üretici Yanıtı</h6>
+                        <div class="alert alert-success">
+                            {{ revision_request.producer_response|linebreaks }}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Admin Notları -->
+                    {% if revision_request.admin_notes %}
+                    <div class="mb-4">
+                        <h6><i class="fas fa-user-shield me-1"></i>Admin Notları</h6>
+                        <div class="alert alert-info">
+                            {{ revision_request.admin_notes|linebreaks }}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Süreç İlerlemesi -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-gradient-primary text-white">
+                    <h6 class="mb-0"><i class="fas fa-chart-line me-2"></i>Süreç İlerlemesi</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="progress-circle mb-3" style="width: 120px; height: 120px; margin: 0 auto;">
+                        <svg viewBox="0 0 36 36" class="circular-chart">
+                            <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                            <path class="circle" stroke-dasharray="{{ revision_request.get_progress_percentage }}, 100" 
+                                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                            <text x="18" y="20.35" class="percentage">{{ revision_request.get_progress_percentage }}%</text>
+                        </svg>
+                    </div>
+                    <h5 class="text-{{ revision_request.get_status_color }}">{{ revision_request.get_status_display }}</h5>
+                    <p class="text-muted mb-0">
+                        {% if revision_request.is_overdue %}
+                            <i class="fas fa-exclamation-triangle text-warning me-1"></i>Gecikmede
+                        {% else %}
+                            <i class="fas fa-clock me-1"></i>Zamanında
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Detaylı Zaman Çizelgesi -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="fas fa-history me-2"></i>Zaman Çizelgesi</h6>
+                </div>
+                <div class="card-body">
+                    <div class="timeline-detailed">
+                        {% for event in revision_request.get_timeline_data %}
+                        <div class="timeline-item-detailed">
+                            <div class="timeline-marker-detailed bg-{{ event.status|default:'secondary' }}">
+                                <i class="{{ event.icon }}"></i>
+                            </div>
+                            <div class="timeline-content-detailed">
+                                <h6 class="mb-1">{{ event.title }}</h6>
+                                <p class="text-muted mb-1 small">{{ event.description }}</p>
+                                <small class="text-muted">{{ event.date|date:"d.m.Y H:i" }}</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        
+                        <!-- Sonraki Adımlar -->
+                        {% for step in revision_request.get_next_steps %}
+                        <div class="timeline-item-detailed future">
+                            <div class="timeline-marker-detailed bg-light border">
+                                <i class="fas fa-clock text-muted"></i>
+                            </div>
+                            <div class="timeline-content-detailed">
+                                <h6 class="mb-1 text-muted">{{ step }}</h6>
+                                <small class="text-muted">Beklemede</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Süreç Metrikleri -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="fas fa-stopwatch me-2"></i>Süreç Metrikleri</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="metric-item">
+                                <h5 class="text-primary mb-1">{{ revision_request.total_days }}</h5>
+                                <small class="text-muted">Toplam Gün</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="metric-item">
+                                <h5 class="text-{% if revision_request.is_overdue %}danger{% else %}success{% endif %} mb-1">
+                                    {{ revision_request.get_expected_completion_date|date:"d.m" }}
+                                </h5>
+                                <small class="text-muted">Hedef Tarih</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if revision_request.admin_response_time %}
+                    <hr>
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="metric-item">
+                                <h6 class="text-info mb-1">{{ revision_request.admin_response_time.days }}g {{ revision_request.admin_response_time.seconds|floatformat:0|div:3600 }}s</h6>
+                                <small class="text-muted">Admin Yanıt</small>
+                            </div>
+                        </div>
+                        {% if revision_request.producer_response_time %}
+                        <div class="col-6">
+                            <div class="metric-item">
+                                <h6 class="text-warning mb-1">{{ revision_request.producer_response_time.days }}g {{ revision_request.producer_response_time.seconds|floatformat:0|div:3600 }}s</h6>
+                                <small class="text-muted">Üretici Yanıt</small>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Hızlı İşlemler -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="fas fa-bolt me-2"></i>İşlemler</h6>
+                </div>
+                <div class="card-body">
+                    <a href="{% url 'mold:mold_detail' revision_request.mold.pk %}" class="btn btn-primary btn-sm w-100 mb-2">
+                        <i class="fas fa-eye me-1"></i>Kalıp Detayını Görüntüle
+                    </a>
+                    
+                    <a href="{% url 'mold:revision_request_list' %}" class="btn btn-outline-secondary btn-sm w-100">
+                        <i class="fas fa-list me-1"></i>Tüm Revizyon Talepleri
+                    </a>
+                </div>
+            </div>
+
+            <!-- İstatistikler -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>İstatistikler</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6 border-end">
+                            <div class="text-warning">
+                                <i class="fas fa-clock fa-2x"></i>
+                                <p class="mb-0 mt-2"><strong>{{ revision_request.created_at|timesince }}</strong></p>
+                                <small class="text-muted">Yaşı</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-info">
+                                <i class="fas fa-flag fa-2x"></i>
+                                <p class="mb-0 mt-2"><strong>{{ revision_request.get_priority_display }}</strong></p>
+                                <small class="text-muted">Öncelik</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.timeline {
+    position: relative;
+    padding-left: 1.5rem;
+}
+
+.timeline-item {
+    position: relative;
+    padding-bottom: 1.5rem;
+}
+
+.timeline-item:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: -1.625rem;
+    top: 1.5rem;
+    height: 100%;
+    width: 2px;
+    background-color: #e9ecef;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -2rem;
+    top: 0.25rem;
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 2px #e9ecef;
+}
+
+.timeline-item.active .timeline-marker {
+    box-shadow: 0 0 0 2px currentColor;
+    animation: pulse 2s infinite;
+}
+
+.timeline-item.completed .timeline-marker {
+    box-shadow: 0 0 0 2px #28a745;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+</style>
+{% endblock %} 

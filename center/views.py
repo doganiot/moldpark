@@ -15,6 +15,7 @@ from mold.models import EarMold
 from producer.models import ProducerNetwork, Producer
 from django.http import JsonResponse
 from django.utils import timezone
+from django.core.paginator import Paginator
 
 # Create your views here.
 
@@ -697,9 +698,199 @@ def delete_account(request):
 
 @staff_member_required
 def admin_revision_list(request):
-    from mold.models import Revision
-    revisions = Revision.objects.select_related('mold', 'mold__center').order_by('-created_at')
-    return render(request, 'center/admin_revision_list.html', {'revisions': revisions})
+    """Admin revizyon talepleri listesi"""
+    try:
+        from mold.models import RevisionRequest
+        
+        # Tüm revizyon talepleri
+        revision_requests = RevisionRequest.objects.all().select_related(
+            'mold', 'center', 'producer_center', 'center__user'
+        ).order_by('-created_at')
+        
+        # Filtreleme
+        status_filter = request.GET.get('status', '')
+        priority_filter = request.GET.get('priority', '')
+        search_query = request.GET.get('search', '')
+        
+        if status_filter:
+            revision_requests = revision_requests.filter(status=status_filter)
+        
+        if priority_filter:
+            revision_requests = revision_requests.filter(priority=priority_filter)
+        
+        if search_query:
+            revision_requests = revision_requests.filter(
+                Q(title__icontains=search_query) |
+                Q(description__icontains=search_query) |
+                Q(mold__patient_name__icontains=search_query) |
+                Q(mold__patient_surname__icontains=search_query) |
+                Q(center__company_name__icontains=search_query)
+            )
+        
+        # İstatistikler
+        total_count = revision_requests.count()
+        pending_count = revision_requests.filter(status='pending').count()
+        in_progress_count = revision_requests.filter(status__in=['accepted', 'in_progress']).count()
+        overdue_count = revision_requests.filter(
+            status__in=['pending', 'admin_review', 'approved', 'producer_review', 'accepted', 'in_progress'],
+            expected_delivery__lt=timezone.now().date()
+        ).count()
+        
+        # Sayfalama
+        paginator = Paginator(revision_requests, 12)
+        page = request.GET.get('page')
+        revision_requests = paginator.get_page(page)
+        
+        context = {
+            'revision_requests': revision_requests,
+            'total_count': total_count,
+            'pending_count': pending_count,
+            'in_progress_count': in_progress_count,
+            'overdue_count': overdue_count,
+            'status_filter': status_filter,
+            'priority_filter': priority_filter,
+            'search_query': search_query,
+        }
+        
+        return render(request, 'center/admin_revision_list.html', context)
+        
+    except Exception as e:
+        messages.error(request, f'Revizyon talepleri yüklenirken hata: {str(e)}')
+        return redirect('center:admin_dashboard')
+
+@staff_member_required
+def admin_revision_approve(request, request_id):
+    """Admin revizyon talebi onayı"""
+    if request.method == 'POST':
+        try:
+            from mold.models import RevisionRequest
+            
+            revision_request = get_object_or_404(RevisionRequest, id=request_id)
+            
+            # Sadece pending durumunda onaylanabilir
+            if revision_request.status != 'pending':
+                return JsonResponse({
+                    'success': False,
+                    'message': f'Bu revizyon talebi zaten {revision_request.get_status_display()} durumunda.'
+                })
+            
+            # Onay bilgilerini al
+            admin_notes = request.POST.get('admin_notes', '')
+            
+            # Onay işlemi
+            revision_request.status = 'approved'
+            revision_request.admin_response = admin_notes
+            revision_request.admin_reviewed_at = timezone.now()
+            revision_request.admin_response_time = timezone.now() - revision_request.created_at
+            revision_request.save()
+            
+            # Süreç adımı ekle
+            revision_request.add_process_step(
+                'Admin tarafından onaylandı',
+                'approved',
+                admin_notes or 'Revizyon talebi onaylandı'
+            )
+            
+            # Durumu producer_review'a geç
+            revision_request.status = 'producer_review'
+            revision_request.save()
+            
+            # Üreticiye bildirim gönder
+            try:
+                from core.utils import send_notification
+                send_notification(
+                    revision_request.producer_center.user,
+                    f'Yeni Revizyon Talebi',
+                    f'#{revision_request.id} numaralı revizyon talebi onaylandı ve incelemenizi bekliyor.',
+                    'info'
+                )
+            except Exception:
+                pass
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Revizyon talebi onaylandı ve üreticiye gönderildi.'
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': f'Hata: {str(e)}'
+            })
+    
+    return JsonResponse({
+        'success': False,
+        'message': 'Geçersiz istek.'
+    })
+
+@staff_member_required
+def admin_revision_reject(request, request_id):
+    """Admin revizyon talebi reddi"""
+    if request.method == 'POST':
+        try:
+            from mold.models import RevisionRequest
+            
+            revision_request = get_object_or_404(RevisionRequest, id=request_id)
+            
+            # Sadece pending durumunda reddedilebilir
+            if revision_request.status != 'pending':
+                return JsonResponse({
+                    'success': False,
+                    'message': f'Bu revizyon talebi zaten {revision_request.get_status_display()} durumunda.'
+                })
+            
+            # Red bilgilerini al
+            rejection_reason = request.POST.get('rejection_reason', '').strip()
+            admin_notes = request.POST.get('admin_notes', '')
+            
+            if not rejection_reason:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Red nedeni zorunludur.'
+                })
+            
+            # Reddetme işlemi
+            revision_request.status = 'rejected'
+            revision_request.rejection_reason = rejection_reason
+            revision_request.admin_response = admin_notes
+            revision_request.admin_reviewed_at = timezone.now()
+            revision_request.admin_response_time = timezone.now() - revision_request.created_at
+            revision_request.save()
+            
+            # Süreç adımı ekle
+            revision_request.add_process_step(
+                'Admin tarafından reddedildi',
+                'rejected',
+                f'Red nedeni: {rejection_reason}'
+            )
+            
+            # İşitme merkezine bildirim gönder
+            try:
+                from core.utils import send_notification
+                send_notification(
+                    revision_request.center.user,
+                    f'Revizyon Talebi Reddedildi',
+                    f'#{revision_request.id} numaralı revizyon talebiniz reddedildi. Nedeni: {rejection_reason}',
+                    'error'
+                )
+            except Exception:
+                pass
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Revizyon talebi reddedildi.'
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': f'Hata: {str(e)}'
+            })
+    
+    return JsonResponse({
+        'success': False,
+        'message': 'Geçersiz istek.'
+    })
 
 @login_required
 def notification_list(request):

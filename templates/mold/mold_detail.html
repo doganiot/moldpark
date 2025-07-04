@@ -303,27 +303,172 @@
                 </div>
             </div>
 
-            <!-- REVİZYON GEÇMİŞİ -->
-            {% if mold.revisions.exists %}
+            <!-- REVİZYON TALEPLERİ -->
+            {% if revision_requests.exists %}
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-header bg-warning text-dark">
-                    <h5 class="mb-0"><i class="fas fa-history me-2"></i>Revizyon Geçmişi</h5>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-tools me-2"></i>Revizyon Talepleri</h5>
+                        <span class="badge bg-light text-warning">{{ revision_requests.count }} Talep</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% for revision_request in revision_requests %}
+                    <div class="card mb-3 border-start border-warning border-4">
+                        <div class="card-header">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">{{ revision_request.title }}</h6>
+                                <span class="badge bg-{{ revision_request.get_status_color }}">
+                                    {{ revision_request.get_status_display }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong>Revizyon Türü:</strong> {{ revision_request.get_revision_type_display }}</p>
+                                    <p class="mb-1"><strong>Öncelik:</strong> 
+                                        <span class="badge bg-{{ revision_request.get_priority_color }}">
+                                            {{ revision_request.get_priority_display }}
+                                        </span>
+                                    </p>
+                                    <p class="mb-0"><strong>Oluşturulma:</strong> {{ revision_request.created_at|date:"d.m.Y H:i" }}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    {% if revision_request.resolved_at %}
+                                    <p class="mb-1"><strong>Çözülme:</strong> {{ revision_request.resolved_at|date:"d.m.Y H:i" }}</p>
+                                    {% endif %}
+                                    <p class="mb-0"><strong>Kalıp Dosyası:</strong> {{ revision_request.modeled_mold.file.name|cut:"modeled/"|truncatechars:20 }}</p>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <p class="mb-1"><strong>Açıklama:</strong></p>
+                                <p class="text-muted mb-0">{{ revision_request.description|truncatechars:150 }}</p>
+                            </div>
+                            {% if revision_request.producer_response %}
+                            <div class="mt-2">
+                                <p class="mb-1"><strong>Üretici Yanıtı:</strong></p>
+                                <p class="text-success mb-0">{{ revision_request.producer_response|truncatechars:150 }}</p>
+                            </div>
+                            {% endif %}
+                            <div class="mt-2">
+                                <a href="{% url 'mold:revision_request_detail' revision_request.pk %}" class="btn btn-sm btn-outline-warning">
+                                    <i class="fas fa-eye me-1"></i>Detayları Görüntüle
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- ESKİ REVİZYON GEÇMİŞİ (Eski sistem) -->
+            {% if mold.revisions.exists %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="fas fa-history me-2"></i>Eski Revizyon Geçmişi</h5>
                 </div>
                 <div class="card-body">
                     {% for revision in mold.revisions.all %}
                     <div class="timeline-item">
                         <div class="d-flex">
                             <div class="flex-shrink-0">
-                                <div class="timeline-marker bg-warning border-warning"></div>
+                                <div class="timeline-marker bg-secondary border-secondary"></div>
                             </div>
                             <div class="flex-grow-1 ms-3">
                                 <div class="card">
                                     <div class="card-body">
-                                        <h6 class="card-title">Revizyon Talebi</h6>
+                                        <h6 class="card-title">{{ revision.get_revision_type_display }}</h6>
                                         <p class="card-text">{{ revision.description }}</p>
                                         <small class="text-muted">{{ revision.created_at|naturaltime }}</small>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- KALIP DEĞERLENDİRMELERİ -->
+            {% if evaluations.exists %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-success text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-star me-2"></i>Kalıp Değerlendirmeleri</h5>
+                        <span class="badge bg-light text-success">{{ evaluations.count }} Değerlendirme</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% for evaluation in evaluations %}
+                    <div class="card mb-3 border-success">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <p class="mb-1"><strong>Kalite:</strong> 
+                                                <span class="badge bg-{{ evaluation.get_quality_color }}">{{ evaluation.quality_score }}/10</span>
+                                            </p>
+                                            <p class="mb-1"><strong>Hız:</strong> 
+                                                <span class="badge bg-{{ evaluation.get_speed_color }}">{{ evaluation.speed_score }}/10</span>
+                                            </p>
+                                        </div>
+                                        <div class="col-6">
+                                            {% if evaluation.communication_score %}
+                                            <p class="mb-1"><strong>İletişim:</strong> 
+                                                <span class="badge bg-info">{{ evaluation.communication_score }}/10</span>
+                                            </p>
+                                            {% endif %}
+                                            {% if evaluation.packaging_score %}
+                                            <p class="mb-1"><strong>Paketleme:</strong> 
+                                                <span class="badge bg-info">{{ evaluation.packaging_score }}/10</span>
+                                            </p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    <div class="h4 text-success mb-1">{{ evaluation.overall_satisfaction }}/10</div>
+                                    <small class="text-muted">Genel Memnuniyet</small>
+                                    {% if evaluation.would_recommend %}
+                                    <br><span class="badge bg-success mt-1"><i class="fas fa-thumbs-up me-1"></i>Tavsiye Eder</span>
+                                    {% else %}
+                                    <br><span class="badge bg-warning text-dark mt-1"><i class="fas fa-thumbs-down me-1"></i>Tavsiye Etmez</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            {% if evaluation.positive_feedback %}
+                            <div class="mt-2">
+                                <p class="mb-1"><strong><i class="fas fa-plus-circle text-success me-1"></i>Olumlu Geri Bildirim:</strong></p>
+                                <p class="text-success mb-0">{{ evaluation.positive_feedback }}</p>
+                            </div>
+                            {% endif %}
+                            
+                            {% if evaluation.negative_feedback %}
+                            <div class="mt-2">
+                                <p class="mb-1"><strong><i class="fas fa-minus-circle text-danger me-1"></i>İyileştirme Önerileri:</strong></p>
+                                <p class="text-danger mb-0">{{ evaluation.negative_feedback }}</p>
+                            </div>
+                            {% endif %}
+                            
+                            {% if evaluation.suggestions %}
+                            <div class="mt-2">
+                                <p class="mb-1"><strong><i class="fas fa-lightbulb text-warning me-1"></i>Öneriler:</strong></p>
+                                <p class="text-muted mb-0">{{ evaluation.suggestions }}</p>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="mt-3 d-flex justify-content-between align-items-center">
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar me-1"></i>{{ evaluation.created_at|date:"d.m.Y H:i" }}
+                                </small>
+                                <a href="{% url 'mold:mold_evaluation_edit' evaluation.pk %}" class="btn btn-sm btn-outline-success">
+                                    <i class="fas fa-edit me-1"></i>Düzenle
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -342,10 +487,15 @@
                 </div>
                 <div class="card-body">
                     <!-- Revizyon Talebi -->
-                    {% if has_approved_files %}
-                    <a href="{% url 'mold:revision_request_create' %}" class="btn btn-warning btn-sm w-100 mb-2">
-                        <i class="fas fa-edit me-1"></i>Revizyon Talebi Oluştur
+                    {% if can_request_revision %}
+                    <a href="{% url 'mold:revision_request_create_for_mold' mold.id %}" class="btn btn-warning w-100 mb-3">
+                        <i class="fas fa-tools me-2"></i>Revizyon Talebi Oluştur
+                        <small class="d-block">Kalıpta değişiklik isteyebilirsiniz</small>
                     </a>
+                    {% elif has_pending_revision %}
+                    <div class="alert alert-warning py-2 mb-3">
+                        <small><i class="fas fa-clock me-1"></i>Bekleyen revizyon talebiniz var</small>
+                    </div>
                     {% endif %}
                     
                     <!-- Kalıp Değerlendirmesi -->

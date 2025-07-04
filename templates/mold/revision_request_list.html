@@ -1,0 +1,229 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Revizyon Talepleri - MoldPark{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h2><i class="fas fa-tools me-2"></i>Revizyon Talepleri</h2>
+            <p class="text-muted">Kalıplarınız için oluşturduğunuz revizyon taleplerini görüntüleyin.</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="{% url 'mold:mold_list' %}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left me-1"></i>Kalıplarım
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtreler -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white">
+            <h6 class="mb-0"><i class="fas fa-filter me-1"></i>Filtreler</h6>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Durum</label>
+                    <select name="status" class="form-select">
+                        <option value="">Tüm Durumlar</option>
+                        <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Beklemede</option>
+                        <option value="accepted" {% if request.GET.status == 'accepted' %}selected{% endif %}>Onaylandı</option>
+                        <option value="in_progress" {% if request.GET.status == 'in_progress' %}selected{% endif %}>İşlemde</option>
+                        <option value="completed" {% if request.GET.status == 'completed' %}selected{% endif %}>Tamamlandı</option>
+                        <option value="rejected" {% if request.GET.status == 'rejected' %}selected{% endif %}>Reddedildi</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Revizyon Türü</label>
+                    <select name="revision_type" class="form-select">
+                        <option value="">Tüm Türler</option>
+                        <option value="size" {% if request.GET.revision_type == 'size' %}selected{% endif %}>Boyut</option>
+                        <option value="shape" {% if request.GET.revision_type == 'shape' %}selected{% endif %}>Şekil</option>
+                        <option value="vent" {% if request.GET.revision_type == 'vent' %}selected{% endif %}>Havalandırma</option>
+                        <option value="surface" {% if request.GET.revision_type == 'surface' %}selected{% endif %}>Yüzey</option>
+                        <option value="fit" {% if request.GET.revision_type == 'fit' %}selected{% endif %}>Oturma</option>
+                        <option value="comfort" {% if request.GET.revision_type == 'comfort' %}selected{% endif %}>Konfor</option>
+                        <option value="quality" {% if request.GET.revision_type == 'quality' %}selected{% endif %}>Kalite</option>
+                        <option value="remake" {% if request.GET.revision_type == 'remake' %}selected{% endif %}>Yeniden Yapım</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Öncelik</label>
+                    <select name="priority" class="form-select">
+                        <option value="">Tüm Öncelikler</option>
+                        <option value="low" {% if request.GET.priority == 'low' %}selected{% endif %}>Düşük</option>
+                        <option value="medium" {% if request.GET.priority == 'medium' %}selected{% endif %}>Orta</option>
+                        <option value="high" {% if request.GET.priority == 'high' %}selected{% endif %}>Yüksek</option>
+                        <option value="urgent" {% if request.GET.priority == 'urgent' %}selected{% endif %}>Acil</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">&nbsp;</label>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search me-1"></i>Filtrele
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- İstatistikler -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="mb-0">{{ stats.pending }}</h5>
+                            <small>Beklemede</small>
+                        </div>
+                        <i class="fas fa-clock fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="mb-0">{{ stats.accepted }}</h5>
+                            <small>Onaylandı</small>
+                        </div>
+                        <i class="fas fa-check fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="mb-0">{{ stats.in_progress }}</h5>
+                            <small>İşlemde</small>
+                        </div>
+                        <i class="fas fa-cogs fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="mb-0">{{ stats.completed }}</h5>
+                            <small>Tamamlandı</small>
+                        </div>
+                        <i class="fas fa-check-circle fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Revizyon Talepleri Listesi -->
+    {% if revision_requests %}
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="fas fa-list me-1"></i>Revizyon Talepleri ({{ revision_requests|length }})</h6>
+                <small class="text-muted">Toplam {{ revision_requests|length }} talep</small>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Başlık</th>
+                            <th>Kalıp</th>
+                            <th>Tür</th>
+                            <th>Öncelik</th>
+                            <th>Durum</th>
+                            <th>Tarih</th>
+                            <th>İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for revision_request in revision_requests %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-tools text-warning me-2"></i>
+                                    <div>
+                                        <strong>{{ revision_request.title|truncatechars:30 }}</strong>
+                                        {% if revision_request.description %}
+                                        <br><small class="text-muted">{{ revision_request.description|truncatechars:50 }}</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-cube text-primary me-2"></i>
+                                    <div>
+                                        <strong>{{ revision_request.mold.patient_name }} {{ revision_request.mold.patient_surname }}</strong>
+                                        <br><small class="text-muted">{{ revision_request.mold.get_mold_type_display }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">{{ revision_request.get_revision_type_display }}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ revision_request.get_priority_color }}">
+                                    {{ revision_request.get_priority_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ revision_request.get_status_color }}">
+                                    {{ revision_request.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <div>
+                                    <strong>{{ revision_request.created_at|date:"d.m.Y" }}</strong>
+                                    <br><small class="text-muted">{{ revision_request.created_at|date:"H:i" }}</small>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'mold:revision_request_detail' revision_request.pk %}" 
+                                       class="btn btn-outline-primary" 
+                                       title="Detayları Görüntüle">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'mold:mold_detail' revision_request.mold.pk %}" 
+                                       class="btn btn-outline-secondary" 
+                                       title="Kalıp Detayları">
+                                        <i class="fas fa-cube"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="card border-0 shadow-sm">
+        <div class="card-body text-center py-5">
+            <i class="fas fa-tools fa-3x text-muted mb-3"></i>
+            <h5>Henüz revizyon talebiniz yok</h5>
+            <p class="text-muted">Teslim edilen kalıplarınız için revizyon talep edebilirsiniz.</p>
+            <a href="{% url 'mold:mold_list' %}" class="btn btn-primary">
+                <i class="fas fa-cube me-1"></i>Kalıplarımı Görüntüle
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %} 

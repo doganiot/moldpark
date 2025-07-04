@@ -19,6 +19,9 @@ from .forms import (
 )
 import mimetypes
 import os
+from django.core.paginator import Paginator
+from django.utils.dateparse import parse_date
+from datetime import timedelta
 
 # ÜRETİCİ AUTHENTICATION - Ayrı sistem
 def producer_required(view_func):
@@ -789,7 +792,6 @@ def mold_download(request, pk, file_id=None):
         if ear_mold.scan_file:
             file_path = ear_mold.scan_file.path
             file_name = os.path.basename(file_path)
-            download_type = 'scan_file'
         else:
             # Eğer scan_file yoksa, modeled_files'dan ilkini al
             mold_file = ear_mold.modeled_files.first()
@@ -1267,354 +1269,376 @@ def admin_mold_download(request, pk):
 
         # Dosya adını ayarla
         response['Content-Disposition'] = f'attachment; filename="{file_name}"'
-
+        
         return response
+        
     except Exception as e:
         return HttpResponse(f"Dosya indirme hatası: {str(e)}", status=500)
 
 
+# REVİZYON YÖNETİMİ
+
+@login_required
 @producer_required
-def mold_download_file(request, pk, file_id):
-    """Belirli modeled dosya indirme"""
-    return mold_download(request, pk, file_id)
-
-
-@producer_required 
-def permanent_scan_download(request, mold_id):
-    """
-    Sabit Ana Tarama Dosyası İndirme Linki
-    Bu link kalıcıdır ve süre kısıtlaması yoktur
-    """
-    producer = request.user.producer
-    
+def revision_requests(request):
+    """Üretici revizyon talepleri listesi"""
     try:
-        # Kalıbı bul
-        ear_mold = get_object_or_404(EarMold, pk=mold_id)
+        from mold.models import RevisionRequest
+        # Üretici merkezin revizyon talepleri
+        producer_center = get_object_or_404(Producer, user=request.user)
         
-        # Bu kalıp için üreticinin siparişi var mı kontrol et
-        producer_order = ProducerOrder.objects.filter(
-            ear_mold=ear_mold,
-            producer=producer
-        ).first()
+        # Duruma göre filtreleme
+        status_filter = request.GET.get('status', '')
+        priority_filter = request.GET.get('priority', '')
+        search_query = request.GET.get('search', '')
         
-        if not producer_order:
-            messages.error(request, 'Bu kalıba erişim yetkiniz bulunmamaktadır.')
-            return redirect('producer:mold_list')
+        # Base queryset
+        revision_requests = RevisionRequest.objects.filter(
+            producer_center=producer_center
+        ).select_related(
+            'mold', 'center', 'center__user'
+        ).order_by('-created_at')
         
-        # Ağ kontrolü
-        network_relation = producer.network_centers.filter(center=ear_mold.center).first()
-        if not network_relation:
-            messages.error(request, 'Bu merkez sizin ağınızda bulunmamaktadır.')
-            return redirect('producer:mold_list')
+        # Filtreler
+        if status_filter:
+            revision_requests = revision_requests.filter(status=status_filter)
         
-        # Sadece terminated durumunda erişimi engelle
-        if network_relation.status == 'terminated':
-            messages.error(request, 'Bu merkez ile ağ bağlantınız sonlandırılmış.')
-            return redirect('producer:mold_list')
+        if priority_filter:
+            revision_requests = revision_requests.filter(priority=priority_filter)
         
-        # Ana tarama dosyası kontrolü
-        if not ear_mold.scan_file:
-            messages.info(request, 'Bu kalıp için ana tarama dosyası henüz yüklenmemiş.')
-            return redirect('producer:mold_detail', pk=producer_order.pk)
+        if search_query:
+            revision_requests = revision_requests.filter(
+                Q(title__icontains=search_query) |
+                Q(description__icontains=search_query) |
+                Q(mold__patient_name__icontains=search_query) |
+                Q(mold__patient_surname__icontains=search_query) |
+                Q(center__company_name__icontains=search_query)
+            )
         
-        file_path = ear_mold.scan_file.path
+        # İstatistikler
+        total_count = revision_requests.count()
+        pending_count = revision_requests.filter(status='producer_review').count()
+        accepted_count = revision_requests.filter(status='accepted').count()
+        in_progress_count = revision_requests.filter(status='in_progress').count()
+        overdue_count = revision_requests.filter(
+            status__in=['producer_review', 'accepted', 'in_progress'],
+            expected_delivery__lt=timezone.now().date()
+        ).count()
         
-        # Dosya varlığını kontrol et
-        if not os.path.exists(file_path):
-            messages.error(request, 'Dosya bulunamadı veya erişilemez.')
-            return redirect('producer:mold_detail', pk=producer_order.pk)
+        # Sayfalama
+        paginator = Paginator(revision_requests, 12)
+        page = request.GET.get('page')
+        revision_requests = paginator.get_page(page)
         
-        # Network aktivitesini güncelle
-        network_relation.last_activity = timezone.now()
-        network_relation.save(update_fields=['last_activity'])
+        context = {
+            'revision_requests': revision_requests,
+            'total_count': total_count,
+            'pending_count': pending_count,
+            'accepted_count': accepted_count,
+            'in_progress_count': in_progress_count,
+            'overdue_count': overdue_count,
+            'status_filter': status_filter,
+            'priority_filter': priority_filter,
+            'search_query': search_query,
+            'producer_center': producer_center,
+        }
         
-        # Dosya indirme log'u ekle
-        ProducerProductionLog.objects.create(
-            order=producer_order,
-            stage='design_start',
-            description=f'Ana tarama dosyası indirildi (sabit link): {os.path.basename(file_path)}',
-            operator=request.user.get_full_name() or request.user.username
-        )
+        return render(request, 'producer/revision_requests.html', context)
         
-        # Merkeze bildirim gönder
-        notify.send(
-            sender=request.user,
-            recipient=ear_mold.center.user,
-            verb='ana tarama dosyası indirildi',
-            description=f'{producer.company_name} tarafından {ear_mold.patient_name} ana tarama dosyası indirildi (sabit link).',
-            action_object=producer_order
-        )
-        
-        try:
-            # Dosya türünü al
-            mime_type, _ = mimetypes.guess_type(file_path)
-            if not mime_type:
-                mime_type = 'application/octet-stream'
-            
-            # Dosya içeriğini oku
-            with open(file_path, 'rb') as f:
-                response = HttpResponse(f.read(), content_type=mime_type)
-            
-            # Dosya adını ayarla
-            file_name = os.path.basename(file_path)
-            safe_filename = file_name.encode('ascii', 'ignore').decode('ascii')
-            if not safe_filename:
-                safe_filename = f'scan_file_{ear_mold.id}_{ear_mold.patient_name}'
-            
-            response['Content-Disposition'] = f'attachment; filename="{safe_filename}"'
-            response['Content-Length'] = os.path.getsize(file_path)
-            
-            return response
-            
-        except (IOError, OSError) as e:
-            messages.error(request, f'Dosya okunurken hata oluştu: {str(e)}')
-            return redirect('producer:mold_detail', pk=producer_order.pk)
-            
-    except EarMold.DoesNotExist:
-        messages.error(request, 'Kalıp bulunamadı.')
-        return redirect('producer:mold_list')
+    except Exception as e:
+        messages.error(request, f'Revizyon talepleri yüklenirken hata: {str(e)}')
+        return redirect('producer:dashboard')
 
 
+@login_required
 @producer_required
-def permanent_model_download(request, file_id):
-    """
-    Sabit Model Dosyası İndirme Linki
-    Bu link kalıcıdır ve süre kısıtlaması yoktur
-    """
-    producer = request.user.producer
-    
+def revision_request_detail(request, request_id):
+    """Üretici revizyon talebi detayı"""
     try:
-        # Model dosyasını bul
-        model_file = get_object_or_404(ModeledMold, pk=file_id)
-        ear_mold = model_file.ear_mold
+        from mold.models import RevisionRequest
         
-        # Bu kalıp için üreticinin siparişi var mı kontrol et
-        producer_order = ProducerOrder.objects.filter(
-            ear_mold=ear_mold,
-            producer=producer
-        ).first()
-        
-        if not producer_order:
-            messages.error(request, 'Bu dosyaya erişim yetkiniz bulunmamaktadır.')
-            return redirect('producer:mold_list')
-        
-        # Ağ kontrolü
-        network_relation = producer.network_centers.filter(center=ear_mold.center).first()
-        if not network_relation:
-            messages.error(request, 'Bu merkez sizin ağınızda bulunmamaktadır.')
-            return redirect('producer:mold_list')
-        
-        # Sadece terminated durumunda erişimi engelle
-        if network_relation.status == 'terminated':
-            messages.error(request, 'Bu merkez ile ağ bağlantınız sonlandırılmış.')
-            return redirect('producer:mold_list')
-        
-        file_path = model_file.file.path
-        
-        # Dosya varlığını kontrol et
-        if not os.path.exists(file_path):
-            messages.error(request, 'Dosya bulunamadı veya erişilemez.')
-            return redirect('producer:mold_detail', pk=producer_order.pk)
-        
-        # Network aktivitesini güncelle
-        network_relation.last_activity = timezone.now()
-        network_relation.save(update_fields=['last_activity'])
-        
-        # Dosya indirme log'u ekle
-        ProducerProductionLog.objects.create(
-            order=producer_order,
-            stage='design_start',
-            description=f'Model dosyası indirildi (sabit link): {os.path.basename(file_path)}',
-            operator=request.user.get_full_name() or request.user.username
+        producer_center = get_object_or_404(Producer, user=request.user)
+        revision_request = get_object_or_404(
+            RevisionRequest,
+            id=request_id,
+            producer_center=producer_center
         )
         
-        # Merkeze bildirim gönder
-        notify.send(
-            sender=request.user,
-            recipient=ear_mold.center.user,
-            verb='model dosyası indirildi',
-            description=f'{producer.company_name} tarafından {ear_mold.patient_name} model dosyası indirildi (sabit link).',
-            action_object=producer_order
-        )
+        context = {
+            'revision_request': revision_request,
+            'producer_center': producer_center,
+        }
         
-        try:
-            # Dosya türünü al
-            mime_type, _ = mimetypes.guess_type(file_path)
-            if not mime_type:
-                mime_type = 'application/octet-stream'
-            
-            # Dosya içeriğini oku
-            with open(file_path, 'rb') as f:
-                response = HttpResponse(f.read(), content_type=mime_type)
-            
-            # Dosya adını ayarla
-            file_name = os.path.basename(file_path)
-            safe_filename = file_name.encode('ascii', 'ignore').decode('ascii')
-            if not safe_filename:
-                safe_filename = f'model_file_{model_file.id}_{ear_mold.patient_name}'
-            
-            response['Content-Disposition'] = f'attachment; filename="{safe_filename}"'
-            response['Content-Length'] = os.path.getsize(file_path)
-            
-            return response
-            
-        except (IOError, OSError) as e:
-            messages.error(request, f'Dosya okunurken hata oluştu: {str(e)}')
-            return redirect('producer:mold_detail', pk=producer_order.pk)
-            
-    except ModeledMold.DoesNotExist:
-        messages.error(request, 'Model dosyası bulunamadı.')
-        return redirect('producer:mold_list')
+        return render(request, 'producer/revision_request_detail.html', context)
+        
+    except Exception as e:
+        messages.error(request, f'Revizyon talebi detayı yüklenirken hata: {str(e)}')
+        return redirect('producer:revision_requests')
 
 
-# REVİZYON TALEPLERİ YÖNETİMİ
-
+@login_required
 @producer_required
-def revision_request_list(request):
-    """Üretici için revizyon talepleri listesi"""
-    producer = request.user.producer
-    
-    # Sadece bu üreticinin aktif revizyon taleplerini getir (tamamlanan ve reddedilen hariç)
-    revision_requests = RevisionRequest.objects.filter(
-        modeled_mold__ear_mold__producer_orders__producer=producer
-    ).exclude(
-        status__in=['completed', 'rejected']  # Tamamlanan ve reddedilen revizyonları listeden çıkar
-    ).select_related(
-        'modeled_mold__ear_mold', 'center'
-    ).distinct().order_by('-created_at')
-    
-    # Filtreleme
-    status_filter = request.GET.get('status')
-    if status_filter:
-        revision_requests = revision_requests.filter(status=status_filter)
-    
-    # İstatistikler
-    stats = {
-        'total': revision_requests.count(),
-        'pending': revision_requests.filter(status='pending').count(),
-        'accepted': revision_requests.filter(status='accepted').count(),
-        'in_progress': revision_requests.filter(status='in_progress').count(),
-        'completed': revision_requests.filter(status='completed').count(),
-        'rejected': revision_requests.filter(status='rejected').count(),
-    }
-    
-    context = {
-        'revision_requests': revision_requests,
-        'stats': stats,
-        'current_filter': status_filter,
-    }
-    
-    return render(request, 'producer/revision_request_list.html', context)
-
-
-@producer_required
-def revision_request_detail(request, pk):
-    """Revizyon talebi detayı"""
-    producer = request.user.producer
-    
-    # Sadece bu üreticinin kalıp dosyalarına yapılan revizyon talebini getir
-    revision_request = get_object_or_404(
-        RevisionRequest.objects.select_related(
-            'modeled_mold__ear_mold', 'center'
-        ),
-        pk=pk,
-        modeled_mold__ear_mold__producer_orders__producer=producer
-    )
-    
-    # İlgili sipariş bilgisini al
-    producer_order = ProducerOrder.objects.filter(
-        ear_mold=revision_request.mold,
-        producer=producer
-    ).first()
-    
-    context = {
-        'revision_request': revision_request,
-        'producer_order': producer_order,
-    }
-    
-    return render(request, 'producer/revision_request_detail.html', context)
-
-
-@producer_required
-def revision_request_respond(request, pk):
-    """Revizyon talebine yanıt verme"""
-    producer = request.user.producer
-    
-    revision_request = get_object_or_404(
-        RevisionRequest.objects.select_related(
-            'modeled_mold__ear_mold', 'center'
-        ),
-        pk=pk,
-        modeled_mold__ear_mold__producer_orders__producer=producer
-    )
-    
+def revision_request_respond(request, request_id):
+    """Üretici revizyon talebi yanıtı"""
     if request.method == 'POST':
-        action = request.POST.get('action')
-        response_text = request.POST.get('producer_response', '')
-        
-        if action in ['accept', 'reject']:
-            if action == 'accept':
-                revision_request.status = 'in_progress'  # Kabul edildiğinde "işlemde" durumuna geç
-                # Kalıp dosyasını revizyona düş
-                revision_request.modeled_mold.status = 'waiting'  # Revizyon için beklemeye al
-                revision_request.modeled_mold.save()
-                
-                # Kalıp durumunu "processing" (işleniyor) olarak güncelle
-                revision_request.mold.status = 'processing'
-                revision_request.mold.save()
-                
-                success_message = 'Revizyon talebi kabul edildi ve işleme alındı. Kalıp "İşleniyor" durumuna geçti.'
-            else:
-                revision_request.status = 'rejected'
-                # Revizyon reddedildiğinde kalıp durumunu önceki durumuna (delivered) döndür
-                # Çünkü revizyon reddedilmesi kalıbın kendisinin reddedildiği anlamına gelmez
-                revision_request.mold.status = 'delivered'
-                revision_request.mold.save()
-                success_message = 'Revizyon talebi reddedildi. Kalıp durumu "Teslim Edildi" olarak güncellendi.'
+        try:
+            from mold.models import RevisionRequest
+            import json
             
-            revision_request.producer_response = response_text
-            revision_request.save()
-            
-            # Merkeze bildirim gönder (eski sistem)
-            notify.send(
-                sender=request.user,
-                recipient=revision_request.center.user,
-                verb=f'revizyon talebini {"kabul etti" if action == "accept" else "reddetti"}',
-                action_object=revision_request,
-                description=f'{revision_request.mold.patient_name} - {revision_request.get_revision_type_display()}',
-                target=revision_request.mold
+            producer_center = get_object_or_404(Producer, user=request.user)
+            revision_request = get_object_or_404(
+                RevisionRequest,
+                id=request_id,
+                producer_center=producer_center
             )
             
-            # Yeni basit bildirim sistemi ile de gönder
-            from core.utils import send_error_notification, send_warning_notification
-            if action == "accept":
-                send_success_notification(
-                    user=revision_request.center.user,
-                    title="Revizyon Talebi Kabul Edildi",
-                    message=f"{revision_request.mold.patient_name} {revision_request.mold.patient_surname} - {revision_request.get_revision_type_display()} revizyon talebiniz {producer.company_name} tarafından kabul edildi ve işleme alındı. Kalıp 'İşleniyor' durumuna geçti.",
-                    related_url=f"/mold/{revision_request.mold.id}/"
+            # Sadece producer_review durumunda yanıt verilebilir
+            if revision_request.status != 'producer_review':
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Bu revizyon talebi artık yanıtlanamaz.'
+                })
+            
+            data = json.loads(request.body)
+            action = data.get('action')
+            
+            if action == 'accept':
+                # Kabul et
+                revision_request.status = 'accepted'
+                revision_request.producer_response = data.get('response', '')
+                revision_request.producer_reviewed_at = timezone.now()
+                revision_request.producer_response_time = timezone.now() - revision_request.admin_reviewed_at
+                
+                # Beklenen teslimat tarihi
+                days_to_add = data.get('estimated_days', 7)
+                revision_request.expected_delivery = timezone.now().date() + timedelta(days=days_to_add)
+                
+                revision_request.save()
+                
+                # Süreç adımı ekle
+                revision_request.add_process_step(
+                    'Üretici tarafından kabul edildi',
+                    'accepted',
+                    f'Tahmini süre: {days_to_add} gün'
                 )
+                
+                # Bildirim gönder
+                try:
+                    from core.utils import send_notification
+                    send_notification(
+                        revision_request.center.user,
+                        f'Revizyon Talebi Kabul Edildi',
+                        f'#{revision_request.id} numaralı revizyon talebiniz üretici tarafından kabul edildi.',
+                        'success'
+                    )
+                except Exception:
+                    pass
+                
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Revizyon talebi başarıyla kabul edildi.'
+                })
+                
+            elif action == 'reject':
+                # Reddet
+                reason = data.get('reason', '').strip()
+                if not reason:
+                    return JsonResponse({
+                        'success': False,
+                        'message': 'Red nedeni gereklidir.'
+                    })
+                
+                revision_request.status = 'producer_rejected'
+                revision_request.producer_response = data.get('response', '')
+                revision_request.rejection_reason = reason
+                revision_request.producer_reviewed_at = timezone.now()
+                revision_request.producer_response_time = timezone.now() - revision_request.admin_reviewed_at
+                revision_request.save()
+                
+                # Süreç adımı ekle
+                revision_request.add_process_step(
+                    'Üretici tarafından reddedildi',
+                    'producer_rejected',
+                    f'Red nedeni: {reason}'
+                )
+                
+                # Bildirim gönder
+                try:
+                    from core.utils import send_notification
+                    send_notification(
+                        revision_request.center.user,
+                        f'Revizyon Talebi Reddedildi',
+                        f'#{revision_request.id} numaralı revizyon talebiniz üretici tarafından reddedildi.',
+                        'error'
+                    )
+                except Exception:
+                    pass
+                
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Revizyon talebi reddedildi.'
+                })
+                
             else:
-                send_error_notification(
-                    user=revision_request.center.user,
-                    title="Revizyon Talebi Reddedildi",
-                    message=f"{revision_request.mold.patient_name} {revision_request.mold.patient_surname} - {revision_request.get_revision_type_display()} revizyon talebiniz {producer.company_name} tarafından reddedildi. Kalıp durumu 'Teslim Edildi' olarak güncellendi.",
-                    related_url=f"/mold/{revision_request.mold.id}/"
-                )
-            
-            # Admin'e bildirim gönder
-            admin_users = User.objects.filter(is_superuser=True)
-            for admin in admin_users:
-                notify.send(
-                    sender=request.user,
-                    recipient=admin,
-                    verb=f'revizyon talebini {"kabul etti" if action == "accept" else "reddetti"}',
-                    action_object=revision_request,
-                    description=f'{producer.company_name} - {revision_request.get_revision_type_display()}',
-                    target=revision_request.mold
-                )
-            
-            messages.success(request, success_message)
-            return redirect('producer:revision_request_detail', pk=pk)
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Geçersiz işlem.'
+                })
+                
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': f'Hata: {str(e)}'
+            })
     
-    return redirect('producer:revision_request_detail', pk=pk)
+    return JsonResponse({
+        'success': False,
+        'message': 'Geçersiz istek.'
+    })
+
+
+@login_required
+@producer_required
+def revision_start_work(request, request_id):
+    """Revizyon çalışmasını başlat"""
+    if request.method == 'POST':
+        try:
+            from mold.models import RevisionRequest
+            
+            producer_center = get_object_or_404(Producer, user=request.user)
+            revision_request = get_object_or_404(
+                RevisionRequest,
+                id=request_id,
+                producer_center=producer_center
+            )
+            
+            # Sadece accepted durumunda çalışma başlatılabilir
+            if revision_request.status != 'accepted':
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Bu revizyon talebi için çalışma başlatılamaz.'
+                })
+            
+            # Çalışmayı başlat
+            revision_request.status = 'in_progress'
+            revision_request.work_started_at = timezone.now()
+            revision_request.save()
+            
+            # Süreç adımı ekle
+            revision_request.add_process_step(
+                'Revizyon çalışması başlatıldı',
+                'in_progress',
+                'Üretici revizyon çalışmasına başladı'
+            )
+            
+            # Bildirim gönder
+            try:
+                from core.utils import send_notification
+                send_notification(
+                    revision_request.center.user,
+                    f'Revizyon Çalışması Başladı',
+                    f'#{revision_request.id} numaralı revizyon talebiniz için çalışma başlatıldı.',
+                    'info'
+                )
+            except Exception:
+                pass
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Revizyon çalışması başlatıldı.'
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': f'Hata: {str(e)}'
+            })
+    
+    return JsonResponse({
+        'success': False,
+        'message': 'Geçersiz istek.'
+    })
+
+
+@login_required
+@producer_required
+def revision_complete_work(request, request_id):
+    """Revizyon çalışmasını tamamla"""
+    if request.method == 'POST':
+        try:
+            from mold.models import RevisionRequest, ModeledEarMold
+            
+            producer_center = get_object_or_404(Producer, user=request.user)
+            revision_request = get_object_or_404(
+                RevisionRequest,
+                id=request_id,
+                producer_center=producer_center
+            )
+            
+            # Sadece in_progress durumunda tamamlanabilir
+            if revision_request.status != 'in_progress':
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Bu revizyon talebi tamamlanamaz.'
+                })
+            
+            # Yeni model dosyası yüklendi mi kontrol et
+            if 'revised_file' in request.FILES:
+                revised_file = request.FILES['revised_file']
+                
+                # Yeni modeled ear mold oluştur
+                new_modeled_mold = ModeledEarMold.objects.create(
+                    ear_mold=revision_request.mold,
+                    producer_center=producer_center,
+                    file=revised_file,
+                    is_revision=True,
+                    revision_request=revision_request
+                )
+                
+                # Eski modeled mold'u pasif yap
+                if revision_request.modeled_mold:
+                    revision_request.modeled_mold.is_active = False
+                    revision_request.modeled_mold.save()
+                
+                # Yeni modeled mold'u aktif yap
+                revision_request.modeled_mold = new_modeled_mold
+            
+            # Durumu güncelle
+            revision_request.status = 'quality_check'
+            revision_request.quality_checked_at = timezone.now()
+            revision_request.save()
+            
+            # Süreç adımı ekle
+            revision_request.add_process_step(
+                'Revizyon çalışması tamamlandı',
+                'quality_check',
+                'Kalite kontrol aşamasına geçildi'
+            )
+            
+            # Bildirim gönder
+            try:
+                from core.utils import send_notification
+                send_notification(
+                    revision_request.center.user,
+                    f'Revizyon Tamamlandı',
+                    f'#{revision_request.id} numaralı revizyon talebiniz tamamlandı ve kalite kontrole alındı.',
+                    'success'
+                )
+            except Exception:
+                pass
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Revizyon çalışması tamamlandı.'
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': f'Hata: {str(e)}'
+            })
+    
+    return JsonResponse({
+        'success': False,
+        'message': 'Geçersiz istek.'
+    })

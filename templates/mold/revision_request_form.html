@@ -23,6 +23,27 @@
                         </p>
                     </div>
 
+                    <!-- Kalıp Bilgisi (Belirli kalıp için) -->
+                    {% if mold %}
+                    <div class="alert alert-success border-success">
+                        <h6><i class="fas fa-user-md me-1"></i>Kalıp Bilgisi</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Hasta:</strong> {{ mold.patient_name }} {{ mold.patient_surname }}</p>
+                                <p class="mb-1"><strong>Kalıp Türü:</strong> {{ mold.get_mold_type_display }}</p>
+                                <p class="mb-0"><strong>Yaş:</strong> {{ mold.patient_age }} - {{ mold.get_patient_gender_display }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Durum:</strong> 
+                                    <span class="badge bg-{{ mold.get_status_color }}">{{ mold.get_status_display }}</span>
+                                </p>
+                                <p class="mb-1"><strong>Oluşturulma:</strong> {{ mold.created_at|date:"d.m.Y" }}</p>
+                                <p class="mb-0"><strong>Onaylanmış Model:</strong> {{ mold.modeled_files.count }} dosya</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
                     <!-- Revizyon Formu -->
                     <form method="post" enctype="multipart/form-data" id="revisionForm">
                         {% csrf_token %}
