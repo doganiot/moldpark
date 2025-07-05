@@ -105,23 +105,23 @@
                             <table class="table table-borderless table-sm">
                                 <tr>
                                     <th width="40%">Hasta:</th>
-                                    <td><strong>{{ revision_request.mold.patient_name }} {{ revision_request.mold.patient_surname }}</strong></td>
+                                    <td><strong>{{ revision_request.modeled_mold.ear_mold.patient_name }} {{ revision_request.modeled_mold.ear_mold.patient_surname }}</strong></td>
                                 </tr>
                                 <tr>
                                     <th>Yaş:</th>
-                                    <td>{{ revision_request.mold.patient_age }}</td>
+                                    <td>{{ revision_request.modeled_mold.ear_mold.patient_age }}</td>
                                 </tr>
                                 <tr>
                                     <th>Cinsiyet:</th>
-                                    <td>{{ revision_request.mold.get_patient_gender_display }}</td>
+                                    <td>{{ revision_request.modeled_mold.ear_mold.get_patient_gender_display }}</td>
                                 </tr>
                                 <tr>
                                     <th>Kalıp Türü:</th>
-                                    <td>{{ revision_request.mold.get_mold_type_display }}</td>
+                                    <td>{{ revision_request.modeled_mold.ear_mold.get_mold_type_display }}</td>
                                 </tr>
                                 <tr>
                                     <th>Vent Çapı:</th>
-                                    <td>{{ revision_request.mold.vent_diameter }}mm</td>
+                                    <td>{{ revision_request.modeled_mold.ear_mold.vent_diameter }}mm</td>
                                 </tr>
                             </table>
                         </div>

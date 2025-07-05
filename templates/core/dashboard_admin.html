@@ -497,7 +497,7 @@
             <div class="stat-label">Teslim Edildi</div>
         </a>
 
-        <a href="{% url 'center:admin_mold_list' %}?status=revision" class="stat-card clickable">
+        <a href="{% url 'center:admin_revision_list' %}" class="stat-card clickable">
             <div class="stat-icon danger">
                 <i class="fas fa-redo"></i>
             </div>
@@ -1590,13 +1590,15 @@
                                             </td>
                                             <td>
                                                 <div class="btn-group btn-group-sm">
-                                                    <button class="btn btn-success" 
-                                                            onclick="approveSubscriptionRequest({{ request.id }}, '{{ request.user.get_full_name|default:request.user.username }}')"
+                                                    <button class="btn btn-success approve-subscription-btn" 
+                                                            data-request-id="{{ request.id }}"
+                                                            data-user-name="{{ request.user.get_full_name|default:request.user.username }}"
                                                             title="Onayla">
                                                         <i class="fas fa-check"></i>
                                                     </button>
-                                                    <button class="btn btn-danger" 
-                                                            onclick="rejectSubscriptionRequest({{ request.id }}, '{{ request.user.get_full_name|default:request.user.username }}')"
+                                                    <button class="btn btn-danger reject-subscription-btn" 
+                                                            data-request-id="{{ request.id }}"
+                                                            data-user-name="{{ request.user.get_full_name|default:request.user.username }}"
                                                             title="Reddet">
                                                         <i class="fas fa-times"></i>
                                                     </button>
@@ -2108,6 +2110,27 @@ function rejectSubscriptionRequest(requestId, userName) {
         });
     }
 }
+
+// DOM yüklendiğinde event listener'ları ekle
+document.addEventListener('DOMContentLoaded', function() {
+    // Approve butonları için event listener
+    document.querySelectorAll('.approve-subscription-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const requestId = this.getAttribute('data-request-id');
+            const userName = this.getAttribute('data-user-name');
+            approveSubscriptionRequest(requestId, userName);
+        });
+    });
+    
+    // Reject butonları için event listener
+    document.querySelectorAll('.reject-subscription-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const requestId = this.getAttribute('data-request-id');
+            const userName = this.getAttribute('data-user-name');
+            rejectSubscriptionRequest(requestId, userName);
+        });
+    });
+});
 </script>
 
 {% endblock %} 

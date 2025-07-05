@@ -60,10 +60,10 @@
                             <h6 class="mb-3"><i class="fas fa-cube me-1"></i>Kalıp Bilgileri</h6>
                             <dl class="row">
                                 <dt class="col-sm-5">Hasta:</dt>
-                                <dd class="col-sm-7">{{ revision_request.mold.patient_name }} {{ revision_request.mold.patient_surname }}</dd>
+                                <dd class="col-sm-7">{{ revision_request.modeled_mold.ear_mold.patient_name }} {{ revision_request.modeled_mold.ear_mold.patient_surname }}</dd>
                                 
                                 <dt class="col-sm-5">Kalıp Türü:</dt>
-                                <dd class="col-sm-7">{{ revision_request.mold.get_mold_type_display }}</dd>
+                                <dd class="col-sm-7">{{ revision_request.modeled_mold.ear_mold.get_mold_type_display }}</dd>
                                 
                                 <dt class="col-sm-5">Model Dosyası:</dt>
                                 <dd class="col-sm-7">
@@ -271,7 +271,7 @@
                     <h6 class="mb-0"><i class="fas fa-bolt me-2"></i>İşlemler</h6>
                 </div>
                 <div class="card-body">
-                    <a href="{% url 'mold:mold_detail' revision_request.mold.pk %}" class="btn btn-primary btn-sm w-100 mb-2">
+                    <a href="{% url 'mold:mold_detail' revision_request.modeled_mold.ear_mold.pk %}" class="btn btn-primary btn-sm w-100 mb-2">
                         <i class="fas fa-eye me-1"></i>Kalıp Detayını Görüntüle
                     </a>
                     

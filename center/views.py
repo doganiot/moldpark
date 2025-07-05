@@ -708,7 +708,7 @@ def admin_revision_list(request):
         
         # Tüm revizyon talepleri
         revision_requests = RevisionRequest.objects.all().select_related(
-            'mold', 'center', 'producer_center', 'center__user'
+            'modeled_mold', 'modeled_mold__ear_mold', 'center', 'center__user'
         ).order_by('-created_at')
         
         # Filtreleme
@@ -726,8 +726,8 @@ def admin_revision_list(request):
             revision_requests = revision_requests.filter(
                 Q(title__icontains=search_query) |
                 Q(description__icontains=search_query) |
-                Q(mold__patient_name__icontains=search_query) |
-                Q(mold__patient_surname__icontains=search_query) |
+                Q(modeled_mold__ear_mold__patient_name__icontains=search_query) |
+                Q(modeled_mold__ear_mold__patient_surname__icontains=search_query) |
                 Q(center__company_name__icontains=search_query)
             )
         
