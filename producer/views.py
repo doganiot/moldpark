@@ -953,7 +953,7 @@ def mold_upload_result(request, pk):
                 producer_order.save()
                 
                 # Kalıp durumunu da "teslim edildi" olarak güncelle (tutarlılık için)
-                ear_mold.status = 'delivered'  # Completed yerine delivered - mantıklı akış
+                ear_mold.status = 'completed'  # Completed yerine delivered - mantıklı akış
                 ear_mold.save()
             
             # Merkeze basit bildirim gönder
@@ -1292,11 +1292,11 @@ def revision_requests(request):
         priority_filter = request.GET.get('priority', '')
         search_query = request.GET.get('search', '')
         
-        # Base queryset
+        # Base queryset - producer'a modeled_mold üzerinden eriş
         revision_requests = RevisionRequest.objects.filter(
-            producer_center=producer_center
+            modeled_mold__ear_mold__producer_orders__producer=producer_center
         ).select_related(
-            'mold', 'center', 'center__user'
+            'center', 'center__user', 'modeled_mold', 'modeled_mold__ear_mold'
         ).order_by('-created_at')
         
         # Filtreler
@@ -1310,9 +1310,9 @@ def revision_requests(request):
             revision_requests = revision_requests.filter(
                 Q(title__icontains=search_query) |
                 Q(description__icontains=search_query) |
-                Q(mold__patient_name__icontains=search_query) |
-                Q(mold__patient_surname__icontains=search_query) |
-                Q(center__company_name__icontains=search_query)
+                Q(modeled_mold__ear_mold__patient_name__icontains=search_query) |
+                Q(modeled_mold__ear_mold__patient_surname__icontains=search_query) |
+                Q(center__name__icontains=search_query)
             )
         
         # İstatistikler
@@ -1361,7 +1361,7 @@ def revision_request_detail(request, request_id):
         revision_request = get_object_or_404(
             RevisionRequest,
             id=request_id,
-            producer_center=producer_center
+            modeled_mold__ear_mold__producer_orders__producer=producer_center
         )
         
         context = {
@@ -1389,7 +1389,7 @@ def revision_request_respond(request, request_id):
             revision_request = get_object_or_404(
                 RevisionRequest,
                 id=request_id,
-                producer_center=producer_center
+                modeled_mold__ear_mold__producer_orders__producer=producer_center
             )
             
             # Sadece producer_review durumunda yanıt verilebilir
@@ -1509,7 +1509,7 @@ def revision_start_work(request, request_id):
             revision_request = get_object_or_404(
                 RevisionRequest,
                 id=request_id,
-                producer_center=producer_center
+                modeled_mold__ear_mold__producer_orders__producer=producer_center
             )
             
             # Sadece accepted durumunda çalışma başlatılabilir
@@ -1566,13 +1566,13 @@ def revision_complete_work(request, request_id):
     """Revizyon çalışmasını tamamla"""
     if request.method == 'POST':
         try:
-            from mold.models import RevisionRequest, ModeledEarMold
+            from mold.models import RevisionRequest, ModeledMold
             
             producer_center = get_object_or_404(Producer, user=request.user)
             revision_request = get_object_or_404(
                 RevisionRequest,
                 id=request_id,
-                producer_center=producer_center
+                modeled_mold__ear_mold__producer_orders__producer=producer_center
             )
             
             # Sadece in_progress durumunda tamamlanabilir
@@ -1587,12 +1587,11 @@ def revision_complete_work(request, request_id):
                 revised_file = request.FILES['revised_file']
                 
                 # Yeni modeled ear mold oluştur
-                new_modeled_mold = ModeledEarMold.objects.create(
-                    ear_mold=revision_request.mold,
-                    producer_center=producer_center,
+                new_modeled_mold = ModeledMold.objects.create(
+                    ear_mold=revision_request.modeled_mold.ear_mold,
                     file=revised_file,
-                    is_revision=True,
-                    revision_request=revision_request
+                    notes=f'Revizyon dosyası - #{revision_request.id}',
+                    status='approved'
                 )
                 
                 # Eski modeled mold'u pasif yap
@@ -1642,3 +1641,94 @@ def revision_complete_work(request, request_id):
         'success': False,
         'message': 'Geçersiz istek.'
     })
+
+
+@login_required
+@producer_required
+def revision_upload_file(request, request_id):
+    """Revizyon talebine revize edilmiş dosya yükleme"""
+    try:
+        from mold.models import RevisionRequest
+        from django.utils import timezone
+        
+        producer_center = get_object_or_404(Producer, user=request.user)
+        revision_request = get_object_or_404(
+            RevisionRequest,
+            id=request_id,
+            modeled_mold__ear_mold__producer_orders__producer=producer_center
+        )
+        
+        # Sadece accepted ve in_progress durumlarında dosya yüklenebilir
+        if revision_request.status not in ['accepted', 'in_progress']:
+            messages.error(request, 'Bu revizyon talebi için dosya yüklenemez.')
+            return redirect('producer:revision_request_detail', request_id)
+        
+        if request.method == 'POST':
+            revised_file = request.FILES.get('revised_file')
+            revision_notes = request.POST.get('revision_notes', '')
+            
+            if not revised_file:
+                messages.error(request, 'Lütfen revize edilmiş dosyayı seçin.')
+                return redirect('producer:revision_request_detail', request_id)
+            
+            # Dosya boyutu kontrolü (50MB)
+            if revised_file.size > 52428800:  # 50MB
+                messages.error(request, 'Dosya boyutu 50MB\'dan büyük olamaz.')
+                return redirect('producer:revision_request_detail', request_id)
+            
+            # Dosya formatı kontrolü
+            allowed_extensions = ['stl', 'obj', 'ply', '3mf', 'amf']
+            file_extension = revised_file.name.split('.')[-1].lower()
+            if file_extension not in allowed_extensions:
+                messages.error(request, f'Sadece {", ".join(allowed_extensions).upper()} dosyaları yüklenebilir.')
+                return redirect('producer:revision_request_detail', request_id)
+            
+            try:
+                # Revizyon talebi güncelleme
+                revision_request.revised_file = revised_file
+                revision_request.revision_notes = revision_notes
+                revision_request.status = 'completed'
+                revision_request.completed_at = timezone.now()
+                revision_request.save()
+                
+                # Kalıp durumunu güncelle - revizyon tamamlandığında kalıp artık completed
+                ear_mold = revision_request.modeled_mold.ear_mold
+                ear_mold.status = 'completed'
+                ear_mold.save()
+                
+                # Süreç adımı ekle
+                revision_request.add_process_step(
+                    'Revize edilmiş dosya yüklendi',
+                    'completed',
+                    f'Dosya: {revised_file.name}' + (f' - {revision_notes}' if revision_notes else '')
+                )
+                
+                # Merkeze bildirim gönder
+                try:
+                    from django.contrib.auth.models import User
+                    from notifications.signals import notify
+                    
+                    notify.send(
+                        sender=request.user,
+                        recipient=revision_request.center.user,
+                        verb='revizyon tamamlandı',
+                        description=f'Revizyon talebi tamamlandı ve revize edilmiş dosya yüklendi. Talep: {revision_request.title}',
+                        action_object=revision_request
+                    )
+                except Exception as e:
+                    print(f"Bildirim gönderme hatası: {e}")
+                
+                messages.success(request, 'Revize edilmiş dosya başarıyla yüklendi! Revizyon talebi tamamlandı.')
+                return redirect('producer:revision_request_detail', request_id)
+                
+            except Exception as e:
+                messages.error(request, f'Dosya yükleme hatası: {str(e)}')
+                return redirect('producer:revision_request_detail', request_id)
+        
+        else:
+            messages.error(request, 'Geçersiz istek.')
+            return redirect('producer:revision_request_detail', request_id)
+    
+    except Exception as e:
+        messages.error(request, f'Bir hata oluştu: {str(e)}')
+        return redirect('producer:revision_requests')

@@ -318,7 +318,9 @@ def admin_dashboard(request):
         'waiting_molds': molds.filter(status='waiting').count(),
         'processing_molds': molds.filter(status='processing').count(),
         'completed_molds': molds.filter(status='completed').count(),
-        'revision_molds': molds.filter(status='revision').count(),
+        'revision_molds': molds.filter(
+            modeled_files__revision_requests__status__in=['pending', 'admin_review', 'approved', 'rejected', 'producer_review', 'accepted', 'in_progress', 'quality_check', 'ready_for_delivery']
+        ).distinct().count(),  # Sadece aktif revizyon talepleri olan kalıpları say
         'rejected_molds': molds.filter(status='rejected').count(),
         'shipping_molds': molds.filter(status='shipping').count(),
         'delivered_molds': molds.filter(status='delivered').count(),

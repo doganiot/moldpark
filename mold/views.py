@@ -531,7 +531,7 @@ def revision_request_create(request, mold_id=None):
                             f'{request.user.center.name} merkezi tarafından "{ear_mold.patient_name} {ear_mold.patient_surname}" '
                             f'hastasının kalıbı için revizyon talebi oluşturuldu. '
                             f'Talep türü: {revision_request.get_revision_type_display()}',
-                            related_url=f'/producer/revision-requests/{revision_request.id}/'
+                            related_url=f'/producer/revisions/{revision_request.id}/'
                         )
                     
                     # Admin'lere bildirim

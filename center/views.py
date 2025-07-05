@@ -38,7 +38,9 @@ def dashboard(request):
         'processing': molds.filter(status='processing').count(),
         'completed': molds.filter(status='completed').count(),
         'delivered': molds.filter(status='delivered').count(),
-        'revision': molds.filter(status='revision').count(),
+        'revision': molds.filter(
+            modeled_files__revision_requests__status__in=['pending', 'admin_review', 'approved', 'rejected', 'producer_review', 'accepted', 'in_progress', 'quality_check', 'ready_for_delivery']
+        ).distinct().count(),  # Sadece aktif revizyon talepleri olan kalıpları say
         'rejected': molds.filter(status='rejected').count(),
         'shipping': molds.filter(status='shipping').count(),
     }
@@ -431,9 +433,11 @@ def admin_dashboard(request):
     actual_mold_statuses = list(EarMold.objects.values_list('status', flat=True).distinct())
     print(f"DEBUG - Mevcut kalıp statusları: {actual_mold_statuses}")
     
-    # Revizyon bekleyen kalıplar (sadece gerçekte var olan statuslar)
-    revision_statuses = [s for s in ['revision', 'revision_requested'] if s in actual_mold_statuses]
-    revision_molds = EarMold.objects.filter(status__in=revision_statuses).count() if revision_statuses else 0
+    # Revizyon bekleyen kalıplar - aktif revizyon talepleri olan kalıpları say
+    from mold.models import RevisionRequest
+    revision_molds = EarMold.objects.filter(
+        modeled_files__revision_requests__status__in=['pending', 'admin_review', 'approved', 'rejected', 'producer_review', 'accepted', 'in_progress', 'quality_check', 'ready_for_delivery']
+    ).distinct().count()
     
     # Gecikmiş sipariş sorgusu - Sadece aktif ve gerçekten gecikmiş olanları say
     current_time = timezone.now()
@@ -778,8 +782,8 @@ def admin_revision_approve(request, request_id):
             admin_notes = request.POST.get('admin_notes', '')
             
             # Onay işlemi
-            revision_request.status = 'approved'
-            revision_request.admin_response = admin_notes
+            revision_request.status = 'producer_review'  # Direkt producer_review'a geç
+            revision_request.admin_notes = admin_notes
             revision_request.admin_reviewed_at = timezone.now()
             revision_request.admin_response_time = timezone.now() - revision_request.created_at
             revision_request.save()
@@ -787,23 +791,27 @@ def admin_revision_approve(request, request_id):
             # Süreç adımı ekle
             revision_request.add_process_step(
                 'Admin tarafından onaylandı',
-                'approved',
-                admin_notes or 'Revizyon talebi onaylandı'
+                'producer_review',
+                admin_notes or 'Revizyon talebi onaylandı ve üreticiye gönderildi'
             )
             
-            # Durumu producer_review'a geç
-            revision_request.status = 'producer_review'
-            revision_request.save()
-            
-            # Üreticiye bildirim gönder
+            # Üreticiye bildirim gönder - modeled_mold üzerinden producer'a ulaş
             try:
                 from core.utils import send_notification
-                send_notification(
-                    revision_request.producer_center.user,
-                    f'Yeni Revizyon Talebi',
-                    f'#{revision_request.id} numaralı revizyon talebi onaylandı ve incelemenizi bekliyor.',
-                    'info'
-                )
+                from producer.models import ProducerOrder
+                
+                # Revizyon talebi -> ModeledMold -> EarMold -> ProducerOrder -> Producer
+                producer_order = ProducerOrder.objects.filter(
+                    ear_mold=revision_request.modeled_mold.ear_mold
+                ).first()
+                
+                if producer_order and producer_order.producer:
+                    send_notification(
+                        producer_order.producer.user,
+                        f'Yeni Revizyon Talebi',
+                        f'#{revision_request.id} numaralı revizyon talebi onaylandı ve incelemenizi bekliyor.',
+                        'info'
+                    )
             except Exception:
                 pass
             
@@ -852,7 +860,7 @@ def admin_revision_reject(request, request_id):
             # Reddetme işlemi
             revision_request.status = 'rejected'
             revision_request.rejection_reason = rejection_reason
-            revision_request.admin_response = admin_notes
+            revision_request.admin_notes = admin_notes
             revision_request.admin_reviewed_at = timezone.now()
             revision_request.admin_response_time = timezone.now() - revision_request.created_at
             revision_request.save()

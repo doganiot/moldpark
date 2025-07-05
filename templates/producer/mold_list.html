@@ -257,7 +257,7 @@
                                         <i class="fas fa-eye"></i>
                                     </a>
                                     {% if order.ear_mold.scan_file %}
-                                        <a href="{% url 'producer:permanent_scan_download' order.ear_mold.pk %}" class="btn btn-sm btn-success" title="Ana Tarama Dosyası İndir (Sabit Link)">
+                                        <a href="{% url 'producer:mold_download' order.id %}" class="btn btn-sm btn-success" title="Ana Tarama Dosyası İndir">
                                             <i class="fas fa-download"></i>
                                         </a>
                                     {% elif order.ear_mold.modeled_files.exists %}

@@ -874,676 +874,137 @@ body {
    ACCESSIBILITY IMPROVEMENTS
    ======================================== */
 
-@media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-        scroll-behavior: auto !important;
-    }
-}
-
-/* High Contrast Mode */
-@media (prefers-contrast: high) {
-    .card {
-        border: 2px solid var(--gray-900);
-    }
-    
-    .btn {
-        border: 2px solid currentColor;
-    }
-}
-
-/* ========================================
-   NOTIFICATION SYSTEM
-   ======================================== */
-
-.notification-badge {
-    background: var(--error) !important;
+/* Skip Navigation Link */
+.skip-link {
+    position: absolute;
+    top: -40px;
+    left: 6px;
+    z-index: 9999;
     color: white !important;
-    font-size: var(--text-xs);
-    min-width: 18px;
-    height: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: var(--radius-full);
-    animation: bounceIn var(--duration-500) var(--ease-back);
+    text-decoration: none;
+    padding: 8px 16px;
+    background: var(--primary-600);
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    transition: top var(--duration-150) var(--ease-out);
 }
 
-.notification-item {
-    transition: all var(--duration-200) var(--ease-out);
+.skip-link:focus {
+    top: 6px;
+    color: white !important;
+    text-decoration: none;
+    outline: 2px solid white;
+    outline-offset: 2px;
 }
 
-.notification-item:hover {
-    background: var(--primary-50) !important;
-    padding-left: var(--space-5) !important;
+/* Enhanced Focus Indicators */
+.btn:focus-visible,
+.form-control:focus-visible,
+.form-select:focus-visible {
+    outline: 2px solid var(--primary-500);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 2px var(--primary-100);
 }
 
-/* ========================================
-   CUSTOM SCROLLBAR
-   ======================================== */
-
-::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: var(--gray-100);
-    border-radius: var(--radius-full);
-}
-
-::-webkit-scrollbar-thumb {
-    background: var(--gray-400);
-    border-radius: var(--radius-full);
-    transition: background var(--duration-200) var(--ease-out);
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: var(--gray-500);
-}
-
-/* ========================================
-   PRINT STYLES
-   ======================================== */
-
-@media print {
-    .navbar,
-    .btn,
-    .alert {
-        display: none !important;
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+    .skip-link {
+        background: black;
+        border: 2px solid white;
     }
     
-    .card {
-        box-shadow: none !important;
-        border: 1px solid #000 !important;
-    }
-    
-    * {
-        color: #000 !important;
-        background: white !important;
+    .btn:focus-visible,
+    .form-control:focus-visible,
+    .form-select:focus-visible {
+        outline: 3px solid;
+        outline-color: Highlight;
     }
 }
 
-/* Navbar Brand Logo - Responsive */
-.brand-logo {
-    width: 160px !important;
-    height: 54px !important;
-    object-fit: contain;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-    background: #fff;
-    transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
-}
-
-@media (max-width: 768px) {
-    .brand-logo {
-        width: 110px !important;
-        height: 36px !important;
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+    .skip-link {
+        transition: none;
     }
 }
 
-/* Kontrast artırıcı kart yazı renkleri */
-.bg-primary, .bg-info, .bg-success, .bg-secondary, .bg-danger {
-  color: #fff !important;
-}
-.bg-warning {
-  color: #1f2937 !important; /* dark gray, sarı üstünde siyah daha okunur */
-}
-.text-white {
-  color: #fff !important;
-}
-.text-dark {
-  color: #111827 !important;
-}
-
-/* Admin panel kart başlıkları ve içerikleri için ekstra kontrast */
-.card.bg-primary .card-title,
-.card.bg-info .card-title,
-.card.bg-success .card-title,
-.card.bg-secondary .card-title,
-.card.bg-danger .card-title {
-  color: #fff !important;
-}
-.card.bg-warning .card-title {
-  color: #1f2937 !important;
-}
-.card.bg-primary .card-body,
-.card.bg-info .card-body,
-.card.bg-success .card-body,
-.card.bg-secondary .card-body,
-.card.bg-danger .card-body {
-  color: #fff !important;
-}
-.card.bg-warning .card-body {
-  color: #1f2937 !important;
+/* Screen Reader Only Content */
+.sr-only {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
 }
 
-/* Admin panel hero bölümü için özel stil */
-.bg-primary h1.fw-bold,
-.bg-primary .fw-bold {
-    color: #ffffff !important;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.bg-primary p.opacity-75,
-.bg-primary .opacity-75 {
-    color: #ffffff !important;
-    opacity: 0.9 !important;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-}
-
-/* Admin panel ikon container'ı için */
-.bg-white.bg-opacity-20 {
-    background: rgba(255, 255, 255, 0.2) !important;
-    backdrop-filter: blur(8px);
-}
-
-.bg-white.bg-opacity-20 i.text-white {
-    color: #ffffff !important;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-/* Admin Panel Genel Stil İyileştirmeleri */
-.admin-panel {
-    background: var(--gray-50);
-}
-
-/* Hero Bölümü */
-.bg-primary {
-    background: linear-gradient(135deg, #0284c7, #0c4a6e) !important;
-}
-
-.bg-primary h1.fw-bold,
-.bg-primary .fw-bold {
-    color: #ffffff !important;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.bg-primary p.opacity-75,
-.bg-primary .opacity-75 {
-    color: #ffffff !important;
-    opacity: 0.9 !important;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-}
-
-/* İstatistik Kartları */
-.card.bg-primary {
-    background: linear-gradient(135deg, #0ea5e9, #0369a1) !important;
-}
-
-.card.bg-info {
-    background: linear-gradient(135deg, #38bdf8, #0284c7) !important;
-}
-
-.card.bg-success {
-    background: linear-gradient(135deg, #22c55e, #15803d) !important;
-}
-
-.card.bg-warning {
-    background: linear-gradient(135deg, #fbbf24, #d97706) !important;
-    color: #1f2937 !important;
-}
-
-.card.bg-secondary {
-    background: linear-gradient(135deg, #64748b, #475569) !important;
-}
-
-/* Kart İçeriği */
-.card .card-title {
-    font-weight: 600;
-    font-size: 1.1rem;
-}
-
-.card .display-4 {
-    font-size: 2.5rem !important;
-    font-weight: 700 !important;
-}
-
-.card.bg-warning .card-title,
-.card.bg-warning .display-4,
-.card.bg-warning i {
-    color: #1f2937 !important;
-}
-
-.card.bg-primary .card-title,
-.card.bg-info .card-title,
-.card.bg-success .card-title,
-.card.bg-secondary .card-title,
-.card.bg-primary .display-4,
-.card.bg-info .display-4,
-.card.bg-success .display-4,
-.card.bg-secondary .display-4,
-.card.bg-primary i,
-.card.bg-info i,
-.card.bg-success i,
-.card.bg-secondary i {
-    color: #ffffff !important;
-}
-
-/* Yönetim Butonları */
-.btn-primary {
-    background: #0284c7 !important;
-    border-color: #0284c7 !important;
-    color: #ffffff !important;
-}
-
-.btn-info {
-    background: #0ea5e9 !important;
-    border-color: #0ea5e9 !important;
-    color: #ffffff !important;
-}
-
-.btn-success {
-    background: #22c55e !important;
-    border-color: #22c55e !important;
-    color: #ffffff !important;
-}
-
-.btn-warning {
-    background: #f59e0b !important;
-    border-color: #f59e0b !important;
-    color: #1f2937 !important;
-}
-
-/* Buton İçeriği */
-.btn strong {
-    font-size: 1rem;
-    display: block;
-}
-
-.btn small {
-    font-size: 0.85rem;
-    opacity: 0.9;
-}
-
-/* Son Aktiviteler */
-.list-group-item h6 {
-    color: var(--gray-900) !important;
-    font-weight: 600;
-}
-
-.list-group-item p.text-muted {
-    color: var(--gray-700) !important;
-}
-
-.badge.bg-success {
-    background: #22c55e !important;
-    color: #ffffff !important;
-}
-
-/* Sistem Durumu */
-.card-header {
-    border-bottom: 1px solid var(--gray-200);
-}
-
-.card-header h5 {
-    color: var(--gray-900) !important;
-    font-weight: 600;
-}
-
-/* İkon Konteyner */
-.bg-white.bg-opacity-20 {
-    background: rgba(255, 255, 255, 0.2) !important;
-    backdrop-filter: blur(8px);
-}
-
-.bg-white.bg-opacity-20 i.text-white {
-    color: #ffffff !important;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-/* Üretici Merkezi Hero Bölümü - Beyaz Yazılar */
-.producer-hero h2.fw-bold {
-    color: #ffffff !important;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    font-size: 2rem;
-}
-
-.producer-hero p.small {
-    color: #ffffff !important;
-    opacity: 0.9;
-}
-
-/* Badge Stilleri */
-.badge.bg-white.bg-opacity-20 {
-    background: rgba(255, 255, 255, 0.15) !important;
-    color: #ffffff !important;
-    font-weight: 500;
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.badge.bg-white.bg-opacity-20 i {
-    color: #ffffff !important;
-    opacity: 0.9;
-}
-
-/* İstatistik Rakamları */
-.h4.fw-bold {
-    color: #ffffff !important;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-    font-size: 1.5rem;
-}
-
-/* İstatistik Açıklamaları */
-small.opacity-75 {
-    color: #ffffff !important;
-    opacity: 0.9 !important;
-    font-size: 0.875rem;
-}
-
-/* Kullanım İstatistikleri */
-.bg-white.bg-opacity-10 {
-    background: rgba(255, 255, 255, 0.1) !important;
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.bg-white.bg-opacity-10 .small {
-    color: #ffffff !important;
-    opacity: 0.9;
-}
-
-.bg-white.bg-opacity-10 .fw-bold {
-    color: #ffffff !important;
-    opacity: 1;
-}
-
-/* Progress Bar */
-.progress {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.progress-bar.bg-success {
-    background: #22c55e !important;
-}
-
-/* Tüm Siparişler Butonu - Siyah Kalacak */
-.btn-light.hover-lift {
-    background: rgba(255, 255, 255, 0.9) !important;
-    color: #1f2937 !important;
-    border: none;
-    font-weight: 500;
-    transition: all 0.3s ease;
-}
-
-.btn-light.hover-lift:hover {
-    background: #ffffff !important;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-/* Avatar Circle */
-.avatar-circle {
-    background: rgba(255, 255, 255, 0.15) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.avatar-circle i {
-    color: #ffffff !important;
-    opacity: 0.9;
-}
-
-/* ==========================================
-   ÜRETİCİ MERKEZİ DETAY - SİYAH METİN STİLİ
-   Bu kurallar dosyanın en sonunda ve !important ile
-   önceki tanımları geçersiz kılar.
-   ========================================== */
-.producer-hero h2.fw-bold,
-.producer-hero p.small {
-    color: #111827 !important; /* Koyu siyah */
-    text-shadow: none !important;
-}
-
-/* Badge'ler */
-.badge.bg-white.bg-opacity-20 {
-    background: rgba(255, 255, 255, 0.9) !important;
-    color: #111827 !important;
-    border: 1px solid rgba(0, 0, 0, 0.1) !important;
-}
-
-.badge.bg-white.bg-opacity-20 i {
-    color: #111827 !important;
-}
-
-/* İstatistik Rakamları ve Açıklamaları */
-.h4.fw-bold {
-    color: #111827 !important;
-    text-shadow: none !important;
-}
-
-small.opacity-75 {
-    color: #374151 !important; /* Orta ton siyah */
-    opacity: 1 !important;
-}
-
-/* Kullanım İstatistik Kartı */
-.bg-white.bg-opacity-10 {
-    background: rgba(255, 255, 255, 0.95) !important;
-    border: 1px solid rgba(0, 0, 0, 0.1) !important;
-}
-.bg-white.bg-opacity-10 .small,
-.bg-white.bg-opacity-10 .fw-bold {
-    color: #111827 !important;
-    opacity: 1 !important;
-}
-
-/* Avatar ve İkon */
-.avatar-circle {
-    background: rgba(255, 255, 255, 0.95) !important;
-    border: 1px solid rgba(0, 0, 0, 0.1) !important;
-}
-.avatar-circle i,
-.avatar-circle i.text-white {
-    color: #111827 !important;
+/* Focus Management */
+.content:focus {
+    outline: none;
 }
 
 /* ========================================
-   ENHANCED DASHBOARD COMPONENTS
+   BUTTON ACCESSIBILITY ENHANCEMENTS
    ======================================== */
 
-/* Interactive Dashboard Cards */
-.dashboard-card {
-    background: white;
-    border-radius: var(--radius-2xl);
-    padding: 1.5rem;
-    box-shadow: var(--shadow-md);
-    border: 1px solid var(--gray-200);
-    transition: all var(--duration-300) var(--ease-out);
+/* Ensure all buttons have discernible text */
+.btn-close:not([aria-label]):not([title]) {
     position: relative;
-    overflow: hidden;
-    cursor: pointer;
 }
 
-.dashboard-card::before {
-    content: '';
+.btn-close:not([aria-label]):not([title])::before {
+    content: "Kapat";
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 4px;
-    background: var(--gradient-primary);
-    transform: scaleX(0);
-    transform-origin: left;
-    transition: transform var(--duration-300) var(--ease-out);
-}
-
-.dashboard-card:hover::before {
-    transform: scaleX(1);
-}
-
-.dashboard-card:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-xl);
-    border-color: var(--primary-300);
-}
-
-.dashboard-card-icon {
-    width: 60px;
-    height: 60px;
-    border-radius: var(--radius-xl);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 1rem;
-    font-size: 1.5rem;
-    position: relative;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
     overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
 }
 
-.dashboard-card-icon::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.3) 50%, transparent 70%);
-    transform: translateX(-100%);
-    transition: transform var(--duration-700) var(--ease-out);
-}
-
-.dashboard-card:hover .dashboard-card-icon::before {
-    transform: translateX(100%);
-}
-
-.dashboard-card-number {
-    font-size: 2.5rem;
-    font-weight: 800;
-    line-height: 1;
-    margin-bottom: 0.5rem;
-    background: var(--gradient-primary);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-.dashboard-card-label {
-    font-size: 0.875rem;
-    color: var(--gray-600);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.dashboard-card-change {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    font-size: 0.75rem;
-    font-weight: 600;
-    margin-top: 0.5rem;
-}
-
-.dashboard-card-change.positive {
-    color: var(--success);
-}
-
-.dashboard-card-change.negative {
-    color: var(--error);
-}
-
-/* Quick Action Cards */
-.quick-action-card {
-    background: white;
-    border: 2px solid var(--gray-200);
-    border-radius: var(--radius-2xl);
-    padding: 1.5rem;
-    text-align: center;
-    transition: all var(--duration-300) var(--ease-out);
+/* Add default aria-labels for close buttons */
+.btn-close {
     position: relative;
+}
+
+.btn-close:not([aria-label]) {
+    --bs-btn-close-aria-label: "Kapat";
+}
+
+/* Dropdown toggles without text should have labels */
+.dropdown-toggle:not([aria-label]):not([title]):not(:has(.visually-hidden)):not(:has(.sr-only)) {
+    position: relative;
+}
+
+.dropdown-toggle:not([aria-label]):not([title]):not(:has(.visually-hidden)):not(:has(.sr-only))::after {
+    content: attr(data-bs-original-title, "Menü seçenekleri");
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
     overflow: hidden;
-    text-decoration: none;
-    color: inherit;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
 }
 
-.quick-action-card:hover {
-    border-color: var(--primary-400);
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
-    color: inherit;
-    text-decoration: none;
+/* Icon-only buttons need labels */
+.btn:not([aria-label]):not([title]):not(:has(span)):not(:has(div)):has(i:only-child) {
+    position: relative;
 }
 
-.quick-action-card::after {
-    content: '';
+.btn:not([aria-label]):not([title]):not(:has(span)):not(:has(div)):has(i:only-child)::before {
+    content: "Buton";
     position: absolute;
-    inset: 0;
-    background: var(--gradient-primary);
-    opacity: 0;
-    transition: opacity var(--duration-300) var(--ease-out);
-}
-
-.quick-action-card:hover::after {
-    opacity: 0.05;
-}
-
-.quick-action-icon {
-    width: 80px;
-    height: 80px;
-    border-radius: var(--radius-2xl);
-    margin: 0 auto 1rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2rem;
-    position: relative;
-    z-index: 2;
-    transition: transform var(--duration-300) var(--ease-back);
-}
-
-.quick-action-card:hover .quick-action-icon {
-    transform: scale(1.1) rotate(5deg);
-}
-
-.quick-action-title {
-    font-weight: 700;
-    margin-bottom: 0.5rem;
-    position: relative;
-    z-index: 2;
-}
-
-.quick-action-desc {
-    font-size: 0.875rem;
-    color: var(--gray-600);
-    position: relative;
-    z-index: 2;
-}
-
-/* Status Cards */
-.status-card {
-    background: white;
-    border-radius: var(--radius-xl);
-    padding: 1rem;
-    border-left: 4px solid;
-    box-shadow: var(--shadow-sm);
-    transition: all var(--duration-200) var(--ease-out);
-}
-
-.status-card:hover {
-    box-shadow: var(--shadow-md);
-    transform: translateX(4px);
-}
-
-.status-card.status-success {
-    border-left-color: var(--success);
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(16, 185, 129, 0.02));
-}
-
-.status-card.status-warning {
-    border-left-color: var(--warning);
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.05), rgba(245, 158, 11, 0.02));
-}
-
-.status-card.status-error {
-    border-left-color: var(--error);
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.05), rgba(239, 68, 68, 0.02));
-}
-
-.status-card.status-info {
-    border-left-color: var(--info);
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(59, 130, 246, 0.02));
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
 }
 
 /* Notification Improvements */

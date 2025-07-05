@@ -337,6 +337,13 @@ class RevisionRequest(models.Model):
     reference_image = models.ImageField('Referans Görsel', upload_to='revision_requests/', blank=True, null=True)
     attachment = models.FileField('Ek Dosya', upload_to='revision_requests/', blank=True, null=True)
     
+    # Revize Edilmiş Dosyalar
+    revised_file = models.FileField('Revize Edilmiş Dosya', upload_to='revised/', blank=True, null=True, validators=[
+        FileExtensionValidator(allowed_extensions=['stl', 'obj', 'ply', '3mf', 'amf']),
+        validate_file_size
+    ])
+    revision_notes = models.TextField('Revizyon Notları', blank=True, help_text='Üretici tarafından yapılan değişiklikler hakkında notlar')
+    
     # Süreç Takibi - Tarihler
     created_at = models.DateTimeField('Oluşturulma Tarihi', auto_now_add=True)
     updated_at = models.DateTimeField('Güncellenme Tarihi', auto_now=True)
