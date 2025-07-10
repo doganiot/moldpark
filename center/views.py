@@ -702,20 +702,22 @@ def delete_account(request):
 
 @staff_member_required
 def admin_revision_list(request):
-    """Admin revizyon talepleri listesi"""
+    """Admin revizyon talepleri listesi - sadece görüntüleme"""
     try:
         from mold.models import RevisionRequest
         
-        # Tüm revizyon talepleri
-        revision_requests = RevisionRequest.objects.all().select_related(
-            'modeled_mold', 'modeled_mold__ear_mold', 'center', 'center__user'
-        ).order_by('-created_at')
-        
-        # Filtreleme
+        # Filtreler
         status_filter = request.GET.get('status', '')
         priority_filter = request.GET.get('priority', '')
-        search_query = request.GET.get('search', '')
+        search_query = request.GET.get('q', '')
         
+        # Temel sorgu
+        revision_requests = RevisionRequest.objects.select_related(
+            'modeled_mold__ear_mold',
+            'center'
+        ).all()
+        
+        # Filtreleme
         if status_filter:
             revision_requests = revision_requests.filter(status=status_filter)
         
@@ -724,25 +726,22 @@ def admin_revision_list(request):
         
         if search_query:
             revision_requests = revision_requests.filter(
-                Q(title__icontains=search_query) |
-                Q(description__icontains=search_query) |
                 Q(modeled_mold__ear_mold__patient_name__icontains=search_query) |
                 Q(modeled_mold__ear_mold__patient_surname__icontains=search_query) |
-                Q(center__company_name__icontains=search_query)
+                Q(title__icontains=search_query) |
+                Q(description__icontains=search_query)
             )
         
         # İstatistikler
         total_count = revision_requests.count()
         pending_count = revision_requests.filter(status='pending').count()
-        in_progress_count = revision_requests.filter(status__in=['accepted', 'in_progress']).count()
-        overdue_count = revision_requests.filter(
-            status__in=['pending', 'admin_review', 'approved', 'producer_review', 'accepted', 'in_progress'],
-            expected_delivery__lt=timezone.now().date()
-        ).count()
+        in_progress_count = revision_requests.filter(status='in_progress').count()
+        completed_count = revision_requests.filter(status='completed').count()
+        overdue_count = len([r for r in revision_requests if r.is_overdue()])
         
         # Sayfalama
-        paginator = Paginator(revision_requests, 12)
-        page = request.GET.get('page')
+        paginator = Paginator(revision_requests, 10)
+        page = request.GET.get('page', 1)
         revision_requests = paginator.get_page(page)
         
         context = {
@@ -750,6 +749,7 @@ def admin_revision_list(request):
             'total_count': total_count,
             'pending_count': pending_count,
             'in_progress_count': in_progress_count,
+            'completed_count': completed_count,
             'overdue_count': overdue_count,
             'status_filter': status_filter,
             'priority_filter': priority_filter,
@@ -762,143 +762,8 @@ def admin_revision_list(request):
         messages.error(request, f'Revizyon talepleri yüklenirken hata: {str(e)}')
         return redirect('center:admin_dashboard')
 
-@staff_member_required
-def admin_revision_approve(request, request_id):
-    """Admin revizyon talebi onayı"""
-    if request.method == 'POST':
-        try:
-            from mold.models import RevisionRequest
-            
-            revision_request = get_object_or_404(RevisionRequest, id=request_id)
-            
-            # Sadece pending durumunda onaylanabilir
-            if revision_request.status != 'pending':
-                return JsonResponse({
-                    'success': False,
-                    'message': f'Bu revizyon talebi zaten {revision_request.get_status_display()} durumunda.'
-                })
-            
-            # Onay bilgilerini al
-            admin_notes = request.POST.get('admin_notes', '')
-            
-            # Onay işlemi
-            revision_request.status = 'producer_review'  # Direkt producer_review'a geç
-            revision_request.admin_notes = admin_notes
-            revision_request.admin_reviewed_at = timezone.now()
-            revision_request.admin_response_time = timezone.now() - revision_request.created_at
-            revision_request.save()
-            
-            # Süreç adımı ekle
-            revision_request.add_process_step(
-                'Admin tarafından onaylandı',
-                'producer_review',
-                admin_notes or 'Revizyon talebi onaylandı ve üreticiye gönderildi'
-            )
-            
-            # Üreticiye bildirim gönder - modeled_mold üzerinden producer'a ulaş
-            try:
-                from core.utils import send_notification
-                from producer.models import ProducerOrder
-                
-                # Revizyon talebi -> ModeledMold -> EarMold -> ProducerOrder -> Producer
-                producer_order = ProducerOrder.objects.filter(
-                    ear_mold=revision_request.modeled_mold.ear_mold
-                ).first()
-                
-                if producer_order and producer_order.producer:
-                    send_notification(
-                        producer_order.producer.user,
-                        f'Yeni Revizyon Talebi',
-                        f'#{revision_request.id} numaralı revizyon talebi onaylandı ve incelemenizi bekliyor.',
-                        'info'
-                    )
-            except Exception:
-                pass
-            
-            return JsonResponse({
-                'success': True,
-                'message': 'Revizyon talebi onaylandı ve üreticiye gönderildi.'
-            })
-            
-        except Exception as e:
-            return JsonResponse({
-                'success': False,
-                'message': f'Hata: {str(e)}'
-            })
-    
-    return JsonResponse({
-        'success': False,
-        'message': 'Geçersiz istek.'
-    })
-
-@staff_member_required
-def admin_revision_reject(request, request_id):
-    """Admin revizyon talebi reddi"""
-    if request.method == 'POST':
-        try:
-            from mold.models import RevisionRequest
-            
-            revision_request = get_object_or_404(RevisionRequest, id=request_id)
-            
-            # Sadece pending durumunda reddedilebilir
-            if revision_request.status != 'pending':
-                return JsonResponse({
-                    'success': False,
-                    'message': f'Bu revizyon talebi zaten {revision_request.get_status_display()} durumunda.'
-                })
-            
-            # Red bilgilerini al
-            rejection_reason = request.POST.get('rejection_reason', '').strip()
-            admin_notes = request.POST.get('admin_notes', '')
-            
-            if not rejection_reason:
-                return JsonResponse({
-                    'success': False,
-                    'message': 'Red nedeni zorunludur.'
-                })
-            
-            # Reddetme işlemi
-            revision_request.status = 'rejected'
-            revision_request.rejection_reason = rejection_reason
-            revision_request.admin_notes = admin_notes
-            revision_request.admin_reviewed_at = timezone.now()
-            revision_request.admin_response_time = timezone.now() - revision_request.created_at
-            revision_request.save()
-            
-            # Süreç adımı ekle
-            revision_request.add_process_step(
-                'Admin tarafından reddedildi',
-                'rejected',
-                f'Red nedeni: {rejection_reason}'
-            )
-            
-            # İşitme merkezine bildirim gönder
-            try:
-                from core.utils import send_notification
-                send_notification(
-                    revision_request.center.user,
-                    f'Revizyon Talebi Reddedildi',
-                    f'#{revision_request.id} numaralı revizyon talebiniz reddedildi. Nedeni: {rejection_reason}',
-                    'error'
-                )
-            except Exception:
-                pass
-            
-            return JsonResponse({
-                'success': True,
-                'message': 'Revizyon talebi reddedildi.'
-            })
-            
-        except Exception as e:
-            return JsonResponse({
-                'success': False,
-                'message': f'Hata: {str(e)}'
-            })
-    
-    return JsonResponse({
-        'success': False,
-        'message': 'Geçersiz istek.'
-    })
+# admin_revision_approve view'ı kaldırıldı
+# admin_revision_reject view'ı kaldırıldı
 
 @login_required
 def notification_list(request):

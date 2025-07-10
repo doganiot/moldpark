@@ -94,9 +94,30 @@ class AdminMessageForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         
         # Tüm kullanıcıları yükle (admin hariç)
-        self.fields['specific_recipient'].queryset = User.objects.filter(
-            is_superuser=False
-        ).select_related('center', 'producer')
+        base_queryset = User.objects.filter(is_superuser=False)
+        
+        # Alıcı türüne göre queryset'i filtrele
+        recipient_type = None
+        
+        # POST veya GET verilerinden alıcı türünü al
+        if self.data:  # POST verisi
+            recipient_type = self.data.get('recipient_type')
+        elif self.initial:  # Initial data
+            recipient_type = self.initial.get('recipient_type')
+        elif len(args) > 0 and isinstance(args[0], dict):  # GET verisi
+            recipient_type = args[0].get('recipient_type')
+            
+        if recipient_type == 'single_center':
+            self.fields['specific_recipient'].queryset = base_queryset.filter(center__isnull=False)
+            self.fields['specific_recipient'].label = 'İşitme Merkezi Seç'
+            self.fields['specific_recipient'].required = True
+        elif recipient_type == 'single_producer':
+            self.fields['specific_recipient'].queryset = base_queryset.filter(producer__isnull=False)
+            self.fields['specific_recipient'].label = 'Üretici Merkez Seç'
+            self.fields['specific_recipient'].required = True
+        else:
+            self.fields['specific_recipient'].queryset = base_queryset
+            self.fields['specific_recipient'].required = False
 
     def clean(self):
         cleaned_data = super().clean()

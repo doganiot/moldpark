@@ -297,9 +297,6 @@ class RevisionRequest(models.Model):
     # Genişletilmiş status seçenekleri
     STATUS_CHOICES = [
         ('pending', 'Beklemede'),           # İşitme merkezi talepte bulundu
-        ('admin_review', 'Admin İncelemesi'),  # Admin onayı bekliyor
-        ('approved', 'Onaylandı'),          # Admin onayladı
-        ('rejected', 'Reddedildi'),         # Admin reddetti
         ('producer_review', 'Üretici İncelemesi'),  # Üretici inceliyor
         ('accepted', 'Kabul Edildi'),       # Üretici kabul etti
         ('producer_rejected', 'Üretici Reddetti'),  # Üretici reddetti
@@ -414,15 +411,12 @@ class RevisionRequest(models.Model):
         """Süreç tamamlanma yüzdesi"""
         status_progress = {
             'pending': 10,
-            'admin_review': 20,
-            'approved': 30,
-            'rejected': 0,
-            'producer_review': 40,
-            'accepted': 50,
+            'producer_review': 30,
+            'accepted': 40,
             'producer_rejected': 0,
-            'in_progress': 70,
-            'quality_check': 85,
-            'ready_for_delivery': 95,
+            'in_progress': 60,
+            'quality_check': 80,
+            'ready_for_delivery': 90,
             'completed': 100,
             'cancelled': 0,
         }
@@ -454,14 +448,24 @@ class RevisionRequest(models.Model):
         return date.today() > expected_date
     
     def add_process_step(self, step_name, description="", user=None):
-        """Süreç adımı ekle"""
+        """Süreç adımı ekle - harici kullanım için"""
         from django.utils import timezone
+        
+        # User kontrolü - string, User objesi veya None olabilir
+        if user is None:
+            user_name = 'System'
+        elif hasattr(user, 'username'):
+            user_name = user.username
+        elif isinstance(user, str):
+            user_name = user
+        else:
+            user_name = str(user)
         
         step = {
             'step': step_name,
             'description': description,
             'timestamp': timezone.now().isoformat(),
-            'user': user.username if user else 'System',
+            'user': user_name,
         }
         
         if not self.process_steps:
@@ -470,13 +474,38 @@ class RevisionRequest(models.Model):
         self.process_steps.append(step)
         self.save()
     
+    def add_process_step_without_save(self, step_name, description="", user=None):
+        """Süreç adımı ekle - save çağırmadan"""
+        from django.utils import timezone
+        
+        # User kontrolü - string, User objesi veya None olabilir
+        if user is None:
+            user_name = 'System'
+        elif hasattr(user, 'username'):
+            user_name = user.username
+        elif isinstance(user, str):
+            user_name = user
+        else:
+            user_name = str(user)
+        
+        step = {
+            'step': step_name,
+            'description': description,
+            'timestamp': timezone.now().isoformat(),
+            'user': user_name,
+        }
+        
+        if not self.process_steps:
+            self.process_steps = []
+        
+        self.process_steps.append(step)
+        # save() çağırma - sonsuz döngü önlemek için
+        RevisionRequest.objects.filter(pk=self.pk).update(process_steps=self.process_steps)
+    
     def calculate_response_times(self):
         """Yanıt sürelerini hesapla"""
-        if self.admin_reviewed_at:
-            self.admin_response_time = self.admin_reviewed_at - self.created_at
-        
-        if self.producer_reviewed_at and self.admin_reviewed_at:
-            self.producer_response_time = self.producer_reviewed_at - self.admin_reviewed_at
+        if self.producer_reviewed_at:
+            self.producer_response_time = self.producer_reviewed_at - self.created_at
         
         if self.completed_at:
             self.total_days = (self.completed_at.date() - self.created_at.date()).days
@@ -486,44 +515,49 @@ class RevisionRequest(models.Model):
         from django.utils import timezone
         
         # Status değişikliklerini takip et
+        process_step_needed = False
+        step_description = ""
+        
         if self.pk:
-            old_instance = RevisionRequest.objects.get(pk=self.pk)
-            if old_instance.status != self.status:
-                # Status değişti - tarih güncelle
-                now = timezone.now()
-                
-                if self.status == 'admin_review':
-                    self.admin_reviewed_at = now
-                elif self.status == 'producer_review':
-                    self.producer_reviewed_at = now
-                elif self.status == 'in_progress':
-                    self.work_started_at = now
-                elif self.status == 'quality_check':
-                    self.quality_checked_at = now
-                elif self.status == 'completed':
-                    self.completed_at = now
-                    self.resolved_at = now
-                
-                # Süreç adımı ekle
-                self.add_process_step(
-                    f"Status {old_instance.get_status_display()} → {self.get_status_display()}"
-                )
+            try:
+                old_instance = RevisionRequest.objects.get(pk=self.pk)
+                if old_instance.status != self.status:
+                    # Status değişti - tarih güncelle
+                    now = timezone.now()
+                    
+                    if self.status == 'producer_review':
+                        self.producer_reviewed_at = now
+                    elif self.status == 'in_progress':
+                        self.work_started_at = now
+                    elif self.status == 'quality_check':
+                        self.quality_checked_at = now
+                    elif self.status == 'completed':
+                        self.completed_at = now
+                        self.resolved_at = now
+                    
+                    # Süreç adımı için bilgi hazırla
+                    process_step_needed = True
+                    step_description = f"Status {old_instance.get_status_display()} → {self.get_status_display()}"
+            except RevisionRequest.DoesNotExist:
+                pass
         
         # Yanıt sürelerini hesapla
         self.calculate_response_times()
         
+        # Önce kaydet
         super().save(*args, **kwargs)
+        
+        # Sonra süreç adımını ekle (sonsuz döngü önlemek için)
+        if process_step_needed:
+            self.add_process_step_without_save(step_description)
     
     def get_next_steps(self):
         """Sonraki adımları döndür"""
         next_steps = {
-            'pending': ['Admin onayı bekleniyor'],
-            'admin_review': ['Admin onayını bekliyor'],
-            'approved': ['Üretici incelemesi'],
-            'rejected': ['Süreç sonlandırıldı'],
+            'pending': ['Üretici incelemesi bekleniyor'],
             'producer_review': ['Üretici kararı bekleniyor'],
             'accepted': ['Revizyon işlemi başlayacak'],
-            'producer_rejected': ['Üretici reddetti - süreç incelenmeli'],
+            'producer_rejected': ['Üretici reddetti - süreç sonlandırıldı'],
             'in_progress': ['Revizyon yapılıyor'],
             'quality_check': ['Kalite kontrol ediliyor'],
             'ready_for_delivery': ['Teslimat yapılacak'],
@@ -543,15 +577,6 @@ class RevisionRequest(models.Model):
                 'description': f'{self.center.company_name} tarafından revizyon talep edildi',
                 'status': 'pending',
                 'icon': 'fas fa-plus',
-            })
-        
-        if self.admin_reviewed_at:
-            timeline.append({
-                'date': self.admin_reviewed_at,
-                'title': 'Admin İncelemesi',
-                'description': 'Admin tarafından incelendi',
-                'status': 'admin_review',
-                'icon': 'fas fa-user-shield',
             })
         
         if self.producer_reviewed_at:

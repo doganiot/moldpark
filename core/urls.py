@@ -7,6 +7,7 @@ app_name = 'core'
 
 urlpatterns = [
     path('', views.home, name='home'),
+    path('help/', views.help_center, name='help_center'),
     path('contact/', views.contact, name='contact'),
     path('terms/', views.terms_of_service, name='terms'),
     path('privacy/', views.privacy_policy, name='privacy'),
@@ -54,4 +55,5 @@ urlpatterns = [
     path('notifications/<int:notification_id>/read/', views.mark_notification_as_read, name='mark_notification_read'),
     path('notifications/mark-all-read/', views.mark_all_notifications_read, name='mark_all_notifications_read'),
     path('notifications/<int:notification_id>/delete/', views.delete_notification, name='delete_notification'),
+    path('documentation/', views.documentation, name='documentation'),
 ] 

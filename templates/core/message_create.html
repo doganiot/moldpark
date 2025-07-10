@@ -50,6 +50,15 @@
     margin-top: 10px;
     font-size: 0.9rem;
 }
+
+.recipient-field {
+    transition: all 0.3s ease;
+}
+
+.recipient-field.loading {
+    opacity: 0.5;
+    pointer-events: none;
+}
 </style>
 {% endblock %}
 
@@ -62,7 +71,7 @@
                 <div class="form-header">
                     <h3 class="mb-0">
                         <i class="fas fa-paper-plane me-2"></i>
-                        {% if is_admin %}
+                        {% if user.is_superuser %}
                             Yeni Mesaj Gönder
                         {% else %}
                             Admin'e Mesaj Gönder
@@ -71,7 +80,7 @@
                 </div>
 
                 <!-- Bilgilendirme -->
-                {% if not is_admin %}
+                {% if not user.is_superuser %}
                 <div class="recipient-info">
                     <h6><i class="fas fa-info-circle me-2"></i>Mesaj Bilgileri</h6>
                     <p class="mb-0">
@@ -92,16 +101,16 @@
                 {% endif %}
 
                 <!-- Form -->
-                <form method="post" enctype="multipart/form-data">
+                <form method="post" enctype="multipart/form-data" id="messageForm">
                     {% csrf_token %}
                     
-                    {% if is_admin %}
+                    {% if user.is_superuser %}
                         <!-- Admin için özel alanlar -->
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 {{ form.recipient_type|as_crispy_field }}
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-6 recipient-field">
                                 {{ form.specific_recipient|as_crispy_field }}
                             </div>
                         </div>
@@ -124,7 +133,7 @@
                             <div class="priority-help">
                                 <strong>Normal:</strong> Standart mesajlar<br>
                                 <strong>Yüksek:</strong> Önemli konular<br>
-                                {% if is_admin %}
+                                {% if user.is_superuser %}
                                 <strong>Acil:</strong> Hemen yanıt gerektiren durumlar
                                 {% endif %}
                             </div>
@@ -158,94 +167,96 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    {% if is_admin %}
-    const recipientTypeSelect = document.querySelector('select[name="recipient_type"]');
-    const specificRecipientSelect = document.querySelector('select[name="specific_recipient"]');
+    {% if user.is_superuser %}
+    let recipientTypeSelect = document.querySelector('select[name="recipient_type"]');
+    let recipientField = document.querySelector('.recipient-field');
+    let specificRecipientSelect = document.querySelector('select[name="specific_recipient"]');
+    const csrfToken = document.querySelector('[name="csrfmiddlewaretoken"]').value;
     
-    function toggleSpecificRecipient() {
+    async function updateRecipientField() {
         const selectedType = recipientTypeSelect.value;
-        const specificDiv = specificRecipientSelect.closest('.mb-3');
         
+        // Alıcı seçim alanını göster/gizle
         if (selectedType === 'single_center' || selectedType === 'single_producer') {
-            specificDiv.style.display = 'block';
-            specificRecipientSelect.required = true;
+            recipientField.style.display = 'block';
             
-            // Kullanıcı listesini filtrele
-            const options = specificRecipientSelect.querySelectorAll('option');
-            options.forEach(option => {
-                if (option.value === '') return; // Empty option
+            // AJAX ile alıcı listesini güncelle
+            recipientField.classList.add('loading');
+            
+            try {
+                const response = await fetch(`{% url 'core:message_create' %}?recipient_type=${selectedType}`, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': csrfToken
+                    }
+                });
                 
-                const optionText = option.textContent.toLowerCase();
-                if (selectedType === 'single_center') {
-                    option.style.display = optionText.includes('merkez') ? 'block' : 'none';
-                } else if (selectedType === 'single_producer') {
-                    option.style.display = optionText.includes('üretici') ? 'block' : 'none';
+                if (response.ok) {
+                    const html = await response.text();
+                    recipientField.innerHTML = html;
+                    
+                    // Yeni select elementini bul ve referansı güncelle
+                    specificRecipientSelect = recipientField.querySelector('select[name="specific_recipient"]');
+                    if (specificRecipientSelect) {
+                        specificRecipientSelect.required = true;
+                    }
+                } else {
+                    console.error('Alıcı listesi güncellenirken hata oluştu');
                 }
-            });
+            } catch (error) {
+                console.error('AJAX hatası:', error);
+            } finally {
+                recipientField.classList.remove('loading');
+            }
         } else {
-            specificDiv.style.display = 'none';
-            specificRecipientSelect.required = false;
+            recipientField.style.display = 'none';
+            if (specificRecipientSelect) {
+                specificRecipientSelect.required = false;
+            }
         }
     }
     
-    recipientTypeSelect.addEventListener('change', toggleSpecificRecipient);
-    toggleSpecificRecipient(); // İlk yükleme
+    // Alıcı türü değiştiğinde
+    recipientTypeSelect.addEventListener('change', function() {
+        updateRecipientField();
+    });
+    
+    // Sayfa yüklendiğinde
+    if (recipientTypeSelect.value === 'single_center' || recipientTypeSelect.value === 'single_producer') {
+        updateRecipientField();
+    }
     {% endif %}
     
     // Form validasyonu
-    const form = document.querySelector('form');
+    const form = document.getElementById('messageForm');
     form.addEventListener('submit', function(e) {
         const subject = document.querySelector('input[name="subject"]').value.trim();
         const content = document.querySelector('textarea[name="content"]').value.trim();
         
-        if (!subject || !content) {
+        if (!subject) {
             e.preventDefault();
-            alert('Lütfen konu ve mesaj içeriğini doldurun.');
-            return false;
+            alert('Lütfen mesaj konusu girin');
+            return;
         }
         
-        if (subject.length < 5) {
+        if (!content) {
             e.preventDefault();
-            alert('Konu en az 5 karakter olmalıdır.');
-            return false;
+            alert('Lütfen mesaj içeriği girin');
+            return;
         }
         
-        if (content.length < 10) {
-            e.preventDefault();
-            alert('Mesaj içeriği en az 10 karakter olmalıdır.');
-            return false;
-        }
-        
-        // Gönderme butonunu devre dışı bırak
-        const submitBtn = form.querySelector('button[type="submit"]');
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Gönderiliyor...';
-    });
-    
-    // Karakter sayacı
-    const contentTextarea = document.querySelector('textarea[name="content"]');
-    if (contentTextarea) {
-        const charCounter = document.createElement('div');
-        charCounter.className = 'text-muted text-end mt-1';
-        charCounter.style.fontSize = '0.85rem';
-        contentTextarea.parentNode.appendChild(charCounter);
-        
-        function updateCharCounter() {
-            const length = contentTextarea.value.length;
-            charCounter.textContent = `${length} karakter`;
-            
-            if (length > 1000) {
-                charCounter.className = 'text-warning text-end mt-1';
-            } else if (length > 1500) {
-                charCounter.className = 'text-danger text-end mt-1';
-            } else {
-                charCounter.className = 'text-muted text-end mt-1';
+        {% if user.is_superuser %}
+        const selectedType = recipientTypeSelect.value;
+        if (selectedType === 'single_center' || selectedType === 'single_producer') {
+            const currentSelect = document.querySelector('select[name="specific_recipient"]');
+            if (!currentSelect || !currentSelect.value) {
+                e.preventDefault();
+                alert('Lütfen bir alıcı seçin');
+                return;
             }
         }
-        
-        contentTextarea.addEventListener('input', updateCharCounter);
-        updateCharCounter();
-    }
+        {% endif %}
+    });
 });
 </script>
 {% endblock %} 

@@ -530,6 +530,16 @@ def message_list(request):
     page_number = request.GET.get('page')
     messages_page = paginator.get_page(page_number)
     
+    # Her mesaj için kullanıcının okuma durumunu hesapla
+    for message in messages_page:
+        if message.is_broadcast:
+            # Broadcast mesajlar için MessageRecipient kontrolü
+            user_recipient = message.recipients.filter(recipient=user).first()
+            message.user_is_read = user_recipient.is_read if user_recipient else True
+        else:
+            # Normal mesajlar için message.is_read kontrolü
+            message.user_is_read = message.is_read
+    
     # İstatistikler
     stats = {
         'total_received': received_messages.count(),
@@ -628,123 +638,103 @@ def message_detail(request, pk):
 
 @login_required
 def message_create(request):
-    """Mesaj Oluştur"""
-    user = request.user
+    """Mesaj oluşturma view'ı"""
     
-    if user.is_superuser:
-        # Admin için özel form
-        if request.method == 'POST':
+    if request.method == 'POST':
+        if request.user.is_superuser:
             form = AdminMessageForm(request.POST, request.FILES)
-            if form.is_valid():
-                message = form.save(commit=False)
-                message.sender = user
-                
+        else:
+            form = MessageForm(request.POST, request.FILES, user=request.user)
+            
+        if form.is_valid():
+            message = form.save(commit=False)
+            message.sender = request.user
+            
+            # Admin mesajı ise
+            if request.user.is_superuser:
                 recipient_type = form.cleaned_data['recipient_type']
-                specific_recipient = form.cleaned_data.get('specific_recipient')
+                specific_recipient = form.cleaned_data['specific_recipient']
+                
+                recipients = set()  # Duplicate önleme
                 
                 if recipient_type == 'single_center':
-                    message.recipient = specific_recipient
+                    recipients.add(specific_recipient)
                     message.message_type = 'admin_to_center'
                 elif recipient_type == 'single_producer':
-                    message.recipient = specific_recipient
+                    recipients.add(specific_recipient)
                     message.message_type = 'admin_to_producer'
-                else:
-                    # Toplu mesaj
-                    message.is_broadcast = True
-                    message.message_type = 'admin_broadcast'
-                    
-                    if recipient_type == 'all_centers':
-                        message.broadcast_to_centers = True
-                    elif recipient_type == 'all_producers':
-                        message.broadcast_to_producers = True
-                    elif recipient_type == 'all_users':
-                        message.broadcast_to_centers = True
-                        message.broadcast_to_producers = True
+                elif recipient_type == 'all_centers':
+                    recipients.update(User.objects.filter(center__isnull=False))
+                    message.message_type = 'admin_to_center'
+                elif recipient_type == 'all_producers':
+                    recipients.update(User.objects.filter(producer__isnull=False))
+                    message.message_type = 'admin_to_producer'
+                elif recipient_type == 'all_users':
+                    recipients.update(User.objects.filter(is_superuser=False))
+                    message.message_type = 'admin_to_all'
                 
                 message.save()
                 
-                # Toplu mesaj ise alıcıları oluştur
-                if message.is_broadcast:
-                    recipients = []
+                # Her alıcı için MessageRecipient oluştur
+                for recipient in recipients:
+                    MessageRecipient.objects.get_or_create(
+                        message=message,
+                        recipient=recipient
+                    )
                     
-                    if message.broadcast_to_centers:
-                        center_users = User.objects.filter(center__isnull=False)
-                        recipients.extend(center_users)
-                    
-                    if message.broadcast_to_producers:
-                        producer_users = User.objects.filter(producer__isnull=False)
-                        recipients.extend(producer_users)
-                    
-                    # MessageRecipient objelerini oluştur
-                    for recipient in recipients:
-                        MessageRecipient.objects.create(
-                            message=message,
-                            recipient=recipient
-                        )
-                        
-                        # Bildirim gönder
-                        notify.send(
-                            sender=user,
-                            recipient=recipient,
-                            verb='size mesaj gönderdi',
-                            action_object=message,
-                            description=f'Konu: {message.subject}'
-                        )
-                else:
-                    # Tekil mesaj için bildirim
+                    # Bildirim gönder
                     notify.send(
-                        sender=user,
-                        recipient=message.recipient,
-                        verb='size mesaj gönderdi',
-                        action_object=message,
-                        description=f'Konu: {message.subject}'
+                        sender=request.user,
+                        recipient=recipient,
+                        verb='yeni mesaj gönderdi',
+                        description=message.subject,
+                        target=message
                     )
                 
-                messages.success(request, 'Mesajınız gönderildi.')
+                messages.success(request, 'Mesaj başarıyla gönderildi.')
                 return redirect('core:message_list')
-        else:
-            form = AdminMessageForm()
-    else:
-        # Merkez ve üreticiler için basit form
-        if request.method == 'POST':
-            form = MessageForm(request.POST, request.FILES, user=user)
-            if form.is_valid():
-                message = form.save(commit=False)
-                message.sender = user
                 
-                # Admin'e gönder
-                admin_user = User.objects.filter(is_superuser=True).first()
-                message.recipient = admin_user
-                
-                # Mesaj tipini belirle
-                if hasattr(user, 'center'):
+            # Normal kullanıcı mesajı ise
+            else:
+                if hasattr(request.user, 'center'):
                     message.message_type = 'center_to_admin'
-                elif hasattr(user, 'producer'):
+                elif hasattr(request.user, 'producer'):
                     message.message_type = 'producer_to_admin'
                 
                 message.save()
                 
-                # Admin'e bildirim gönder
-                if admin_user:
+                # Admin'e MessageRecipient oluştur
+                admin = User.objects.filter(is_superuser=True).first()
+                if admin:
+                    MessageRecipient.objects.get_or_create(
+                        message=message,
+                        recipient=admin
+                    )
+                    
+                    # Admin'e bildirim gönder
                     notify.send(
-                        sender=user,
-                        recipient=admin_user,
-                        verb='size mesaj gönderdi',
-                        action_object=message,
-                        description=f'Konu: {message.subject}'
+                        sender=request.user,
+                        recipient=admin,
+                        verb='yeni mesaj gönderdi',
+                        description=message.subject,
+                        target=message
                     )
                 
-                messages.success(request, 'Mesajınız admin\'e gönderildi.')
+                messages.success(request, 'Mesajınız başarıyla gönderildi.')
                 return redirect('core:message_list')
+    else:
+        if request.user.is_superuser:
+            form = AdminMessageForm()
         else:
-            form = MessageForm(user=user)
+            form = MessageForm(user=request.user)
     
-    context = {
-        'form': form,
-        'is_admin': user.is_superuser,
-    }
+    # AJAX isteği ise form'u güncelle
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        if request.user.is_superuser:
+            form = AdminMessageForm(request.GET)
+            return render(request, 'core/widgets/recipient_field.html', {'form': form})
     
-    return render(request, 'core/message_create.html', context)
+    return render(request, 'core/message_create.html', {'form': form})
 
 @login_required
 def message_mark_read(request, pk):
@@ -1124,3 +1114,16 @@ def delete_notification(request, notification_id):
 def features(request):
     """Özellikler sayfasını görüntüler."""
     return render(request, 'core/features.html')
+
+def help_center(request):
+    """Yardım merkezi sayfası"""
+    try:
+        return render(request, 'core/help_center.html')
+    except Exception as e:
+        print(f"DEBUG - Help Center Error: {e}")
+        messages.error(request, "Yardım merkezi sayfasına erişilirken bir hata oluştu.")
+        return redirect('core:home')
+
+def documentation(request):
+    """Dokümantasyon sayfası"""
+    return render(request, 'core/documentation.html')

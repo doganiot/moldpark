@@ -284,14 +284,116 @@
             </div>
         </div>
 
-        <!-- Sağ Kolon: Sipariş Yönetimi -->
+        <!-- Sağ Kolon: Sipariş Bilgileri -->
         <div class="col-lg-4">
-            <!-- Sipariş Durumu -->
+            <!-- Revizyon Bilgileri -->
+            {% if active_revision %}
             <div class="card mb-4">
                 <div class="card-header bg-warning text-dark">
                     <h5 class="mb-0">
+                        <i class="fas fa-edit me-2"></i>
+                        Aktif Revizyon
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <strong>Durum:</strong>
+                            <span class="badge bg-{{ active_revision.get_status_color }}">
+                                {{ active_revision.get_status_display }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Revizyon Türü:</strong>
+                        <p class="mb-0">{{ active_revision.get_revision_type_display }}</p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Başlık:</strong>
+                        <p class="mb-0">{{ active_revision.title }}</p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Açıklama:</strong>
+                        <p class="mb-0">{{ active_revision.description }}</p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Öncelik:</strong>
+                        <span class="badge bg-{{ active_revision.get_priority_color }}">
+                            {{ active_revision.get_priority_display }}
+                        </span>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Oluşturulma:</strong>
+                        <small class="text-muted">{{ active_revision.created_at|date:"d.m.Y H:i" }}</small>
+                    </div>
+                    
+                    {% if active_revision.reference_image %}
+                    <div class="mb-3">
+                        <strong>Referans Görsel:</strong>
+                        <br>
+                        <img src="{{ active_revision.reference_image.url }}" class="img-fluid rounded mt-2" style="max-height: 200px;">
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Revizyon Dosyası Yükleme -->
+                    {% if active_revision.status == 'in_progress' %}
+                    <div class="mt-4">
+                        <h6 class="text-primary">Revizyon Dosyası Yükle</h6>
+                        <form method="post" enctype="multipart/form-data" class="revision-upload-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="upload_revision">
+                            <input type="hidden" name="revision_id" value="{{ active_revision.id }}">
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Revize Edilmiş Dosya:</label>
+                                <input type="file" name="revised_file" class="form-control" accept=".stl,.obj,.ply,.3mf,.amf" required>
+                                <small class="form-text text-muted">
+                                    Desteklenen formatlar: STL, OBJ, PLY, 3MF, AMF (Maks. 50MB)
+                                </small>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Revizyon Notları:</label>
+                                <textarea name="revision_notes" class="form-control" rows="3" placeholder="Yapılan değişiklikler hakkında notlar..."></textarea>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-success w-100">
+                                <i class="fas fa-upload me-2"></i>Revizyon Dosyasını Yükle
+                            </button>
+                        </form>
+                    </div>
+                    {% elif active_revision.status == 'completed' and active_revision.revised_file %}
+                    <div class="mt-4">
+                        <h6 class="text-success">Revizyon Tamamlandı</h6>
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <strong>Revize edilmiş dosya yüklendi!</strong>
+                            <br>
+                            <small>{{ active_revision.revised_file.name|cut:"revised/" }}</small>
+                        </div>
+                        {% if active_revision.revision_notes %}
+                        <div class="mt-2">
+                            <strong>Revizyon Notları:</strong>
+                            <p class="mb-0">{{ active_revision.revision_notes }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Sipariş Bilgileri -->
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
                         <i class="fas fa-clipboard-list me-2"></i>
-                        Sipariş Durumu
+                        Sipariş Bilgileri
                     </h5>
                 </div>
                 <div class="card-body">

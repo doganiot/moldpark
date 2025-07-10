@@ -30,13 +30,11 @@ urlpatterns = [
     # Network invite kaldırıldı - Sadece admin ağ yönetimi
     path('network/remove/<int:center_id>/', views.network_remove, name='network_remove'),
     
-    # Revizyon Talepleri
+    # Revizyon yönetimi
     path('revisions/', views.revision_requests, name='revision_requests'),
-    path('revisions/<int:request_id>/', views.revision_request_detail, name='revision_request_detail'),
     path('revisions/<int:request_id>/respond/', views.revision_request_respond, name='revision_request_respond'),
     path('revisions/<int:request_id>/start-work/', views.revision_start_work, name='revision_start_work'),
     path('revisions/<int:request_id>/complete-work/', views.revision_complete_work, name='revision_complete_work'),
-    path('revisions/<int:request_id>/upload/', views.revision_upload_file, name='revision_upload_file'),
     
     # Sabit Dosya İndirme Linkleri - Kaldırıldı (Şimdilik mold_download kullanılıyor)
     

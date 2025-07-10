@@ -628,18 +628,29 @@ function startWork(revisionId) {
 function confirmStartWork() {
     if (!currentRevisionId) return;
     
+    console.log('Making request to:', `/producer/revisions/${currentRevisionId}/start-work/`);
+    console.log('Revision ID:', currentRevisionId);
+    
+    const csrfToken = getCsrfToken();
+    console.log('CSRF Token:', csrfToken);
+    
     fetch(`/producer/revisions/${currentRevisionId}/start-work/`, {
         method: 'POST',
         headers: {
-            'X-CSRFToken': getCsrfToken(),
-            'Content-Type': 'application/json'
-        }
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: 'csrfmiddlewaretoken=' + encodeURIComponent(csrfToken)
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
             showToast('Başarılı', data.message, 'success');
-            setTimeout(() => location.reload(), 1500);
+            if (data.redirect_url) {
+                window.location.href = data.redirect_url;
+            } else {
+                setTimeout(() => location.reload(), 1500);
+            }
         } else {
             showToast('Hata', data.message, 'error');
         }

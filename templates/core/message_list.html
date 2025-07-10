@@ -144,7 +144,7 @@
             <div class="row">
                 {% for message in messages %}
                 <div class="col-md-6 mb-3">
-                    <div class="card message-card {% if not message.is_read and message.recipient == request.user %}unread{% endif %} {% if message.priority == 'urgent' %}urgent{% elif message.priority == 'high' %}high{% endif %}">
+                    <div class="card message-card {% if not message.user_is_read %}unread{% endif %} {% if message.priority == 'urgent' %}urgent{% elif message.priority == 'high' %}high{% endif %}">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start mb-2">
                                 <h6 class="card-title mb-1">
@@ -162,7 +162,7 @@
                                         <span class="badge bg-warning priority-badge">YÜKSEK</span>
                                     {% endif %}
                                     
-                                    {% if not message.is_read and message.recipient == request.user %}
+                                    {% if not message.user_is_read %}
                                         <span class="badge bg-primary priority-badge">YENİ</span>
                                     {% endif %}
                                     
@@ -178,12 +178,18 @@
                                         <i class="fas fa-arrow-right me-1"></i>
                                         {% if message.is_broadcast %}
                                             Toplu Mesaj
-                                        {% else %}
+                                        {% elif message.recipient %}
                                             {{ message.recipient.get_full_name|default:message.recipient.username }}
+                                        {% else %}
+                                            Alıcı Bulunamadı
                                         {% endif %}
                                     {% else %}
                                         <i class="fas fa-arrow-left me-1"></i>
-                                        {{ message.sender.get_full_name|default:message.sender.username }}
+                                        {% if message.sender %}
+                                            {{ message.sender.get_full_name|default:message.sender.username }}
+                                        {% else %}
+                                            Gönderen Bulunamadı
+                                        {% endif %}
                                     {% endif %}
                                 </small>
                                 <small class="text-muted">

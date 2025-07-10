@@ -1,0 +1,682 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_head %}
+<meta name="csrf-token" content="{{ csrf_token }}">
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Modal geçiş stabilizasyonu */
+.modal {
+    transition: opacity 0.15s ease-out;
+}
+
+.modal.fade .modal-dialog {
+    transition: transform 0.15s ease-out;
+    transform: translate(0, -50px);
+}
+
+.modal.show .modal-dialog {
+    transform: none;
+}
+
+/* Mouse hover efektlerini stabilize et */
+.btn-group .btn {
+    transition: all 0.1s ease-in-out;
+}
+
+.btn-group .btn:hover {
+    transform: none !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Timeline styling */
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #dee2e6;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -23px;
+    top: 5px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #0d6efd;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 2px #dee2e6;
+}
+
+.timeline-content {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 3px solid #0d6efd;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Gizli CSRF Token Formu -->
+<form style="display: none;">
+    {% csrf_token %}
+</form>
+
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Revizyon Talepleri</h5>
+                    <p class="text-muted mb-0">Revizyon taleplerini yönetin</p>
+                </div>
+                
+                <!-- İstatistik Kartları -->
+                <div class="card-body border-bottom">
+                    <div class="row g-3">
+                        <div class="col-md-2">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h3 class="mb-0">{{ total_count }}</h3>
+                                    <small class="text-muted">Toplam Talep</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="card bg-warning bg-opacity-10">
+                                <div class="card-body text-center">
+                                    <h3 class="mb-0">{{ pending_count }}</h3>
+                                    <small class="text-warning">Bekleyen</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="card bg-primary bg-opacity-10">
+                                <div class="card-body text-center">
+                                    <h3 class="mb-0">{{ in_progress_count }}</h3>
+                                    <small class="text-primary">İşlemde</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="card bg-success bg-opacity-10">
+                                <div class="card-body text-center">
+                                    <h3 class="mb-0">{{ completed_count }}</h3>
+                                    <small class="text-success">Tamamlanan</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="card bg-danger bg-opacity-10">
+                                <div class="card-body text-center">
+                                    <h3 class="mb-0">{{ overdue_count }}</h3>
+                                    <small class="text-danger">Geciken</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Filtreler -->
+                <div class="card-body border-bottom">
+                    <form method="get" class="row g-3" role="search">
+                        <div class="col-md-4">
+                            <label for="search" class="visually-hidden">Arama</label>
+                            <input type="text" id="search" name="q" class="form-control" placeholder="Ara..." value="{{ search_query }}" aria-label="Revizyon taleplerinde ara">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="status" class="visually-hidden">Durum Filtresi</label>
+                            <select id="status" name="status" class="form-select" aria-label="Durum filtresi">
+                                <option value="">Tüm Durumlar</option>
+                                <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Beklemede</option>
+                                <option value="accepted" {% if status_filter == 'accepted' %}selected{% endif %}>Kabul Edildi</option>
+                                <option value="producer_rejected" {% if status_filter == 'producer_rejected' %}selected{% endif %}>Reddedildi</option>
+                                <option value="in_progress" {% if status_filter == 'in_progress' %}selected{% endif %}>İşlemde</option>
+                                <option value="quality_check" {% if status_filter == 'quality_check' %}selected{% endif %}>Kalite Kontrol</option>
+                                <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Tamamlandı</option>
+                                <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>İptal Edildi</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="priority" class="visually-hidden">Öncelik Filtresi</label>
+                            <select id="priority" name="priority" class="form-select" aria-label="Öncelik filtresi">
+                                <option value="">Tüm Öncelikler</option>
+                                <option value="low" {% if priority_filter == 'low' %}selected{% endif %}>Düşük</option>
+                                <option value="normal" {% if priority_filter == 'normal' %}selected{% endif %}>Normal</option>
+                                <option value="high" {% if priority_filter == 'high' %}selected{% endif %}>Yüksek</option>
+                                <option value="urgent" {% if priority_filter == 'urgent' %}selected{% endif %}>Acil</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary w-100" title="Filtreleri uygula">
+                                <i class="fas fa-filter me-1" aria-hidden="true"></i>
+                                Filtrele
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Revizyon Listesi -->
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" aria-label="Revizyon talepleri listesi">
+                        <thead>
+                            <tr>
+                                <th scope="col">ID</th>
+                                <th scope="col">Hasta</th>
+                                <th scope="col">Merkez</th>
+                                <th scope="col">Revizyon Türü</th>
+                                <th scope="col">Öncelik</th>
+                                <th scope="col">Durum</th>
+                                <th scope="col">Oluşturulma</th>
+                                <th scope="col">Son Güncelleme</th>
+                                <th scope="col">İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for revision in revision_requests %}
+                            <tr>
+                                <td>#{{ revision.id }}</td>
+                                <td>
+                                    {{ revision.modeled_mold.ear_mold.patient_name }} 
+                                    {{ revision.modeled_mold.ear_mold.patient_surname }}
+                                </td>
+                                <td>{{ revision.center.company_name }}</td>
+                                <td>
+                                    <span class="badge bg-secondary">
+                                        {{ revision.get_revision_type_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ revision.get_priority_color }}">
+                                        {{ revision.get_priority_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ revision.get_status_color }}">
+                                        {{ revision.get_status_display }}
+                                    </span>
+                                </td>
+                                <td>{{ revision.created_at|date:"d.m.Y H:i" }}</td>
+                                <td>{{ revision.updated_at|date:"d.m.Y H:i" }}</td>
+                                <td>
+                                    <div class="btn-group" role="group" aria-label="Revizyon işlemleri">
+                                        <button type="button" 
+                                                class="btn btn-sm btn-primary modal-trigger" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#detailModal{{ revision.id }}"
+                                                data-revision-id="{{ revision.id }}"
+                                                title="Revizyon detaylarını görüntüle">
+                                            <i class="fas fa-eye me-1" aria-hidden="true"></i>
+                                            Detay
+                                        </button>
+                                        
+                                        {% if revision.status == 'pending' %}
+                                        <button type="button"
+                                                class="btn btn-sm btn-success modal-trigger"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#respondModal{{ revision.id }}"
+                                                data-revision-id="{{ revision.id }}"
+                                                title="Revizyon talebini yanıtla">
+                                            <i class="fas fa-reply me-1" aria-hidden="true"></i>
+                                            Yanıtla
+                                        </button>
+                                        {% endif %}
+                                        
+                                        {% if revision.status == 'accepted' %}
+                                        <a href="{% url 'producer:revision_start_work' revision.id %}"
+                                           class="btn btn-sm btn-info start-work-btn"
+                                           data-revision-id="{{ revision.id }}"
+                                           title="Revizyon işlemine başla">
+                                            <i class="fas fa-play me-1" aria-hidden="true"></i>
+                                            İşe Başla
+                                        </a>
+                                        {% endif %}
+                                        
+                                        {% if revision.status == 'in_progress' %}
+                                        <a href="{% url 'producer:revision_complete_work' revision.id %}"
+                                           class="btn btn-sm btn-success"
+                                           title="Revizyon işlemini tamamla">
+                                            <i class="fas fa-check me-1" aria-hidden="true"></i>
+                                            Tamamla
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Sayfalama -->
+                {% if revision_requests.has_other_pages %}
+                <div class="card-footer">
+                    <nav aria-label="Revizyon talepleri sayfalama">
+                        <ul class="pagination justify-content-center mb-0">
+                            {% if revision_requests.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ revision_requests.previous_page_number }}&status={{ status_filter }}&priority={{ priority_filter }}&q={{ search_query }}" title="Önceki sayfa">
+                                    Önceki
+                                </a>
+                            </li>
+                            {% endif %}
+                            
+                            {% for num in revision_requests.paginator.page_range %}
+                            <li class="page-item {% if revision_requests.number == num %}active{% endif %}">
+                                <a class="page-link" href="?page={{ num }}&status={{ status_filter }}&priority={{ priority_filter }}&q={{ search_query }}" title="Sayfa {{ num }}">
+                                    {{ num }}
+                                </a>
+                            </li>
+                            {% endfor %}
+                            
+                            {% if revision_requests.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ revision_requests.next_page_number }}&status={{ status_filter }}&priority={{ priority_filter }}&q={{ search_query }}" title="Sonraki sayfa">
+                                    Sonraki
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modaller Ayrı Container'da -->
+<div class="modal-container">
+    {% for revision in revision_requests %}
+    <!-- Detay Modal -->
+    <div class="modal fade" id="detailModal{{ revision.id }}" tabindex="-1" aria-labelledby="detailModalLabel{{ revision.id }}" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="detailModalLabel{{ revision.id }}">Revizyon Talebi #{{ revision.id }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6>Revizyon Detayları</h6>
+                            <p><strong>Başlık:</strong> {{ revision.title }}</p>
+                            <p><strong>Açıklama:</strong> {{ revision.description }}</p>
+                            <p><strong>Revizyon Türü:</strong> {{ revision.get_revision_type_display }}</p>
+                            <p><strong>Öncelik:</strong> {{ revision.get_priority_display }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Süreç Bilgileri</h6>
+                            <p><strong>Durum:</strong> {{ revision.get_status_display }}</p>
+                            <p><strong>Oluşturulma:</strong> {{ revision.created_at|date:"d.m.Y H:i" }}</p>
+                            <p><strong>Son Güncelleme:</strong> {{ revision.updated_at|date:"d.m.Y H:i" }}</p>
+                            {% if revision.expected_delivery %}
+                            <p><strong>Beklenen Teslim:</strong> {{ revision.expected_delivery|date:"d.m.Y" }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    {% if revision.producer_response %}
+                    <div class="mb-4">
+                        <h6>Üretici Yanıtı</h6>
+                        <p>{{ revision.producer_response }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    {% if revision.rejection_reason %}
+                    <div class="mb-4">
+                        <h6>Red Nedeni</h6>
+                        <p class="text-danger">{{ revision.rejection_reason }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Süreç Adımları -->
+                    <div class="mb-4">
+                        <h6>Süreç Adımları</h6>
+                        <div class="timeline">
+                            {% if revision.process_steps %}
+                                {% for step in revision.process_steps %}
+                                <div class="timeline-item">
+                                    <div class="timeline-marker"></div>
+                                    <div class="timeline-content">
+                                        <h6 class="mb-0">{{ step.step }}</h6>
+                                        <small class="text-muted">{{ step.timestamp|date:"d.m.Y H:i" }}</small>
+                                        {% if step.description %}
+                                        <p class="mb-0">{{ step.description }}</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="text-muted text-center py-3">
+                                    <i class="fas fa-clock me-2"></i>
+                                    Henüz süreç adımı bulunmamaktadır.
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Yanıtlama Modal -->
+    {% if revision.status == 'pending' %}
+    <div class="modal fade" id="respondModal{{ revision.id }}" tabindex="-1" aria-labelledby="respondModalLabel{{ revision.id }}" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="respondModalLabel{{ revision.id }}">Revizyon Talebini Yanıtla</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                </div>
+                <form class="revision-response-form" data-revision-id="{{ revision.id }}">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Yanıt Türü</label>
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check action-radio" name="action_{{ revision.id }}" value="accept" id="accept{{ revision.id }}" autocomplete="off" checked>
+                                <label class="btn btn-outline-success" for="accept{{ revision.id }}">Kabul Et</label>
+                                
+                                <input type="radio" class="btn-check action-radio" name="action_{{ revision.id }}" value="reject" id="reject{{ revision.id }}" autocomplete="off">
+                                <label class="btn btn-outline-danger" for="reject{{ revision.id }}">Reddet</label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="response{{ revision.id }}" class="form-label">Yanıt</label>
+                            <textarea id="response{{ revision.id }}" name="response" class="form-control" rows="3" placeholder="Yanıtınızı yazın..."></textarea>
+                        </div>
+                        
+                        <div class="mb-3 d-none reject-reason-field" id="rejectReason{{ revision.id }}">
+                            <label for="reason{{ revision.id }}" class="form-label">Red Nedeni <span class="text-danger">*</span></label>
+                            <textarea id="reason{{ revision.id }}" name="reason" class="form-control" rows="2" placeholder="Red nedenini yazın..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                        <button type="submit" class="btn btn-primary">
+                            <span class="spinner-border spinner-border-sm d-none me-2" role="status" aria-hidden="true"></span>
+                            Gönder
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let currentModal = null;
+    
+    // Güvenli CSRF token alma fonksiyonu
+    function getCsrfToken() {
+        // Önce form içindeki token'ı ara
+        let csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (csrfToken) {
+            return csrfToken.value;
+        }
+        
+        // Meta tag'den ara
+        let metaToken = document.querySelector('meta[name="csrf-token"]');
+        if (metaToken) {
+            return metaToken.getAttribute('content');
+        }
+        
+        // Cookie'den ara
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, 10) === 'csrftoken=') {
+                    cookieValue = decodeURIComponent(cookie.substring(10));
+                    break;
+                }
+            }
+        }
+        
+        return cookieValue;
+    }
+    
+    // Modal açılma/kapanma yönetimi
+    function initializeModalHandlers() {
+        // Modal tetikleyici butonlar
+        document.querySelectorAll('.modal-trigger').forEach(function(button) {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Önceki modal'ı kapat
+                if (currentModal) {
+                    bootstrap.Modal.getInstance(currentModal)?.hide();
+                }
+                
+                const targetId = this.getAttribute('data-bs-target');
+                const targetElement = document.querySelector(targetId);
+                
+                if (targetElement) {
+                    currentModal = targetElement;
+                    const modal = new bootstrap.Modal(targetElement, {
+                        backdrop: 'static',
+                        keyboard: true
+                    });
+                    modal.show();
+                }
+            });
+        });
+        
+        // Modal kapanma olayları
+        document.querySelectorAll('.modal').forEach(function(modal) {
+            modal.addEventListener('hidden.bs.modal', function() {
+                currentModal = null;
+            });
+        });
+    }
+    
+    // Yanıt türü değişimi
+    function initializeActionRadios() {
+        document.querySelectorAll('.action-radio').forEach(function(radio) {
+            radio.addEventListener('change', function() {
+                const revisionId = this.name.split('_')[1];
+                const rejectReasonDiv = document.getElementById('rejectReason' + revisionId);
+                
+                if (this.value === 'reject') {
+                    rejectReasonDiv.classList.remove('d-none');
+                    rejectReasonDiv.querySelector('textarea').required = true;
+                } else {
+                    rejectReasonDiv.classList.add('d-none');
+                    rejectReasonDiv.querySelector('textarea').required = false;
+                }
+            });
+        });
+    }
+    
+    // Form gönderimi
+    function initializeFormSubmission() {
+        document.querySelectorAll('.revision-response-form').forEach(function(form) {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const revisionId = this.getAttribute('data-revision-id');
+                const submitBtn = this.querySelector('button[type="submit"]');
+                const spinner = submitBtn.querySelector('.spinner-border');
+                const action = this.querySelector('input[name="action_' + revisionId + '"]:checked').value;
+                const response = this.querySelector('textarea[name="response"]').value;
+                const reason = this.querySelector('textarea[name="reason"]').value;
+                
+                // Validasyon
+                if (action === 'reject' && !reason.trim()) {
+                    alert('Red nedeni zorunludur.');
+                    return;
+                }
+                
+                // CSRF token al
+                const csrfToken = getCsrfToken();
+                if (!csrfToken) {
+                    alert('Güvenlik token\'ı bulunamadı. Sayfayı yenileyin.');
+                    return;
+                }
+                
+                // Loading durumu
+                submitBtn.disabled = true;
+                spinner.classList.remove('d-none');
+                
+                // AJAX isteği
+                const url = `/producer/revisions/${revisionId}/respond/`;
+                console.log('Making request to:', url);
+                console.log('Revision ID:', revisionId);
+                console.log('CSRF Token:', csrfToken);
+                
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: new URLSearchParams({
+                        action: action,
+                        response: response,
+                        reason: reason
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Modal'ı kapat ve sayfayı yenile
+                        const modal = bootstrap.Modal.getInstance(document.getElementById(`respondModal${revisionId}`));
+                        modal.hide();
+                        
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 500);
+                    } else {
+                        alert(data.message || 'Bir hata oluştu.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Bir hata oluştu. Lütfen tekrar deneyin.');
+                })
+                .finally(() => {
+                    // Loading durumunu kaldır
+                    submitBtn.disabled = false;
+                    spinner.classList.add('d-none');
+                });
+            });
+        });
+    }
+    
+    // İşe Başla butonları için AJAX işleyicisi
+    function initializeStartWorkButtons() {
+        document.querySelectorAll('.start-work-btn').forEach(function(button) {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                const revisionId = this.getAttribute('data-revision-id');
+                const originalText = this.textContent;
+                
+                // Onay al
+                if (!confirm('Revizyon çalışmasını başlatmak istediğinizden emin misiniz?')) {
+                    return;
+                }
+                
+                // CSRF token al
+                const csrfToken = getCsrfToken();
+                if (!csrfToken) {
+                    alert('Güvenlik token\'ı bulunamadı. Sayfayı yenileyin.');
+                    return;
+                }
+                
+                // Loading durumu
+                this.disabled = true;
+                this.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Başlatılıyor...';
+                
+                // AJAX isteği
+                const url = `/producer/revisions/${revisionId}/start-work/`;
+                console.log('Making request to:', url);
+                console.log('Revision ID:', revisionId);
+                console.log('CSRF Token:', csrfToken);
+                
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': csrfToken
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Başarı mesajı göster
+                        alert(data.message || 'Revizyon çalışması başlatıldı.');
+                        
+                        // Redirect URL varsa yönlendir
+                        if (data.redirect_url) {
+                            window.location.href = data.redirect_url;
+                        } else {
+                            // Yoksa sayfayı yenile
+                            window.location.reload();
+                        }
+                    } else {
+                        alert(data.message || 'Bir hata oluştu.');
+                        // Loading durumunu kaldır
+                        this.disabled = false;
+                        this.textContent = originalText;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Bir hata oluştu. Lütfen tekrar deneyin.');
+                    // Loading durumunu kaldır
+                    this.disabled = false;
+                    this.textContent = originalText;
+                });
+            });
+        });
+    }
+    
+    // Initialize all handlers
+    initializeModalHandlers();
+    initializeActionRadios();
+    initializeFormSubmission();
+    initializeStartWorkButtons();
+    
+    // Mouse hareketi stabilizasyonu
+    document.querySelectorAll('.btn-group .btn').forEach(function(btn) {
+        btn.addEventListener('mouseenter', function() {
+            this.style.transform = 'none';
+        });
+        
+        btn.addEventListener('mouseleave', function() {
+            this.style.transform = 'none';
+        });
+    });
+});
+</script>
+{% endblock %} 

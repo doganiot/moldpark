@@ -1,0 +1,386 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dokümantasyon - MoldPark{% endblock %}
+
+{% block extra_css %}
+<style>
+.docs-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 60px 0;
+    color: white;
+    margin-bottom: 40px;
+}
+
+.docs-nav {
+    position: sticky;
+    top: 20px;
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.docs-nav ul {
+    list-style: none;
+    padding: 0;
+}
+
+.docs-nav li {
+    margin-bottom: 10px;
+}
+
+.docs-nav a {
+    color: #4a5568;
+    text-decoration: none;
+    display: block;
+    padding: 8px 15px;
+    border-radius: 5px;
+    transition: all 0.2s ease;
+}
+
+.docs-nav a:hover {
+    background: #edf2f7;
+    color: #4c51bf;
+}
+
+.docs-nav a.active {
+    background: #4c51bf;
+    color: white;
+}
+
+.docs-section {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    padding: 30px;
+    margin-bottom: 30px;
+}
+
+.docs-section h2 {
+    color: #2d3748;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.docs-section h3 {
+    color: #4a5568;
+    margin: 25px 0 15px;
+}
+
+.step-box {
+    background: #f7fafc;
+    border-left: 4px solid #4c51bf;
+    padding: 20px;
+    margin: 15px 0;
+    border-radius: 5px;
+}
+
+.info-box {
+    background: #ebf8ff;
+    border-left: 4px solid #4299e1;
+    padding: 15px;
+    margin: 15px 0;
+    border-radius: 5px;
+}
+
+.warning-box {
+    background: #fff5f5;
+    border-left: 4px solid #f56565;
+    padding: 15px;
+    margin: 15px 0;
+    border-radius: 5px;
+}
+
+.feature-list {
+    list-style: none;
+    padding: 0;
+}
+
+.feature-list li {
+    padding: 10px 0;
+    border-bottom: 1px solid #edf2f7;
+    display: flex;
+    align-items: start;
+}
+
+.feature-list li i {
+    color: #4c51bf;
+    margin-right: 10px;
+    margin-top: 5px;
+}
+
+.screenshot {
+    max-width: 100%;
+    height: auto;
+    border-radius: 10px;
+    margin: 20px 0;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="docs-header">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 mx-auto text-center">
+                <h1 class="mb-4">MoldPark Dokümantasyon</h1>
+                <p class="lead">İşitme merkezleri ve üretici merkezler için kapsamlı kullanım kılavuzu</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="row">
+        <!-- Sol Menü -->
+        <div class="col-lg-3">
+            <div class="docs-nav">
+                <h5 class="mb-3">İçindekiler</h5>
+                <ul>
+                    <li><a href="#genel-bakis" class="active">Genel Bakış</a></li>
+                    <li><a href="#isitme-merkezi">İşitme Merkezi Rehberi</a></li>
+                    <li><a href="#uretici-merkez">Üretici Merkez Rehberi</a></li>
+                    <li><a href="#kalip-yonetimi">Kalıp Yönetimi</a></li>
+                    <li><a href="#revizyon">Revizyon Sistemi</a></li>
+                    <li><a href="#abonelik">Abonelik ve Ödeme</a></li>
+                    <li><a href="#destek">Destek ve İletişim</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Ana İçerik -->
+        <div class="col-lg-9">
+            <!-- Genel Bakış -->
+            <div class="docs-section" id="genel-bakis">
+                <h2>Genel Bakış</h2>
+                <p>MoldPark, işitme merkezleri ve üretici merkezleri bir araya getiren modern bir kulak kalıbı üretim ve yönetim platformudur. Sistem, kalıp siparişlerinin dijital ortamda yönetilmesini, üretim sürecinin takibini ve revizyon işlemlerinin sorunsuz yürütülmesini sağlar.</p>
+                
+                <div class="info-box">
+                    <h5><i class="fas fa-info-circle"></i> Platform Özellikleri</h5>
+                    <ul class="feature-list">
+                        <li><i class="fas fa-check"></i>Dijital kalıp dosyası yükleme ve yönetimi</li>
+                        <li><i class="fas fa-check"></i>12 aşamalı revizyon sistemi</li>
+                        <li><i class="fas fa-check"></i>Gerçek zamanlı üretim takibi</li>
+                        <li><i class="fas fa-check"></i>Otomatik bildirim sistemi</li>
+                        <li><i class="fas fa-check"></i>Detaylı raporlama ve analiz</li>
+                        <li><i class="fas fa-check"></i>Güvenli ödeme sistemi</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- İşitme Merkezi Rehberi -->
+            <div class="docs-section" id="isitme-merkezi">
+                <h2>İşitme Merkezi Rehberi</h2>
+                
+                <h3>1. Sisteme Kayıt</h3>
+                <div class="step-box">
+                    <ol>
+                        <li>Ana sayfada "İşitme Merkezi Olarak Kaydol" butonuna tıklayın</li>
+                        <li>Gerekli bilgileri doldurun (merkez adı, adres, iletişim bilgileri)</li>
+                        <li>E-posta doğrulamasını tamamlayın</li>
+                        <li>Admin onayını bekleyin</li>
+                    </ol>
+                </div>
+
+                <h3>2. Abonelik Seçimi</h3>
+                <div class="step-box">
+                    <p>Dört farklı plan mevcuttur:</p>
+                    <ul>
+                        <li>Pay-per-use: $0.99 (₺32) tek kullanım</li>
+                        <li>Basic: $15/ay (₺480/ay) - 30 model/ay</li>
+                        <li>Professional: $30/ay (₺960/ay) - 70 model/ay</li>
+                        <li>Enterprise: $45/ay (₺1440/ay) - 120 model/ay</li>
+                    </ul>
+                </div>
+
+                <h3>3. Kalıp Siparişi Oluşturma</h3>
+                <div class="step-box">
+                    <ol>
+                        <li>Dashboard'da "Yeni Kalıp" butonuna tıklayın</li>
+                        <li>Kalıp türünü seçin (tam konka, yarım konka, kanal içi, iskelet)</li>
+                        <li>Hasta bilgilerini girin</li>
+                        <li>Tarama dosyasını yükleyin</li>
+                        <li>Üretici merkez seçin</li>
+                        <li>Siparişi onaylayın</li>
+                    </ol>
+                </div>
+            </div>
+
+            <!-- Üretici Merkez Rehberi -->
+            <div class="docs-section" id="uretici-merkez">
+                <h2>Üretici Merkez Rehberi</h2>
+                
+                <h3>1. Sisteme Kayıt</h3>
+                <div class="step-box">
+                    <ol>
+                        <li>Ana sayfada "Üretici Merkez Olarak Kaydol" butonuna tıklayın</li>
+                        <li>Firma bilgilerini doldurun</li>
+                        <li>Üretim kapasitesi ve ekipman bilgilerini girin</li>
+                        <li>Admin onayını bekleyin</li>
+                    </ol>
+                </div>
+
+                <h3>2. Sipariş Yönetimi</h3>
+                <div class="step-box">
+                    <ol>
+                        <li>Gelen siparişleri "Siparişler" sekmesinden takip edin</li>
+                        <li>Her sipariş için üretim durumunu güncelleyin</li>
+                        <li>Tamamlanan modelleri yükleyin</li>
+                        <li>Kalite kontrol sürecini yönetin</li>
+                    </ol>
+                </div>
+            </div>
+
+            <!-- Kalıp Yönetimi -->
+            <div class="docs-section" id="kalip-yonetimi">
+                <h2>Kalıp Yönetimi</h2>
+                
+                <h3>Kalıp Türleri</h3>
+                <div class="step-box">
+                    <ul>
+                        <li><strong>Tam Konka Kalıp:</strong> Kulağın dış kısmını ve kulak kanalını tamamen kaplar</li>
+                        <li><strong>Yarım Konka Kalıp:</strong> Kulağın dış kısmını kısmen ve kulak kanalını kaplar</li>
+                        <li><strong>Kanal İçi Kalıp:</strong> Sadece kulak kanalına yerleştirilir</li>
+                        <li><strong>İskelet Kalıp:</strong> Kulak kepçesinin anatomik yapısını takip eder</li>
+                    </ul>
+                </div>
+
+                <h3>Dosya Gereksinimleri</h3>
+                <div class="info-box">
+                    <h5>Desteklenen Formatlar:</h5>
+                    <ul>
+                        <li>3D Tarama: STL, OBJ, PLY</li>
+                        <li>Maksimum dosya boyutu: 50MB</li>
+                        <li>Çözünürlük: Minimum 0.1mm</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Revizyon Sistemi -->
+            <div class="docs-section" id="revizyon">
+                <h2>Revizyon Sistemi</h2>
+                
+                <h3>Revizyon Süreci</h3>
+                <div class="step-box">
+                    <ol>
+                        <li>İşitme merkezi revizyon talebi oluşturur</li>
+                        <li>Admin talebi inceler ve onaylar/reddeder</li>
+                        <li>Üretici merkez revizyon talebini değerlendirir</li>
+                        <li>Revizyon çalışması başlar</li>
+                        <li>Kalite kontrol yapılır</li>
+                        <li>Revize edilmiş kalıp teslim edilir</li>
+                    </ol>
+                </div>
+
+                <div class="warning-box">
+                    <h5><i class="fas fa-exclamation-triangle"></i> Önemli Notlar</h5>
+                    <ul>
+                        <li>Revizyon talebi sadece teslim edilmiş kalıplar için oluşturulabilir</li>
+                        <li>Her revizyon için detaylı açıklama gereklidir</li>
+                        <li>Revizyon süreci maksimum 3 iş günüdür</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Abonelik ve Ödeme -->
+            <div class="docs-section" id="abonelik">
+                <h2>Abonelik ve Ödeme</h2>
+                
+                <h3>Ödeme Seçenekleri</h3>
+                <div class="step-box">
+                    <ul>
+                        <li>Kredi/Banka Kartı</li>
+                        <li>Havale/EFT</li>
+                        <li>Aylık/Yıllık ödeme seçeneği</li>
+                    </ul>
+                </div>
+
+                <div class="info-box">
+                    <h5><i class="fas fa-info-circle"></i> Fatura Bilgileri</h5>
+                    <ul>
+                        <li>Faturalar her ayın 1'inde kesilir</li>
+                        <li>KDV dahil fiyatlandırma</li>
+                        <li>E-Fatura sistemi entegrasyonu</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Destek ve İletişim -->
+            <div class="docs-section" id="destek">
+                <h2>Destek ve İletişim</h2>
+                
+                <div class="info-box">
+                    <h5><i class="fas fa-headset"></i> Teknik Destek</h5>
+                    <ul>
+                        <li>E-posta: support@moldpark.com</li>
+                        <li>Telefon: +90 (544) 221 92 84</li>
+                        <li>Çalışma Saatleri: 09:00 - 18:00 (Hafta içi)</li>
+                    </ul>
+                </div>
+
+                <div class="step-box">
+                    <h5>Yardım Kanalları</h5>
+                    <ul>
+                        <li>Canlı Destek</li>
+                        <li>E-posta Desteği</li>
+                        <li>Telefon Desteği</li>
+                        <li>Video Eğitimler</li>
+                        <li>SSS Bölümü</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Smooth scroll
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                target.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+                
+                // Active class
+                document.querySelectorAll('.docs-nav a').forEach(a => a.classList.remove('active'));
+                this.classList.add('active');
+            }
+        });
+    });
+    
+    // Scroll spy
+    const sections = document.querySelectorAll('.docs-section');
+    const navLinks = document.querySelectorAll('.docs-nav a');
+    
+    window.addEventListener('scroll', () => {
+        let current = '';
+        
+        sections.forEach(section => {
+            const sectionTop = section.offsetTop;
+            const sectionHeight = section.clientHeight;
+            if (pageYOffset >= sectionTop - 200) {
+                current = section.getAttribute('id');
+            }
+        });
+        
+        navLinks.forEach(link => {
+            link.classList.remove('active');
+            if (link.getAttribute('href').slice(1) === current) {
+                link.classList.add('active');
+            }
+        });
+    });
+});
+</script>
+{% endblock %} 

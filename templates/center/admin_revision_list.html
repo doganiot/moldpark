@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Revizyon Talepleri</h5>
+                    <p class="text-muted mb-0">Sistem genelindeki tüm revizyon taleplerini görüntüleyin</p>
+                </div>
+                
+                <!-- İstatistik Kartları -->
+                <div class="card-body border-bottom">
+                    <div class="row g-3">
+                        <div class="col-md-2">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h3 class="mb-0">{{ total_count }}</h3>
+                                    <small class="text-muted">Toplam Talep</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="card bg-warning bg-opacity-10">
+                                <div class="card-body text-center">
+                                    <h3 class="mb-0">{{ pending_count }}</h3>
+                                    <small class="text-warning">Bekleyen</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="card bg-primary bg-opacity-10">
+                                <div class="card-body text-center">
+                                    <h3 class="mb-0">{{ in_progress_count }}</h3>
+                                    <small class="text-primary">İşlemde</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="card bg-success bg-opacity-10">
+                                <div class="card-body text-center">
+                                    <h3 class="mb-0">{{ completed_count }}</h3>
+                                    <small class="text-success">Tamamlanan</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="card bg-danger bg-opacity-10">
+                                <div class="card-body text-center">
+                                    <h3 class="mb-0">{{ overdue_count }}</h3>
+                                    <small class="text-danger">Geciken</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Filtreler -->
+                <div class="card-body border-bottom">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-4">
+                            <input type="text" name="q" class="form-control" placeholder="Ara..." value="{{ search_query }}">
+                        </div>
+                        <div class="col-md-3">
+                            <select name="status" class="form-select">
+                                <option value="">Tüm Durumlar</option>
+                                <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Beklemede</option>
+                                <option value="producer_review" {% if status_filter == 'producer_review' %}selected{% endif %}>Üretici İncelemesi</option>
+                                <option value="accepted" {% if status_filter == 'accepted' %}selected{% endif %}>Kabul Edildi</option>
+                                <option value="producer_rejected" {% if status_filter == 'producer_rejected' %}selected{% endif %}>Üretici Reddetti</option>
+                                <option value="in_progress" {% if status_filter == 'in_progress' %}selected{% endif %}>İşlemde</option>
+                                <option value="quality_check" {% if status_filter == 'quality_check' %}selected{% endif %}>Kalite Kontrol</option>
+                                <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Tamamlandı</option>
+                                <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>İptal Edildi</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select name="priority" class="form-select">
+                                <option value="">Tüm Öncelikler</option>
+                                <option value="low" {% if priority_filter == 'low' %}selected{% endif %}>Düşük</option>
+                                <option value="normal" {% if priority_filter == 'normal' %}selected{% endif %}>Normal</option>
+                                <option value="high" {% if priority_filter == 'high' %}selected{% endif %}>Yüksek</option>
+                                <option value="urgent" {% if priority_filter == 'urgent' %}selected{% endif %}>Acil</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary w-100">Filtrele</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Revizyon Listesi -->
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Hasta</th>
+                                <th>Merkez</th>
+                                <th>Revizyon Türü</th>
+                                <th>Öncelik</th>
+                                <th>Durum</th>
+                                <th>Oluşturulma</th>
+                                <th>Son Güncelleme</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for revision in revision_requests %}
+                            <tr>
+                                <td>#{{ revision.id }}</td>
+                                <td>
+                                    {{ revision.modeled_mold.ear_mold.patient_name }} 
+                                    {{ revision.modeled_mold.ear_mold.patient_surname }}
+                                </td>
+                                <td>{{ revision.center.company_name }}</td>
+                                <td>
+                                    <span class="badge bg-secondary">
+                                        {{ revision.get_revision_type_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ revision.get_priority_color }}">
+                                        {{ revision.get_priority_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ revision.get_status_color }}">
+                                        {{ revision.get_status_display }}
+                                    </span>
+                                </td>
+                                <td>{{ revision.created_at|date:"d.m.Y H:i" }}</td>
+                                <td>{{ revision.updated_at|date:"d.m.Y H:i" }}</td>
+                                <td>
+                                    <button type="button" 
+                                            class="btn btn-sm btn-primary" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#detailModal{{ revision.id }}">
+                                        Detay
+                                    </button>
+                                </td>
+                            </tr>
+                            
+                            <!-- Detay Modal -->
+                            <div class="modal fade" id="detailModal{{ revision.id }}" tabindex="-1">
+                                <div class="modal-dialog modal-lg">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Revizyon Talebi #{{ revision.id }}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="row mb-4">
+                                                <div class="col-md-6">
+                                                    <h6>Revizyon Detayları</h6>
+                                                    <p><strong>Başlık:</strong> {{ revision.title }}</p>
+                                                    <p><strong>Açıklama:</strong> {{ revision.description }}</p>
+                                                    <p><strong>Revizyon Türü:</strong> {{ revision.get_revision_type_display }}</p>
+                                                    <p><strong>Öncelik:</strong> {{ revision.get_priority_display }}</p>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <h6>Süreç Bilgileri</h6>
+                                                    <p><strong>Durum:</strong> {{ revision.get_status_display }}</p>
+                                                    <p><strong>Oluşturulma:</strong> {{ revision.created_at|date:"d.m.Y H:i" }}</p>
+                                                    <p><strong>Son Güncelleme:</strong> {{ revision.updated_at|date:"d.m.Y H:i" }}</p>
+                                                    {% if revision.expected_delivery %}
+                                                    <p><strong>Beklenen Teslim:</strong> {{ revision.expected_delivery|date:"d.m.Y" }}</p>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            
+                                            {% if revision.producer_response %}
+                                            <div class="mb-4">
+                                                <h6>Üretici Yanıtı</h6>
+                                                <p>{{ revision.producer_response }}</p>
+                                            </div>
+                                            {% endif %}
+                                            
+                                            {% if revision.rejection_reason %}
+                                            <div class="mb-4">
+                                                <h6>Red Nedeni</h6>
+                                                <p class="text-danger">{{ revision.rejection_reason }}</p>
+                                            </div>
+                                            {% endif %}
+                                            
+                                            <!-- Süreç Adımları -->
+                                            <div class="mb-4">
+                                                <h6>Süreç Adımları</h6>
+                                                <div class="timeline">
+                                                    {% for step in revision.process_steps %}
+                                                    <div class="timeline-item">
+                                                        <div class="timeline-marker"></div>
+                                                        <div class="timeline-content">
+                                                            <h6 class="mb-0">{{ step.step }}</h6>
+                                                            <small class="text-muted">{{ step.timestamp|date:"d.m.Y H:i" }}</small>
+                                                            {% if step.description %}
+                                                            <p class="mb-0">{{ step.description }}</p>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Sayfalama -->
+                {% if revision_requests.has_other_pages %}
+                <div class="card-footer">
+                    <nav>
+                        <ul class="pagination justify-content-center mb-0">
+                            {% if revision_requests.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ revision_requests.previous_page_number }}&status={{ status_filter }}&priority={{ priority_filter }}&q={{ search_query }}">
+                                    Önceki
+                                </a>
+                            </li>
+                            {% endif %}
+                            
+                            {% for num in revision_requests.paginator.page_range %}
+                            <li class="page-item {% if revision_requests.number == num %}active{% endif %}">
+                                <a class="page-link" href="?page={{ num }}&status={{ status_filter }}&priority={{ priority_filter }}&q={{ search_query }}">
+                                    {{ num }}
+                                </a>
+                            </li>
+                            {% endfor %}
+                            
+                            {% if revision_requests.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ revision_requests.next_page_number }}&status={{ status_filter }}&priority={{ priority_filter }}&q={{ search_query }}">
+                                    Sonraki
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

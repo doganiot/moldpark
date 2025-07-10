@@ -34,9 +34,9 @@ urlpatterns = [
     path('admin/molds/<int:pk>/update-status/', views.admin_mold_update_status, name='admin_mold_update_status'),
     path('admin/molds/<int:mold_id>/upload-model/', views.admin_upload_model, name='admin_upload_model'),
     path('admin/models/<int:model_id>/delete/', views.admin_delete_model, name='admin_delete_model'),
+    
+    # Admin revizyon yönetimi
     path('admin/revisions/', views.admin_revision_list, name='admin_revision_list'),
-    path('admin/revisions/<int:request_id>/approve/', views.admin_revision_approve, name='admin_revision_approve'),
-    path('admin/revisions/<int:request_id>/reject/', views.admin_revision_reject, name='admin_revision_reject'),
     
     # API endpoints
     path('api/producers/', views.get_producers_api, name='get_producers_api'),
