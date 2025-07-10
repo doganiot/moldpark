@@ -20,6 +20,7 @@ import json
 import logging
 from .smart_notifications import SmartNotificationManager
 from .utils import get_user_notifications, get_unread_count, mark_all_as_read, send_notification
+from django.core.paginator import Paginator
 
 def home(request):
     # Fiyatlandırma planlarını al
@@ -515,18 +516,18 @@ def message_list(request):
     else:
         messages_list = received_messages
     
-    # Arama
+    # Arama - silinmiş kullanıcıları da dikkate al
     if search_query:
         messages_list = messages_list.filter(
             Q(subject__icontains=search_query) |
             Q(content__icontains=search_query) |
             Q(sender__first_name__icontains=search_query) |
-            Q(sender__last_name__icontains=search_query)
-        )
+            Q(sender__last_name__icontains=search_query) |
+            Q(sender__username__icontains=search_query)
+        ).distinct()
     
     # Sayfalama
-    from django.core.paginator import Paginator
-    paginator = Paginator(messages_list, 20)
+    paginator = Paginator(messages_list.order_by('-created_at'), 20)
     page_number = request.GET.get('page')
     messages_page = paginator.get_page(page_number)
     
@@ -535,17 +536,26 @@ def message_list(request):
         if message.is_broadcast:
             # Broadcast mesajlar için MessageRecipient kontrolü
             user_recipient = message.recipients.filter(recipient=user).first()
-            message.user_is_read = user_recipient.is_read if user_recipient else True
-        else:
-            # Normal mesajlar için message.is_read kontrolü
+            message.user_is_read = user_recipient.is_read if user_recipient else False
+        elif message.recipient == user:
+            # Kullanıcı alıcı ise
             message.user_is_read = message.is_read
+        else:
+            # Kullanıcı gönderen ise
+            message.user_is_read = True
     
-    # İstatistikler
+    # İstatistikler - silinmiş kullanıcıları da dahil et
     stats = {
         'total_received': received_messages.count(),
-        'unread_received': received_messages.filter(is_read=False).count(),
+        'unread_received': received_messages.filter(
+            Q(is_read=False, recipient=user) |
+            Q(recipients__recipient=user, recipients__is_read=False)
+        ).distinct().count(),
         'total_sent': sent_messages.count(),
-        'urgent_messages': received_messages.filter(priority='urgent', is_read=False).count(),
+        'urgent_messages': received_messages.filter(
+            Q(priority='urgent', is_read=False, recipient=user) |
+            Q(priority='urgent', recipients__recipient=user, recipients__is_read=False)
+        ).distinct().count(),
     }
     
     context = {
@@ -599,14 +609,15 @@ def message_detail(request, pk):
             if reply_form.is_valid():
                 reply = reply_form.save()
                 
-                # Bildirim gönder
-                notify.send(
-                    sender=user,
-                    recipient=reply.recipient,
-                    verb='mesajınıza cevap verdi',
-                    action_object=reply,
-                    description=f'Konu: {reply.subject}'
-                )
+                # Bildirim gönder - alıcı kontrolü ekle
+                if reply.recipient:
+                    notify.send(
+                        sender=user,
+                        recipient=reply.recipient,
+                        verb='mesajınıza cevap verdi',
+                        action_object=reply,
+                        description=f'Konu: {reply.subject}'
+                    )
                 
                 messages.success(request, 'Cevabınız gönderildi.')
                 return redirect('core:message_detail', pk=message.pk)

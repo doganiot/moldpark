@@ -105,228 +105,130 @@
 {% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="row">
-        <div class="col-12">
-            <!-- Geri Dön Butonu -->
-            <div class="mb-3">
-                <a href="{% url 'core:message_list' %}" class="btn btn-outline-secondary">
-                    <i class="fas fa-arrow-left me-2"></i>Mesaj Listesine Dön
-                </a>
-            </div>
+<div class="container py-4">
+    <div class="message-detail">
+        <!-- Mesaj Başlığı -->
+        <div class="message-header">
+            <h4 class="mb-0">{{ message.subject }}</h4>
+        </div>
 
-            <!-- Ana Mesaj -->
-            <div class="message-detail">
-                <!-- Başlık -->
-                <div class="message-header">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <h3 class="mb-2">
-                                {% if message.is_broadcast %}
-                                    <i class="fas fa-bullhorn me-2"></i>
-                                {% endif %}
-                                {{ message.subject }}
-                            </h3>
-                            <div class="sender-info">
-                                <div class="sender-avatar">
-                                    {{ message.sender.first_name|first|default:message.sender.username|first|upper }}
-                                </div>
-                                <div>
-                                    <strong>{{ message.sender.get_full_name|default:message.sender.username }}</strong>
-                                    <br>
-                                    <small class="opacity-75">
-                                        {% if message.get_sender_type == 'admin' %}
-                                            <i class="fas fa-crown me-1"></i>Sistem Yöneticisi
-                                        {% elif message.get_sender_type == 'center' %}
-                                            <i class="fas fa-building me-1"></i>İşitme Merkezi
-                                        {% elif message.get_sender_type == 'producer' %}
-                                            <i class="fas fa-industry me-1"></i>Üretici Merkez
-                                        {% endif %}
-                                    </small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="text-end">
-                            {% if message.priority == 'urgent' %}
-                                <span class="badge bg-danger priority-badge mb-2">ACİL</span>
-                            {% elif message.priority == 'high' %}
-                                <span class="badge bg-warning priority-badge mb-2">YÜKSEK</span>
-                            {% elif message.priority == 'low' %}
-                                <span class="badge bg-secondary priority-badge mb-2">DÜŞÜK</span>
-                            {% else %}
-                                <span class="badge bg-info priority-badge mb-2">NORMAL</span>
-                            {% endif %}
-                            <br>
-                            <small class="opacity-75">{{ message.created_at|date:"d.m.Y H:i" }}</small>
-                        </div>
-                    </div>
+        <!-- Mesaj Meta Bilgileri -->
+        <div class="message-meta">
+            <div class="row">
+                <div class="col-md-6">
+                    <strong>Gönderen:</strong>
+                    {% if message.sender %}
+                        {% firstof message.sender.get_full_name message.sender.username "Silinmiş Kullanıcı" %}
+                    {% else %}
+                        Silinmiş Kullanıcı
+                    {% endif %}
                 </div>
-
-                <!-- Meta Bilgiler -->
-                <div class="message-meta">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <strong>Alıcı:</strong>
-                            {% if message.is_broadcast %}
-                                <span class="text-info">
-                                    <i class="fas fa-bullhorn me-1"></i>
-                                    Toplu Mesaj
-                                    {% if message.broadcast_to_centers and message.broadcast_to_producers %}
-                                        (Tüm Kullanıcılar)
-                                    {% elif message.broadcast_to_centers %}
-                                        (İşitme Merkezleri)
-                                    {% elif message.broadcast_to_producers %}
-                                        (Üretici Merkezler)
-                                    {% endif %}
-                                </span>
-                            {% else %}
-                                {{ message.recipient.get_full_name|default:message.recipient.username }}
-                            {% endif %}
-                        </div>
-                        <div class="col-md-6 text-md-end">
-                            <strong>Mesaj Türü:</strong>
-                            <span class="badge bg-secondary">{{ message.get_message_type_display }}</span>
-                        </div>
-                    </div>
-                    
+                <div class="col-md-6 text-md-end">
+                    <strong>Tarih:</strong>
+                    {{ message.created_at|date:"d.m.Y H:i" }}
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col-md-6">
+                    <strong>Alıcı:</strong>
                     {% if message.is_broadcast %}
-                    <div class="broadcast-info mt-3">
-                        <h6><i class="fas fa-info-circle me-2"></i>Toplu Mesaj Bilgileri</h6>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <strong>Toplam Alıcı:</strong> {{ broadcast_stats.total_recipients }}
-                            </div>
-                            <div class="col-md-4">
-                                <strong>Okuyan:</strong> {{ broadcast_stats.read_count }}
-                            </div>
-                            <div class="col-md-4">
-                                <strong>Okunmayan:</strong> {{ broadcast_stats.unread_count }}
-                            </div>
-                        </div>
-                    </div>
+                        <span class="text-info">
+                            Toplu Mesaj
+                            {% if message.broadcast_to_centers and message.broadcast_to_producers %}
+                                (Tüm Kullanıcılar)
+                            {% elif message.broadcast_to_centers %}
+                                (İşitme Merkezleri)
+                            {% elif message.broadcast_to_producers %}
+                                (Üretici Merkezler)
+                            {% endif %}
+                        </span>
+                    {% else %}
+                        {% if message.recipient %}
+                            {% firstof message.recipient.get_full_name message.recipient.username "Silinmiş Kullanıcı" %}
+                        {% else %}
+                            Silinmiş Kullanıcı
+                        {% endif %}
                     {% endif %}
                 </div>
-
-                <!-- Mesaj İçeriği -->
-                <div class="message-content">
-                    <div class="message-text">
-                        {{ message.content|linebreaks }}
-                    </div>
-
-                    <!-- Ek Dosya -->
-                    {% if message.attachment %}
-                    <div class="attachment-item">
-                        <h6><i class="fas fa-paperclip me-2"></i>Ek Dosya</h6>
-                        <a href="{{ message.attachment.url }}" target="_blank" class="btn btn-outline-primary btn-sm">
-                            <i class="fas fa-download me-2"></i>{{ message.attachment.name|basename }}
-                        </a>
-                    </div>
-                    {% endif %}
+                <div class="col-md-6 text-md-end">
+                    <strong>Mesaj Türü:</strong>
+                    <span class="badge bg-secondary">{{ message.get_message_type_display }}</span>
                 </div>
-
-                <!-- Mesaj Eylemleri -->
-                <div class="message-actions">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            {% if message.read_at %}
-                                <small class="text-muted">
-                                    <i class="fas fa-eye me-1"></i>
-                                    {{ message.read_at|date:"d.m.Y H:i" }} tarihinde okundu
-                                </small>
-                            {% endif %}
-                        </div>
-                        <div>
-                            <a href="{% url 'core:message_archive' message.pk %}" class="btn btn-outline-warning btn-sm">
-                                <i class="fas fa-archive me-1"></i>Arşivle
-                            </a>
-                            {% if message.sender == request.user %}
-                                <a href="{% url 'core:message_delete' message.pk %}" class="btn btn-outline-danger btn-sm" 
-                                   onclick="return confirm('Bu mesajı silmek istediğinizden emin misiniz?')">
-                                    <i class="fas fa-trash me-1"></i>Sil
-                                </a>
-                            {% endif %}
-                        </div>
+            </div>
+            
+            {% if message.is_broadcast %}
+            <div class="row mt-2">
+                <div class="col-12">
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Toplu Mesaj İstatistikleri:</strong>
+                        {{ broadcast_stats.total_recipients }} alıcı,
+                        {{ broadcast_stats.read_count }} okundu,
+                        {{ broadcast_stats.unread_count }} okunmadı
                     </div>
                 </div>
             </div>
-
-            <!-- Cevaplar -->
-            {% if replies %}
-            <div class="reply-section">
-                <div class="reply-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-reply me-2"></i>
-                        Cevaplar ({{ replies.count }})
-                    </h5>
-                </div>
-                <div class="p-3">
-                    <div class="message-thread">
-                        {% for reply in replies %}
-                        <div class="reply-item">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <div class="sender-info">
-                                    <div class="sender-avatar" style="width: 30px; height: 30px; font-size: 0.8rem;">
-                                        {{ reply.sender.first_name|first|default:reply.sender.username|first|upper }}
-                                    </div>
-                                    <div>
-                                        <strong>{{ reply.sender.get_full_name|default:reply.sender.username }}</strong>
-                                        <br>
-                                        <small class="text-muted">{{ reply.created_at|naturaltime }}</small>
-                                    </div>
-                                </div>
-                                {% if reply.priority != 'normal' %}
-                                    <span class="badge bg-{% if reply.priority == 'urgent' %}danger{% elif reply.priority == 'high' %}warning{% else %}secondary{% endif %} priority-badge">
-                                        {{ reply.get_priority_display|upper }}
-                                    </span>
-                                {% endif %}
-                            </div>
-                            <div class="reply-content">
-                                {{ reply.content|linebreaks }}
-                            </div>
-                            {% if reply.attachment %}
-                            <div class="mt-2">
-                                <a href="{{ reply.attachment.url }}" target="_blank" class="btn btn-outline-primary btn-sm">
-                                    <i class="fas fa-paperclip me-1"></i>{{ reply.attachment.name|basename }}
-                                </a>
-                            </div>
-                            {% endif %}
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Cevap Formu -->
-            {% if can_reply %}
-            <div class="reply-section">
-                <div class="reply-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-reply me-2"></i>
-                        Cevap Yaz
-                    </h5>
-                </div>
-                <div class="p-3">
-                    <form method="post" enctype="multipart/form-data">
-                        {% csrf_token %}
-                        {{ reply_form|crispy }}
-                        <div class="d-flex justify-content-end mt-3">
-                            <button type="submit" class="btn btn-success">
-                                <i class="fas fa-reply me-2"></i>Cevap Gönder
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-            {% else %}
-                {% if not request.user.is_superuser %}
-                <div class="alert alert-info mt-3">
-                    <i class="fas fa-info-circle me-2"></i>
-                    Bu mesaja cevap verebilmek için admin yetkisine sahip olmanız gerekmektedir.
-                </div>
-                {% endif %}
             {% endif %}
         </div>
+
+        <!-- Mesaj İçeriği -->
+        <div class="message-content">
+            {{ message.content|linebreaks }}
+
+            {% if message.attachment %}
+            <div class="mt-4">
+                <strong>Ek Dosya:</strong>
+                <a href="{{ message.attachment.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                    <i class="fas fa-download me-2"></i>{{ message.get_attachment_name }}
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Mesaj Cevapları -->
+        {% if replies %}
+        <div class="message-replies">
+            <h5 class="mb-3">Cevaplar</h5>
+            {% for reply in replies %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <strong>
+                                {% if reply.sender %}
+                                    {% firstof reply.sender.get_full_name reply.sender.username "Silinmiş Kullanıcı" %}
+                                {% else %}
+                                    Silinmiş Kullanıcı
+                                {% endif %}
+                            </strong>
+                            <small class="text-muted ms-2">{{ reply.created_at|naturaltime }}</small>
+                        </div>
+                        {% if reply.attachment %}
+                        <a href="{{ reply.attachment.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                            <i class="fas fa-paperclip me-1"></i>{{ reply.get_attachment_name }}
+                        </a>
+                        {% endif %}
+                    </div>
+                    {{ reply.content|linebreaks }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Cevap Formu -->
+        {% if can_reply %}
+        <div class="message-actions">
+            <h5 class="mb-3">Cevap Yaz</h5>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                {{ reply_form|crispy }}
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-reply me-2"></i>Cevapla
+                </button>
+            </form>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

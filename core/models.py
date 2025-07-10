@@ -94,9 +94,16 @@ class Message(models.Model):
         ]
 
     def __str__(self):
+        sender_name = self.sender.get_full_name() if self.sender else 'Silinmiş Kullanıcı'
+        
         if self.is_broadcast:
-            return f'[TOPLU] {self.subject} - {self.sender.get_full_name()}'
-        return f'{self.subject} - {self.sender.get_full_name()} → {self.recipient.get_full_name() if self.recipient else "Toplu"}'
+            return f'[TOPLU] {self.subject} - {sender_name}'
+        
+        recipient_name = 'Toplu'
+        if self.recipient:
+            recipient_name = self.recipient.get_full_name() if self.recipient.get_full_name() else self.recipient.username
+        
+        return f'{self.subject} - {sender_name} → {recipient_name}'
 
     def mark_as_read(self):
         """Mesajı okundu olarak işaretle"""
@@ -114,6 +121,8 @@ class Message(models.Model):
 
     def get_sender_type(self):
         """Gönderenin tipini döndür"""
+        if not self.sender:
+            return 'deleted'
         if self.sender.is_superuser:
             return 'admin'
         elif hasattr(self.sender, 'center'):
@@ -141,7 +150,7 @@ class Message(models.Model):
             return True
         
         # Merkez ve üreticiler sadece admin'e mesaj gönderebilir
-        if (hasattr(user, 'center') or hasattr(user, 'producer')) and self.sender.is_superuser:
+        if (hasattr(user, 'center') or hasattr(user, 'producer')) and self.sender and self.sender.is_superuser:
             return True
             
         return False
@@ -169,7 +178,8 @@ class MessageRecipient(models.Model):
             self.save()
 
     def __str__(self):
-        return f'{self.message.subject} → {self.recipient.get_full_name()}'
+        recipient_name = self.recipient.get_full_name() if self.recipient else 'Silinmiş Kullanıcı'
+        return f'{self.message.subject} → {recipient_name}'
 
 
 class PricingPlan(models.Model):
