@@ -86,103 +86,68 @@
                 </a>
             {% endif %}
             
-            <!-- Quick Actions for Mobile -->
+            <!-- Mobile Quick Actions -->
             <div class="d-flex d-lg-none align-items-center gap-2">
-                {% if not 'login' in request.path and not 'signup' in request.path and not 'password_reset' in request.path and not 'account' in request.path %}
-                    {% if user.is_authenticated and user.center %}
-                        <a href="{% url 'mold:mold_create' %}" class="btn btn-primary btn-sm" title="Yeni Kalıp Oluştur">
-                            <i class="fas fa-plus" aria-hidden="true"></i>
-                            <span class="d-none d-sm-inline ms-1">Yeni</span>
+                {% if user.is_authenticated %}
+                    <!-- Yeni Kalıp butonu (sadece işitme merkezleri için) -->
+                    {% if user.center and not user.is_staff and not user.is_superuser %}
+                        <a href="{% url 'mold:mold_create' %}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-plus"></i>
                         </a>
                     {% endif %}
                     
-                    <!-- Notifications for Mobile -->
-                    {% if user.is_authenticated and user.center or user.is_staff or user.is_superuser %}
+                    <!-- Bildirimler (mobile) -->
                     <div class="dropdown">
-                        <button class="nav-link position-relative p-2 btn btn-link" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Bildirimleri Göster">
-                            <i class="fas fa-bell" aria-hidden="true"></i>
-                            <span class="visually-hidden">Bildirimler</span>
-                            {% with unread_count=user.notifications.unread.count %}
-                            {% if unread_count > 0 %}
-                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger notification-badge" aria-label="{{ unread_count }} okunmamış bildirim">
-                                {{ unread_count }}
-                            </span>
+                        <button class="btn btn-link p-1" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-bell"></i>
+                            {% if unread_notifications > 0 %}
+                                <span class="position-absolute translate-middle badge rounded-pill bg-danger" style="top: 8px; left: 20px; font-size: 0.6rem;">
+                                    {{ unread_notifications }}
+                                </span>
                             {% endif %}
-                            {% endwith %}
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="min-width: 300px;" aria-label="Bildirim listesi">
-                            <li class="dropdown-header">
-                                <h6 class="mb-0">Bildirimler</h6>
-                            </li>
-                            {% for notification in user.notifications.unread|slice:":3" %}
-                                <li>
-                                    <a class="dropdown-item notification-item p-3 border-bottom" href="{% url 'center:mark_notification_read' notification.id %}" data-notification-id="{{ notification.id }}" title="{{ notification.verb }}">
-                                        <div class="d-flex">
-                                            <div class="flex-shrink-0">
-                                                <i class="fas fa-circle text-primary" style="font-size: 0.5rem;" aria-hidden="true"></i>
-                                            </div>
-                                            <div class="flex-grow-1 ms-2">
-                                                <div class="fw-semibold text-dark small">{{ notification.verb|title }}</div>
-                                                <div class="text-muted small">{{ notification.description|truncatechars:40 }}</div>
-                                            </div>
-                                        </div>
-                                    </a>
-                                </li>
-                            {% empty %}
-                                <li class="dropdown-item text-center py-3">
-                                    <i class="fas fa-bell-slash text-muted mb-1" aria-hidden="true"></i>
-                                    <div class="text-muted small">Bildirim yok</div>
-                                </li>
-                            {% endfor %}
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item text-center text-primary small" href="{% url 'center:notification_list' %}" title="Tüm bildirimleri görüntüle">Tümünü Gör</a></li>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li class="dropdown-header">Bildirimler</li>
+                            <li><a class="dropdown-item" href="{% url 'core:simple_notifications' %}">Tüm Bildirimler</a></li>
                         </ul>
                     </div>
-                    {% endif %}
                 {% endif %}
             </div>
             
-            <button class="navbar-toggler custom-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Menüyü aç/kapat">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             
             <div class="collapse navbar-collapse" id="navbarNav">
-                <!-- Mobile Menu Header -->
-                {% if not 'login' in request.path and not 'signup' in request.path and not 'password_reset' in request.path and not 'account' in request.path %}
-                    <div class="d-lg-none border-bottom pb-3 mb-3 mt-3">
-                        {% if user.is_authenticated %}
-                            <div class="d-flex align-items-center">
-                                <div class="user-avatar me-3">
-                                    <i class="fas fa-user-circle fs-2 text-primary"></i>
+                <!-- Mobile User Header -->
+                <div class="d-lg-none border-bottom pb-3 mb-3 mt-3">
+                    {% if user.is_authenticated %}
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-user-circle fs-2 text-primary me-3"></i>
+                            <div>
+                                <div class="fw-bold">
+                                    {% if user.producer %}
+                                        {{ user.producer.company_name }}
+                                    {% elif user.center %}
+                                        {{ user.center.name }}
+                                    {% else %}
+                                        {{ user.username }}
+                                    {% endif %}
                                 </div>
-                                <div>
-                                    <div class="fw-bold">
-                                        {% if user.producer %}
-                                            {{ user.producer.company_name }}
-                                        {% elif user.center %}
-                                            {{ user.center.name }}
-                                        {% else %}
-                                            {{ user.username }}
-                                        {% endif %}
-                                    </div>
-                                    <small class="text-muted">
-                                        {% if user.producer %}
-                                            Üretici Merkez
-                                        {% elif user.center %}
-                                            İşitme Merkezi
-                                        {% elif user.is_staff %}
-                                            Yönetici
-                                        {% endif %}
-                                    </small>
-                                </div>
+                                <small class="text-muted">
+                                    {% if user.producer %}Üretici Merkez
+                                    {% elif user.center %}İşitme Merkezi
+                                    {% elif user.is_staff %}Sistem Yöneticisi
+                                    {% endif %}
+                                </small>
                             </div>
-                        {% endif %}
-                    </div>
-                {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
                 
                 <ul class="navbar-nav me-auto">
-                    {% if not 'login' in request.path and not 'signup' in request.path and not 'password_reset' in request.path and not 'account' in request.path %}
-                        {% if not user.is_authenticated or not user.center and not user.is_staff and not user.producer %}
+                    <!-- Misafir kullanıcılar için temel menü -->
+                    {% if not user.is_authenticated %}
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'core:home' %}">Ana Sayfa</a>
                         </li>
@@ -192,61 +157,84 @@
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'core:help_center' %}">Yardım Merkezi</a>
                         </li>
-                        {% endif %}
                     {% endif %}
                     
+                    <!-- Giriş yapmış kullanıcılar için menü -->
                     {% if user.is_authenticated %}
+                        <!-- Admin menüsü -->
                         {% if user.is_staff or user.is_superuser %}
                             <li class="nav-item">
-                                <a class="nav-link" href="{% url 'center:admin_dashboard' %}">Yönetim Paneli</a>
+                                <a class="nav-link" href="{% url 'center:admin_dashboard' %}">
+                                    <i class="fas fa-tachometer-alt me-1"></i>Yönetim Paneli
+                                </a>
                             </li>
                         {% endif %}
                         
+                        <!-- Üretici menüsü -->
                         {% if user.producer %}
                             <li class="nav-item">
-                                <a class="nav-link" href="{% url 'producer:dashboard' %}">Dashboard</a>
+                                <a class="nav-link" href="{% url 'producer:dashboard' %}">
+                                    <i class="fas fa-home me-1"></i>Dashboard
+                                </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="{% url 'producer:order_list' %}">Siparişler</a>
+                                <a class="nav-link" href="{% url 'producer:order_list' %}">
+                                    <i class="fas fa-list-alt me-1"></i>Siparişler
+                                </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="{% url 'producer:mold_list' %}">Kalıplar</a>
+                                <a class="nav-link" href="{% url 'producer:mold_list' %}">
+                                    <i class="fas fa-cube me-1"></i>Kalıplar
+                                </a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'producer:revision_requests' %}">
-                                    Revizyonlar
+                                    <i class="fas fa-edit me-1"></i>Revizyonlar
                                     {% if pending_revision_requests > 0 %}
                                         <span class="badge bg-danger ms-1">{{ pending_revision_requests }}</span>
                                     {% endif %}
                                 </a>
                             </li>
-                        {% elif user.center %}
-                            {% if not user.is_staff and not user.is_superuser %}
-                            <li class="nav-item">
-                                <a class="nav-link" href="{% url 'center:dashboard' %}">Dashboard</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{% url 'mold:mold_list' %}">Kalıplarım</a>
-                            </li>
-                            <li class="nav-item d-lg-none">
-                                <a class="nav-link text-primary fw-bold" href="{% url 'mold:mold_create' %}">
-                                    <i class="fas fa-plus me-1"></i>Yeni Kalıp
-                                </a>
-                            </li>
-                            <li class="nav-item d-none d-lg-block">
-                                <a class="btn btn-primary ms-2" href="{% url 'mold:mold_create' %}">
-                                    <i class="fas fa-plus me-1"></i>Yeni Kalıp
-                                </a>
-                            </li>
-                            {% endif %}
                         {% endif %}
                         
-                        <!-- Bildirimler -->
+                        <!-- İşitme merkezi menüsü -->
+                        {% if user.center and not user.is_staff and not user.is_superuser %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'center:dashboard' %}">
+                                    <i class="fas fa-home me-1"></i>Dashboard
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'mold:mold_list' %}">
+                                    <i class="fas fa-cube me-1"></i>Kalıplarım
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'center:network_management' %}">
+                                    <i class="fas fa-network-wired me-1"></i>Üretici Ağları
+                                </a>
+                            </li>
+                        {% endif %}
+                        
+                        <!-- Ortak menü öğeleri (tüm giriş yapmış kullanıcılar için) -->
                         <li class="nav-item dropdown">
-                            <a class="nav-link position-relative" href="#" id="notificationDropdown" role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-bell"></i>
+                            <a class="nav-link dropdown-toggle" href="#" id="messagesDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-envelope me-1"></i>Mesajlar
+                                {% if unread_message_count > 0 %}
+                                    <span class="badge bg-danger ms-1">{{ unread_message_count }}</span>
+                                {% endif %}
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{% url 'core:message_list' %}">Mesaj Listesi</a></li>
+                                <li><a class="dropdown-item" href="{% url 'core:message_create' %}">Yeni Mesaj</a></li>
+                            </ul>
+                        </li>
+                        
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle position-relative" href="#" id="notificationDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-bell me-1"></i>Bildirimler
                                 {% if unread_notifications > 0 %}
-                                    <span class="badge bg-danger position-absolute top-0 start-100 translate-middle notification-badge" style="font-size: 0.6rem;">{{ unread_notifications }}</span>
+                                    <span class="badge bg-danger ms-1">{{ unread_notifications }}</span>
                                 {% endif %}
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="width: 320px; max-height: 400px; overflow-y: auto;">
@@ -299,29 +287,30 @@
                                 {% endif %}
                             </ul>
                         </li>
-                        
-                        <!-- Mesajlar -->
-                        <li class="nav-item">
-                            <a class="nav-link position-relative" href="{% url 'core:message_list' %}">
-                                <i class="fas fa-envelope"></i>
-                                {% if unread_message_count > 0 %}
-                                    <span class="badge bg-danger position-absolute top-0 start-100 translate-middle" style="font-size: 0.6rem;">{{ unread_message_count }}</span>
-                                {% endif %}
-                            </a>
-                        </li>
                     {% endif %}
                 </ul>
+                
+                <!-- Sağ taraf - Yeni Kalıp butonu ve Kullanıcı menüsü -->
                 <ul class="navbar-nav">
                     {% if user.is_authenticated %}
-                        <!-- Kullanıcı -->
+                        <!-- Yeni Kalıp butonu (sadece işitme merkezleri için) -->
+                        {% if user.center and not user.is_staff and not user.is_superuser %}
+                            <li class="nav-item me-2">
+                                <a class="btn btn-primary" href="{% url 'mold:mold_create' %}">
+                                    <i class="fas fa-plus me-1"></i>Yeni Kalıp
+                                </a>
+                            </li>
+                        {% endif %}
+                        
+                        <!-- Kullanıcı dropdown menüsü -->
                         <li class="nav-item dropdown">
                             <a class="nav-link d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
                                 <i class="fas fa-user-circle fs-5"></i>
                                 <span class="d-none d-md-inline ms-2">
                                     {% if user.producer %}
-                                        {{ user.producer.company_name|truncatechars:12 }}
+                                        {{ user.producer.company_name|truncatechars:15 }}
                                     {% elif user.center %}
-                                        {{ user.center.name|truncatechars:12 }}
+                                        {{ user.center.name|truncatechars:15 }}
                                     {% else %}
                                         {{ user.username }}
                                     {% endif %}
@@ -330,31 +319,37 @@
                             <ul class="dropdown-menu dropdown-menu-end shadow border-0">
                                 <li class="dropdown-header">
                                     <small class="text-muted">
-                                        {% if user.producer %}Üretici{% elif user.center %}İşitme Merkezi{% elif user.is_staff %}Yönetici{% endif %}
+                                        {% if user.producer %}Üretici Merkez{% elif user.center %}İşitme Merkezi{% elif user.is_staff %}Sistem Yöneticisi{% endif %}
                                     </small>
                                 </li>
+                                <li><hr class="dropdown-divider"></li>
+                                
                                 {% if user.producer %}
-                                    <li><a class="dropdown-item" href="{% url 'producer:profile' %}"><i class="fas fa-user me-2"></i>Profil</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'producer:profile' %}"><i class="fas fa-user me-2"></i>Profil Ayarları</a></li>
                                     <li><a class="dropdown-item" href="{% url 'producer:network_list' %}"><i class="fas fa-network-wired me-2"></i>Ağ Yönetimi</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item text-danger" href="{% url 'producer:logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Çıkış</a></li>
                                 {% elif user.center %}
-                                    <li><a class="dropdown-item" href="{% url 'center:profile' %}"><i class="fas fa-user me-2"></i>Profil</a></li>
-                                    <li><a class="dropdown-item" href="{% url 'core:subscription_dashboard' %}"><i class="fas fa-credit-card me-2"></i>Abonelik</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item text-danger" href="{% url 'account_logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Çıkış</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'center:profile' %}"><i class="fas fa-user me-2"></i>Profil Ayarları</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'core:subscription_dashboard' %}"><i class="fas fa-credit-card me-2"></i>Abonelik Yönetimi</a></li>
                                 {% else %}
-                                    <li><a class="dropdown-item" href="{% url 'center:profile' %}"><i class="fas fa-user me-2"></i>Profil</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item text-danger" href="{% url 'account_logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Çıkış</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'center:profile' %}"><i class="fas fa-user me-2"></i>Profil Ayarları</a></li>
+                                {% endif %}
+                                
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'core:help_center' %}"><i class="fas fa-question-circle me-2"></i>Yardım Merkezi</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                
+                                {% if user.producer %}
+                                    <li><a class="dropdown-item text-danger" href="{% url 'producer:logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Çıkış Yap</a></li>
+                                {% else %}
+                                    <li><a class="dropdown-item text-danger" href="{% url 'account_logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Çıkış Yap</a></li>
                                 {% endif %}
                             </ul>
                         </li>
                     {% else %}
-                        <!-- Guest User Actions -->
+                        <!-- Misafir kullanıcılar için kayıt ve giriş -->
                         <li class="nav-item me-2">
                             <div class="dropdown">
-                                <button class="btn btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-label="Kayıt seçenekleri menüsü" title="Kayıt türü seçin">
+                                <button class="btn btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
                                     <i class="fas fa-user-plus me-1"></i>Kayıt Ol
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0">
@@ -385,26 +380,9 @@
                             </div>
                         </li>
                         <li class="nav-item">
-                            <div class="dropdown">
-                                <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-label="Giriş seçenekleri menüsü" title="Giriş türü seçin">
-                                    <i class="fas fa-sign-in-alt me-1"></i>Giriş Yap
-                                </button>
-                                <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0">
-                                    <li>
-                                        <a class="dropdown-item py-2" href="{% url 'account_login' %}">
-                                            <i class="fas fa-clinic-medical me-2 text-primary"></i>
-                                            İşitme Merkezi
-                                        </a>
-                                    </li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li>
-                                        <a class="dropdown-item py-2" href="{% url 'producer:login' %}">
-                                            <i class="fas fa-industry me-2 text-success"></i>
-                                            Üretici Merkez
-                                        </a>
-                                    </li>
-                                </ul>
-                            </div>
+                            <a class="btn btn-light" href="{% url 'account_login' %}">
+                                <i class="fas fa-sign-in-alt me-1"></i>Giriş Yap
+                            </a>
                         </li>
                     {% endif %}
                 </ul>
