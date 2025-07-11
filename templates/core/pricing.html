@@ -8,7 +8,7 @@
 <style>
 .pricing-hero {
     background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-700) 50%, var(--primary-800) 100%);
-    color: white;
+    color: black;
     padding: 4rem 0 6rem;
     position: relative;
     overflow: hidden;
@@ -144,7 +144,7 @@
 .btn-request-plan {
     background: var(--gradient-primary);
     border: none;
-    color: white;
+    color: black;
     padding: 1rem 2rem;
     border-radius: 12px;
     font-weight: 600;
@@ -186,7 +186,7 @@
     height: 60px;
     border-radius: 50%;
     background: var(--gradient-primary);
-    color: white;
+    color: black;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -204,6 +204,11 @@
     background: var(--primary-300);
     z-index: 1;
 }
+
+.badge.bg-white.bg-opacity-20 {
+    color: black !important;
+}
+
 </style>
 {% endblock %}
 
@@ -212,10 +217,10 @@
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-lg-8 text-center">
-                <h1 class="display-3 fw-bold mb-4">Fiyatlandırma Planları</h1>
-                <p class="lead">İhtiyacınıza uygun planı seçin ve talebinizi gönderin</p>
+                <h1 class="display-3 fw-bold mb-4 text-black">Fiyatlandırma Planları</h1>
+                <p class="lead text-black">İhtiyacınıza uygun planı seçin ve talebinizi gönderin</p>
                 <div class="mt-4">
-                    <span class="badge bg-white bg-opacity-20 text-white px-4 py-2 rounded-pill">
+                    <span class="badge bg-white bg-opacity-20 text-black px-4 py-2 rounded-pill">
                         <i class="fas fa-shield-alt me-2"></i>
                         Manuel Onay Sistemi
                     </span>

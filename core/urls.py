@@ -21,9 +21,8 @@ urlpatterns = [
     path('subscription/requests/', views.subscription_requests, name='subscription_requests'),
     path('subscription/requests/<int:request_id>/cancel/', views.subscription_request_cancel, name='subscription_request_cancel'),
     
-    # Admin Dashboard - Multiple URL aliases for better UX
-    path('admin-panel/', views.admin_dashboard, name='admin_dashboard'),
-    path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard_alt'),
+    # Admin Dashboard
+    path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard'),
     
     # Admin Abonelik Yönetimi
     path('admin/subscription-requests/<int:request_id>/approve/', views.admin_approve_subscription_request, name='admin_approve_subscription_request'),

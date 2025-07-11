@@ -418,20 +418,18 @@ def admin_dashboard(request):
         created_at__month=current_month
     ).count()
     
-    # Sorunlu durumlar - DEBUG VE DOĞRU STATUS KONTROLÜ
-    from django.db.models import Q
-    
-    # Debug: Mevcut sipariş statuslarını kontrol et
-    actual_order_statuses = list(ProducerOrder.objects.values_list('status', flat=True).distinct())
-    print(f"DEBUG - Mevcut sipariş statusları: {actual_order_statuses}")
-    
-    # Beklemede olan siparişler (sadece gerçekte var olan statuslar)
-    pending_statuses = [s for s in ['pending', 'received', 'designing'] if s in actual_order_statuses]
-    pending_orders = ProducerOrder.objects.filter(status__in=pending_statuses).count() if pending_statuses else 0
-    
-    # Debug: Mevcut kalıp statuslarını kontrol et  
-    actual_mold_statuses = list(EarMold.objects.values_list('status', flat=True).distinct())
-    print(f"DEBUG - Mevcut kalıp statusları: {actual_mold_statuses}")
+    # Sorunlu durumlar - STATUS KONTROLÜ
+    try:
+        # Mevcut sipariş statuslarını kontrol et
+        actual_order_statuses = list(ProducerOrder.objects.values_list('status', flat=True).distinct())
+        # logger.debug(f"Mevcut sipariş statusları: {actual_order_statuses}")
+        
+        # Kalıp statuslarını da kontrol edelim
+        actual_mold_statuses = list(EarMold.objects.values_list('status', flat=True).distinct())
+        # logger.debug(f"Mevcut kalıp statusları: {actual_mold_statuses}")
+    except Exception as e:
+        # logger.error(f"Error fetching statuses for debug: {e}")
+        pass # Debug printlerini kaldırdık
     
     # Revizyon bekleyen kalıplar - aktif revizyon talepleri olan kalıpları say
     from mold.models import RevisionRequest
@@ -821,68 +819,8 @@ def delete_notification(request, notification_id):
     
     return redirect('center:notification_list')
 
-@staff_member_required
-def admin_message_list(request):
-    from .models import Center
-    
-    # Admin kullanıcıya Center yoksa otomatik oluştur
-    if not hasattr(request.user, 'center'):
-        Center.objects.create(
-            user=request.user,
-            name='Ana Merkez',
-            address='-',
-            phone='-',
-            is_active=True
-        )
-    
-    # Tüm mesajları getir
-    # CenterMessage kaldırıldı - Merkezi mesajlaşma sistemi kullanılıyor
-    messages = []
-    
-    # Filtreleme
-    filter_type = request.GET.get('filter')
-    if filter_type == 'unread':
-        messages = messages.filter(is_read=False)
-    elif filter_type == 'archived':
-        messages = messages.filter(is_archived=True)
-    
-    # Arama
-    search_query = request.GET.get('search')
-    if search_query:
-        messages = messages.filter(
-            models.Q(subject__icontains=search_query) |
-            models.Q(message__icontains=search_query) |
-            models.Q(sender__name__icontains=search_query) |
-            models.Q(receiver__name__icontains=search_query)
-        )
-    
-    return render(request, 'center/admin_message_list.html', {
-        'messages': messages,
-        'filter_type': filter_type,
-        'search_query': search_query
-    })
-
-@staff_member_required
-def archive_message(request, message_id):
-    messages.error(request, 'Bu özellik artık kullanılmıyor. Merkezi mesajlaşma sistemi kullanın.')
-    return redirect('center:admin_message_list')
-
-@staff_member_required
-def unarchive_message(request, message_id):
-    messages.error(request, 'Bu özellik artık kullanılmıyor. Merkezi mesajlaşma sistemi kullanın.')
-    return redirect('center:admin_message_list')
-
-@staff_member_required
-def delete_message(request, message_id):
-    messages.error(request, 'Bu özellik artık kullanılmıyor. Merkezi mesajlaşma sistemi kullanın.')
-    return redirect('center:admin_message_list')
-
-@staff_member_required
-def admin_message_detail(request, message_id):
-    messages.error(request, 'Bu özellik artık kullanılmıyor. Merkezi mesajlaşma sistemi kullanın.')
-    return redirect('center:admin_message_list')
-    
-    # Bu fonksiyon artık kullanılmıyor
+# Kullanılmayan message view'ları kaldırıldı
+# Merkezi mesajlaşma sistemi kullanılıyor
 
 @staff_member_required
 def admin_center_list(request):

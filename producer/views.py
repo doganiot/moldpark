@@ -1555,78 +1555,53 @@ def revision_request_respond(request, request_id):
 @login_required
 @producer_required
 def revision_start_work(request, request_id):
-    """Revizyon çalışmasını başlat"""
-    print(f"DEBUG: revision_start_work called with request_id={request_id}")
-    print(f"DEBUG: request.method={request.method}")
-    print(f"DEBUG: request.user={request.user}")
+    """Revizyon işine başla"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Sadece POST method desteklenir'}, status=405)
     
-    if request.method == 'POST':
-        try:
-            from mold.models import RevisionRequest
-            
-            producer_center = get_object_or_404(Producer, user=request.user)
-            print(f"DEBUG: producer_center={producer_center}")
-            
-            revision_request = get_object_or_404(
-                RevisionRequest,
-                id=request_id,
-                modeled_mold__ear_mold__producer_orders__producer=producer_center
-            )
-            print(f"DEBUG: revision_request={revision_request}")
-            
-            # Sadece accepted durumunda çalışma başlatılabilir
-            if revision_request.status != 'accepted':
-                print(f"DEBUG: Invalid status: {revision_request.status}")
-                return JsonResponse({
-                    'success': False,
-                    'message': 'Bu revizyon talebi için çalışma başlatılamaz.'
-                })
-            
-            # Çalışmayı başlat
-            revision_request.status = 'in_progress'
-            revision_request.work_started_at = timezone.now()
-            revision_request.save()
-            
-            # Süreç adımı ekle - doğru parametreler
-            revision_request.add_process_step(
-                'Revizyon çalışması başlatıldı',
-                'Üretici revizyon çalışmasına başladı',
-                request.user
-            )
-            
-            # Bildirim gönder
-            try:
-                from core.utils import send_notification
-                send_notification(
-                    revision_request.center.user,
-                    f'Revizyon Çalışması Başladı',
-                    f'#{revision_request.id} numaralı revizyon talebiniz için çalışma başlatıldı.',
-                    'info'
-                )
-            except Exception:
-                pass
-            
-            # Kalıp detay sayfasına yönlendirme URL'si
-            mold_detail_url = f"/producer/molds/{revision_request.modeled_mold.ear_mold.id}/"
-            
-            print(f"DEBUG: Success, redirecting to {mold_detail_url}")
-            return JsonResponse({
-                'success': True,
-                'message': 'Revizyon çalışması başlatıldı. Kalıp sayfasına yönlendiriliyorsunuz.',
-                'redirect_url': mold_detail_url
-            })
-            
-        except Exception as e:
-            print(f"DEBUG: Exception occurred: {e}")
-            return JsonResponse({
-                'success': False,
-                'message': f'Hata: {str(e)}'
-            })
+    try:
+        producer_center = request.user.producer
+        if not producer_center:
+            return JsonResponse({'error': 'Üretici merkez bulunamadı'}, status=404)
+        
+        revision_request = get_object_or_404(RevisionRequest, 
+                                           id=request_id,
+                                           modeled_mold__ear_mold__producer_orders__producer=producer_center)
+        
+        if revision_request.status != 'accepted':
+            return JsonResponse({'error': f'Geçersiz durum: {revision_request.status}'}, status=400)
+        
+        # Çalışmayı başlat
+        revision_request.status = 'in_progress'
+        revision_request.work_started_at = timezone.now()
+        revision_request.save(update_fields=['status', 'work_started_at'])
+        
+        # Bildirim gönder
+        notify.send(
+            sender=request.user,
+            recipient=revision_request.center.user,
+            verb='revizyon çalışması başladı',
+            description=f'{revision_request.title} revizyon talebi için çalışma başlatıldı.'
+        )
+        
+        # Başarılı yanıt
+        mold_detail_url = f"/producer/molds/{revision_request.modeled_mold.ear_mold.id}/"
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Revizyon çalışması başarıyla başlatıldı.',
+            'redirect_url': mold_detail_url
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Hata: {str(e)}'
+        })
     
-    print(f"DEBUG: Invalid request method: {request.method}")
     return JsonResponse({
         'success': False,
-        'message': 'Geçersiz istek.'
+        'message': 'Geçersiz istek'
     })
 
 

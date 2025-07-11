@@ -6,10 +6,10 @@ from django.views.generic import TemplateView
 from django.contrib.auth.decorators import user_passes_test, login_required
 from center.models import Center
 from mold.models import EarMold
+from producer.models import Producer, ProducerOrder, ProducerNetwork
 from accounts.forms import CustomSignupForm
 from django.db.models import Q, Count, Avg
 from django.contrib.auth.models import User
-from producer.models import Producer
 from notifications.signals import notify
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_http_methods
@@ -21,6 +21,8 @@ import logging
 from .smart_notifications import SmartNotificationManager
 from .utils import get_user_notifications, get_unread_count, mark_all_as_read, send_notification
 from django.core.paginator import Paginator
+
+logger = logging.getLogger(__name__)
 
 def home(request):
     # Fiyatlandırma planlarını al
@@ -50,7 +52,7 @@ def home(request):
         top_producers = sorted(producer_ratings, key=lambda x: x['avg_rating'], reverse=True)[:10]
         
     except Exception as e:
-        print(f"DEBUG - Üretici puanları alınırken hata: {e}")
+        logger.error(f"Üretici puanları alınırken hata: {e}")
         top_producers = []
     
     if request.user.is_authenticated:
@@ -117,55 +119,32 @@ class PrivacyView(TemplateView):
 
 @user_passes_test(lambda u: u.is_superuser)
 def admin_dashboard(request):
-    # Import Producer modeli burada yapalım
-    try:
-        from producer.models import Producer, ProducerOrder, ProducerNetwork
-        producers = Producer.objects.all()
-        
-        # MoldPark üretim merkezini bul
-        moldpark_producer = Producer.objects.filter(
-            company_name='MoldPark Üretim Merkezi'
-        ).first()
-        
-        # DEBUG: Print etmek için
-        print(f"DEBUG - MoldPark Producer: {moldpark_producer}")
-        print(f"DEBUG - Producer count: {producers.count()}")
-        if moldpark_producer:
-            print(f"DEBUG - MoldPark Company: {moldpark_producer.company_name}")
-        
-        # MoldPark siparişlerini al
-        moldpark_orders = []
-        if moldpark_producer:
-            moldpark_orders = ProducerOrder.objects.filter(
-                producer=moldpark_producer
-            ).select_related('center', 'ear_mold').order_by('-created_at')[:10]
-        
-        # Sonlandırılan merkez ağları (terminated)
-        terminated_networks = ProducerNetwork.objects.filter(
-            status='terminated'
-        ).select_related('producer', 'center').order_by('-terminated_at')[:10]
-        
-        # Otomatik MoldPark'a geçen merkezler
-        auto_assigned_centers = ProducerNetwork.objects.filter(
-            auto_assigned=True,
-            status='active'
-        ).select_related('producer', 'center').order_by('-activated_at')[:10]
-            
-    except ImportError as e:
-        print(f"DEBUG - Import Error: {e}")
-        producers = []
-        moldpark_producer = None
-        moldpark_orders = []
-        terminated_networks = []
-        auto_assigned_centers = []
-    except Exception as e:
-        print(f"DEBUG - Other Error: {e}")
-        producers = []
-        moldpark_producer = None
-        moldpark_orders = []
-        terminated_networks = []
-        auto_assigned_centers = []
+    # Ana modeller artık başta import edildi
+    producers = Producer.objects.all()
     
+    # MoldPark üretim merkezini bul
+    moldpark_producer = Producer.objects.filter(
+        company_name='MoldPark Üretim Merkezi'
+    ).first()
+    
+    # MoldPark siparişlerini al
+    moldpark_orders = []
+    if moldpark_producer:
+        moldpark_orders = ProducerOrder.objects.filter(
+            producer=moldpark_producer
+        ).select_related('center', 'ear_mold').order_by('-created_at')[:10]
+    
+    # Sonlandırılan merkez ağları (terminated)
+    terminated_networks = ProducerNetwork.objects.filter(
+        status='terminated'
+    ).select_related('producer', 'center').order_by('-terminated_at')[:10]
+    
+    # Otomatik MoldPark'a geçen merkezler
+    auto_assigned_centers = ProducerNetwork.objects.filter(
+        auto_assigned=True,
+        status='active'
+    ).select_related('producer', 'center').order_by('-activated_at')[:10]
+            
     centers = Center.objects.all()
     molds = EarMold.objects.all()
     # CenterMessage kaldırıldı - Merkezi mesajlaşma sistemi kullanılıyor
@@ -1131,7 +1110,7 @@ def help_center(request):
     try:
         return render(request, 'core/help_center.html')
     except Exception as e:
-        print(f"DEBUG - Help Center Error: {e}")
+        logger.error(f"Help Center Error: {e}")
         messages.error(request, "Yardım merkezi sayfasına erişilirken bir hata oluştu.")
         return redirect('core:home')
 

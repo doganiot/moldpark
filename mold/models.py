@@ -22,9 +22,6 @@ class EarMold(models.Model):
         ('itc', 'ITC'),
     )
     
-    # Geriye dönük uyumluluk için
-    MOLD_TYPES = MOLD_TYPE_CHOICES
-    
     STATUS_CHOICES = (
         ('waiting', 'Bekliyor'),
         ('processing', 'İşleniyor'),

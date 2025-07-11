@@ -68,52 +68,55 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <!-- Başlık -->
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2>
-                    <i class="fas fa-envelope me-2"></i>
-                    Mesajlar
-                </h2>
-                <a href="{% url 'core:message_create' %}" class="btn btn-primary">
-                    <i class="fas fa-plus me-2"></i>Yeni Mesaj
-                </a>
-            </div>
-
+<div class="container py-4">
+    <div class="card">
+        <div class="card-body">
             <!-- İstatistikler -->
-            <div class="message-stats">
-                <div class="row">
-                    <div class="col-md-3">
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="message-stats">
                         <div class="stat-item">
-                            <span class="stat-number">{{ stats.total_received }}</span>
-                            <span class="stat-label">Gelen Mesaj</span>
+                            <h5 class="mb-0">{{ stats.total_received }}</h5>
+                            <small>Gelen Mesaj</small>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                </div>
+                <div class="col-md-3">
+                    <div class="message-stats">
                         <div class="stat-item">
-                            <span class="stat-number">{{ stats.unread_received }}</span>
-                            <span class="stat-label">Okunmamış</span>
+                            <h5 class="mb-0">{{ stats.unread_received }}</h5>
+                            <small>Okunmamış</small>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                </div>
+                <div class="col-md-3">
+                    <div class="message-stats">
                         <div class="stat-item">
-                            <span class="stat-number">{{ stats.total_sent }}</span>
-                            <span class="stat-label">Gönderilen</span>
+                            <h5 class="mb-0">{{ stats.total_sent }}</h5>
+                            <small>Gönderilen</small>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                </div>
+                <div class="col-md-3">
+                    <div class="message-stats">
                         <div class="stat-item">
-                            <span class="stat-number">{{ stats.urgent_messages }}</span>
-                            <span class="stat-label">Acil Mesaj</span>
+                            <h5 class="mb-0">{{ stats.urgent_messages }}</h5>
+                            <small>Acil Mesaj</small>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Filtreler -->
-            <div class="message-filter">
+            <!-- Yeni Mesaj Butonu -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="mb-0">Mesajlar</h5>
+                <a href="{% url 'core:message_create' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Yeni Mesaj
+                </a>
+            </div>
+
+            <!-- Filtreleme -->
+            <div class="mb-4">
                 <form method="get" class="row g-3 align-items-end">
                     <div class="col-md-4">
                         <label class="form-label">Mesaj Türü</label>
@@ -178,17 +181,19 @@
                                         <i class="fas fa-arrow-right me-1"></i>
                                         {% if message.is_broadcast %}
                                             Toplu Mesaj
-                                        {% elif message.recipient %}
-                                            {{ message.recipient.get_full_name|default:message.recipient.username }}
                                         {% else %}
-                                            Alıcı Bulunamadı
+                                            {% if message.recipient %}
+                                                {% firstof message.recipient.get_full_name message.recipient.username "Silinmiş Kullanıcı" %}
+                                            {% else %}
+                                                Silinmiş Kullanıcı
+                                            {% endif %}
                                         {% endif %}
                                     {% else %}
                                         <i class="fas fa-arrow-left me-1"></i>
                                         {% if message.sender %}
-                                            {{ message.sender.get_full_name|default:message.sender.username }}
+                                            {% firstof message.sender.get_full_name message.sender.username "Silinmiş Kullanıcı" %}
                                         {% else %}
-                                            Gönderen Bulunamadı
+                                            Silinmiş Kullanıcı
                                         {% endif %}
                                     {% endif %}
                                 </small>
