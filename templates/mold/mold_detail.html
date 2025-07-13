@@ -135,8 +135,93 @@
                     
                     {% if mold.notes %}
                     <div class="mt-3">
-                        <strong>Notlar:</strong>
+                        <h6>Notlar</h6>
                         <p class="text-muted">{{ mold.notes }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- 3D Model Görselleştirme -->
+                    {% if mold.scan_file %}
+                    <div class="mt-4 p-3 bg-light rounded">
+                        <h6 class="mb-3">
+                            <i class="fas fa-cube me-2 text-primary"></i>
+                            3D Model Dosyası
+                        </h6>
+                        <div class="row align-items-center">
+                            <div class="col-md-3">
+                                {% if mold.scan_thumbnail %}
+                                    <img src="{{ mold.scan_thumbnail.url }}" 
+                                         class="img-thumbnail" 
+                                         style="width: 120px; height: 120px; object-fit: cover;"
+                                         alt="3D Önizleme">
+                                {% else %}
+                                    <div class="bg-white border rounded d-flex align-items-center justify-content-center" 
+                                         style="width: 120px; height: 120px;">
+                                        <div class="text-center">
+                                            <i class="fas fa-cube fa-2x text-muted mb-2"></i>
+                                            <div class="small text-muted">Önizleme Yok</div>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <div class="row g-2">
+                                    {% if mold.file_format %}
+                                    <div class="col-6">
+                                        <small class="text-muted">Format:</small>
+                                        <div class="fw-bold">{{ mold.file_format|upper }}</div>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% if mold.model_complexity %}
+                                    <div class="col-6">
+                                        <small class="text-muted">Karmaşıklık:</small>
+                                        <div>
+                                            {% if mold.model_complexity == 'low' %}
+                                                <span class="badge bg-success">Düşük</span>
+                                            {% elif mold.model_complexity == 'medium' %}
+                                                <span class="badge bg-warning">Orta</span>
+                                            {% elif mold.model_complexity == 'high' %}
+                                                <span class="badge bg-danger">Yüksek</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    
+                                    {% if mold.vertex_count %}
+                                    <div class="col-6">
+                                        <small class="text-muted">Vertex:</small>
+                                        <div>{{ mold.vertex_count|floatformat:0 }}</div>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% if mold.polygon_count %}
+                                    <div class="col-6">
+                                        <small class="text-muted">Polygon:</small>
+                                        <div>{{ mold.polygon_count|floatformat:0 }}</div>
+                                    </div>
+                                    {% endif %}
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="d-grid gap-2">
+                                    <a href="{% url 'mold:model_3d_viewer' 'scan' mold.id %}" 
+                                       class="btn btn-primary">
+                                        <i class="fas fa-cube me-1"></i>3D Görüntüle
+                                    </a>
+                                    <a href="{% url 'mold:model_download' 'scan' mold.id %}" 
+                                       class="btn btn-outline-secondary">
+                                        <i class="fas fa-download me-1"></i>İndir
+                                    </a>
+                                    {% if not mold.scan_thumbnail %}
+                                    <button class="btn btn-outline-info btn-sm" 
+                                            onclick="generateThumbnail('scan', {{ mold.id }})">
+                                        <i class="fas fa-camera me-1"></i>Önizleme Oluştur
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     {% endif %}
                 </div>
@@ -268,25 +353,55 @@
                             <h6>İşlenmiş Modeller</h6>
                             {% if mold.modeled_files.exists %}
                                 {% for model in mold.modeled_files.all %}
-                                <div class="d-flex align-items-center mb-2 p-2 bg-light rounded">
-                                    <i class="fas fa-file-download fa-2x text-success me-3"></i>
-                                    <div class="flex-grow-1">
-                                        <a href="{{ model.file.url }}" class="text-decoration-none fw-medium" download>
-                                            {{ model.file.name|cut:"modeled/"|truncatechars:25 }}
-                                        </a>
-                                        <br>
-                                        <small class="text-muted">
-                                            <span class="badge {% if model.status == 'approved' %}bg-success{% elif model.status == 'rejected' %}bg-danger{% else %}bg-warning text-dark{% endif %} me-1">
-                                                {% if model.status == 'approved' %}
-                                                    <i class="fas fa-check me-1"></i>
+                                <div class="card mb-3 border-0 shadow-sm">
+                                    <div class="card-body p-3">
+                                        <div class="row align-items-center">
+                                            <div class="col-3">
+                                                {% if model.model_thumbnail %}
+                                                    <img src="{{ model.model_thumbnail.url }}" 
+                                                         class="img-thumbnail" 
+                                                         style="width: 60px; height: 60px; object-fit: cover;"
+                                                         alt="Model Önizleme">
+                                                {% else %}
+                                                    <div class="bg-light border rounded d-flex align-items-center justify-content-center" 
+                                                         style="width: 60px; height: 60px;">
+                                                        <i class="fas fa-cube text-muted"></i>
+                                                    </div>
                                                 {% endif %}
-                                                {{ model.get_status_display }}
-                                            </span>
-                                            {{ model.created_at|naturaltime }}
-                                        </small>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="fw-medium">
+                                                    {{ model.file.name|cut:"modeled/"|truncatechars:20 }}
+                                                </div>
+                                                <div class="small text-muted">
+                                                    <span class="badge {% if model.status == 'approved' %}bg-success{% elif model.status == 'rejected' %}bg-danger{% else %}bg-warning text-dark{% endif %} me-1">
+                                                        {{ model.get_status_display }}
+                                                    </span>
+                                                    {{ model.created_at|date:"d.m.Y" }}
+                                                </div>
+                                                {% if model.file_format %}
+                                                <div class="small text-info">
+                                                    Format: {{ model.file_format|upper }}
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="col-3">
+                                                <div class="d-grid gap-1">
+                                                    <a href="{% url 'mold:model_3d_viewer' 'modeled' model.id %}" 
+                                                       class="btn btn-primary btn-sm">
+                                                        <i class="fas fa-cube"></i>
+                                                    </a>
+                                                    <a href="{% url 'mold:model_download' 'modeled' model.id %}" 
+                                                       class="btn btn-outline-secondary btn-sm">
+                                                        <i class="fas fa-download"></i>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
                                         {% if model.notes %}
-                                        <br>
-                                        <small class="text-info">{{ model.notes|truncatechars:50 }}</small>
+                                        <div class="mt-2 pt-2 border-top">
+                                            <small class="text-muted">{{ model.notes|truncatechars:100 }}</small>
+                                        </div>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -597,4 +712,76 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function generateThumbnail(modelType, modelId) {
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+                     document.querySelector('meta[name=csrf-token]')?.getAttribute('content');
+    
+    if (!csrfToken) {
+        alert('CSRF token bulunamadı. Sayfayı yenileyin.');
+        return;
+    }
+    
+    // Button'u disable et
+    const button = event.target;
+    const originalText = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Oluşturuluyor...';
+    
+    fetch(`/mold/generate-thumbnail/${modelType}/${modelId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Önizleme başarıyla oluşturuldu!');
+            // Sayfayı yenile
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            alert('Önizleme oluşturulurken hata: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Thumbnail generation error:', error);
+        alert('Önizleme oluşturulurken bir hata oluştu.');
+    })
+    .finally(() => {
+        // Button'u tekrar enable et
+        button.disabled = false;
+        button.innerHTML = originalText;
+    });
+}
+
+// 3D model önizlemelerine hover efekti ekle
+document.addEventListener('DOMContentLoaded', function() {
+    const thumbnails = document.querySelectorAll('img[alt*="Önizleme"]');
+    thumbnails.forEach(img => {
+        img.addEventListener('mouseenter', function() {
+            this.style.transform = 'scale(1.05)';
+            this.style.transition = 'transform 0.3s ease';
+        });
+        
+        img.addEventListener('mouseleave', function() {
+            this.style.transform = 'scale(1)';
+        });
+        
+        // Thumbnail'e tıklandığında 3D viewer'ı aç
+        img.addEventListener('click', function() {
+            const viewerLink = this.closest('.row, .card-body')?.querySelector('a[href*="3d-viewer"]');
+            if (viewerLink) {
+                window.open(viewerLink.href, '_blank');
+            }
+        });
+        
+        img.style.cursor = 'pointer';
+    });
+});
+</script>
 {% endblock %} 

@@ -58,6 +58,7 @@
                         <table class="table table-hover mb-0">
                             <thead class="table-light">
                                 <tr>
+                                    <th>Önizleme</th>
                                     <th>ID</th>
                                     <th>Hasta</th>
                                     <th>Tip</th>
@@ -71,6 +72,62 @@
                             <tbody>
                                 {% for mold in molds %}
                                 <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="position-relative me-2">
+                                                {% if mold.scan_thumbnail %}
+                                                    <img src="{{ mold.scan_thumbnail.url }}" 
+                                                         class="rounded shadow-sm thumbnail-preview" 
+                                                         style="width: 60px; height: 60px; object-fit: cover; cursor: pointer;"
+                                                         alt="3D Önizleme"
+                                                         data-bs-toggle="tooltip" 
+                                                         title="Tıklayarak büyüt"
+                                                         onclick="showThumbnailModal('{{ mold.scan_thumbnail.url }}', '{{ mold.patient_name }}')">
+                                                    <div class="thumbnail-overlay">
+                                                        <i class="fas fa-search-plus text-white"></i>
+                                                    </div>
+                                                {% elif mold.scan_file %}
+                                                    <div class="bg-gradient-primary rounded shadow-sm d-flex align-items-center justify-content-center" 
+                                                         style="width: 60px; height: 60px;">
+                                                        <i class="fas fa-cube text-white" style="font-size: 24px;"></i>
+                                                    </div>
+                                                    <small class="badge bg-info position-absolute top-0 end-0" style="font-size: 8px;">3D</small>
+                                                {% else %}
+                                                    <div class="bg-light rounded shadow-sm d-flex align-items-center justify-content-center" 
+                                                         style="width: 60px; height: 60px;">
+                                                        <i class="fas fa-file text-muted" style="font-size: 24px;"></i>
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            
+                                            <div class="d-flex flex-column">
+                                                {% if mold.scan_file %}
+                                                    <a href="{% url 'mold:model_3d_viewer' 'scan' mold.id %}" 
+                                                       class="btn btn-sm btn-outline-info mb-1" 
+                                                       title="3D Görüntüle">
+                                                        <i class="fas fa-cube me-1"></i>3D
+                                                    </a>
+                                                {% endif %}
+                                                
+                                                {% if not mold.scan_thumbnail and mold.scan_file %}
+                                                    <button class="btn btn-sm btn-outline-secondary" 
+                                                            onclick="generateThumbnail({{ mold.id }}, 'scan')"
+                                                            title="Önizleme Oluştur">
+                                                        <i class="fas fa-image me-1"></i>Önizleme
+                                                    </button>
+                                                {% endif %}
+                                                
+                                                <!-- Model dosyası varsa -->
+                                                {% if mold.modeled_mold and mold.modeled_mold.model_file %}
+                                                    <a href="{% url 'mold:model_3d_viewer' 'model' mold.modeled_mold.id %}" 
+                                                       class="btn btn-sm btn-outline-success mb-1" 
+                                                       title="Üretilen Model">
+                                                        <i class="fas fa-check-circle me-1"></i>Model
+                                                    </a>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </td>
                                     <td>{{ mold.id }}</td>
                                     <td>
                                         <a href="{% url 'mold:mold_detail' mold.id %}" class="text-decoration-none">
@@ -109,11 +166,15 @@
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="8" class="text-center py-4">
-                                        <p class="text-muted mb-0">Henüz kalıp yok.</p>
-                                        <a href="{% url 'mold:mold_create' %}" class="btn btn-primary mt-3">
-                                            <i class="fas fa-plus me-2"></i>Yeni Kalıp Oluştur
-                                        </a>
+                                    <td colspan="9" class="text-center py-4">
+                                        <div class="d-flex flex-column align-items-center">
+                                            <i class="fas fa-cube text-muted mb-3" style="font-size: 48px;"></i>
+                                            <p class="text-muted mb-0">Henüz kalıp yok.</p>
+                                            <p class="text-muted small">İlk kalıbınızı oluşturun ve 3D önizlemelerini görün!</p>
+                                            <a href="{% url 'mold:mold_create' %}" class="btn btn-primary mt-3">
+                                                <i class="fas fa-plus me-2"></i>Yeni Kalıp Oluştur
+                                            </a>
+                                        </div>
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -166,4 +227,147 @@
     </div>
     {% endif %}
 </div>
+
+<!-- Thumbnail Modal -->
+<div class="modal fade" id="thumbnailModal" tabindex="-1" aria-labelledby="thumbnailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="thumbnailModalLabel">3D Model Önizlemesi</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="modalThumbnailImage" src="" class="img-fluid rounded shadow" alt="3D Model Önizlemesi">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                <button type="button" class="btn btn-primary" onclick="openFullViewer()">3D Görüntüleyicide Aç</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.thumbnail-preview {
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.thumbnail-preview:hover {
+    transform: scale(1.05);
+    border-color: #007bff;
+    box-shadow: 0 4px 15px rgba(0,123,255,0.3) !important;
+}
+
+.thumbnail-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    border-radius: 0.375rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.thumbnail-preview:hover + .thumbnail-overlay,
+.thumbnail-overlay:hover {
+    opacity: 1;
+}
+
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+}
+
+.position-relative:hover .badge {
+    transform: scale(1.1);
+    transition: transform 0.2s ease;
+}
+</style>
+
+<script>
+let currentThumbnailUrl = '';
+let currentMoldId = '';
+
+function showThumbnailModal(thumbnailUrl, patientName) {
+    document.getElementById('modalThumbnailImage').src = thumbnailUrl;
+    document.getElementById('thumbnailModalLabel').textContent = patientName + ' - 3D Model Önizlemesi';
+    currentThumbnailUrl = thumbnailUrl;
+    
+    const modal = new bootstrap.Modal(document.getElementById('thumbnailModal'));
+    modal.show();
+}
+
+function openFullViewer() {
+    // Modal'ı kapat ve 3D viewer'a yönlendir
+    const modal = bootstrap.Modal.getInstance(document.getElementById('thumbnailModal'));
+    modal.hide();
+    
+    // Thumbnail URL'sinden mold ID'sini çıkar ve 3D viewer'a git
+    // Bu daha gelişmiş bir implementasyon gerektirebilir
+    alert('3D Görüntüleyici açılacak...');
+}
+
+function generateThumbnail(moldId, fileType) {
+    const button = event.target;
+    const originalText = button.innerHTML;
+    
+    // Loading state
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Oluşturuluyor...';
+    button.disabled = true;
+    
+    fetch(`/mold/generate-thumbnail/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        },
+        body: JSON.stringify({
+            mold_id: moldId,
+            file_type: fileType
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Sayfayı yenile veya thumbnail'i dinamik olarak güncelle
+            location.reload();
+        } else {
+            alert('Hata: ' + (data.error || 'Önizleme oluşturulamadı'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Bir hata oluştu: ' + error.message);
+    })
+    .finally(() => {
+        // Reset button state
+        button.innerHTML = originalText;
+        button.disabled = false;
+    });
+}
+
+function getCsrfToken() {
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+        const [name, value] = cookie.trim().split('=');
+        if (name === 'csrftoken') {
+            return value;
+        }
+    }
+    return '';
+}
+
+// Initialize tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
 {% endblock %} 

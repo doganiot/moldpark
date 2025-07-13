@@ -1,18 +1,25 @@
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.core.exceptions import PermissionDenied
-from django.contrib.auth.models import User
-from notifications.signals import notify
-from core.utils import send_success_notification, send_order_notification, send_system_notification
+from django.http import JsonResponse, HttpResponse, Http404
+from django.views.decorators.http import require_http_methods
+from django.urls import reverse
+from django.core.paginator import Paginator
+from django.db.models import Q
+from .models import EarMold, Revision, QualityCheck, ModeledMold, RevisionRequest, MoldEvaluation
+from .forms import EarMoldForm, RevisionForm, QualityCheckForm, PhysicalShipmentForm, TrackingUpdateForm, RevisionRequestForm, MoldEvaluationForm
+from center.decorators import center_required
+from producer.models import Producer, ProducerOrder, ProducerNetwork
 from django.utils import timezone
-from .models import EarMold, Revision, ModeledMold, QualityCheck, RevisionRequest, MoldEvaluation
-from .forms import EarMoldForm, RevisionForm, ModeledMoldForm, QualityCheckForm, RevisionRequestForm, MoldEvaluationForm, PhysicalShipmentForm, TrackingUpdateForm
-from center.decorators import center_required, subscription_required
-from django.contrib.auth.decorators import permission_required
-from producer.models import ProducerNetwork, ProducerOrder
-import uuid
+from notifications.signals import notify
+from django.contrib.auth.models import User
+from center.models import Center
 import logging
+import json
+import os
+from PIL import Image
+import tempfile
+from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +51,6 @@ def mold_list(request):
 
 @login_required
 @center_required
-@subscription_required
 def mold_create(request):
     """Yeni kalıp oluşturma - Tamamen yeniden yazıldı"""
     try:
@@ -815,3 +821,253 @@ def delete_modeled_mold(request, pk):
         logger.error(f"Delete modeled mold error: {e}")
         messages.error(request, 'Model dosyası silinirken bir hata oluştu.')
         return redirect('producer:dashboard')
+
+# ==================== 3D GÖRSELLEŞTİRME VIEW'LARI ====================
+
+def generate_model_thumbnail(file_path, output_path):
+    """3D model dosyasından thumbnail oluşturur"""
+    try:
+        # Bu fonksiyon gelecekte 3D rendering kütüphanesi ile geliştirilecek
+        # Şimdilik placeholder image oluşturalım
+        from PIL import Image, ImageDraw, ImageFont
+        
+        # 200x200 placeholder thumbnail
+        img = Image.new('RGB', (200, 200), color='#f8f9fa')
+        draw = ImageDraw.Draw(img)
+        
+        # Dosya uzantısını al
+        file_ext = os.path.splitext(file_path)[1].upper()
+        
+        # Merkezi text çiz
+        draw.text((70, 80), '3D MODEL', fill='#6c757d')
+        draw.text((85, 100), file_ext, fill='#495057')
+        
+        # Placeholder 3D shape çiz
+        draw.polygon([(100, 50), (150, 80), (100, 110), (50, 80)], fill='#007bff', outline='#0056b3')
+        
+        img.save(output_path, 'JPEG', quality=85)
+        return True
+        
+    except Exception as e:
+        logger.error(f"Thumbnail generation error: {e}")
+        return False
+
+def extract_model_metadata(file_path):
+    """3D model dosyasından metadata çıkarır"""
+    try:
+        file_size = os.path.getsize(file_path)
+        file_ext = os.path.splitext(file_path)[1].lower()
+        
+        # Basit metadata
+        metadata = {
+            'file_format': file_ext.replace('.', ''),
+            'file_size': file_size,
+            'vertex_count': None,
+            'polygon_count': None,
+            'model_complexity': 'medium'  # Default
+        }
+        
+        # Dosya boyutuna göre karmaşıklık tahmini
+        if file_size < 1024 * 1024:  # 1MB
+            metadata['model_complexity'] = 'low'
+        elif file_size > 10 * 1024 * 1024:  # 10MB
+            metadata['model_complexity'] = 'high'
+            
+        return metadata
+        
+    except Exception as e:
+        logger.error(f"Metadata extraction error: {e}")
+        return None
+
+@login_required
+def model_3d_viewer(request, model_type, model_id):
+    """3D model görüntüleyici view'ı"""
+    try:
+        if model_type == 'scan':
+            model = get_object_or_404(EarMold, pk=model_id)
+            file_field = model.scan_file
+            thumbnail_field = model.scan_thumbnail
+            title = f"Tarama Dosyası - {model.patient_name} {model.patient_surname}"
+            
+            # Yetki kontrolü
+            if hasattr(request.user, 'center'):
+                if model.center != request.user.center:
+                    raise Http404
+            elif hasattr(request.user, 'producer'):
+                # Üretici sadece kendi siparişlerindeki modelleri görebilir
+                if not model.producer_orders.filter(producer=request.user.producer).exists():
+                    raise Http404
+            else:
+                raise Http404
+                
+        elif model_type == 'modeled':
+            model = get_object_or_404(ModeledMold, pk=model_id)
+            file_field = model.file
+            thumbnail_field = model.model_thumbnail
+            title = f"Üretim Modeli - {model.ear_mold.patient_name} {model.ear_mold.patient_surname}"
+            
+            # Yetki kontrolü
+            if hasattr(request.user, 'center'):
+                if model.ear_mold.center != request.user.center:
+                    raise Http404
+            elif hasattr(request.user, 'producer'):
+                # Üretici sadece kendi ürettiği modelleri görebilir
+                if not model.ear_mold.producer_orders.filter(producer=request.user.producer).exists():
+                    raise Http404
+            else:
+                raise Http404
+                
+        else:
+            raise Http404
+            
+        if not file_field:
+            messages.error(request, '3D model dosyası bulunamadı.')
+            return redirect('mold:mold_list')
+            
+        # Render ayarları
+        render_settings = {}
+        if hasattr(model, 'render_settings') and model.render_settings:
+            render_settings = model.render_settings
+            
+        context = {
+            'model': model,
+            'model_type': model_type,
+            'file_url': file_field.url,
+            'thumbnail_url': thumbnail_field.url if thumbnail_field else None,
+            'title': title,
+            'render_settings': json.dumps(render_settings),
+            'metadata': {
+                'file_format': getattr(model, 'file_format', ''),
+                'vertex_count': getattr(model, 'vertex_count', None),
+                'polygon_count': getattr(model, 'polygon_count', None),
+                'model_complexity': getattr(model, 'model_complexity', ''),
+            }
+        }
+        
+        return render(request, 'mold/model_3d_viewer.html', context)
+        
+    except Http404:
+        messages.error(request, 'Bu 3D modeli görüntüleme yetkiniz yok.')
+        return redirect('mold:mold_list')
+    except Exception as e:
+        logger.error(f"3D viewer error: {e}")
+        messages.error(request, '3D model görüntülenirken bir hata oluştu.')
+        return redirect('mold:mold_list')
+
+@login_required
+@require_http_methods(["POST"])
+def generate_thumbnail_ajax(request, model_type, model_id):
+    """AJAX ile thumbnail oluşturma"""
+    try:
+        if model_type == 'scan':
+            model = get_object_or_404(EarMold, pk=model_id)
+            file_field = model.scan_file
+            
+            # Yetki kontrolü
+            if hasattr(request.user, 'center') and model.center != request.user.center:
+                return JsonResponse({'success': False, 'error': 'Yetkiniz yok'})
+                
+        elif model_type == 'modeled':
+            model = get_object_or_404(ModeledMold, pk=model_id)
+            file_field = model.file
+            
+            # Yetki kontrolü
+            if hasattr(request.user, 'center') and model.ear_mold.center != request.user.center:
+                return JsonResponse({'success': False, 'error': 'Yetkiniz yok'})
+                
+        else:
+            return JsonResponse({'success': False, 'error': 'Geçersiz model türü'})
+            
+        if not file_field:
+            return JsonResponse({'success': False, 'error': 'Model dosyası bulunamadı'})
+            
+        # Thumbnail oluştur
+        thumbnail_dir = os.path.join(settings.MEDIA_ROOT, f'thumbnails/{model_type}s/')
+        os.makedirs(thumbnail_dir, exist_ok=True)
+        
+        thumbnail_filename = f'{model_id}_thumb.jpg'
+        thumbnail_path = os.path.join(thumbnail_dir, thumbnail_filename)
+        
+        if generate_model_thumbnail(file_field.path, thumbnail_path):
+            # Model'i güncelle
+            thumbnail_url = f'thumbnails/{model_type}s/{thumbnail_filename}'
+            
+            if model_type == 'scan':
+                model.scan_thumbnail = thumbnail_url
+            else:
+                model.model_thumbnail = thumbnail_url
+                
+            # Metadata'yı da güncelle
+            metadata = extract_model_metadata(file_field.path)
+            if metadata:
+                model.file_format = metadata['file_format']
+                model.vertex_count = metadata['vertex_count']
+                model.polygon_count = metadata['polygon_count']
+                model.model_complexity = metadata['model_complexity']
+                
+            model.save()
+            
+            return JsonResponse({
+                'success': True, 
+                'thumbnail_url': f'{settings.MEDIA_URL}{thumbnail_url}',
+                'metadata': metadata
+            })
+        else:
+            return JsonResponse({'success': False, 'error': 'Thumbnail oluşturulamadı'})
+            
+    except Exception as e:
+        logger.error(f"Thumbnail generation AJAX error: {e}")
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@login_required
+def model_download(request, model_type, model_id):
+    """3D model dosyası indirme"""
+    try:
+        if model_type == 'scan':
+            model = get_object_or_404(EarMold, pk=model_id)
+            file_field = model.scan_file
+            filename = f"scan_{model.patient_name}_{model.patient_surname}_{model.id}"
+            
+            # Yetki kontrolü
+            if hasattr(request.user, 'center'):
+                if model.center != request.user.center:
+                    raise Http404
+            elif hasattr(request.user, 'producer'):
+                if not model.producer_orders.filter(producer=request.user.producer).exists():
+                    raise Http404
+                    
+        elif model_type == 'modeled':
+            model = get_object_or_404(ModeledMold, pk=model_id)
+            file_field = model.file
+            filename = f"model_{model.ear_mold.patient_name}_{model.ear_mold.patient_surname}_{model.id}"
+            
+            # Yetki kontrolü
+            if hasattr(request.user, 'center'):
+                if model.ear_mold.center != request.user.center:
+                    raise Http404
+            elif hasattr(request.user, 'producer'):
+                if not model.ear_mold.producer_orders.filter(producer=request.user.producer).exists():
+                    raise Http404
+                    
+        else:
+            raise Http404
+            
+        if not file_field:
+            raise Http404
+            
+        # Dosya uzantısını ekle
+        file_ext = os.path.splitext(file_field.name)[1]
+        filename += file_ext
+        
+        response = HttpResponse(file_field.read(), content_type='application/octet-stream')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        
+        return response
+        
+    except Http404:
+        messages.error(request, 'Bu dosyayı indirme yetkiniz yok.')
+        return redirect('mold:mold_list')
+    except Exception as e:
+        logger.error(f"Model download error: {e}")
+        messages.error(request, 'Dosya indirilirken bir hata oluştu.')
+        return redirect('mold:mold_list')

@@ -28,4 +28,9 @@ urlpatterns = [
     path('<int:mold_id>/evaluate/', views.mold_evaluation_create, name='mold_evaluation_create'),
     path('evaluation/<int:pk>/edit/', views.mold_evaluation_edit, name='mold_evaluation_edit'),
     path('evaluations/', views.mold_evaluation_list, name='mold_evaluation_list'),
+    
+    # 3D Görselleştirme
+    path('3d-viewer/<str:model_type>/<int:model_id>/', views.model_3d_viewer, name='model_3d_viewer'),
+    path('generate-thumbnail/<str:model_type>/<int:model_id>/', views.generate_thumbnail_ajax, name='generate_thumbnail_ajax'),
+    path('download/<str:model_type>/<int:model_id>/', views.model_download, name='model_download'),
 ] 

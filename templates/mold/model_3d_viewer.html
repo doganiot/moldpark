@@ -1,0 +1,581 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{{ title }} - 3D Görüntüleyici{% endblock %}
+
+{% block extra_css %}
+<style>
+    .viewer-container {
+        position: relative;
+        width: 100%;
+        height: 70vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    }
+    
+    .viewer-canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+    }
+    
+    .viewer-controls {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        z-index: 10;
+    }
+    
+    .viewer-info {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        background: rgba(255,255,255,0.9);
+        padding: 15px;
+        border-radius: 10px;
+        backdrop-filter: blur(10px);
+        z-index: 10;
+    }
+    
+    .control-btn {
+        background: rgba(255,255,255,0.9);
+        border: none;
+        border-radius: 8px;
+        padding: 10px;
+        margin: 5px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+    }
+    
+    .control-btn:hover {
+        background: rgba(255,255,255,1);
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+    
+    .loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255,255,255,0.9);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 20;
+        border-radius: 15px;
+    }
+    
+    .metadata-card {
+        background: rgba(255,255,255,0.95);
+        border-radius: 10px;
+        padding: 20px;
+        margin-top: 20px;
+        backdrop-filter: blur(10px);
+    }
+    
+    .complexity-badge {
+        padding: 5px 10px;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    
+    .complexity-low { background: #d4edda; color: #155724; }
+    .complexity-medium { background: #fff3cd; color: #856404; }
+    .complexity-high { background: #f8d7da; color: #721c24; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="fas fa-cube me-2 text-primary"></i>
+                        {{ title }}
+                    </h2>
+                    <p class="text-muted mb-0">
+                        {% if model_type == 'scan' %}
+                            {% trans "Tarama dosyasının 3D görünümü" %}
+                        {% else %}
+                            {% trans "Üretim modelinin 3D görünümü" %}
+                        {% endif %}
+                    </p>
+                </div>
+                <div>
+                    <a href="{% url 'mold:model_download' model_type model.id %}" class="btn btn-outline-primary me-2">
+                        <i class="fas fa-download me-1"></i>{% trans "İndir" %}
+                    </a>
+                    <a href="{% if model_type == 'scan' %}{% url 'mold:mold_detail' model.id %}{% else %}{% url 'mold:mold_detail' model.ear_mold.id %}{% endif %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>{% trans "Geri Dön" %}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- 3D Viewer -->
+        <div class="col-lg-8">
+            <div class="viewer-container">
+                <!-- Loading Overlay -->
+                <div class="loading-overlay" id="loadingOverlay">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary mb-3" role="status">
+                            <span class="visually-hidden">{% trans "Yükleniyor..." %}</span>
+                        </div>
+                        <h5>{% trans "3D Model Yükleniyor..." %}</h5>
+                        <p class="text-muted">{% trans "Lütfen bekleyin..." %}</p>
+                    </div>
+                </div>
+                
+                <!-- 3D Canvas -->
+                <canvas class="viewer-canvas" id="viewer3d"></canvas>
+                
+                <!-- Viewer Controls -->
+                <div class="viewer-controls">
+                    <button class="control-btn" id="resetView" title="{% trans 'Görünümü Sıfırla' %}">
+                        <i class="fas fa-home"></i>
+                    </button>
+                    <button class="control-btn" id="toggleWireframe" title="{% trans 'Wireframe Görünümü' %}">
+                        <i class="fas fa-project-diagram"></i>
+                    </button>
+                    <button class="control-btn" id="toggleFullscreen" title="{% trans 'Tam Ekran' %}">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                    <button class="control-btn" id="generateThumbnail" title="{% trans 'Önizleme Oluştur' %}">
+                        <i class="fas fa-camera"></i>
+                    </button>
+                </div>
+                
+                <!-- Viewer Info -->
+                <div class="viewer-info">
+                    <small class="text-muted d-block">{% trans "Kontroller:" %}</small>
+                    <small>
+                        <i class="fas fa-mouse me-1"></i>{% trans "Sol Tık: Döndür" %}<br>
+                        <i class="fas fa-mouse me-1"></i>{% trans "Sağ Tık: Kaydır" %}<br>
+                        <i class="fas fa-mouse me-1"></i>{% trans "Tekerlek: Yakınlaştır" %}
+                    </small>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Model Info -->
+        <div class="col-lg-4">
+            <!-- Model Metadata -->
+            <div class="metadata-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-info-circle me-2 text-info"></i>
+                    {% trans "Model Bilgileri" %}
+                </h5>
+                
+                <div class="row g-3">
+                    <div class="col-6">
+                        <label class="form-label text-muted small">{% trans "Dosya Formatı" %}</label>
+                        <div class="fw-bold">{{ metadata.file_format|upper|default:"N/A" }}</div>
+                    </div>
+                    
+                    <div class="col-6">
+                        <label class="form-label text-muted small">{% trans "Karmaşıklık" %}</label>
+                        <div>
+                            {% if metadata.model_complexity == 'low' %}
+                                <span class="complexity-badge complexity-low">{% trans "Düşük" %}</span>
+                            {% elif metadata.model_complexity == 'medium' %}
+                                <span class="complexity-badge complexity-medium">{% trans "Orta" %}</span>
+                            {% elif metadata.model_complexity == 'high' %}
+                                <span class="complexity-badge complexity-high">{% trans "Yüksek" %}</span>
+                            {% else %}
+                                <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    {% if metadata.vertex_count %}
+                    <div class="col-6">
+                        <label class="form-label text-muted small">{% trans "Vertex Sayısı" %}</label>
+                        <div class="fw-bold">{{ metadata.vertex_count|floatformat:0 }}</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if metadata.polygon_count %}
+                    <div class="col-6">
+                        <label class="form-label text-muted small">{% trans "Polygon Sayısı" %}</label>
+                        <div class="fw-bold">{{ metadata.polygon_count|floatformat:0 }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                {% if thumbnail_url %}
+                <div class="mt-3">
+                    <label class="form-label text-muted small">{% trans "Önizleme" %}</label>
+                    <div>
+                        <img src="{{ thumbnail_url }}" class="img-thumbnail" style="max-width: 150px;" alt="{% trans 'Model Önizleme' %}">
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Model Details -->
+            <div class="metadata-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-user me-2 text-success"></i>
+                    {% trans "Hasta Bilgileri" %}
+                </h5>
+                
+                {% if model_type == 'scan' %}
+                    <div class="row g-2">
+                        <div class="col-12">
+                            <label class="form-label text-muted small">{% trans "Hasta Adı" %}</label>
+                            <div class="fw-bold">{{ model.patient_name }} {{ model.patient_surname }}</div>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label text-muted small">{% trans "Yaş" %}</label>
+                            <div>{{ model.patient_age }}</div>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label text-muted small">{% trans "Kulak Tarafı" %}</label>
+                            <div>{{ model.get_ear_side_display }}</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label text-muted small">{% trans "Kalıp Türü" %}</label>
+                            <div>{{ model.get_mold_type_display }}</div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="row g-2">
+                        <div class="col-12">
+                            <label class="form-label text-muted small">{% trans "Hasta Adı" %}</label>
+                            <div class="fw-bold">{{ model.ear_mold.patient_name }} {{ model.ear_mold.patient_surname }}</div>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label text-muted small">{% trans "Durum" %}</label>
+                            <div>
+                                <span class="badge bg-{% if model.status == 'approved' %}success{% elif model.status == 'pending' %}warning{% else %}danger{% endif %}">
+                                    {{ model.get_status_display }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label text-muted small">{% trans "Oluşturma" %}</label>
+                            <div>{{ model.created_at|date:"d.m.Y" }}</div>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="metadata-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-tools me-2 text-warning"></i>
+                    {% trans "Hızlı İşlemler" %}
+                </h5>
+                
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-primary btn-sm" id="generateThumbnailBtn">
+                        <i class="fas fa-camera me-1"></i>{% trans "Önizleme Oluştur" %}
+                    </button>
+                    
+                    <a href="{% url 'mold:model_download' model_type model.id %}" class="btn btn-outline-success btn-sm">
+                        <i class="fas fa-download me-1"></i>{% trans "Dosyayı İndir" %}
+                    </a>
+                    
+                    {% if model_type == 'scan' %}
+                        <a href="{% url 'mold:mold_detail' model.id %}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-eye me-1"></i>{% trans "Kalıp Detayı" %}
+                        </a>
+                    {% else %}
+                        <a href="{% url 'mold:mold_detail' model.ear_mold.id %}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-eye me-1"></i>{% trans "Kalıp Detayı" %}
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Three.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/PLYLoader.js"></script>
+
+<script>
+class Model3DViewer {
+    constructor(canvasId, fileUrl, renderSettings = {}) {
+        this.canvas = document.getElementById(canvasId);
+        this.fileUrl = fileUrl;
+        this.renderSettings = renderSettings;
+        
+        this.scene = null;
+        this.camera = null;
+        this.renderer = null;
+        this.controls = null;
+        this.model = null;
+        this.wireframe = false;
+        
+        this.init();
+    }
+    
+    init() {
+        // Scene oluştur
+        this.scene = new THREE.Scene();
+        this.scene.background = new THREE.Color(0xf8f9fa);
+        
+        // Camera oluştur
+        const aspect = this.canvas.clientWidth / this.canvas.clientHeight;
+        this.camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
+        this.camera.position.set(0, 0, 50);
+        
+        // Renderer oluştur
+        this.renderer = new THREE.WebGLRenderer({ 
+            canvas: this.canvas, 
+            antialias: true,
+            alpha: true 
+        });
+        this.renderer.setSize(this.canvas.clientWidth, this.canvas.clientHeight);
+        this.renderer.setPixelRatio(window.devicePixelRatio);
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        
+        // Lights oluştur
+        this.setupLights();
+        
+        // Controls oluştur
+        this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+        this.controls.enableDamping = true;
+        this.controls.dampingFactor = 0.05;
+        this.controls.autoRotate = false;
+        
+        // Model yükle
+        this.loadModel();
+        
+        // Event listeners
+        this.setupEventListeners();
+        
+        // Render loop başlat
+        this.animate();
+    }
+    
+    setupLights() {
+        // Ambient light
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+        this.scene.add(ambientLight);
+        
+        // Directional lights
+        const light1 = new THREE.DirectionalLight(0xffffff, 0.8);
+        light1.position.set(50, 50, 50);
+        light1.castShadow = true;
+        this.scene.add(light1);
+        
+        const light2 = new THREE.DirectionalLight(0xffffff, 0.4);
+        light2.position.set(-50, -50, 50);
+        this.scene.add(light2);
+        
+        // Point light
+        const pointLight = new THREE.PointLight(0xffffff, 0.5);
+        pointLight.position.set(0, 50, 50);
+        this.scene.add(pointLight);
+    }
+    
+    loadModel() {
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        
+        // Dosya uzantısına göre loader seç
+        const fileExtension = this.fileUrl.split('.').pop().toLowerCase();
+        let loader;
+        
+        switch (fileExtension) {
+            case 'stl':
+                loader = new THREE.STLLoader();
+                break;
+            case 'obj':
+                loader = new THREE.OBJLoader();
+                break;
+            case 'ply':
+                loader = new THREE.PLYLoader();
+                break;
+            default:
+                console.error('Desteklenmeyen dosya formatı:', fileExtension);
+                loadingOverlay.innerHTML = '<div class="text-center"><h5 class="text-danger">Desteklenmeyen dosya formatı</h5></div>';
+                return;
+        }
+        
+        loader.load(
+            this.fileUrl,
+            (geometry) => {
+                this.onModelLoaded(geometry, fileExtension);
+                loadingOverlay.style.display = 'none';
+            },
+            (progress) => {
+                const percent = Math.round((progress.loaded / progress.total) * 100);
+                console.log('Loading progress:', percent + '%');
+            },
+            (error) => {
+                console.error('Model loading error:', error);
+                loadingOverlay.innerHTML = '<div class="text-center"><h5 class="text-danger">Model yüklenemedi</h5><p>Dosya formatı desteklenmiyor veya dosya bozuk olabilir.</p></div>';
+            }
+        );
+    }
+    
+    onModelLoaded(geometry, fileExtension) {
+        // Mevcut modeli temizle
+        if (this.model) {
+            this.scene.remove(this.model);
+        }
+        
+        // Geometry işle
+        if (fileExtension === 'obj') {
+            // OBJ loader Group döndürür
+            this.model = geometry;
+        } else {
+            // STL ve PLY loader BufferGeometry döndürür
+            geometry.computeVertexNormals();
+            geometry.center();
+            
+            const material = new THREE.MeshPhongMaterial({
+                color: 0x007bff,
+                shininess: 100,
+                transparent: true,
+                opacity: 0.9
+            });
+            
+            this.model = new THREE.Mesh(geometry, material);
+        }
+        
+        // Model'i scene'e ekle
+        this.scene.add(this.model);
+        
+        // Camera pozisyonunu ayarla
+        this.fitCameraToModel();
+        
+        console.log('Model başarıyla yüklendi');
+    }
+    
+    fitCameraToModel() {
+        if (!this.model) return;
+        
+        const box = new THREE.Box3().setFromObject(this.model);
+        const size = box.getSize(new THREE.Vector3());
+        const center = box.getCenter(new THREE.Vector3());
+        
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const fov = this.camera.fov * (Math.PI / 180);
+        let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2));
+        
+        cameraZ *= 2; // Biraz daha uzaklaştır
+        
+        this.camera.position.set(center.x, center.y, center.z + cameraZ);
+        this.camera.lookAt(center);
+        this.controls.target = center;
+        this.controls.update();
+    }
+    
+    setupEventListeners() {
+        // Window resize
+        window.addEventListener('resize', () => this.onWindowResize());
+        
+        // Control buttons
+        document.getElementById('resetView').addEventListener('click', () => this.resetView());
+        document.getElementById('toggleWireframe').addEventListener('click', () => this.toggleWireframe());
+        document.getElementById('toggleFullscreen').addEventListener('click', () => this.toggleFullscreen());
+        document.getElementById('generateThumbnail').addEventListener('click', () => this.generateThumbnail());
+        document.getElementById('generateThumbnailBtn').addEventListener('click', () => this.generateThumbnail());
+    }
+    
+    onWindowResize() {
+        const aspect = this.canvas.clientWidth / this.canvas.clientHeight;
+        this.camera.aspect = aspect;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(this.canvas.clientWidth, this.canvas.clientHeight);
+    }
+    
+    resetView() {
+        this.fitCameraToModel();
+    }
+    
+    toggleWireframe() {
+        if (!this.model) return;
+        
+        this.wireframe = !this.wireframe;
+        
+        if (this.model.material) {
+            this.model.material.wireframe = this.wireframe;
+        } else if (this.model.children) {
+            this.model.children.forEach(child => {
+                if (child.material) {
+                    child.material.wireframe = this.wireframe;
+                }
+            });
+        }
+    }
+    
+    toggleFullscreen() {
+        const container = document.querySelector('.viewer-container');
+        
+        if (!document.fullscreenElement) {
+            container.requestFullscreen().then(() => {
+                this.onWindowResize();
+            });
+        } else {
+            document.exitFullscreen().then(() => {
+                this.onWindowResize();
+            });
+        }
+    }
+    
+    generateThumbnail() {
+        // AJAX ile thumbnail oluştur
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+                         document.querySelector('meta[name=csrf-token]')?.getAttribute('content');
+        
+        fetch(`{% url 'mold:generate_thumbnail_ajax' model_type model.id %}`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('{% trans "Önizleme başarıyla oluşturuldu!" %}');
+                // Sayfayı yenile
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                alert('{% trans "Önizleme oluşturulurken hata:" %} ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Thumbnail generation error:', error);
+            alert('{% trans "Önizleme oluşturulurken bir hata oluştu." %}');
+        });
+    }
+    
+    animate() {
+        requestAnimationFrame(() => this.animate());
+        
+        this.controls.update();
+        this.renderer.render(this.scene, this.camera);
+    }
+}
+
+// 3D Viewer'ı başlat
+document.addEventListener('DOMContentLoaded', function() {
+    const renderSettings = {{ render_settings|safe }};
+    const viewer = new Model3DViewer('viewer3d', '{{ file_url }}', renderSettings);
+});
+</script>
+{% endblock %} 

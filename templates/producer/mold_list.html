@@ -194,6 +194,7 @@
                 <table class="table table-striped table-hover">
                     <thead class="table-dark">
                         <tr>
+                            <th>Önizleme</th>
                             <th>Sipariş No</th>
                             <th>Hasta</th>
                             <th>Kalıp Türü</th>
@@ -207,6 +208,51 @@
                     <tbody>
                         {% for order in producer_orders %}
                         <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="position-relative me-2">
+                                        {% if order.ear_mold.scan_thumbnail %}
+                                            <img src="{{ order.ear_mold.scan_thumbnail.url }}" 
+                                                 class="rounded shadow-sm thumbnail-preview-producer" 
+                                                 style="width: 50px; height: 50px; object-fit: cover; cursor: pointer;"
+                                                 alt="3D Önizleme"
+                                                 onclick="showProducerThumbnailModal('{{ order.ear_mold.scan_thumbnail.url }}', '{{ order.ear_mold.patient_name }}', '{{ order.id }}')">
+                                        {% elif order.ear_mold.scan_file %}
+                                            <div class="bg-gradient-info rounded shadow-sm d-flex align-items-center justify-content-center" 
+                                                 style="width: 50px; height: 50px;">
+                                                <i class="fas fa-cube text-white" style="font-size: 20px;"></i>
+                                            </div>
+                                            <small class="badge bg-info position-absolute top-0 end-0" style="font-size: 7px;">3D</small>
+                                        {% else %}
+                                            <div class="bg-light rounded shadow-sm d-flex align-items-center justify-content-center" 
+                                                 style="width: 50px; height: 50px;">
+                                                <i class="fas fa-file text-muted" style="font-size: 20px;"></i>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <!-- Model durumu göstergesi -->
+                                    {% if order.ear_mold.modeled_files.exists %}
+                                        <div class="position-relative">
+                                            {% with modeled_mold=order.ear_mold.modeled_files.first %}
+                                                {% if modeled_mold.model_thumbnail %}
+                                                    <img src="{{ modeled_mold.model_thumbnail.url }}" 
+                                                         class="rounded shadow-sm thumbnail-preview-producer border border-success" 
+                                                         style="width: 40px; height: 40px; object-fit: cover; cursor: pointer;"
+                                                         alt="Üretilen Model"
+                                                         onclick="showProducerThumbnailModal('{{ modeled_mold.model_thumbnail.url }}', 'Üretilen Model - {{ order.ear_mold.patient_name }}', '{{ order.id }}')">
+                                                {% else %}
+                                                    <div class="bg-gradient-success rounded shadow-sm d-flex align-items-center justify-content-center" 
+                                                         style="width: 40px; height: 40px;">
+                                                        <i class="fas fa-check text-white" style="font-size: 16px;"></i>
+                                                    </div>
+                                                {% endif %}
+                                                <small class="badge bg-success position-absolute bottom-0 end-0" style="font-size: 6px;">✓</small>
+                                            {% endwith %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </td>
                             <td>
                                 <strong class="text-primary">{{ order.order_number }}</strong>
                                 {% if order.priority != 'normal' %}
@@ -314,7 +360,48 @@
 .alert {
     border-radius: 10px;
 }
+
+.thumbnail-preview-producer {
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.thumbnail-preview-producer:hover {
+    transform: scale(1.1);
+    border-color: #007bff;
+    box-shadow: 0 4px 15px rgba(0,123,255,0.4) !important;
+}
+
+.bg-gradient-info {
+    background: linear-gradient(135deg, #36b9cc, #258391);
+}
+
+.bg-gradient-success {
+    background: linear-gradient(135deg, #1cc88a, #13855c);
+}
 </style>
+
+<!-- Producer Thumbnail Modal -->
+<div class="modal fade" id="producerThumbnailModal" tabindex="-1" aria-labelledby="producerThumbnailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="producerThumbnailModalLabel">3D Model Önizlemesi</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="producerModalThumbnailImage" src="" class="img-fluid rounded shadow" alt="3D Model Önizlemesi">
+                <div class="mt-3">
+                    <p class="text-muted mb-0">Detaylı inceleme için sipariş detayına gidin</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                <button type="button" class="btn btn-primary" id="goToOrderDetail">Sipariş Detayına Git</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -324,5 +411,39 @@ var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggl
 var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
     return new bootstrap.Tooltip(tooltipTriggerEl)
 })
+
+// Producer thumbnail modal functions
+let currentOrderId = '';
+
+function showProducerThumbnailModal(thumbnailUrl, patientName, orderId) {
+    document.getElementById('producerModalThumbnailImage').src = thumbnailUrl;
+    document.getElementById('producerThumbnailModalLabel').textContent = patientName + ' - 3D Model Önizlemesi';
+    currentOrderId = orderId;
+    
+    const modal = new bootstrap.Modal(document.getElementById('producerThumbnailModal'));
+    modal.show();
+}
+
+// Sipariş detayına git butonu
+document.getElementById('goToOrderDetail').addEventListener('click', function() {
+    if (currentOrderId) {
+        window.location.href = `/producer/molds/${currentOrderId}/`;
+    }
+});
+
+// Thumbnail hover effects
+document.addEventListener('DOMContentLoaded', function() {
+    const thumbnails = document.querySelectorAll('.thumbnail-preview-producer');
+    
+    thumbnails.forEach(function(thumbnail) {
+        thumbnail.addEventListener('mouseenter', function() {
+            this.style.zIndex = '10';
+        });
+        
+        thumbnail.addEventListener('mouseleave', function() {
+            this.style.zIndex = '1';
+        });
+    });
+});
 </script>
 {% endblock %} 

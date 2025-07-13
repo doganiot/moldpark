@@ -41,6 +41,7 @@
         <table class="table table-hover align-middle">
             <thead class="table-primary">
                 <tr>
+                    <th>Önizleme</th>
                     <th>#</th>
                     <th>Merkez</th>
                     <th>Hasta Adı</th>
@@ -53,6 +54,51 @@
             <tbody>
                 {% for mold in molds %}
                 <tr>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <div class="position-relative me-2">
+                                {% if mold.scan_thumbnail %}
+                                    <img src="{{ mold.scan_thumbnail.url }}" 
+                                         class="rounded shadow-sm admin-thumbnail-preview" 
+                                         style="width: 45px; height: 45px; object-fit: cover; cursor: pointer;"
+                                         alt="3D Önizleme"
+                                         onclick="showAdminThumbnailModal('{{ mold.scan_thumbnail.url }}', '{{ mold.patient_name }}', '{{ mold.id }}')">
+                                {% elif mold.scan_file %}
+                                    <div class="bg-gradient-primary rounded shadow-sm d-flex align-items-center justify-content-center" 
+                                         style="width: 45px; height: 45px;">
+                                        <i class="fas fa-cube text-white" style="font-size: 18px;"></i>
+                                    </div>
+                                    <small class="badge bg-info position-absolute top-0 end-0" style="font-size: 7px;">3D</small>
+                                {% else %}
+                                    <div class="bg-light rounded shadow-sm d-flex align-items-center justify-content-center" 
+                                         style="width: 45px; height: 45px;">
+                                        <i class="fas fa-file text-muted" style="font-size: 18px;"></i>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Model durumu -->
+                            {% if mold.modeled_files.exists %}
+                                <div class="position-relative">
+                                    {% with modeled_mold=mold.modeled_files.first %}
+                                        {% if modeled_mold.model_thumbnail %}
+                                            <img src="{{ modeled_mold.model_thumbnail.url }}" 
+                                                 class="rounded shadow-sm admin-thumbnail-preview border border-success" 
+                                                 style="width: 35px; height: 35px; object-fit: cover; cursor: pointer;"
+                                                 alt="Üretilen Model"
+                                                 onclick="showAdminThumbnailModal('{{ modeled_mold.model_thumbnail.url }}', 'Model - {{ mold.patient_name }}', '{{ mold.id }}')">
+                                        {% else %}
+                                            <div class="bg-gradient-success rounded shadow-sm d-flex align-items-center justify-content-center" 
+                                                 style="width: 35px; height: 35px;">
+                                                <i class="fas fa-check text-white" style="font-size: 14px;"></i>
+                                            </div>
+                                        {% endif %}
+                                        <small class="badge bg-success position-absolute bottom-0 end-0" style="font-size: 6px;">✓</small>
+                                    {% endwith %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </td>
                     <td>{{ mold.id }}</td>
                     <td>{{ mold.center.name }}</td>
                     <td>{{ mold.patient_name }}</td>
@@ -87,11 +133,102 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7" class="text-center">Kayıt bulunamadı.</td>
+                    <td colspan="8" class="text-center py-4">
+                        <div class="d-flex flex-column align-items-center">
+                            <i class="fas fa-cube text-muted mb-3" style="font-size: 48px;"></i>
+                            <p class="text-muted mb-0">Kayıt bulunamadı.</p>
+                            <p class="text-muted small">Filtreleri değiştirerek tekrar deneyin.</p>
+                        </div>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 </div>
+
+<!-- Admin Thumbnail Modal -->
+<div class="modal fade" id="adminThumbnailModal" tabindex="-1" aria-labelledby="adminThumbnailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="adminThumbnailModalLabel">3D Model Önizlemesi</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="adminModalThumbnailImage" src="" class="img-fluid rounded shadow" alt="3D Model Önizlemesi">
+                <div class="mt-3">
+                    <p class="text-muted mb-0">Detaylı inceleme için kalıp detayına gidin</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                <button type="button" class="btn btn-primary" id="goToMoldDetail">Kalıp Detayına Git</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.admin-thumbnail-preview {
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.admin-thumbnail-preview:hover {
+    transform: scale(1.15);
+    border-color: #007bff;
+    box-shadow: 0 4px 15px rgba(0,123,255,0.4) !important;
+    z-index: 10;
+}
+
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+}
+
+.bg-gradient-success {
+    background: linear-gradient(135deg, #28a745, #1e7e34);
+}
+
+.position-relative:hover .badge {
+    transform: scale(1.2);
+    transition: transform 0.2s ease;
+}
+</style>
+
+<script>
+let currentMoldId = '';
+
+function showAdminThumbnailModal(thumbnailUrl, patientName, moldId) {
+    document.getElementById('adminModalThumbnailImage').src = thumbnailUrl;
+    document.getElementById('adminThumbnailModalLabel').textContent = patientName + ' - 3D Model Önizlemesi';
+    currentMoldId = moldId;
+    
+    const modal = new bootstrap.Modal(document.getElementById('adminThumbnailModal'));
+    modal.show();
+}
+
+// Kalıp detayına git butonu
+document.getElementById('goToMoldDetail').addEventListener('click', function() {
+    if (currentMoldId) {
+        window.location.href = `/center/admin/molds/${currentMoldId}/`;
+    }
+});
+
+// Thumbnail hover effects
+document.addEventListener('DOMContentLoaded', function() {
+    const thumbnails = document.querySelectorAll('.admin-thumbnail-preview');
+    
+    thumbnails.forEach(function(thumbnail) {
+        thumbnail.addEventListener('mouseenter', function() {
+            this.style.position = 'relative';
+            this.style.zIndex = '20';
+        });
+        
+        thumbnail.addEventListener('mouseleave', function() {
+            this.style.zIndex = '1';
+        });
+    });
+});
+</script>
 {% endblock %} 

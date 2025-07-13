@@ -110,7 +110,30 @@ class EarMold(models.Model):
         ('urgent', 'Acil (1-2 iş günü)'),
     ])
     special_instructions = models.TextField('Özel Talimatlar', blank=True)
-
+    
+    # 3D Görselleştirme Alanları
+    scan_thumbnail = models.ImageField(
+        'Tarama Önizleme',
+        upload_to='thumbnails/scans/',
+        blank=True,
+        null=True,
+        help_text='3D tarama dosyasının küçük önizleme görseli'
+    )
+    model_complexity = models.CharField(
+        'Model Karmaşıklığı',
+        max_length=20,
+        choices=[
+            ('low', 'Düşük (< 10K polygon)'),
+            ('medium', 'Orta (10K-50K polygon)'),
+            ('high', 'Yüksek (> 50K polygon)'),
+        ],
+        blank=True,
+        null=True
+    )
+    vertex_count = models.IntegerField('Vertex Sayısı', blank=True, null=True)
+    polygon_count = models.IntegerField('Polygon Sayısı', blank=True, null=True)
+    file_format = models.CharField('Dosya Formatı', max_length=10, blank=True, null=True)
+    
     class Meta:
         verbose_name = 'Kulak Kalıbı'
         verbose_name_plural = 'Kulak Kalıpları'
@@ -237,11 +260,40 @@ class ModeledMold(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     status = models.CharField(max_length=20, choices=[
-        ('waiting', 'Bekliyor'),
+        ('pending', 'Beklemede'),
         ('approved', 'Onaylandı'),
-        ('rejected', 'Reddedildi')
-    ], default='waiting')
-
+        ('rejected', 'Reddedildi'),
+    ], default='pending', verbose_name='Durum')
+    
+    # 3D Görselleştirme Alanları
+    model_thumbnail = models.ImageField(
+        'Model Önizleme',
+        upload_to='thumbnails/models/',
+        blank=True,
+        null=True,
+        help_text='3D model dosyasının küçük önizleme görseli'
+    )
+    model_complexity = models.CharField(
+        'Model Karmaşıklığı',
+        max_length=20,
+        choices=[
+            ('low', 'Düşük (< 10K polygon)'),
+            ('medium', 'Orta (10K-50K polygon)'),
+            ('high', 'Yüksek (> 50K polygon)'),
+        ],
+        blank=True,
+        null=True
+    )
+    vertex_count = models.IntegerField('Vertex Sayısı', blank=True, null=True)
+    polygon_count = models.IntegerField('Polygon Sayısı', blank=True, null=True)
+    file_format = models.CharField('Dosya Formatı', max_length=10, blank=True, null=True)
+    render_settings = models.JSONField(
+        '3D Render Ayarları',
+        default=dict,
+        blank=True,
+        help_text='3D görüntüleyici için kamera pozisyonu, ışık ayarları vb.'
+    )
+    
     class Meta:
         ordering = ['-created_at']
         verbose_name = 'Modellenmiş Kalıp'
