@@ -1,6 +1,8 @@
 {% extends 'base.html' %}
-{% load humanize %}
+{% load i18n %}
 {% load static %}
+{% load moldpark_extras %}
+{% load humanize %}
 
 {% block title %}Yönetici Paneli - MoldPark{% endblock %}
 
@@ -414,41 +416,41 @@
                             </div>
                         </div>
                         <div>
-                            <h1 class="mb-1 fw-bold">Yönetici Paneli</h1>
-                            <p class="mb-0 opacity-75">MoldPark sisteminin merkezi yönetim paneli</p>
+                            <h1 class="mb-1 fw-bold">{% trans "Yönetici Paneli" %}</h1>
+                            <p class="mb-0 opacity-75">{% trans "MoldPark sisteminin merkezi yönetim paneli" %}</p>
                         </div>
                     </div>
                     
                     <div class="row g-3 text-center">
                         <div class="col-6 col-md-3">
-                            <div class="bg-white bg-opacity-20 rounded-3 p-3">
+                            <div class="bg-white bg-opacity-20 rounded-3 p-3 text-dark">
                                 <div class="h4 mb-1 fw-bold">{{ stats.total_centers }}</div>
-                                <small class="opacity-75">Toplam Merkez</small>
+                                <small class="opacity-75">{% trans "Toplam Merkez" %}</small>
                             </div>
                         </div>
                         <div class="col-6 col-md-3">
-                            <div class="bg-white bg-opacity-20 rounded-3 p-3">
+                            <div class="bg-white bg-opacity-20 rounded-3 p-3 text-dark">
                                 <div class="h4 mb-1 fw-bold">{{ stats.total_producers }}</div>
-                                <small class="opacity-75">Üretici</small>
+                                <small class="opacity-75">{% trans "Üretici" %}</small>
                             </div>
                         </div>
                         <div class="col-6 col-md-3">
-                            <div class="bg-white bg-opacity-20 rounded-3 p-3">
+                            <div class="bg-white bg-opacity-20 rounded-3 p-3 text-dark">
                                 <div class="h4 mb-1 fw-bold">{{ stats.total_molds }}</div>
-                                <small class="opacity-75">Toplam Kalıp</small>
+                                <small class="opacity-75">{% trans "Toplam Kalıp" %}</small>
                             </div>
                         </div>
                         <div class="col-6 col-md-3">
-                            <div class="bg-white bg-opacity-20 rounded-3 p-3">
+                            <div class="bg-white bg-opacity-20 rounded-3 p-3 text-dark">
                                 <div class="h4 mb-1 fw-bold">{{ stats.total_users }}</div>
-                                <small class="opacity-75">Kullanıcı</small>
+                                <small class="opacity-75">{% trans "Kullanıcı" %}</small>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="col-lg-4 text-end d-none d-lg-block">
-                    <div class="badge bg-white bg-opacity-20 fs-6 px-3 py-2">
-                        <i class="fas fa-shield-alt me-2"></i>Süper Yönetici
+                    <div class="badge bg-white bg-opacity-20 fs-6 px-3 py-2 text-dark">
+                        <i class="fas fa-shield-alt me-2"></i>{% trans "Süper Yönetici" %}
                     </div>
                 </div>
             </div>
