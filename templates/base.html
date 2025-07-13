@@ -147,37 +147,37 @@
                 <ul class="navbar-nav me-auto">
                     {% if not user.is_authenticated %}
                         <!-- Misafir -->
-                        <li class="nav-item"><a class="nav-link" href="{% url 'core:pricing' %}">Fiyatlandırma</a></li>
-                        <li class="nav-item"><a class="nav-link" href="{% url 'core:help_center' %}">Yardım Merkezi</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{% url 'core:pricing' %}">{% trans "Fiyatlandırma" %}</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{% url 'core:help_center' %}">{% trans "Yardım Merkezi" %}</a></li>
                     {% else %}
                         {% if user.is_staff %}
                             <!-- Admin -->
-                            <li class="nav-item"><a class="nav-link" href="{% url 'center:admin_dashboard' %}"><i class="fas fa-tachometer-alt me-1"></i>Yönetim Paneli</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{% url 'center:admin_dashboard' %}"><i class="fas fa-tachometer-alt me-1"></i>{% trans "Yönetim Paneli" %}</a></li>
                         {% elif user.producer %}
                             <!-- Üretici -->
-                            <li class="nav-item"><a class="nav-link" href="{% url 'producer:dashboard' %}"><i class="fas fa-home me-1"></i>Dashboard</a></li>
-                            <li class="nav-item"><a class="nav-link" href="{% url 'producer:order_list' %}"><i class="fas fa-list-alt me-1"></i>Siparişler</a></li>
-                            <li class="nav-item"><a class="nav-link" href="{% url 'producer:mold_list' %}"><i class="fas fa-cube me-1"></i>Kalıplar</a></li>
-                            <li class="nav-item"><a class="nav-link" href="{% url 'producer:revision_requests' %}"><i class="fas fa-edit me-1"></i>Revizyonlar {% if pending_revision_requests > 0 %}<span class="badge bg-danger ms-1">{{ pending_revision_requests }}</span>{% endif %}</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{% url 'producer:dashboard' %}"><i class="fas fa-home me-1"></i>{% trans "Dashboard" %}</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{% url 'producer:order_list' %}"><i class="fas fa-list-alt me-1"></i>{% trans "Siparişler" %}</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{% url 'producer:mold_list' %}"><i class="fas fa-cube me-1"></i>{% trans "Kalıplar" %}</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{% url 'producer:revision_requests' %}"><i class="fas fa-edit me-1"></i>{% trans "Revizyonlar" %} {% if pending_revision_requests > 0 %}<span class="badge bg-danger ms-1">{{ pending_revision_requests }}</span>{% endif %}</a></li>
                         {% else %}
                             <!-- İşitme Merkezi -->
-                            <li class="nav-item"><a class="nav-link" href="{% url 'center:dashboard' %}"><i class="fas fa-home me-1"></i>Dashboard</a></li>
-                            <li class="nav-item"><a class="nav-link" href="{% url 'mold:mold_list' %}"><i class="fas fa-cube me-1"></i>Kalıplarım</a></li>
-                            <li class="nav-item"><a class="nav-link" href="{% url 'center:network_management' %}"><i class="fas fa-network-wired me-1"></i>Üretici Ağları</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{% url 'center:dashboard' %}"><i class="fas fa-home me-1"></i>{% trans "Dashboard" %}</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{% url 'mold:mold_list' %}"><i class="fas fa-cube me-1"></i>{% trans "Kalıplarım" %}</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{% url 'center:network_management' %}"><i class="fas fa-network-wired me-1"></i>{% trans "Üretici Ağları" %}</a></li>
                         {% endif %}
                         <!-- Bildirimler -->
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle position-relative" href="#" id="notificationDropdown" role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-bell me-1"></i>Bildirimler
+                                <i class="fas fa-bell me-1"></i>{% trans "Bildirimler" %}
                                 {% if unread_notifications > 0 %}<span class="badge bg-danger ms-1">{{ unread_notifications }}</span>{% endif %}
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="width: 320px; max-height: 400px; overflow-y: auto;">
                                 <li class="dropdown-header d-flex justify-content-between align-items-center">
-                                    <span>Bildirimler</span>
+                                    <span>{% trans "Bildirimler" %}</span>
                                     {% if unread_notifications > 0 %}<span class="badge bg-primary">{{ unread_notifications }}</span>{% endif %}
                                 </li>
                                 {% if unread_notifications > 0 %}
-                                    <li><button class="dropdown-item text-success" onclick="markAllNotificationsReadFromDropdown()" type="button"><i class="fas fa-check-double me-2"></i>Tümünü okundu işaretle</button></li>
+                                    <li><button class="dropdown-item text-success" onclick="markAllNotificationsReadFromDropdown()" type="button"><i class="fas fa-check-double me-2"></i>{% trans "Tümünü okundu işaretle" %}</button></li>
                                     <li><hr class="dropdown-divider"></li>
                                 {% endif %}
                                 {% for notification in user.simple_notifications.all|slice:":4" %}
@@ -263,23 +263,23 @@
                                 <li><hr class="dropdown-divider"></li>
                                 
                                 {% if user.producer %}
-                                    <li><a class="dropdown-item" href="{% url 'producer:profile' %}"><i class="fas fa-user me-2"></i>Profil Ayarları</a></li>
-                                    <li><a class="dropdown-item" href="{% url 'producer:network_list' %}"><i class="fas fa-network-wired me-2"></i>Ağ Yönetimi</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'producer:profile' %}"><i class="fas fa-user me-2"></i>{% trans "Profil Ayarları" %}</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'producer:network_list' %}"><i class="fas fa-network-wired me-2"></i>{% trans "Ağ Yönetimi" %}</a></li>
                                 {% elif user.center %}
-                                    <li><a class="dropdown-item" href="{% url 'center:profile' %}"><i class="fas fa-user me-2"></i>Profil Ayarları</a></li>
-                                    <li><a class="dropdown-item" href="{% url 'core:subscription_dashboard' %}"><i class="fas fa-credit-card me-2"></i>Abonelik Yönetimi</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'center:profile' %}"><i class="fas fa-user me-2"></i>{% trans "Profil Ayarları" %}</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'core:subscription_dashboard' %}"><i class="fas fa-credit-card me-2"></i>{% trans "Abonelik Yönetimi" %}</a></li>
                                 {% else %}
-                                    <li><a class="dropdown-item" href="{% url 'center:profile' %}"><i class="fas fa-user me-2"></i>Profil Ayarları</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'center:profile' %}"><i class="fas fa-user me-2"></i>{% trans "Profil Ayarları" %}</a></li>
                                 {% endif %}
                                 
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="{% url 'core:help_center' %}"><i class="fas fa-question-circle me-2"></i>Yardım Merkezi</a></li>
+                                <li><a class="dropdown-item" href="{% url 'core:help_center' %}"><i class="fas fa-question-circle me-2"></i>{% trans "Yardım Merkezi" %}</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 
                                 {% if user.producer %}
-                                    <li><a class="dropdown-item text-danger" href="{% url 'producer:logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Çıkış Yap</a></li>
+                                    <li><a class="dropdown-item text-danger" href="{% url 'producer:logout' %}"><i class="fas fa-sign-out-alt me-2"></i>{% trans "Çıkış Yap" %}</a></li>
                                 {% else %}
-                                    <li><a class="dropdown-item text-danger" href="{% url 'account_logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Çıkış Yap</a></li>
+                                    <li><a class="dropdown-item text-danger" href="{% url 'account_logout' %}"><i class="fas fa-sign-out-alt me-2"></i>{% trans "Çıkış Yap" %}</a></li>
                                 {% endif %}
                             </ul>
                         </li>
@@ -288,7 +288,7 @@
                         <li class="nav-item me-2">
                             <div class="dropdown">
                                 <button class="btn btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                    <i class="fas fa-user-plus me-1"></i>Kayıt Ol
+                                    <i class="fas fa-user-plus me-1"></i>{% trans "Kayıt Ol" %}
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0">
                                     <li>
@@ -296,8 +296,8 @@
                                             <div class="d-flex align-items-center">
                                                 <i class="fas fa-clinic-medical me-3 text-primary fs-5"></i>
                                                 <div>
-                                                    <div class="fw-semibold">İşitme Merkezi</div>
-                                                    <small class="text-muted">Kalıp siparişi vermek için</small>
+                                                    <div class="fw-semibold">{% trans "İşitme Merkezi" %}</div>
+                                                    <small class="text-muted">{% trans "Kalıp siparişi vermek için" %}</small>
                                                 </div>
                                             </div>
                                         </a>
@@ -308,8 +308,8 @@
                                             <div class="d-flex align-items-center">
                                                 <i class="fas fa-industry me-3 text-success fs-5"></i>
                                                 <div>
-                                                    <div class="fw-semibold">Üretici Merkez</div>
-                                                    <small class="text-muted">Kalıp üretimi yapmak için</small>
+                                                    <div class="fw-semibold">{% trans "Üretici Merkez" %}</div>
+                                                    <small class="text-muted">{% trans "Kalıp üretimi yapmak için" %}</small>
                                                 </div>
                                             </div>
                                         </a>
@@ -319,7 +319,7 @@
                         </li>
                         <li class="nav-item">
                             <a class="btn btn-light" href="{% url 'account_login' %}">
-                                <i class="fas fa-sign-in-alt me-1"></i>Giriş Yap
+                                <i class="fas fa-sign-in-alt me-1"></i>{% trans "Giriş Yap" %}
                             </a>
                         </li>
                     {% endif %}
@@ -331,7 +331,7 @@
     <!-- Navbar Bildirim JavaScript -->
     <script>
     function markAllNotificationsReadFromDropdown() {
-        if (confirm('Tüm bildirimleri okundu olarak işaretlemek istediğinizden emin misiniz?')) {
+        if (confirm('{% trans "Tüm bildirimleri okundu olarak işaretlemek istediğinizden emin misiniz?" %}')) {
             const csrfToken = getCsrfToken();
             if (!csrfToken) {
                 showToast('CSRF token bulunamadı. Sayfayı yenileyin.', 'error');
@@ -522,7 +522,7 @@
                         <img src="{% static 'images/moldpark_logo.jpg' %}" alt="MoldPark" class="me-2" style="height: 40px; border-radius: 8px;">
                         <h4 class="mb-0 gradient-text">MoldPark</h4>
                     </div>
-                    <p class="text-muted">Profesyonel kulak kalıbı üretim ve yönetim sistemi ile işitme sektöründe yenilikçi çözümler sunuyoruz.</p>
+                    <p class="text-muted">{% trans "Profesyonel kulak kalıbı üretim ve yönetim sistemi ile işitme sektöründe yenilikçi çözümler sunuyoruz." %}</p>
                     <div class="d-flex gap-3">
                         <a href="#" class="text-muted hover-primary">
                             <i class="fab fa-twitter fs-5"></i>
@@ -536,34 +536,34 @@
                     </div>
                 </div>
                 <div class="col-lg-2 col-md-6 mb-4">
-                    <h6 class="fw-bold mb-3">Platform</h6>
+                    <h6 class="fw-bold mb-3">{% trans "Platform" %}</h6>
                     <ul class="list-unstyled">
-                        <li class="mb-2"><a href="{% url 'core:home' %}" class="text-muted text-decoration-none hover-primary">Ana Sayfa</a></li>
-                        <li class="mb-2"><a href="{% url 'core:pricing' %}" class="text-muted text-decoration-none hover-primary">Fiyatlandırma</a></li>
-                        <li class="mb-2"><a href="{% url 'core:features' %}" class="text-muted text-decoration-none hover-primary">Özellikler</a></li>
-                        <li class="mb-2"><a href="#register" class="text-muted text-decoration-none hover-primary">Kayıt Ol</a></li>
+                        <li class="mb-2"><a href="{% url 'core:home' %}" class="text-muted text-decoration-none hover-primary">{% trans "Ana Sayfa" %}</a></li>
+                        <li class="mb-2"><a href="{% url 'core:pricing' %}" class="text-muted text-decoration-none hover-primary">{% trans "Fiyatlandırma" %}</a></li>
+                        <li class="mb-2"><a href="{% url 'core:features' %}" class="text-muted text-decoration-none hover-primary">{% trans "Özellikler" %}</a></li>
+                        <li class="mb-2"><a href="#register" class="text-muted text-decoration-none hover-primary">{% trans "Kayıt Ol" %}</a></li>
                     </ul>
                 </div>
                 <div class="col-lg-2 col-md-6 mb-4">
-                    <h6 class="fw-bold mb-3">Hizmetler</h6>
+                    <h6 class="fw-bold mb-3">{% trans "Hizmetler" %}</h6>
                     <ul class="list-unstyled">
-                        <li class="mb-2"><span class="text-muted">AI Modelleme</span></li>
-                        <li class="mb-2"><span class="text-muted">Hızlı Üretim</span></li>
-                        <li class="mb-2"><span class="text-muted">Kalite Kontrol</span></li>
-                        <li class="mb-2"><span class="text-muted">7/24 Destek</span></li>
+                        <li class="mb-2"><span class="text-muted">{% trans "AI Modelleme" %}</span></li>
+                        <li class="mb-2"><span class="text-muted">{% trans "Hızlı Üretim" %}</span></li>
+                        <li class="mb-2"><span class="text-muted">{% trans "Kalite Kontrol" %}</span></li>
+                        <li class="mb-2"><span class="text-muted">{% trans "7/24 Destek" %}</span></li>
                     </ul>
                 </div>
                 <div class="col-lg-2 col-md-6 mb-4">
-                    <h6 class="fw-bold mb-3">Destek</h6>
+                    <h6 class="fw-bold mb-3">{% trans "Destek" %}</h6>
                     <ul class="list-unstyled">
-                        <li class="mb-2"><a href="{% url 'core:contact' %}" class="text-muted text-decoration-none hover-primary">İletişim</a></li>
-                        <li class="mb-2"><a href="{% url 'core:help_center' %}" class="text-muted text-decoration-none hover-primary">Yardım Merkezi</a></li>
-                        <li class="mb-2"><a href="{% url 'core:documentation' %}" class="text-muted text-decoration-none hover-primary">Dokümantasyon</a></li>
+                        <li class="mb-2"><a href="{% url 'core:contact' %}" class="text-muted text-decoration-none hover-primary">{% trans "İletişim" %}</a></li>
+                        <li class="mb-2"><a href="{% url 'core:help_center' %}" class="text-muted text-decoration-none hover-primary">{% trans "Yardım Merkezi" %}</a></li>
+                        <li class="mb-2"><a href="{% url 'core:documentation' %}" class="text-muted text-decoration-none hover-primary">{% trans "Dokümantasyon" %}</a></li>
                         <li class="mb-2"><span class="text-muted">API</span></li>
                     </ul>
                 </div>
                 <div class="col-lg-2 col-md-6 mb-4">
-                    <h6 class="fw-bold mb-3">İletişim</h6>
+                    <h6 class="fw-bold mb-3">{% trans "İletişim" %}</h6>
                     <ul class="list-unstyled">
                         <li class="mb-2">
                             <i class="fas fa-envelope me-2 text-primary"></i>
@@ -583,10 +583,10 @@
             <hr class="my-4 opacity-25">
             <div class="row align-items-center">
                 <div class="col-md-6">
-                    <p class="text-muted mb-0">&copy; {% now "Y" %} MoldPark. Tüm hakları saklıdır.</p>
+                    <p class="text-muted mb-0">&copy; {% now "Y" %} MoldPark. {% trans "Tüm hakları saklıdır." %}</p>
                 </div>
                 <div class="col-md-6 text-md-end">
-                    <small class="text-muted">Global güvenilir kulak kalıbı platformu</small>
+                    <small class="text-muted">{% trans "Global güvenilir kulak kalıbı platformu" %}</small>
                 </div>
             </div>
         </div>

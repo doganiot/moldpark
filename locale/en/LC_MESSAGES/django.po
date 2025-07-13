@@ -1,0 +1,472 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: MoldPark 1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-01-13 21:20+0300\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# Common UI Elements
+msgid "Dashboard"
+msgstr "Dashboard"
+
+msgid "Kalıplarım"
+msgstr "My Molds"
+
+msgid "Yeni Kalıp"
+msgstr "New Mold"
+
+msgid "Üretici Ağları"
+msgstr "Producer Networks"
+
+msgid "Abonelik"
+msgstr "Subscription"
+
+msgid "Profil Ayarları"
+msgstr "Profile Settings"
+
+msgid "Çıkış Yap"
+msgstr "Logout"
+
+msgid "Giriş Yap"
+msgstr "Login"
+
+msgid "Kayıt Ol"
+msgstr "Sign Up"
+
+# Dashboard
+msgid "Hoş geldiniz"
+msgstr "Welcome"
+
+msgid "Toplam Kalıp"
+msgstr "Total Molds"
+
+msgid "Bekleyen"
+msgstr "Pending"
+
+msgid "İşleniyor"
+msgstr "Processing"
+
+msgid "Tamamlandı"
+msgstr "Completed"
+
+msgid "Teslim Edildi"
+msgstr "Delivered"
+
+msgid "Aktif Sipariş"
+msgstr "Active Orders"
+
+msgid "Toplam Sipariş"
+msgstr "Total Orders"
+
+msgid "Ağ Merkezi"
+msgstr "Network Centers"
+
+# Mold Status
+msgid "Bekliyor"
+msgstr "Waiting"
+
+msgid "Revizyon"
+msgstr "Revision"
+
+msgid "Reddedildi"
+msgstr "Rejected"
+
+msgid "Kargoda"
+msgstr "Shipping"
+
+# Company Info
+msgid "İşitme Merkezi"
+msgstr "Hearing Center"
+
+msgid "Üretici Merkez"
+msgstr "Producer Center"
+
+msgid "Sistem Yöneticisi"
+msgstr "System Administrator"
+
+# Actions
+msgid "Düzenle"
+msgstr "Edit"
+
+msgid "Sil"
+msgstr "Delete"
+
+msgid "Görüntüle"
+msgstr "View"
+
+msgid "İndir"
+msgstr "Download"
+
+msgid "Yükle"
+msgstr "Upload"
+
+msgid "Kaydet"
+msgstr "Save"
+
+msgid "İptal"
+msgstr "Cancel"
+
+# Forms
+msgid "Hasta Adı"
+msgstr "Patient Name"
+
+msgid "Hasta Soyadı"
+msgstr "Patient Surname"
+
+msgid "Yaş"
+msgstr "Age"
+
+msgid "Cinsiyet"
+msgstr "Gender"
+
+msgid "Erkek"
+msgstr "Male"
+
+msgid "Kadın"
+msgstr "Female"
+
+msgid "Kalıp Tipi"
+msgstr "Mold Type"
+
+msgid "Tam Konka"
+msgstr "Full Concha"
+
+msgid "Yarım Konka"
+msgstr "Half Concha"
+
+msgid "İskelet"
+msgstr "Skeleton"
+
+msgid "Probe"
+msgstr "Probe"
+
+msgid "Vent Çapı"
+msgstr "Vent Diameter"
+
+msgid "Notlar"
+msgstr "Notes"
+
+# Time
+msgid "Bugün"
+msgstr "Today"
+
+msgid "Bu Hafta"
+msgstr "This Week"
+
+msgid "Bu Ay"
+msgstr "This Month"
+
+msgid "önce"
+msgstr "ago"
+
+# Messages
+msgid "Başarıyla kaydedildi"
+msgstr "Successfully saved"
+
+msgid "Başarıyla silindi"
+msgstr "Successfully deleted"
+
+msgid "Hata oluştu"
+msgstr "An error occurred"
+
+msgid "Bildirimler"
+msgstr "Notifications"
+
+msgid "Okunmamış"
+msgstr "Unread"
+
+msgid "Tümünü okundu işaretle"
+msgstr "Mark all as read"
+
+# Company Types
+msgid "Kalıp Üreticisi"
+msgstr "Mold Manufacturer"
+
+msgid "3D Laboratuvar"
+msgstr "3D Laboratory"
+
+msgid "Hibrit (Üretici + Lab)"
+msgstr "Hybrid (Manufacturer + Lab)"
+
+# Status
+msgid "Aktif"
+msgstr "Active"
+
+msgid "Pasif"
+msgstr "Inactive"
+
+msgid "Doğrulanmış"
+msgstr "Verified"
+
+msgid "Doğrulama Bekliyor"
+msgstr "Pending Verification"
+
+# Subscription
+msgid "Temel Plan"
+msgstr "Basic Plan"
+
+msgid "Standart Plan"
+msgstr "Standard Plan"
+
+msgid "Premium Plan"
+msgstr "Premium Plan"
+
+msgid "kalıp kaldı"
+msgstr "molds remaining"
+
+msgid "Aylık Kullanım"
+msgstr "Monthly Usage"
+
+msgid "kaldı"
+msgstr "remaining"
+
+# Admin
+msgid "Yönetici Paneli"
+msgstr "Admin Panel"
+
+msgid "Süper Yönetici"
+msgstr "Super Administrator"
+
+msgid "Toplam Merkez"
+msgstr "Total Centers"
+
+msgid "Üretici"
+msgstr "Producers"
+
+msgid "Kullanıcı"
+msgstr "Users"
+
+# Footer
+msgid "Tüm hakları saklıdır"
+msgstr "All rights reserved"
+
+msgid "Gizlilik Politikası"
+msgstr "Privacy Policy"
+
+msgid "Kullanım Koşulları"
+msgstr "Terms of Service"
+
+msgid "İletişim"
+msgstr "Contact"
+
+msgid "Yardım Merkezi"
+msgstr "Help Center"
+
+msgid "Dokümantasyon"
+msgstr "Documentation"
+
+# Additional translations
+msgid "MoldPark sisteminin merkezi yönetim paneli"
+msgstr "Central management panel of MoldPark system"
+
+msgid "3D tarama yükle"
+msgstr "Upload 3D scan"
+
+msgid "Durumları takip et"
+msgstr "Track statuses"
+
+msgid "Ağları yönet"
+msgstr "Manage networks"
+
+msgid "Planı yönet"
+msgstr "Manage plan"
+
+msgid "Plan Seç"
+msgstr "Select Plan"
+
+msgid "Abonelik başlat"
+msgstr "Start subscription"
+
+msgid "Durum İstatistikleri"
+msgstr "Status Statistics"
+
+msgid "İşlenen"
+msgstr "Processed"
+
+msgid "Teslim"
+msgstr "Delivered"
+
+msgid "Son Kalıplar"
+msgstr "Recent Molds"
+
+msgid "Tümünü Gör"
+msgstr "View All"
+
+msgid "Hasta"
+msgstr "Patient"
+
+msgid "Kulak"
+msgstr "Ear"
+
+msgid "Tür"
+msgstr "Type"
+
+msgid "Durum"
+msgstr "Status"
+
+msgid "Tarih"
+msgstr "Date"
+
+msgid "İşlem"
+msgstr "Action"
+
+msgid "Sağ"
+msgstr "Right"
+
+msgid "Sol"
+msgstr "Left"
+
+msgid "Henüz kalıp bulunmuyor"
+msgstr "No molds found yet"
+
+msgid "İlk kalıbınızı oluşturmak için başlayın"
+msgstr "Start creating your first mold"
+
+msgid "Yeni Kalıp Oluştur"
+msgstr "Create New Mold"
+
+msgid "Kalan"
+msgstr "Remaining"
+
+msgid "Kullanılan"
+msgstr "Used"
+
+msgid "Kullanım"
+msgstr "Usage"
+
+msgid "Kulak Dağılımı"
+msgstr "Ear Distribution"
+
+msgid "Sağ Kulak"
+msgstr "Right Ear"
+
+msgid "Sol Kulak"
+msgstr "Left Ear"
+
+msgid "Henüz veri yok"
+msgstr "No data yet"
+
+msgid "Son 7 Gün Aktivitesi"
+msgstr "Last 7 Days Activity"
+
+msgid "Tüm Bildirimleri Gör"
+msgstr "View All Notifications"
+
+msgid "Yeni bildirim yok"
+msgstr "No new notifications"
+
+msgid "Hızlı İşlemler"
+msgstr "Quick Actions"
+
+# Navbar translations
+msgid "Fiyatlandırma"
+msgstr "Pricing"
+
+msgid "Yardım Merkezi"
+msgstr "Help Center"
+
+msgid "Yönetim Paneli"
+msgstr "Admin Panel"
+
+msgid "Siparişler"
+msgstr "Orders"
+
+msgid "Kalıplar"
+msgstr "Molds"
+
+msgid "Revizyonlar"
+msgstr "Revisions"
+
+msgid "Bildirimler"
+msgstr "Notifications"
+
+msgid "Tümünü okundu işaretle"
+msgstr "Mark all as read"
+
+msgid "Profil Ayarları"
+msgstr "Profile Settings"
+
+msgid "Ağ Yönetimi"
+msgstr "Network Management"
+
+msgid "Abonelik Yönetimi"
+msgstr "Subscription Management"
+
+msgid "Çıkış Yap"
+msgstr "Logout"
+
+msgid "Kayıt Ol"
+msgstr "Sign Up"
+
+msgid "İşitme Merkezi"
+msgstr "Hearing Center"
+
+msgid "Kalıp siparişi vermek için"
+msgstr "To place mold orders"
+
+msgid "Üretici Merkez"
+msgstr "Producer Center"
+
+msgid "Kalıp üretimi yapmak için"
+msgstr "To manufacture molds"
+
+msgid "Giriş Yap"
+msgstr "Login"
+
+# Footer translations
+msgid "Profesyonel kulak kalıbı üretim ve yönetim sistemi ile işitme sektöründe yenilikçi çözümler sunuyoruz."
+msgstr "We provide innovative solutions in the hearing industry with professional ear mold production and management system."
+
+msgid "Platform"
+msgstr "Platform"
+
+msgid "Ana Sayfa"
+msgstr "Home"
+
+msgid "Özellikler"
+msgstr "Features"
+
+msgid "Hizmetler"
+msgstr "Services"
+
+msgid "AI Modelleme"
+msgstr "AI Modeling"
+
+msgid "Hızlı Üretim"
+msgstr "Fast Production"
+
+msgid "Kalite Kontrol"
+msgstr "Quality Control"
+
+msgid "7/24 Destek"
+msgstr "24/7 Support"
+
+msgid "Destek"
+msgstr "Support"
+
+msgid "İletişim"
+msgstr "Contact"
+
+msgid "Dokümantasyon"
+msgstr "Documentation"
+
+msgid "Tüm hakları saklıdır."
+msgstr "All rights reserved."
+
+msgid "Global güvenilir kulak kalıbı platformu"
+msgstr "Global trusted ear mold platform"
+
+msgid "Tüm bildirimleri okundu olarak işaretlemek istediğinizden emin misiniz?"
+msgstr "Are you sure you want to mark all notifications as read?" 
