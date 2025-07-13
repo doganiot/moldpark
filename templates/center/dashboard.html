@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load i18n %}
 {% load humanize %}
 {% load static %}
 {% load moldpark_extras %}
@@ -415,7 +416,7 @@
                         </div>
                         <div class="flex-grow-1">
                             <h1 class="h2 fw-bold mb-2">
-                                Hoş geldiniz, {{ center.name }}
+                                {% trans "Hoş geldiniz" %}, {{ center.name }}
                             </h1>
                             <p class="mb-2 opacity-90">
                                 <i class="fas fa-map-marker-alt me-2"></i>{{ center.address }}
@@ -426,7 +427,7 @@
                             
                             {% if subscription %}
                             <div class="mt-3">
-                                <div class="badge bg-white bg-opacity-20 px-3 py-2 rounded-pill">
+                                <div class="badge bg-white bg-opacity-20 px-3 py-2 rounded-pill text-dark">
                                     <i class="fas fa-crown me-2"></i>
                                     {{ subscription.plan.name }} - {{ remaining_limit }} kalıp kaldı
                                 </div>
@@ -448,19 +449,19 @@
                     <div class="hero-stats">
                         <div class="hero-stat">
                             <div class="hero-stat-number">{{ time_stats.today }}</div>
-                            <div class="hero-stat-label">Bugün</div>
+                            <div class="hero-stat-label">{% trans "Bugün" %}</div>
                         </div>
                         <div class="hero-stat">
                             <div class="hero-stat-number">{{ time_stats.this_week }}</div>
-                            <div class="hero-stat-label">Bu Hafta</div>
+                            <div class="hero-stat-label">{% trans "Bu Hafta" %}</div>
                         </div>
                         <div class="hero-stat">
                             <div class="hero-stat-number">{{ pending_molds }}</div>
-                            <div class="hero-stat-label">Bekleyen</div>
+                            <div class="hero-stat-label">{% trans "Bekleyen" %}</div>
                         </div>
                         <div class="hero-stat">
                             <div class="hero-stat-number">{{ total_molds }}</div>
-                            <div class="hero-stat-label">Toplam Kalıp</div>
+                            <div class="hero-stat-label">{% trans "Toplam Kalıp" %}</div>
                         </div>
                     </div>
                 </div>
@@ -477,7 +478,7 @@
                         </svg>
                         <div class="progress-text">
                             <div class="progress-percentage">{{ usage_percentage }}%</div>
-                            <div class="progress-label">Kullanım</div>
+                            <div class="progress-label">{% trans "Kullanım" %}</div>
                         </div>
                     </div>
                     {% endif %}
@@ -495,7 +496,7 @@
                     <div class="card-icon bg-primary bg-opacity-10">
                         <i class="fas fa-bolt text-primary"></i>
                     </div>
-                    <h5 class="fw-bold mb-0">Hızlı İşlemler</h5>
+                    <h5 class="fw-bold mb-0">{% trans "Hızlı İşlemler" %}</h5>
                 </div>
                 
                 <div class="row g-3">
@@ -504,8 +505,8 @@
                             <div class="action-icon bg-primary bg-opacity-10">
                                 <i class="fas fa-plus text-primary"></i>
                             </div>
-                            <h6 class="fw-bold mb-2">Yeni Kalıp</h6>
-                            <p class="text-muted small mb-0">3D tarama yükle</p>
+                            <h6 class="fw-bold mb-2">{% trans "Yeni Kalıp" %}</h6>
+                            <p class="text-muted small mb-0">{% trans "3D tarama yükle" %}</p>
                         </a>
                     </div>
                     <div class="col-md-6 col-lg-3">
@@ -513,8 +514,8 @@
                             <div class="action-icon bg-info bg-opacity-10">
                                 <i class="fas fa-cube text-info"></i>
                             </div>
-                            <h6 class="fw-bold mb-2">Kalıplarım</h6>
-                            <p class="text-muted small mb-0">Durumları takip et</p>
+                            <h6 class="fw-bold mb-2">{% trans "Kalıplarım" %}</h6>
+                            <p class="text-muted small mb-0">{% trans "Durumları takip et" %}</p>
                         </a>
                     </div>
                     <div class="col-md-6 col-lg-3">
@@ -522,8 +523,8 @@
                             <div class="action-icon bg-success bg-opacity-10">
                                 <i class="fas fa-network-wired text-success"></i>
                             </div>
-                            <h6 class="fw-bold mb-2">Üretici Ağı</h6>
-                            <p class="text-muted small mb-0">Ağları yönet</p>
+                            <h6 class="fw-bold mb-2">{% trans "Üretici Ağı" %}</h6>
+                            <p class="text-muted small mb-0">{% trans "Ağları yönet" %}</p>
                         </a>
                     </div>
                     <div class="col-md-6 col-lg-3">
@@ -532,16 +533,16 @@
                             <div class="action-icon bg-warning bg-opacity-10">
                                 <i class="fas fa-crown text-warning"></i>
                             </div>
-                            <h6 class="fw-bold mb-2">Abonelik</h6>
-                            <p class="text-muted small mb-0">Planı yönet</p>
+                            <h6 class="fw-bold mb-2">{% trans "Abonelik" %}</h6>
+                            <p class="text-muted small mb-0">{% trans "Planı yönet" %}</p>
                         </a>
                         {% else %}
                         <a href="{% url 'core:pricing' %}" class="quick-action">
                             <div class="action-icon bg-warning bg-opacity-10">
                                 <i class="fas fa-shopping-cart text-warning"></i>
                             </div>
-                            <h6 class="fw-bold mb-2">Plan Seç</h6>
-                            <p class="text-muted small mb-0">Abonelik başlat</p>
+                            <h6 class="fw-bold mb-2">{% trans "Plan Seç" %}</h6>
+                            <p class="text-muted small mb-0">{% trans "Abonelik başlat" %}</p>
                         </a>
                         {% endif %}
                     </div>
@@ -556,25 +557,25 @@
                     <div class="card-icon bg-success bg-opacity-10">
                         <i class="fas fa-chart-pie text-success"></i>
                     </div>
-                    <h5 class="fw-bold mb-0">Durum İstatistikleri</h5>
+                    <h5 class="fw-bold mb-0">{% trans "Durum İstatistikleri" %}</h5>
                 </div>
                 
                 <div class="stat-grid">
                     <div class="stat-item">
                         <div class="stat-number text-warning">{{ status_stats.waiting }}</div>
-                        <div class="stat-label">Bekleyen</div>
+                        <div class="stat-label">{% trans "Bekleyen" %}</div>
                     </div>
                     <div class="stat-item">
                         <div class="stat-number text-info">{{ status_stats.processing }}</div>
-                        <div class="stat-label">İşlenen</div>
+                        <div class="stat-label">{% trans "İşlenen" %}</div>
                     </div>
                     <div class="stat-item">
                         <div class="stat-number text-success">{{ status_stats.completed }}</div>
-                        <div class="stat-label">Tamamlanan</div>
+                        <div class="stat-label">{% trans "Tamamlanan" %}</div>
                     </div>
                     <div class="stat-item">
                         <div class="stat-number text-primary">{{ status_stats.delivered }}</div>
-                        <div class="stat-label">Teslim</div>
+                        <div class="stat-label">{% trans "Teslim" %}</div>
                     </div>
                 </div>
             </div>
@@ -590,10 +591,10 @@
                     <div class="card-icon bg-info bg-opacity-10">
                         <i class="fas fa-history text-info"></i>
                     </div>
-                    <h5 class="fw-bold mb-0">Son Kalıplar</h5>
+                    <h5 class="fw-bold mb-0">{% trans "Son Kalıplar" %}</h5>
                     <div class="ms-auto">
                         <a href="{% url 'mold:mold_list' %}" class="btn btn-outline-primary btn-sm">
-                            Tümünü Gör <i class="fas fa-arrow-right ms-1"></i>
+                            {% trans "Tümünü Gör" %} <i class="fas fa-arrow-right ms-1"></i>
                         </a>
                     </div>
                 </div>
@@ -603,12 +604,12 @@
                     <table class="table">
                         <thead>
                             <tr>
-                                <th>Hasta</th>
-                                <th>Kulak</th>
-                                <th>Tür</th>
-                                <th>Durum</th>
-                                <th>Tarih</th>
-                                <th>İşlem</th>
+                                <th>{% trans "Hasta" %}</th>
+                                <th>{% trans "Kulak" %}</th>
+                                <th>{% trans "Tür" %}</th>
+                                <th>{% trans "Durum" %}</th>
+                                <th>{% trans "Tarih" %}</th>
+                                <th>{% trans "İşlem" %}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -628,9 +629,9 @@
                                 <td>
                                     <span class="badge {% if mold.ear_side == 'right' %}bg-info{% else %}bg-warning{% endif %}">
                                         {% if mold.ear_side == 'right' %}
-                                            <i class="fas fa-arrow-right me-1"></i>Sağ
+                                            <i class="fas fa-arrow-right me-1"></i>{% trans "Sağ" %}
                                         {% else %}
-                                            <i class="fas fa-arrow-left me-1"></i>Sol
+                                            <i class="fas fa-arrow-left me-1"></i>{% trans "Sol" %}
                                         {% endif %}
                                     </span>
                                 </td>
@@ -639,15 +640,15 @@
                                 </td>
                                 <td>
                                     {% if mold.status == 'waiting' %}
-                                        <span class="status-badge text-warning bg-warning bg-opacity-10">Bekliyor</span>
+                                        <span class="status-badge text-warning bg-warning bg-opacity-10">{% trans "Bekliyor" %}</span>
                                     {% elif mold.status == 'processing' %}
-                                        <span class="status-badge text-info bg-info bg-opacity-10">İşleniyor</span>
+                                        <span class="status-badge text-info bg-info bg-opacity-10">{% trans "İşleniyor" %}</span>
                                     {% elif mold.status == 'completed' %}
-                                        <span class="status-badge text-success bg-success bg-opacity-10">Tamamlandı</span>
+                                        <span class="status-badge text-success bg-success bg-opacity-10">{% trans "Tamamlandı" %}</span>
                                     {% elif mold.status == 'delivered' %}
-                                        <span class="status-badge text-primary bg-primary bg-opacity-10">Teslim</span>
+                                        <span class="status-badge text-primary bg-primary bg-opacity-10">{% trans "Teslim" %}</span>
                                     {% elif mold.status == 'revision' %}
-                                        <span class="status-badge text-danger bg-danger bg-opacity-10">Revizyon</span>
+                                        <span class="status-badge text-danger bg-danger bg-opacity-10">{% trans "Revizyon" %}</span>
                                     {% endif %}
                                 </td>
                                 <td>
@@ -668,10 +669,10 @@
                     <div class="no-data-icon">
                         <i class="fas fa-cube"></i>
                     </div>
-                    <h6>Henüz kalıp bulunmuyor</h6>
-                    <p class="text-muted">İlk kalıbınızı oluşturmak için başlayın</p>
+                    <h6>{% trans "Henüz kalıp bulunmuyor" %}</h6>
+                    <p class="text-muted">{% trans "İlk kalıbınızı oluşturmak için başlayın" %}</p>
                     <a href="{% url 'mold:mold_create' %}" class="btn btn-primary">
-                        <i class="fas fa-plus me-2"></i>Yeni Kalıp Oluştur
+                        <i class="fas fa-plus me-2"></i>{% trans "Yeni Kalıp Oluştur" %}
                     </a>
                 </div>
                 {% endif %}
@@ -687,7 +688,7 @@
                     <div class="card-icon bg-warning bg-opacity-10">
                         <i class="fas fa-crown text-warning"></i>
                     </div>
-                    <h5 class="fw-bold mb-0">Abonelik</h5>
+                    <h5 class="fw-bold mb-0">{% trans "Abonelik" %}</h5>
                 </div>
                 
                 <div class="text-center mb-3">
@@ -700,13 +701,13 @@
                     <div class="col-6">
                         <div class="stat-item">
                             <div class="stat-number text-success">{{ remaining_limit }}</div>
-                            <div class="stat-label">Kalan</div>
+                            <div class="stat-label">{% trans "Kalan" %}</div>
                         </div>
                     </div>
                     <div class="col-6">
                         <div class="stat-item">
                             <div class="stat-number text-info">{{ used_molds }}</div>
-                            <div class="stat-label">Kullanılan</div>
+                            <div class="stat-label">{% trans "Kullanılan" %}</div>
                         </div>
                     </div>
                 </div>
@@ -716,7 +717,7 @@
                         <div class="progress-bar bg-primary" role="progressbar" style="width: {{ usage_percentage }}%"></div>
                     </div>
                     <div class="d-flex justify-content-between mt-2">
-                        <small class="text-muted">%{{ usage_percentage }} kullanıldı</small>
+                        <small class="text-muted">{% trans "%" %}{{ usage_percentage }} kullanıldı</small>
                         <small class="text-muted">${{ subscription.plan.price_usd }}/ay</small>
                     </div>
                 </div>
@@ -729,7 +730,7 @@
                     <div class="card-icon bg-info bg-opacity-10">
                         <i class="fas fa-chart-donut text-info"></i>
                     </div>
-                    <h5 class="fw-bold mb-0">Kulak Dağılımı</h5>
+                    <h5 class="fw-bold mb-0">{% trans "Kulak Dağılımı" %}</h5>
                 </div>
                 
                 {% if total_molds > 0 %}
@@ -737,7 +738,7 @@
                     <div class="ear-side-item">
                         <div class="stat-number text-info">{{ ear_side_stats.right }}</div>
                         <div class="stat-label">
-                            <i class="fas fa-arrow-right me-1"></i>Sağ Kulak
+                            <i class="fas fa-arrow-right me-1"></i>{% trans "Sağ Kulak" %}
                         </div>
                         <div class="mt-2">
                             <div class="progress" style="height: 6px;">
@@ -749,7 +750,7 @@
                     <div class="ear-side-item">
                         <div class="stat-number text-warning">{{ ear_side_stats.left }}</div>
                         <div class="stat-label">
-                            <i class="fas fa-arrow-left me-1"></i>Sol Kulak
+                            <i class="fas fa-arrow-left me-1"></i>{% trans "Sol Kulak" %}
                         </div>
                         <div class="mt-2">
                             <div class="progress" style="height: 6px;">
@@ -763,7 +764,7 @@
                     <div class="no-data-icon">
                         <i class="fas fa-chart-pie"></i>
                     </div>
-                    <p>Henüz veri yok</p>
+                    <p>{% trans "Henüz veri yok" %}</p>
                 </div>
                 {% endif %}
             </div>
@@ -779,7 +780,7 @@
                     <div class="card-icon bg-success bg-opacity-10">
                         <i class="fas fa-chart-line text-success"></i>
                     </div>
-                    <h5 class="fw-bold mb-0">Son 7 Gün Aktivitesi</h5>
+                    <h5 class="fw-bold mb-0">{% trans "Son 7 Gün Aktivitesi" %}</h5>
                 </div>
                 
                 <div class="activity-chart">
@@ -807,7 +808,7 @@
                     <div class="card-icon bg-danger bg-opacity-10">
                         <i class="fas fa-bell text-danger"></i>
                     </div>
-                    <h5 class="fw-bold mb-0">Bildirimler</h5>
+                    <h5 class="fw-bold mb-0">{% trans "Bildirimler" %}</h5>
                     {% if unread_notifications %}
                     <div class="badge bg-danger">{{ unread_notifications.count }}</div>
                     {% endif %}
@@ -829,7 +830,7 @@
                     
                     <div class="text-center mt-3">
                         <a href="{% url 'core:simple_notifications' %}" class="btn btn-outline-primary btn-sm">
-                            Tüm Bildirimleri Gör
+                            {% trans "Tüm Bildirimleri Gör" %}
                         </a>
                     </div>
                 {% else %}
@@ -837,7 +838,7 @@
                     <div class="no-data-icon">
                         <i class="fas fa-bell-slash"></i>
                     </div>
-                    <p>Yeni bildirim yok</p>
+                    <p>{% trans "Yeni bildirim yok" %}</p>
                 </div>
                 {% endif %}
             </div>

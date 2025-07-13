@@ -834,39 +834,37 @@ def mold_download(request, pk, file_id=None):
     # ÖNEMLİ GÜVENLİK: Önce bu üreticiye ait sipariş olup olmadığını kontrol et
     try:
         producer_order = ProducerOrder.objects.select_related('ear_mold', 'center').get(
-            pk=pk,  # Sipariş ID'si ile erişim
+            ear_mold_id=pk,  # Kalıp ID'si ile erişim
             producer=producer  # Sadece kendi siparişleri
         )
         ear_mold = producer_order.ear_mold
     except ProducerOrder.DoesNotExist:
         messages.error(request, 'Bu kalıba erişim yetkiniz bulunmamaktadır.')
-        return redirect('producer:order_list')
+        return redirect('producer:mold_list')
     
-    # Ağ kontrolü - bu merkez üreticinin ağında mı? (Esnek kontrol)
+    # Ağ kontrolü - bu merkez üreticinin ağında mı?
     network_relation = producer.network_centers.filter(center=ear_mold.center).first()
     if not network_relation:
         messages.error(request, 'Bu merkez sizin ağınızda bulunmamaktadır.')
-        return redirect('producer:order_list')
-    
-    # Eğer network suspended ise uyarı ver ama erişimi engelleme
-    if network_relation.status == 'suspended':
-        messages.warning(request, 'Bu merkez ile ağ bağlantınız askıya alınmış durumda.')
-    elif network_relation.status == 'terminated':
-        messages.error(request, 'Bu merkez ile ağ bağlantınız sonlandırılmış.')
-        return redirect('producer:order_list')
+        return redirect('producer:mold_list')
     
     # Network aktivitesini güncelle
-    from django.utils import timezone
     network_relation.last_activity = timezone.now()
     network_relation.save(update_fields=['last_activity'])
     
-    # Dosyayı güvenli şekilde al
+    # Varsayılan olarak scan_file indirme tipi
+    download_type = 'scan_file'
+    
+    # Belirli bir dosya ID'si verilmişse
     if file_id:
-        # Belirli bir modeled file indir
-        mold_file = get_object_or_404(ModeledMold, pk=file_id, ear_mold=ear_mold)
-        file_path = mold_file.file.path
-        file_name = os.path.basename(file_path)
-        download_type = 'modeled_file'
+        try:
+            mold_file = ear_mold.modeled_files.get(id=file_id)
+            file_path = mold_file.file.path
+            file_name = os.path.basename(file_path)
+            download_type = 'modeled_file'
+        except ModeledMold.DoesNotExist:
+            messages.error(request, 'Belirtilen dosya bulunamadı.')
+            return redirect('producer:mold_detail', pk=pk)
     else:
         # Ana kalıp dosyasını (scan_file) indir
         if ear_mold.scan_file:

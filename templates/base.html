@@ -617,7 +617,18 @@
                 console.error('Invalid language code:', languageInput ? languageInput.value : 'undefined');
                 return false;
             }
-            
+
+            // Otomatik dil yönlendirme düzeltmesi
+            // Eğer kullanıcı İngilizce (/en/...) bir sayfadan Türkçe'ye geçmek istiyorsa
+            // next parametresindeki '/en/' ön ekini kaldır ki LocaleMiddleware yeniden 'en' moduna geçmesin
+            if (languageInput.value === 'tr') {
+                const nextInput = form.querySelector('input[name="next"]');
+                if (nextInput && nextInput.value.startsWith('/en/')) {
+                    nextInput.value = nextInput.value.replace(/^\/en\//, '/');
+                    console.log('Next path dil ön eki kaldırıldı:', nextInput.value);
+                }
+            }
+
             return true;
         }
         

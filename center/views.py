@@ -366,82 +366,50 @@ def center_limit_update(request, pk):
 @staff_member_required
 def admin_dashboard(request):
     # Temel istatistikler
+    from producer.models import Producer, ProducerNetwork, ProducerOrder
+    from mold.models import EarMold, RevisionRequest
+    from django.utils import timezone
+    from django.db.models import Count
+    
+    current_time = timezone.now()
+    
+    # Merkez istatistikleri
     total_centers = Center.objects.count()
     active_centers = Center.objects.filter(is_active=True).count()
-    total_molds = EarMold.objects.count()
     
-    # Kalıp durumları
-    mold_status_counts = EarMold.objects.values('status').annotate(count=Count('id'))
-    mold_stats = {item['status']: item['count'] for item in mold_status_counts}
-    
-    # ÜRETİCİ İSTATİSTİKLERİ
-    from producer.models import Producer, ProducerOrder, ProducerNetwork
+    # Üretici istatistikleri
     total_producers = Producer.objects.count()
-    active_producers = Producer.objects.filter(is_active=True, is_verified=True).count()
+    active_producers = Producer.objects.filter(is_active=True).count()
+    
+    # Ağ istatistikleri
     total_networks = ProducerNetwork.objects.count()
     active_networks = ProducerNetwork.objects.filter(status='active').count()
     
+    # Kalıp istatistikleri
+    total_molds = EarMold.objects.count()
+    monthly_molds = EarMold.objects.filter(created_at__month=current_time.month).count()
+    
     # Sipariş istatistikleri
     total_orders = ProducerOrder.objects.count()
-    order_status_counts = ProducerOrder.objects.values('status').annotate(count=Count('id'))
-    order_stats = {item['status']: item['count'] for item in order_status_counts}
+    monthly_orders = ProducerOrder.objects.filter(created_at__month=current_time.month).count()
+    pending_orders = ProducerOrder.objects.filter(status='pending').count()
     
-    # Son aktiviteler (birleştirilmiş)
-    from datetime import timedelta
-    from django.utils import timezone
+    # Revizyon istatistikleri
+    revision_molds = RevisionRequest.objects.filter(status__in=['pending', 'in_progress']).count()
     
-    last_week = timezone.now() - timedelta(days=7)
+    # Son aktiviteler
+    recent_molds = EarMold.objects.select_related('center').order_by('-created_at')[:5]
+    recent_orders = ProducerOrder.objects.select_related('producer', 'ear_mold').order_by('-created_at')[:5]
+    recent_networks = ProducerNetwork.objects.select_related('producer', 'center').order_by('-joined_at')[:5]  # created_at -> joined_at
     
-    # Son kalıplar
-    recent_molds = EarMold.objects.filter(created_at__gte=last_week).order_by('-created_at')[:5]
+    # Kalıp durumu dağılımı
+    mold_stats = dict(EarMold.objects.values('status').annotate(count=Count('id')).values_list('status', 'count'))
     
-    # Son siparişler
-    recent_orders = ProducerOrder.objects.filter(created_at__gte=last_week).order_by('-created_at')[:5]
+    # Sipariş durumu dağılımı
+    order_stats = dict(ProducerOrder.objects.values('status').annotate(count=Count('id')).values_list('status', 'count'))
     
-    # Son network katılımları
-    recent_networks = ProducerNetwork.objects.filter(joined_at__gte=last_week).order_by('-joined_at')[:5]
-    
-    # Aylık trendler
-    from django.utils.timezone import now
-    import calendar
-    
-    current_month = now().month
-    current_year = now().year
-    
-    monthly_molds = EarMold.objects.filter(
-        created_at__year=current_year,
-        created_at__month=current_month
-    ).count()
-    
-    monthly_orders = ProducerOrder.objects.filter(
-        created_at__year=current_year,
-        created_at__month=current_month
-    ).count()
-    
-    # Sorunlu durumlar - STATUS KONTROLÜ
-    try:
-        # Mevcut sipariş statuslarını kontrol et
-        actual_order_statuses = list(ProducerOrder.objects.values_list('status', flat=True).distinct())
-        # logger.debug(f"Mevcut sipariş statusları: {actual_order_statuses}")
-        
-        # Kalıp statuslarını da kontrol edelim
-        actual_mold_statuses = list(EarMold.objects.values_list('status', flat=True).distinct())
-        # logger.debug(f"Mevcut kalıp statusları: {actual_mold_statuses}")
-    except Exception as e:
-        # logger.error(f"Error fetching statuses for debug: {e}")
-        pass # Debug printlerini kaldırdık
-    
-    # Revizyon bekleyen kalıplar - aktif revizyon talepleri olan kalıpları say
-    from mold.models import RevisionRequest
-    revision_molds = EarMold.objects.filter(
-        modeled_files__revision_requests__status__in=['pending', 'admin_review', 'approved', 'rejected', 'producer_review', 'accepted', 'in_progress', 'quality_check', 'ready_for_delivery']
-    ).distinct().count()
-    
-    # Gecikmiş sipariş sorgusu - Sadece aktif ve gerçekten gecikmiş olanları say
-    current_time = timezone.now()
-    
-    # Sadece gerçekte var olan statuslarda olanları kontrol et
-    valid_overdue_statuses = [s for s in ['received', 'designing', 'production', 'quality_check'] if s in actual_order_statuses]
+    # Gecikmiş siparişler
+    valid_overdue_statuses = ['pending', 'processing', 'quality_check', 'waiting']
     
     # Gecikmiş siparişleri daha akıllı şekilde hesapla:
     # 1. estimated_delivery NULL olmamalı
@@ -556,7 +524,7 @@ def admin_mold_detail(request, pk):
     
     # Kalıp değerlendirmeleri
     evaluations = MoldEvaluation.objects.filter(
-        ear_mold=mold
+        mold=mold
     ).order_by('-created_at')
     
     # Üretici ağ bilgisi

@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load i18n %}
 {% load static %}
 {% load humanize %}
 
@@ -10,11 +11,11 @@
     <div class="row mb-4">
         <div class="col-12">
             <div class="card border-0 shadow-sm overflow-hidden" style="background: linear-gradient(135deg, var(--success-500) 0%, var(--success-600) 100%);">
-                <div class="card-body p-4 text-white">
+                <div class="card-body p-4 text-dark">
                     <div class="row align-items-center">
                         <div class="col-lg-8">
                             <div class="d-flex align-items-center mb-3">
-                                <div class="avatar-circle bg-white bg-opacity-20 rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 60px; height: 60px;">
+                                <div class="avatar-circle bg-dark bg-opacity-20 rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 60px; height: 60px;">
                                     <i class="fas fa-industry text-white fa-2x"></i>
                                 </div>
                                 <div>
@@ -25,15 +26,15 @@
                             
                             <!-- Status Badges -->
                             <div class="d-flex flex-wrap gap-2 mb-3">
-                                <span class="badge bg-white bg-opacity-20 px-3 py-2">
+                                <span class="badge bg-dark bg-opacity-20 px-3 py-2">
                                     <i class="fas fa-{{ producer.is_verified|yesno:'check-circle,clock' }} me-1"></i>
                                     {{ producer.is_verified|yesno:'Doğrulanmış,Doğrulama Bekliyor' }}
                                 </span>
-                                <span class="badge bg-white bg-opacity-20 px-3 py-2">
+                                <span class="badge bg-dark bg-opacity-20 px-3 py-2">
                                     <i class="fas fa-{{ producer.is_active|yesno:'play,pause' }} me-1"></i>
                                     {{ producer.is_active|yesno:'Aktif,Devre Dışı' }}
                                 </span>
-                                <span class="badge bg-white bg-opacity-20 px-3 py-2">
+                                <span class="badge bg-dark bg-opacity-20 px-3 py-2">
                                     <i class="fas fa-star me-1"></i>
                                     {{ producer.get_producer_type_display }}
                                 </span>
@@ -44,25 +45,25 @@
                                 <div class="col-6 col-md-3">
                                     <div class="text-center">
                                         <div class="h4 mb-0 fw-bold">{{ total_orders }}</div>
-                                        <small class="opacity-75">Toplam Sipariş</small>
+                                        <small class="opacity-75">{% trans "Toplam Sipariş" %}</small>
                                     </div>
                                 </div>
                                 <div class="col-6 col-md-3">
                                     <div class="text-center">
                                         <div class="h4 mb-0 fw-bold">{{ active_orders }}</div>
-                                        <small class="opacity-75">Aktif Sipariş</small>
+                                        <small class="opacity-75">{% trans "Aktif Sipariş" %}</small>
                                     </div>
                                 </div>
                                 <div class="col-6 col-md-3">
                                     <div class="text-center">
                                         <div class="h4 mb-0 fw-bold">{{ completed_orders }}</div>
-                                        <small class="opacity-75">Tamamlanan</small>
+                                        <small class="opacity-75">{% trans "Tamamlandı" %}</small>
                                     </div>
                                 </div>
                                 <div class="col-6 col-md-3">
                                     <div class="text-center">
                                         <div class="h4 mb-0 fw-bold">{{ network_centers }}</div>
-                                        <small class="opacity-75">Ağ Merkezi</small>
+                                        <small class="opacity-75">{% trans "Ağ Merkezi" %}</small>
                                     </div>
                                 </div>
                             </div>
@@ -71,7 +72,7 @@
                         <div class="col-lg-4 text-lg-end mt-4 mt-lg-0">
                             <div class="bg-white bg-opacity-10 rounded-3 p-3 mb-3">
                                 <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span class="small">Aylık Kullanım</span>
+                                    <span class="small">{% trans "Aylık Kullanım" %}</span>
                                     <span class="small fw-bold">{{ monthly_orders }}/{{ producer.mold_limit }}</span>
                                 </div>
                                 <div class="progress" style="height: 8px;">

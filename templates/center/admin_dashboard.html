@@ -13,7 +13,13 @@
                     <h1 class="h3 mb-0">Ana Yönetim Paneli</h1>
                     <p class="text-muted">Sistem geneli takip ve yönetim</p>
                 </div>
-                <div>
+                <div class="d-flex align-items-center gap-3">
+                    <a href="/django-admin/" class="btn btn-primary">
+                        <i class="fas fa-cog me-2"></i>Django Admin Panel
+                    </a>
+                    <a href="/admin-dashboard/" class="btn btn-info text-white">
+                        <i class="fas fa-tachometer-alt me-2"></i>Yönetici Paneli
+                    </a>
                     <span class="badge bg-success fs-6">{{ active_centers }} Aktif Merkez</span>
                     <span class="badge bg-primary fs-6">{{ active_producers }} Aktif Üretici</span>
                 </div>
