@@ -18,6 +18,8 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.conf.urls.i18n import i18n_patterns
+from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.decorators import user_passes_test
 from django.http import HttpResponseForbidden, HttpResponse
 from django.shortcuts import redirect
@@ -86,13 +88,19 @@ urlpatterns = [
     path('accounts/', include('allauth.urls')),  # allauth URL'leri
     # Django-notifications-hq paketini spesifik path'e taşı
     path('django-notifications/', include('notifications.urls', namespace='notifications')),
-    
-    # Ana Uygulama URL'leri (Core'daki notifications URL'leri öncelik alacak)
+    # Language switcher
+    path('i18n/', include('django.conf.urls.i18n')),
+]
+
+# Internationalized URLs
+urlpatterns += i18n_patterns(
+    path('account/', include('allauth.urls')),
     path('', include('core.urls')),
     path('center/', include('center.urls')),
     path('mold/', include('mold.urls')),
     path('producer/', include('producer.urls')),
-]
+    prefix_default_language=False,  # Don't prefix default language
+)
 
 # Static ve Media dosyaları
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
