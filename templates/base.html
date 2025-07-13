@@ -210,19 +210,21 @@
                         <a class="nav-link dropdown-toggle" href="#" id="languageDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-globe me-1"></i>
                             {% get_current_language as LANGUAGE_CODE %}
-                            {% if LANGUAGE_CODE == 'tr' %}TR{% elif LANGUAGE_CODE == 'en' %}EN{% endif %}
+                            {% if LANGUAGE_CODE == 'tr' %}🇹🇷 TR{% elif LANGUAGE_CODE == 'en' %}🇺🇸 EN{% else %}{{ LANGUAGE_CODE|upper }}{% endif %}
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageDropdown">
                             {% get_available_languages as LANGUAGES %}
                             {% get_language_info_list for LANGUAGES as languages %}
+                            <!-- Debug: Current language: {{ LANGUAGE_CODE }} -->
                             {% for language in languages %}
                                 <li>
+                                    <!-- Debug: Language: {{ language.code }} - {{ language.name_local }} -->
                                     <form action="{% url 'set_language' %}" method="post" style="display: inline;" onsubmit="return validateLanguageForm(this);">
                                         {% csrf_token %}
                                         <input name="next" type="hidden" value="{{ request.get_full_path }}" />
                                         <input name="language" type="hidden" value="{{ language.code }}" />
                                         <button type="submit" class="dropdown-item {% if language.code == LANGUAGE_CODE %}active{% endif %}">
-                                            {{ language.name_local|title }}
+                                            {% if language.code == 'tr' %}🇹🇷 Türkçe{% elif language.code == 'en' %}🇺🇸 English{% else %}{{ language.name_local|title }}{% endif %}
                                         </button>
                                     </form>
                                 </li>
@@ -604,6 +606,12 @@
         function validateLanguageForm(form) {
             const languageInput = form.querySelector('input[name="language"]');
             const allowedLanguages = ['tr', 'en'];
+            
+            console.log('Language form submission:', {
+                languageValue: languageInput ? languageInput.value : 'undefined',
+                formAction: form.action,
+                nextValue: form.querySelector('input[name="next"]')?.value
+            });
             
             if (!languageInput || !allowedLanguages.includes(languageInput.value)) {
                 console.error('Invalid language code:', languageInput ? languageInput.value : 'undefined');

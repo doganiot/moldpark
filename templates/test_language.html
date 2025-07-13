@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Dil Testi" %} - MoldPark{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4>{% trans "Dil Değiştirici Testi" %}</h4>
+                </div>
+                <div class="card-body">
+                    <h5>{% trans "Mevcut Dil Bilgileri" %}</h5>
+                    <ul class="list-group mb-3">
+                        <li class="list-group-item">
+                            <strong>{% trans "Aktif Dil" %}:</strong> 
+                            {% get_current_language as LANGUAGE_CODE %}
+                            {{ LANGUAGE_CODE }} ({{ LANGUAGE_CODE|language_name }})
+                        </li>
+                        <li class="list-group-item">
+                            <strong>{% trans "Mevcut Diller" %}:</strong>
+                            {% get_available_languages as LANGUAGES %}
+                            {% for lang in LANGUAGES %}
+                                {{ lang.0 }} ({{ lang.1 }}){% if not forloop.last %}, {% endif %}
+                            {% endfor %}
+                        </li>
+                        <li class="list-group-item">
+                            <strong>{% trans "Sayfa URL'si" %}:</strong> {{ request.get_full_path }}
+                        </li>
+                        <li class="list-group-item">
+                            <strong>{% trans "Tarayıcı Dili" %}:</strong> {{ request.META.HTTP_ACCEPT_LANGUAGE|default:"Belirtilmemiş" }}
+                        </li>
+                    </ul>
+
+                    <h5>{% trans "Test Metinleri" %}</h5>
+                    <div class="alert alert-info">
+                        <p>{% trans "Bu bir test metnidir. Dil değiştirici çalışıyorsa bu metin çevrilmelidir." %}</p>
+                        <p>{% trans "Dashboard" %} | {% trans "Kalıplarım" %} | {% trans "Yeni Kalıp" %}</p>
+                        <p>{% trans "Fiyatlandırma" %} | {% trans "Yardım Merkezi" %} | {% trans "İletişim" %}</p>
+                    </div>
+
+                    <h5>{% trans "Manuel Dil Değiştirici" %}</h5>
+                    <div class="btn-group" role="group">
+                        <form method="post" action="{% url 'set_language' %}" style="display: inline;">
+                            {% csrf_token %}
+                            <input name="next" type="hidden" value="{{ request.get_full_path }}" />
+                            <input name="language" type="hidden" value="tr" />
+                            <button type="submit" class="btn btn-outline-primary">🇹🇷 Türkçe</button>
+                        </form>
+                        <form method="post" action="{% url 'set_language' %}" style="display: inline;">
+                            {% csrf_token %}
+                            <input name="next" type="hidden" value="{{ request.get_full_path }}" />
+                            <input name="language" type="hidden" value="en" />
+                            <button type="submit" class="btn btn-outline-success">🇺🇸 English</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

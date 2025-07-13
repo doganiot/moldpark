@@ -2,6 +2,11 @@ from django.urls import path
 from . import views
 from .api import SystemStatusAPI, production_pipeline_api, alerts_api, health_check_api
 from . import api
+from django.shortcuts import redirect
+
+def admin_panel_redirect(request):
+    """Eski admin-panel URL'sinden yeni admin-dashboard URL'sine redirect"""
+    return redirect('core:admin_dashboard', permanent=True)
 
 app_name = 'core'
 
@@ -23,6 +28,11 @@ urlpatterns = [
     
     # Admin Dashboard
     path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard'),
+    
+    # Test sayfası
+    path('test-language/', views.test_language, name='test_language'),
+    # Eski URL için redirect (geçici uyumluluk)
+    path('admin-panel/', admin_panel_redirect, name='admin_panel_redirect'),
     
     # Admin Abonelik Yönetimi
     path('admin/subscription-requests/<int:request_id>/approve/', views.admin_approve_subscription_request, name='admin_approve_subscription_request'),

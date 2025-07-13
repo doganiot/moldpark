@@ -1117,3 +1117,7 @@ def help_center(request):
 def documentation(request):
     """Dokümantasyon sayfası"""
     return render(request, 'core/documentation.html')
+
+def test_language(request):
+    """Dil değiştirici test sayfası"""
+    return render(request, 'test_language.html')

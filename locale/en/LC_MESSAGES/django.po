@@ -469,4 +469,35 @@ msgid "Global güvenilir kulak kalıbı platformu"
 msgstr "Global trusted ear mold platform"
 
 msgid "Tüm bildirimleri okundu olarak işaretlemek istediğinizden emin misiniz?"
-msgstr "Are you sure you want to mark all notifications as read?" 
+msgstr "Are you sure you want to mark all notifications as read?"
+
+# Test page translations
+msgid "Dil Testi"
+msgstr "Language Test"
+
+msgid "Dil Değiştirici Testi"
+msgstr "Language Switcher Test"
+
+msgid "Mevcut Dil Bilgileri"
+msgstr "Current Language Information"
+
+msgid "Aktif Dil"
+msgstr "Active Language"
+
+msgid "Mevcut Diller"
+msgstr "Available Languages"
+
+msgid "Sayfa URL'si"
+msgstr "Page URL"
+
+msgid "Tarayıcı Dili"
+msgstr "Browser Language"
+
+msgid "Test Metinleri"
+msgstr "Test Texts"
+
+msgid "Bu bir test metnidir. Dil değiştirici çalışıyorsa bu metin çevrilmelidir."
+msgstr "This is a test text. If the language switcher works, this text should be translated."
+
+msgid "Manuel Dil Değiştirici"
+msgstr "Manual Language Switcher" 
