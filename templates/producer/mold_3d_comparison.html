@@ -524,6 +524,7 @@ class MoldComparison3D {
         this.rightViewer = null;
         this.syncCameras = true;
         this.loadedModels = 0;
+        this.isSyncing = false; // Sonsuz döngüyü engellemek için flag
         
         this.init();
     }
@@ -539,8 +540,10 @@ class MoldComparison3D {
         this.leftViewer = new Model3DViewer('leftCanvas', null, {
             position: 'left',
             onCameraChange: (camera) => {
-                if (this.syncCameras && this.rightViewer) {
+                if (this.syncCameras && this.rightViewer && !this.isSyncing) {
+                    this.isSyncing = true;
                     this.rightViewer.syncCamera(camera);
+                    setTimeout(() => { this.isSyncing = false; }, 16); // 1 frame delay
                 }
             },
             onModelLoad: () => {
@@ -554,8 +557,10 @@ class MoldComparison3D {
         this.rightViewer = new Model3DViewer('rightCanvas', null, {
             position: 'right',
             onCameraChange: (camera) => {
-                if (this.syncCameras && this.leftViewer) {
+                if (this.syncCameras && this.leftViewer && !this.isSyncing) {
+                    this.isSyncing = true;
                     this.leftViewer.syncCamera(camera);
+                    setTimeout(() => { this.isSyncing = false; }, 16); // 1 frame delay
                 }
             },
             onModelLoad: () => {
@@ -618,12 +623,31 @@ class MoldComparison3D {
         this.syncCameras = !this.syncCameras;
         const btn = document.getElementById('syncCameras');
         btn.classList.toggle('active', this.syncCameras);
+        
+        // Debug bilgisi
+        console.log('Camera sync:', this.syncCameras ? 'enabled' : 'disabled');
+        
+        // Sync kapatılırken flag'i de sıfırla
+        if (!this.syncCameras) {
+            this.isSyncing = false;
+        }
+        
         this.updateStats();
     }
     
     resetViews() {
+        // Sync işlemini geçici olarak durdur
+        const wasSyncing = this.syncCameras;
+        this.syncCameras = false;
+        
+        // Her iki viewer'ı da sıfırla
         if (this.leftViewer) this.leftViewer.resetView();
         if (this.rightViewer) this.rightViewer.resetView();
+        
+        // Kısa bir gecikme sonrası sync'i yeniden aktifleştir
+        setTimeout(() => {
+            this.syncCameras = wasSyncing;
+        }, 100);
     }
     
     toggleWireframe() {
@@ -631,8 +655,17 @@ class MoldComparison3D {
         const wireframe = !btn.classList.contains('active');
         btn.classList.toggle('active', wireframe);
         
+        // Sync'i geçici olarak durdur
+        const wasSyncing = this.syncCameras;
+        this.syncCameras = false;
+        
         if (this.leftViewer) this.leftViewer.setWireframe(wireframe);
         if (this.rightViewer) this.rightViewer.setWireframe(wireframe);
+        
+        // Sync'i yeniden aktifleştir
+        setTimeout(() => {
+            this.syncCameras = wasSyncing;
+        }, 16);
         
         document.getElementById('viewMode').textContent = wireframe ? 'Wireframe' : 'Karşılaştırma';
     }
@@ -640,15 +673,29 @@ class MoldComparison3D {
     toggleFullscreen() {
         const container = document.querySelector('.comparison-container');
         
+        // Sync'i geçici olarak durdur
+        const wasSyncing = this.syncCameras;
+        this.syncCameras = false;
+        
         if (!document.fullscreenElement) {
             container.requestFullscreen().then(() => {
                 if (this.leftViewer) this.leftViewer.onWindowResize();
                 if (this.rightViewer) this.rightViewer.onWindowResize();
+                
+                // Sync'i yeniden aktifleştir
+                setTimeout(() => {
+                    this.syncCameras = wasSyncing;
+                }, 100);
             });
         } else {
             document.exitFullscreen().then(() => {
                 if (this.leftViewer) this.leftViewer.onWindowResize();
                 if (this.rightViewer) this.rightViewer.onWindowResize();
+                
+                // Sync'i yeniden aktifleştir
+                setTimeout(() => {
+                    this.syncCameras = wasSyncing;
+                }, 100);
             });
         }
     }
@@ -751,10 +798,15 @@ class Model3DViewer {
         this.controls.dampingFactor = 0.05;
         this.controls.autoRotate = false;
         
-        // Controls event listeners
+        // Controls event listeners (throttled)
+        let lastCameraChangeTime = 0;
         this.controls.addEventListener('change', () => {
-            if (this.options.onCameraChange) {
-                this.options.onCameraChange(this.camera);
+            const now = Date.now();
+            if (now - lastCameraChangeTime > 16) { // 60fps throttle
+                lastCameraChangeTime = now;
+                if (this.options.onCameraChange && this.controls.enabled) {
+                    this.options.onCameraChange(this.camera);
+                }
             }
         });
         
@@ -923,12 +975,26 @@ class Model3DViewer {
     syncCamera(sourceCamera) {
         if (!this.camera || !this.controls) return;
         
+        // Sync işlemi sırasında event listener'ları devre dışı bırak
+        const wasEnabled = this.controls.enabled;
+        this.controls.enabled = false;
+        
+        // Kamera pozisyonu ve rotasyonunu kopyala
         this.camera.position.copy(sourceCamera.position);
         this.camera.rotation.copy(sourceCamera.rotation);
-        this.controls.target.copy(sourceCamera.position).add(
-            new THREE.Vector3(0, 0, -1).applyQuaternion(sourceCamera.quaternion)
-        );
+        
+        // Target'ı güncelle (daha güvenli yöntem)
+        const direction = new THREE.Vector3(0, 0, -1);
+        direction.applyQuaternion(sourceCamera.quaternion);
+        this.controls.target.copy(sourceCamera.position).add(direction.multiplyScalar(50));
+        
+        // Controls'ü güncelle ve event listener'ları yeniden aktifleştir
         this.controls.update();
+        
+        // Kısa bir gecikme sonrası controls'ü yeniden aktifleştir
+        setTimeout(() => {
+            this.controls.enabled = wasEnabled;
+        }, 16);
     }
     
     resetView() {
@@ -952,10 +1018,17 @@ class Model3DViewer {
     }
     
     onWindowResize() {
+        if (!this.camera || !this.renderer) return;
+        
         const aspect = this.canvas.clientWidth / this.canvas.clientHeight;
         this.camera.aspect = aspect;
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(this.canvas.clientWidth, this.canvas.clientHeight);
+        
+        // Resize sonrası controls'ü güncelle
+        if (this.controls) {
+            this.controls.update();
+        }
     }
     
     animate() {
