@@ -1,0 +1,1035 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ page_title }} - MoldPark{% endblock %}
+
+{% block extra_css %}
+<style>
+    .comparison-container {
+        position: relative;
+        width: 100%;
+        height: 80vh;
+        min-height: 500px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    }
+    
+    .viewer-split {
+        display: flex;
+        height: 100%;
+        flex-direction: row;
+    }
+    
+    /* Mobile responsive */
+    @media (max-width: 768px) {
+        .viewer-split {
+            flex-direction: column;
+        }
+        
+        .viewer-panel {
+            border-right: none !important;
+            border-bottom: 2px solid rgba(255,255,255,0.2);
+        }
+        
+        .viewer-panel:last-child {
+            border-bottom: none;
+        }
+        
+        .comparison-container {
+            height: 60vh;
+            min-height: 400px;
+        }
+        
+        .viewer-controls {
+            top: 10px;
+            right: 10px;
+        }
+        
+        .control-btn {
+            padding: 8px 12px;
+            margin: 2px;
+            font-size: 12px;
+        }
+        
+        .viewer-info {
+            bottom: 10px;
+            left: 10px;
+            padding: 10px;
+            max-width: 250px;
+        }
+    }
+    
+    .viewer-panel {
+        flex: 1;
+        position: relative;
+        border-right: 2px solid rgba(255,255,255,0.2);
+        min-height: 250px;
+    }
+    
+    .viewer-panel:last-child {
+        border-right: none;
+    }
+    
+    .viewer-canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+    }
+    
+    .viewer-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        z-index: 10;
+    }
+    
+    .viewer-controls {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        z-index: 20;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+    
+    .viewer-info {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        background: rgba(255,255,255,0.9);
+        padding: 15px;
+        border-radius: 10px;
+        backdrop-filter: blur(10px);
+        z-index: 20;
+        max-width: 300px;
+    }
+    
+    .control-btn {
+        background: rgba(255,255,255,0.9);
+        border: none;
+        border-radius: 8px;
+        padding: 10px 15px;
+        margin: 2px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+        font-size: 14px;
+        white-space: nowrap;
+    }
+    
+    .control-btn:hover {
+        background: rgba(255,255,255,1);
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+    
+    .control-btn.active {
+        background: #007bff;
+        color: white;
+    }
+    
+    .loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255,255,255,0.9);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 30;
+        border-radius: 15px;
+    }
+    
+    .metadata-card {
+        background: rgba(255,255,255,0.95);
+        border-radius: 10px;
+        padding: 20px;
+        margin-top: 20px;
+        backdrop-filter: blur(10px);
+    }
+    
+    .file-selector {
+        background: rgba(255,255,255,0.95);
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 20px;
+        backdrop-filter: blur(10px);
+    }
+    
+    .model-card {
+        background: rgba(255,255,255,0.95);
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+    
+    .model-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    .model-card.active {
+        border-color: #007bff;
+        background: rgba(0,123,255,0.1);
+    }
+    
+    .comparison-stats {
+        background: linear-gradient(135deg, #28a745, #20c997);
+        color: white;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .error-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(220, 53, 69, 0.9);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        z-index: 15;
+        flex-direction: column;
+        text-align: center;
+        padding: 20px;
+    }
+    
+    .success-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(40, 167, 69, 0.9);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        z-index: 15;
+        flex-direction: column;
+        text-align: center;
+        padding: 20px;
+    }
+    
+    /* Responsive table for mobile */
+    @media (max-width: 576px) {
+        .file-selector .row {
+            margin: 0 -5px;
+        }
+        
+        .file-selector .col-md-6 {
+            padding: 0 5px;
+            margin-bottom: 15px;
+        }
+        
+        .metadata-card {
+            padding: 15px;
+            margin-top: 15px;
+        }
+        
+        .comparison-stats {
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>
+                        <i class="fas fa-cube me-2 text-primary"></i>
+                        3D Kalıp Karşılaştırması
+                    </h2>
+                    <p class="text-muted mb-1">{{ ear_mold.patient_name }} {{ ear_mold.patient_surname }} - {{ ear_mold.get_mold_type_display }}</p>
+                    <small class="text-success">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Orijinal tarama ile üretilen kalıbı karşılaştırın
+                    </small>
+                </div>
+                <div>
+                    <a href="{% url 'producer:mold_detail' producer_order.pk %}" class="btn btn-outline-secondary me-2">
+                        <i class="fas fa-arrow-left me-2"></i>Kalıp Detayı
+                    </a>
+                    <a href="{% url 'producer:mold_list' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-list me-2"></i>Kalıp Listesi
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Ana 3D Karşılaştırma Alanı -->
+        <div class="col-lg-9">
+            <!-- Dosya Seçici -->
+            <div class="file-selector">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-primary mb-3">
+                            <i class="fas fa-scan me-2"></i>Orijinal Tarama
+                        </h6>
+                        {% if original_scan %}
+                            <div class="model-card active" data-type="original" data-url="{{ original_scan.file_url }}" data-name="{{ original_scan.file_name }}">
+                                <div class="d-flex align-items-center">
+                                    {% if original_scan.thumbnail_url %}
+                                        <img src="{{ original_scan.thumbnail_url }}" class="rounded me-3" style="width: 50px; height: 50px; object-fit: cover;">
+                                    {% else %}
+                                        <div class="bg-primary rounded d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
+                                            <i class="fas fa-cube text-white"></i>
+                                        </div>
+                                    {% endif %}
+                                    <div>
+                                        <strong>Orijinal Tarama</strong>
+                                        <br>
+                                        <small class="text-muted">{{ original_scan.file_name|cut:"scans/" }}</small>
+                                        <br>
+                                        <span class="badge bg-primary">Merkez Dosyası</span>
+                                    </div>
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Orijinal tarama dosyası bulunamadı
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-success mb-3">
+                            <i class="fas fa-hammer me-2"></i>Üretilen Modeller
+                        </h6>
+                        {% if modeled_files %}
+                            {% for file in modeled_files %}
+                                <div class="model-card" data-type="modeled" data-id="{{ file.id }}" data-url="{{ file.file_url }}" data-name="{{ file.file_name }}">
+                                    <div class="d-flex align-items-center">
+                                        {% if file.thumbnail_url %}
+                                            <img src="{{ file.thumbnail_url }}" class="rounded me-3" style="width: 50px; height: 50px; object-fit: cover;">
+                                        {% else %}
+                                            <div class="bg-success rounded d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
+                                                <i class="fas fa-cube text-white"></i>
+                                            </div>
+                                        {% endif %}
+                                        <div class="flex-grow-1">
+                                            <strong>{{ file.file_name|cut:"modeled/" }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ file.created_at|date:"d.m.Y H:i" }}</small>
+                                            <br>
+                                            <span class="badge bg-{{ file.status|yesno:'success,warning,danger' }}">
+                                                {{ file.status_display }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Henüz üretilen model yok
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3D Viewer Container -->
+            <div class="comparison-container">
+                <!-- Loading Overlay -->
+                <div class="loading-overlay" id="loadingOverlay">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary mb-3" role="status">
+                            <span class="visually-hidden">Yükleniyor...</span>
+                        </div>
+                        <h5>3D Modeller Yükleniyor...</h5>
+                        <p class="text-muted">Lütfen bekleyin...</p>
+                    </div>
+                </div>
+
+                <!-- Viewer Split -->
+                <div class="viewer-split" id="viewerSplit">
+                    <!-- Sol Panel - Orijinal -->
+                    <div class="viewer-panel" id="leftPanel">
+                        <canvas class="viewer-canvas" id="leftCanvas"></canvas>
+                        <div class="viewer-overlay" id="leftOverlay">
+                            <div class="text-center">
+                                <i class="fas fa-scan fa-3x mb-3"></i>
+                                <h5>Orijinal Tarama</h5>
+                                <p>Sol tarafta orijinal tarama dosyası görüntülenecek</p>
+                            </div>
+                        </div>
+                        <div class="viewer-info">
+                            <small class="text-muted d-block mb-1"><strong>SOL PANEL</strong></small>
+                            <small id="leftInfo">Orijinal tarama seçin</small>
+                        </div>
+                    </div>
+
+                    <!-- Sağ Panel - Üretilen -->
+                    <div class="viewer-panel" id="rightPanel">
+                        <canvas class="viewer-canvas" id="rightCanvas"></canvas>
+                        <div class="viewer-overlay" id="rightOverlay">
+                            <div class="text-center">
+                                <i class="fas fa-hammer fa-3x mb-3"></i>
+                                <h5>Üretilen Model</h5>
+                                <p>Sağ tarafta üretilen model görüntülenecek</p>
+                            </div>
+                        </div>
+                        <div class="viewer-info">
+                            <small class="text-muted d-block mb-1"><strong>SAĞ PANEL</strong></small>
+                            <small id="rightInfo">Üretilen model seçin</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Viewer Controls -->
+                <div class="viewer-controls">
+                    <button class="control-btn" id="syncCameras" title="Kamera Senkronizasyonu">
+                        <i class="fas fa-link me-1"></i>Senkron
+                    </button>
+                    <button class="control-btn" id="resetViews" title="Görünümleri Sıfırla">
+                        <i class="fas fa-home me-1"></i>Sıfırla
+                    </button>
+                    <button class="control-btn" id="toggleWireframe" title="Wireframe Modu">
+                        <i class="fas fa-project-diagram me-1"></i>Wireframe
+                    </button>
+                    <button class="control-btn" id="toggleFullscreen" title="Tam Ekran">
+                        <i class="fas fa-expand me-1"></i>Tam Ekran
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Yan Panel - Bilgiler ve Kontroller -->
+        <div class="col-lg-3">
+            <!-- Karşılaştırma İstatistikleri -->
+            <div class="comparison-stats">
+                <h6 class="mb-3">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    Karşılaştırma İstatistikleri
+                </h6>
+                <div id="comparisonStats">
+                    <div class="mb-2">
+                        <small class="d-block">Yüklenen Modeller</small>
+                        <strong id="loadedModelsCount">0 / 2</strong>
+                    </div>
+                    <div class="mb-2">
+                        <small class="d-block">Kamera Senkronizasyonu</small>
+                        <strong id="syncStatus">Aktif</strong>
+                    </div>
+                    <div class="mb-2">
+                        <small class="d-block">Görüntüleme Modu</small>
+                        <strong id="viewMode">Karşılaştırma</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Model Bilgileri -->
+            <div class="metadata-card">
+                <h6 class="mb-3">
+                    <i class="fas fa-info-circle me-2 text-info"></i>
+                    Seçili Model Bilgileri
+                </h6>
+                <div id="selectedModelInfo">
+                    <p class="text-muted text-center">Model seçin</p>
+                </div>
+            </div>
+
+            <!-- Hasta Bilgileri -->
+            <div class="metadata-card">
+                <h6 class="mb-3">
+                    <i class="fas fa-user me-2 text-success"></i>
+                    Hasta Bilgileri
+                </h6>
+                <div class="row g-2">
+                    <div class="col-12">
+                        <label class="form-label text-muted small">Hasta Adı</label>
+                        <div class="fw-bold">{{ ear_mold.patient_name }} {{ ear_mold.patient_surname }}</div>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label text-muted small">Yaş</label>
+                        <div>{{ ear_mold.patient_age }}</div>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label text-muted small">Kulak Tarafı</label>
+                        <div>{{ ear_mold.get_ear_side_display }}</div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label text-muted small">Kalıp Türü</label>
+                        <div>{{ ear_mold.get_mold_type_display }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hızlı İşlemler -->
+            <div class="metadata-card">
+                <h6 class="mb-3">
+                    <i class="fas fa-tools me-2 text-warning"></i>
+                    Hızlı İşlemler
+                </h6>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-primary btn-sm" id="generateComparison">
+                        <i class="fas fa-camera me-1"></i>Karşılaştırma Raporla
+                    </button>
+                    
+                    <a href="{% url 'producer:mold_detail' producer_order.pk %}" class="btn btn-outline-success btn-sm">
+                        <i class="fas fa-eye me-1"></i>Kalıp Detayı
+                    </a>
+                    
+                    <a href="{% url 'producer:mold_upload_result' producer_order.pk %}" class="btn btn-outline-warning btn-sm">
+                        <i class="fas fa-upload me-1"></i>Yeni Model Yükle
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Three.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/PLYLoader.js"></script>
+
+<script>
+class MoldComparison3D {
+    constructor() {
+        this.leftViewer = null;
+        this.rightViewer = null;
+        this.syncCameras = true;
+        this.loadedModels = 0;
+        
+        this.init();
+    }
+    
+    init() {
+        this.setupViewers();
+        this.setupEventListeners();
+        this.updateStats();
+    }
+    
+    setupViewers() {
+        // Sol viewer (Orijinal)
+        this.leftViewer = new Model3DViewer('leftCanvas', null, {
+            position: 'left',
+            onCameraChange: (camera) => {
+                if (this.syncCameras && this.rightViewer) {
+                    this.rightViewer.syncCamera(camera);
+                }
+            },
+            onModelLoad: () => {
+                this.loadedModels++;
+                this.updateStats();
+                document.getElementById('leftOverlay').style.display = 'none';
+            }
+        });
+        
+        // Sağ viewer (Üretilen)
+        this.rightViewer = new Model3DViewer('rightCanvas', null, {
+            position: 'right',
+            onCameraChange: (camera) => {
+                if (this.syncCameras && this.leftViewer) {
+                    this.leftViewer.syncCamera(camera);
+                }
+            },
+            onModelLoad: () => {
+                this.loadedModels++;
+                this.updateStats();
+                document.getElementById('rightOverlay').style.display = 'none';
+            }
+        });
+    }
+    
+    setupEventListeners() {
+        // Model kartları
+        document.querySelectorAll('.model-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const type = card.dataset.type;
+                const url = card.dataset.url;
+                const name = card.dataset.name;
+                
+                // Aktif card'ı güncelle
+                document.querySelectorAll(`.model-card[data-type="${type}"]`).forEach(c => {
+                    c.classList.remove('active');
+                });
+                card.classList.add('active');
+                
+                if (type === 'original') {
+                    this.leftViewer.loadModel(url);
+                    document.getElementById('leftInfo').textContent = name.replace('scans/', '');
+                } else {
+                    this.rightViewer.loadModel(url);
+                    document.getElementById('rightInfo').textContent = name.replace('modeled/', '');
+                }
+                
+                this.updateSelectedModelInfo(card);
+            });
+        });
+        
+        // Kontrol butonları
+        document.getElementById('syncCameras').addEventListener('click', () => {
+            this.toggleCameraSync();
+        });
+        
+        document.getElementById('resetViews').addEventListener('click', () => {
+            this.resetViews();
+        });
+        
+        document.getElementById('toggleWireframe').addEventListener('click', () => {
+            this.toggleWireframe();
+        });
+        
+        document.getElementById('toggleFullscreen').addEventListener('click', () => {
+            this.toggleFullscreen();
+        });
+        
+        document.getElementById('generateComparison').addEventListener('click', () => {
+            this.generateComparisonReport();
+        });
+    }
+    
+    toggleCameraSync() {
+        this.syncCameras = !this.syncCameras;
+        const btn = document.getElementById('syncCameras');
+        btn.classList.toggle('active', this.syncCameras);
+        this.updateStats();
+    }
+    
+    resetViews() {
+        if (this.leftViewer) this.leftViewer.resetView();
+        if (this.rightViewer) this.rightViewer.resetView();
+    }
+    
+    toggleWireframe() {
+        const btn = document.getElementById('toggleWireframe');
+        const wireframe = !btn.classList.contains('active');
+        btn.classList.toggle('active', wireframe);
+        
+        if (this.leftViewer) this.leftViewer.setWireframe(wireframe);
+        if (this.rightViewer) this.rightViewer.setWireframe(wireframe);
+        
+        document.getElementById('viewMode').textContent = wireframe ? 'Wireframe' : 'Karşılaştırma';
+    }
+    
+    toggleFullscreen() {
+        const container = document.querySelector('.comparison-container');
+        
+        if (!document.fullscreenElement) {
+            container.requestFullscreen().then(() => {
+                if (this.leftViewer) this.leftViewer.onWindowResize();
+                if (this.rightViewer) this.rightViewer.onWindowResize();
+            });
+        } else {
+            document.exitFullscreen().then(() => {
+                if (this.leftViewer) this.leftViewer.onWindowResize();
+                if (this.rightViewer) this.rightViewer.onWindowResize();
+            });
+        }
+    }
+    
+    updateStats() {
+        document.getElementById('loadedModelsCount').textContent = `${this.loadedModels} / 2`;
+        document.getElementById('syncStatus').textContent = this.syncCameras ? 'Aktif' : 'Pasif';
+        
+        if (this.loadedModels === 2) {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+    }
+    
+    updateSelectedModelInfo(card) {
+        const info = document.getElementById('selectedModelInfo');
+        const type = card.dataset.type;
+        const name = card.dataset.name;
+        
+        if (type === 'original') {
+            info.innerHTML = `
+                <div class="mb-2">
+                    <strong class="text-primary">Orijinal Tarama</strong>
+                    <br>
+                    <small class="text-muted">${name.replace('scans/', '')}</small>
+                </div>
+                <div class="mb-2">
+                    <small class="d-block">Dosya Türü</small>
+                    <strong>Merkez Taraması</strong>
+                </div>
+            `;
+        } else {
+            const status = card.querySelector('.badge').textContent;
+            info.innerHTML = `
+                <div class="mb-2">
+                    <strong class="text-success">Üretilen Model</strong>
+                    <br>
+                    <small class="text-muted">${name.replace('modeled/', '')}</small>
+                </div>
+                <div class="mb-2">
+                    <small class="d-block">Durum</small>
+                    <strong>${status}</strong>
+                </div>
+            `;
+        }
+    }
+    
+    generateComparisonReport() {
+        alert('Karşılaştırma raporu özelliği geliştiriliyor...');
+    }
+}
+
+// Model3DViewer sınıfı (Geliştirilmiş versiyon)
+class Model3DViewer {
+    constructor(canvasId, fileUrl, options = {}) {
+        this.canvas = document.getElementById(canvasId);
+        this.fileUrl = fileUrl;
+        this.options = options;
+        
+        this.scene = null;
+        this.camera = null;
+        this.renderer = null;
+        this.controls = null;
+        this.model = null;
+        this.wireframe = false;
+        
+        if (fileUrl) {
+            this.init();
+        } else {
+            this.initEmpty();
+        }
+    }
+    
+    initEmpty() {
+        // Scene oluştur
+        this.scene = new THREE.Scene();
+        this.scene.background = new THREE.Color(0xf8f9fa);
+        
+        // Camera oluştur
+        const aspect = this.canvas.clientWidth / this.canvas.clientHeight;
+        this.camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
+        this.camera.position.set(0, 0, 50);
+        
+        // Renderer oluştur
+        this.renderer = new THREE.WebGLRenderer({ 
+            canvas: this.canvas, 
+            antialias: true,
+            alpha: true 
+        });
+        this.renderer.setSize(this.canvas.clientWidth, this.canvas.clientHeight);
+        this.renderer.setPixelRatio(window.devicePixelRatio);
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        
+        // Lights oluştur
+        this.setupLights();
+        
+        // Controls oluştur
+        this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+        this.controls.enableDamping = true;
+        this.controls.dampingFactor = 0.05;
+        this.controls.autoRotate = false;
+        
+        // Controls event listeners
+        this.controls.addEventListener('change', () => {
+            if (this.options.onCameraChange) {
+                this.options.onCameraChange(this.camera);
+            }
+        });
+        
+        // Event listeners
+        window.addEventListener('resize', () => this.onWindowResize());
+        
+        // Render loop başlat
+        this.animate();
+    }
+    
+    init() {
+        this.initEmpty();
+        this.loadModel(this.fileUrl);
+    }
+    
+    setupLights() {
+        // Ambient light
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+        this.scene.add(ambientLight);
+        
+        // Directional lights
+        const light1 = new THREE.DirectionalLight(0xffffff, 0.8);
+        light1.position.set(50, 50, 50);
+        light1.castShadow = true;
+        this.scene.add(light1);
+        
+        const light2 = new THREE.DirectionalLight(0xffffff, 0.4);
+        light2.position.set(-50, -50, 50);
+        this.scene.add(light2);
+        
+        // Point light
+        const pointLight = new THREE.PointLight(0xffffff, 0.5);
+        pointLight.position.set(0, 50, 50);
+        this.scene.add(pointLight);
+    }
+    
+    loadModel(fileUrl) {
+        if (!fileUrl) return;
+        
+        this.fileUrl = fileUrl;
+        
+        // Loading göster
+        const overlay = this.options.position === 'left' ? 
+            document.getElementById('leftOverlay') : 
+            document.getElementById('rightOverlay');
+        
+        if (overlay) {
+            overlay.innerHTML = `
+                <div class="text-center">
+                    <div class="spinner-border text-light mb-3" role="status"></div>
+                    <h5>Model Yükleniyor...</h5>
+                    <p>Lütfen bekleyin...</p>
+                </div>
+            `;
+            overlay.style.display = 'flex';
+        }
+        
+        // Dosya uzantısına göre loader seç
+        const fileExtension = fileUrl.split('.').pop().toLowerCase();
+        let loader;
+        
+        switch (fileExtension) {
+            case 'stl':
+                loader = new THREE.STLLoader();
+                break;
+            case 'obj':
+                loader = new THREE.OBJLoader();
+                break;
+            case 'ply':
+                loader = new THREE.PLYLoader();
+                break;
+            default:
+                this.showError('Desteklenmeyen dosya formatı: ' + fileExtension.toUpperCase());
+                return;
+        }
+        
+        loader.load(
+            fileUrl,
+            (geometry) => {
+                try {
+                    this.onModelLoaded(geometry, fileExtension);
+                    this.showSuccess('Model başarıyla yüklendi');
+                    if (this.options.onModelLoad) {
+                        this.options.onModelLoad();
+                    }
+                } catch (error) {
+                    console.error('Model processing error:', error);
+                    this.showError('Model işlenirken hata oluştu');
+                }
+            },
+            (progress) => {
+                if (progress.lengthComputable) {
+                    const percent = Math.round((progress.loaded / progress.total) * 100);
+                    if (overlay) {
+                        overlay.innerHTML = `
+                            <div class="text-center">
+                                <div class="spinner-border text-light mb-3" role="status"></div>
+                                <h5>Model Yükleniyor...</h5>
+                                <p>%${percent} tamamlandı</p>
+                                <div class="progress" style="width: 200px;">
+                                    <div class="progress-bar bg-light" style="width: ${percent}%"></div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+            },
+            (error) => {
+                console.error('Model loading error:', error);
+                this.showError('Model yüklenemedi. Dosya bozuk veya erişilemiyor olabilir.');
+            }
+        );
+    }
+    
+    onModelLoaded(geometry, fileExtension) {
+        // Mevcut modeli temizle
+        if (this.model) {
+            this.scene.remove(this.model);
+        }
+        
+        // Geometry işle
+        if (fileExtension === 'obj') {
+            // OBJ loader Group döndürür
+            this.model = geometry;
+        } else {
+            // STL ve PLY loader BufferGeometry döndürür
+            geometry.computeVertexNormals();
+            geometry.center();
+            
+            const material = new THREE.MeshPhongMaterial({
+                color: this.options.position === 'left' ? 0x007bff : 0x28a745,
+                shininess: 100,
+                transparent: true,
+                opacity: 0.9
+            });
+            
+            this.model = new THREE.Mesh(geometry, material);
+        }
+        
+        // Model'i scene'e ekle
+        this.scene.add(this.model);
+        
+        // Camera pozisyonunu ayarla
+        this.fitCameraToModel();
+    }
+    
+    fitCameraToModel() {
+        if (!this.model) return;
+        
+        const box = new THREE.Box3().setFromObject(this.model);
+        const size = box.getSize(new THREE.Vector3());
+        const center = box.getCenter(new THREE.Vector3());
+        
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const fov = this.camera.fov * (Math.PI / 180);
+        let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2));
+        
+        cameraZ *= 2; // Biraz daha uzaklaştır
+        
+        this.camera.position.set(center.x, center.y, center.z + cameraZ);
+        this.camera.lookAt(center);
+        this.controls.target = center;
+        this.controls.update();
+    }
+    
+    syncCamera(sourceCamera) {
+        if (!this.camera || !this.controls) return;
+        
+        this.camera.position.copy(sourceCamera.position);
+        this.camera.rotation.copy(sourceCamera.rotation);
+        this.controls.target.copy(sourceCamera.position).add(
+            new THREE.Vector3(0, 0, -1).applyQuaternion(sourceCamera.quaternion)
+        );
+        this.controls.update();
+    }
+    
+    resetView() {
+        this.fitCameraToModel();
+    }
+    
+    setWireframe(wireframe) {
+        this.wireframe = wireframe;
+        
+        if (!this.model) return;
+        
+        if (this.model.material) {
+            this.model.material.wireframe = wireframe;
+        } else if (this.model.children) {
+            this.model.children.forEach(child => {
+                if (child.material) {
+                    child.material.wireframe = wireframe;
+                }
+            });
+        }
+    }
+    
+    onWindowResize() {
+        const aspect = this.canvas.clientWidth / this.canvas.clientHeight;
+        this.camera.aspect = aspect;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(this.canvas.clientWidth, this.canvas.clientHeight);
+    }
+    
+    animate() {
+        requestAnimationFrame(() => this.animate());
+        
+        this.controls.update();
+        this.renderer.render(this.scene, this.camera);
+    }
+
+    showError(message) {
+        const overlay = this.options.position === 'left' ? 
+            document.getElementById('leftOverlay') : 
+            document.getElementById('rightOverlay');
+        
+        if (overlay) {
+            overlay.className = 'error-overlay';
+            overlay.innerHTML = `
+                <div class="text-center">
+                    <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                    <h5>Hata Oluştu</h5>
+                    <p>${message}</p>
+                    <button class="btn btn-light btn-sm mt-2" onclick="location.reload()">
+                        <i class="fas fa-refresh me-1"></i>Yeniden Dene
+                    </button>
+                </div>
+            `;
+            overlay.style.display = 'flex';
+        }
+    }
+    
+    showSuccess(message) {
+        const overlay = this.options.position === 'left' ? 
+            document.getElementById('leftOverlay') : 
+            document.getElementById('rightOverlay');
+        
+        if (overlay) {
+            overlay.className = 'success-overlay';
+            overlay.innerHTML = `
+                <div class="text-center">
+                    <i class="fas fa-check-circle fa-3x mb-3"></i>
+                    <h5>Başarılı</h5>
+                    <p>${message}</p>
+                </div>
+            `;
+            overlay.style.display = 'flex';
+            
+            // 2 saniye sonra gizle
+            setTimeout(() => {
+                overlay.style.display = 'none';
+                overlay.className = 'viewer-overlay';
+            }, 2000);
+        }
+    }
+}
+
+// 3D Karşılaştırma Sistemini Başlat
+document.addEventListener('DOMContentLoaded', function() {
+    const comparison = new MoldComparison3D();
+    
+    // Eğer orijinal dosya varsa otomatik yükle
+    {% if original_scan %}
+    const originalCard = document.querySelector('.model-card[data-type="original"]');
+    if (originalCard) {
+        originalCard.click();
+    }
+    {% endif %}
+    
+    // Eğer tek model dosyası varsa otomatik yükle
+    {% if modeled_files|length == 1 %}
+    const modelCard = document.querySelector('.model-card[data-type="modeled"]');
+    if (modelCard) {
+        modelCard.click();
+    }
+    {% endif %}
+});
+</script>
+{% endblock %} 

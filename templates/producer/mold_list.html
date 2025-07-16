@@ -302,12 +302,17 @@
                                     <a href="{% url 'producer:mold_detail' order.id %}" class="btn btn-sm btn-primary" title="Detay">
                                         <i class="fas fa-eye"></i>
                                     </a>
+                                    {% if order.ear_mold.scan_file or order.ear_mold.modeled_files.exists %}
+                                        <a href="{% url 'producer:mold_3d_comparison' order.id %}" class="btn btn-sm btn-info" title="3D Karşılaştırma">
+                                            <i class="fas fa-cube"></i>
+                                        </a>
+                                    {% endif %}
                                     {% if order.ear_mold.scan_file %}
                                         <a href="{% url 'producer:mold_download' order.id %}" class="btn btn-sm btn-success" title="Ana Tarama Dosyası İndir">
                                             <i class="fas fa-download"></i>
                                         </a>
                                     {% elif order.ear_mold.modeled_files.exists %}
-                                        <a href="{% url 'producer:mold_download' order.id %}" class="btn btn-sm btn-info" title="Model Dosyalarını İndir">
+                                        <a href="{% url 'producer:mold_download' order.id %}" class="btn btn-sm btn-success" title="Model Dosyalarını İndir">
                                             <i class="fas fa-download"></i>
                                         </a>
                                     {% endif %}

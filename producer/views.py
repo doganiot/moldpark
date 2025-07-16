@@ -22,6 +22,7 @@ import os
 from django.core.paginator import Paginator
 from django.utils.dateparse import parse_date
 from datetime import timedelta
+import json
 
 # ÜRETİCİ AUTHENTICATION - Ayrı sistem
 def producer_required(view_func):
@@ -1087,6 +1088,97 @@ def mold_upload_result(request, pk):
     }
     
     return render(request, 'producer/mold_upload_result.html', context)
+
+
+@producer_required
+def mold_3d_comparison(request, pk):
+    """Üretici için 3D Kalıp Karşılaştırma View'ı"""
+    producer = request.user.producer
+    
+    # Güvenlik kontrolü - sadece kendi siparişlerine erişim
+    try:
+        producer_order = ProducerOrder.objects.select_related('ear_mold', 'center').get(
+            pk=pk,
+            producer=producer
+        )
+        ear_mold = producer_order.ear_mold
+    except ProducerOrder.DoesNotExist:
+        messages.error(request, 'Bu kalıba erişim yetkiniz bulunmamaktadır.')
+        return redirect('producer:order_list')
+    
+    # Ağ kontrolü
+    network_relation = producer.network_centers.filter(center=ear_mold.center).first()
+    if not network_relation:
+        messages.error(request, 'Bu merkez sizin ağınızda bulunmamaktadır.')
+        return redirect('producer:order_list')
+    
+    if network_relation.status == 'terminated':
+        messages.error(request, 'Bu merkez ile ağ bağlantınız sonlandırılmış.')
+        return redirect('producer:order_list')
+    
+    # Network aktivitesini güncelle
+    network_relation.last_activity = timezone.now()
+    network_relation.save(update_fields=['last_activity'])
+    
+    # Dosya kontrolü
+    original_scan = None
+    modeled_files = []
+    
+    # Orijinal tarama dosyası
+    if ear_mold.scan_file:
+        original_scan = {
+            'file_url': ear_mold.scan_file.url,
+            'file_name': ear_mold.scan_file.name,
+            'thumbnail_url': ear_mold.scan_thumbnail.url if ear_mold.scan_thumbnail else None,
+            'metadata': {
+                'file_format': getattr(ear_mold, 'file_format', 'STL'),
+                'vertex_count': getattr(ear_mold, 'vertex_count', None),
+                'polygon_count': getattr(ear_mold, 'polygon_count', None),
+                'model_complexity': getattr(ear_mold, 'model_complexity', ''),
+            }
+        }
+    
+    # Modellenen dosyalar
+    for modeled_mold in ear_mold.modeled_files.all():
+        if modeled_mold.file:
+            modeled_files.append({
+                'id': modeled_mold.id,
+                'file_url': modeled_mold.file.url,
+                'file_name': modeled_mold.file.name,
+                'thumbnail_url': modeled_mold.model_thumbnail.url if modeled_mold.model_thumbnail else None,
+                'status': modeled_mold.status,
+                'status_display': modeled_mold.get_status_display(),
+                'created_at': modeled_mold.created_at,
+                'notes': modeled_mold.notes,
+                'metadata': {
+                    'file_format': getattr(modeled_mold, 'file_format', 'STL'),
+                    'vertex_count': getattr(modeled_mold, 'vertex_count', None),
+                    'polygon_count': getattr(modeled_mold, 'polygon_count', None),
+                    'model_complexity': getattr(modeled_mold, 'model_complexity', ''),
+                }
+            })
+    
+    # Render ayarları
+    render_settings = {
+        'camera_position': [50, 50, 50],
+        'auto_rotate': False,
+        'wireframe_mode': False,
+        'comparison_mode': True,
+        'sync_cameras': True
+    }
+    
+    context = {
+        'producer_order': producer_order,
+        'ear_mold': ear_mold,
+        'producer': producer,
+        'network_relation': network_relation,
+        'original_scan': original_scan,
+        'modeled_files': modeled_files,
+        'render_settings': json.dumps(render_settings),
+        'page_title': f'3D Karşılaştırma - {ear_mold.patient_name} {ear_mold.patient_surname}',
+    }
+    
+    return render(request, 'producer/mold_3d_comparison.html', context)
 
 
 # Admin View'ları (Ana yönetim tarafından kullanılacak)

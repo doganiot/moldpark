@@ -144,7 +144,48 @@
                     {% endif %}
                 </div>
                 
-                <ul class="navbar-nav me-auto">
+                <!-- Producer Navigation -->
+                {% if user.is_authenticated and user.producer %}
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'producer_dashboard' %}active{% endif %}" 
+                               href="{% url 'producer:dashboard' %}">
+                                <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if 'mold' in request.resolver_match.url_name %}active{% endif %}" 
+                               href="{% url 'producer:mold_list' %}">
+                                <i class="fas fa-cube me-1"></i>Kalıplar
+                            </a>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="producerToolsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-tools me-1"></i>Üretim Araçları
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="producerToolsDropdown">
+                                <li><a class="dropdown-item" href="{% url 'producer:revision_requests' %}">
+                                    <i class="fas fa-edit me-2"></i>Revizyon Talepleri
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#" id="recent3DComparison">
+                                    <i class="fas fa-cube me-2"></i>3D Karşılaştırma
+                                </a></li>
+                                <li><a class="dropdown-item" href="{% url 'producer:order_list' %}">
+                                    <i class="fas fa-list me-2"></i>Tüm Siparişler
+                                </a></li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if 'network' in request.resolver_match.url_name %}active{% endif %}" 
+                               href="{% url 'producer:network_list' %}">
+                                <i class="fas fa-network-wired me-1"></i>Ağ
+                            </a>
+                        </li>
+                    </ul>
+                {% endif %}
+                
+                <ul class="navbar-nav">
                     {% if not user.is_authenticated %}
                         <!-- Misafir -->
                         <li class="nav-item"><a class="nav-link" href="{% url 'core:pricing' %}">{% trans "Fiyatlandırma" %}</a></li>

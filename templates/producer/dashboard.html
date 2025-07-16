@@ -197,6 +197,32 @@
                             </a>
                         </div>
                         
+                        <!-- 3D Karşılaştırma -->
+                        <div class="col-lg-3 col-md-6">
+                            <div class="card border-0 h-100 hover-lift action-card" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
+                                <div class="card-body text-center p-4 text-white">
+                                    <div class="mb-3">
+                                        <i class="fas fa-cube fa-3x opacity-75"></i>
+                                    </div>
+                                    <h6 class="mb-2 fw-bold">3D Karşılaştırma</h6>
+                                    <small class="opacity-75 d-block mb-3">Orijinal ve üretilen modelleri karşılaştır</small>
+                                    {% if recent_orders %}
+                                        {% for order in recent_orders|slice:":1" %}
+                                            {% if order.ear_mold.scan_file or order.ear_mold.modeled_files.exists %}
+                                                <a href="{% url 'producer:mold_3d_comparison' order.id %}" class="btn btn-light btn-sm">
+                                                    <i class="fas fa-eye me-1"></i>{{ order.ear_mold.patient_name }}
+                                                </a>
+                                            {% else %}
+                                                <span class="badge bg-light bg-opacity-20">Dosya Yok</span>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                        <span class="badge bg-light bg-opacity-20">Henüz Sipariş Yok</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
                         <!-- Ağ Yönetimi -->
                         <div class="col-lg-3 col-md-6">
                             <a href="{% url 'producer:network_list' %}" class="card border-0 h-100 hover-lift text-decoration-none action-card" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
@@ -272,9 +298,16 @@
                                             <small class="text-muted">{{ order.created_at|naturaltime }}</small>
                                         </td>
                                         <td>
-                                            <a href="{% url 'producer:order_detail' order.id %}" class="btn btn-outline-primary btn-sm">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
+                                            <div class="btn-group" role="group">
+                                                <a href="{% url 'producer:order_detail' order.id %}" class="btn btn-outline-primary btn-sm" title="Detay">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                {% if order.ear_mold.scan_file or order.ear_mold.modeled_files.exists %}
+                                                    <a href="{% url 'producer:mold_3d_comparison' order.id %}" class="btn btn-outline-info btn-sm" title="3D Karşılaştırma">
+                                                        <i class="fas fa-cube"></i>
+                                                    </a>
+                                                {% endif %}
+                                            </div>
                                         </td>
                                     </tr>
                                     {% endfor %}

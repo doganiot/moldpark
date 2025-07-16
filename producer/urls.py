@@ -19,6 +19,7 @@ urlpatterns = [
     # Güvenli Kalıp Yönetimi (Sipariş-based)
     path('molds/', views.mold_list, name='mold_list'),  # Artık producer_orders listesi
     path('molds/<int:pk>/', views.mold_detail, name='mold_detail'),  # pk = order.id
+    path('molds/<int:pk>/3d-comparison/', views.mold_3d_comparison, name='mold_3d_comparison'),
     path('molds/<int:pk>/download/', views.mold_download, name='mold_download'),  # pk = order.id
 
     path('molds/<int:pk>/upload-result/', views.mold_upload_result, name='mold_upload_result'),  # pk = order.id
