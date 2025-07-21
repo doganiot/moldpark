@@ -510,6 +510,25 @@ def message_list(request):
     page_number = request.GET.get('page')
     messages_page = paginator.get_page(page_number)
     
+    # Gelen mesajlar görüntülendiğinde otomatik olarak okundu işaretle
+    if message_filter == 'received':
+        # Direkt mesajları okundu olarak işaretle
+        unread_direct_messages = received_messages.filter(
+            recipient=user,
+            is_read=False
+        )
+        for msg in unread_direct_messages:
+            msg.mark_as_read()
+        
+        # Broadcast mesajları okundu olarak işaretle
+        unread_broadcast_recipients = MessageRecipient.objects.filter(
+            recipient=user,
+            is_read=False,
+            message__in=received_messages
+        )
+        for recipient in unread_broadcast_recipients:
+            recipient.mark_as_read()
+    
     # Her mesaj için kullanıcının okuma durumunu hesapla
     for message in messages_page:
         if message.is_broadcast:
