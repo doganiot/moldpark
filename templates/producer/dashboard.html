@@ -367,6 +367,44 @@
                 </div>
             </div>
             
+            <!-- Mesajlar Widget -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-0 pb-0">
+                    <h6 class="mb-0 fw-bold d-flex align-items-center">
+                        <i class="fas fa-envelope me-2 text-primary"></i>
+                        Mesajlar
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3 text-center">
+                        <div class="col-6">
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="h5 mb-1 fw-bold text-danger">{{ unread_message_count|default:0 }}</div>
+                                <small class="text-muted">Okunmamış</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="h5 mb-1 fw-bold text-info">{{ total_messages|default:0 }}</div>
+                                <small class="text-muted">Toplam</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-2 mt-3">
+                        <div class="col-6">
+                            <a href="{% url 'core:message_list' %}" class="btn btn-outline-primary btn-sm w-100">
+                                <i class="fas fa-list me-1"></i>Mesajlarım
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="{% url 'core:message_create' %}" class="btn btn-primary btn-sm w-100">
+                                <i class="fas fa-plus me-1"></i>Yeni Mesaj
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <!-- Network Centers -->
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white border-0 pb-0">

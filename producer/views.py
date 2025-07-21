@@ -172,7 +172,28 @@ def producer_dashboard(request):
         status='pending'
     ).count()
     
-    # Mesajlaşma sistemi kaldırıldı
+    # MESAJ İSTATİSTİKLERİ
+    from core.models import Message, MessageRecipient
+    from django.db.models import Q
+    
+    # Direkt gelen mesajlar
+    user_messages = Message.objects.filter(
+        Q(recipient=request.user) | Q(recipients__recipient=request.user)
+    ).distinct()
+    
+    # Okunmamış mesajlar
+    unread_direct = Message.objects.filter(
+        recipient=request.user,
+        is_read=False
+    ).count()
+    
+    unread_broadcast = MessageRecipient.objects.filter(
+        recipient=request.user,
+        is_read=False
+    ).count()
+    
+    total_messages = user_messages.count()
+    unread_message_count = unread_direct + unread_broadcast
     
     # Bu ayki sipariş sayısı ve limit kontrolü
     monthly_orders = producer.get_current_month_orders()
@@ -196,6 +217,8 @@ def producer_dashboard(request):
         'monthly_orders': monthly_orders,
         'remaining_limit': remaining_limit,
         'usage_percentage': usage_percentage,
+        'total_messages': total_messages,
+        'unread_message_count': unread_message_count,
     }
     
     return render(request, 'producer/dashboard.html', context)

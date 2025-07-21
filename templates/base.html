@@ -177,6 +177,15 @@
                             </ul>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link {% if 'message' in request.resolver_match.url_name %}active{% endif %}" 
+                               href="{% url 'core:message_list' %}">
+                                <i class="fas fa-envelope me-1"></i>Mesajlar
+                                {% if unread_message_count > 0 %}
+                                    <span class="badge bg-danger ms-1">{{ unread_message_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link {% if 'network' in request.resolver_match.url_name %}active{% endif %}" 
                                href="{% url 'producer:network_list' %}">
                                 <i class="fas fa-network-wired me-1"></i>Ağ
@@ -194,12 +203,14 @@
                         {% if user.is_staff %}
                             <!-- Admin -->
                             <li class="nav-item"><a class="nav-link" href="{% url 'center:admin_dashboard' %}"><i class="fas fa-tachometer-alt me-1"></i>{% trans "Yönetim Paneli" %}</a></li>
+                            <li class="nav-item"><a class="nav-link {% if 'message' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:message_list' %}"><i class="fas fa-envelope me-1"></i>{% trans "Mesajlar" %}{% if unread_message_count > 0 %}<span class="badge bg-danger ms-1">{{ unread_message_count }}</span>{% endif %}</a></li>
                         {% elif user.producer %}
                             <!-- Üretici - Tekrarlayan linkler kaldırıldı, sol menü yeterli -->
                         {% else %}
                             <!-- İşitme Merkezi -->
                             <li class="nav-item"><a class="nav-link" href="{% url 'center:dashboard' %}"><i class="fas fa-home me-1"></i>{% trans "Dashboard" %}</a></li>
                             <li class="nav-item"><a class="nav-link" href="{% url 'mold:mold_list' %}"><i class="fas fa-cube me-1"></i>{% trans "Kalıplarım" %}</a></li>
+                            <li class="nav-item"><a class="nav-link {% if 'message' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:message_list' %}"><i class="fas fa-envelope me-1"></i>{% trans "Mesajlar" %}{% if unread_message_count > 0 %}<span class="badge bg-danger ms-1">{{ unread_message_count }}</span>{% endif %}</a></li>
                             <li class="nav-item"><a class="nav-link" href="{% url 'center:network_management' %}"><i class="fas fa-network-wired me-1"></i>{% trans "Üretici Ağları" %}</a></li>
                         {% endif %}
                         <!-- Bildirimler -->

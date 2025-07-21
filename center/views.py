@@ -220,6 +220,29 @@ def dashboard(request):
         is_read=False
     ).order_by('-created_at')[:5]
     
+    # MESAJ İSTATİSTİKLERİ
+    from core.models import Message, MessageRecipient
+    from django.db.models import Q
+    
+    # Direkt gelen mesajlar
+    user_messages = Message.objects.filter(
+        Q(recipient=request.user) | Q(recipients__recipient=request.user)
+    ).distinct()
+    
+    # Okunmamış mesajlar
+    unread_direct = Message.objects.filter(
+        recipient=request.user,
+        is_read=False
+    ).count()
+    
+    unread_broadcast = MessageRecipient.objects.filter(
+        recipient=request.user,
+        is_read=False
+    ).count()
+    
+    total_messages = user_messages.count()
+    unread_message_count = unread_direct + unread_broadcast
+    
     # PERFORMANS İSTATİSTİKLERİ
     if total_molds > 0:
         completion_rate = int((status_stats['completed'] + status_stats['delivered']) / total_molds * 100)
@@ -292,6 +315,8 @@ def dashboard(request):
         'subscription_alerts': subscription_alerts,
         'quick_stats': quick_stats,
         'has_active_subscription': has_active_subscription,
+        'total_messages': total_messages,
+        'unread_message_count': unread_message_count,
     }
     
     return render(request, 'center/dashboard.html', context)
