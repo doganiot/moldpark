@@ -195,11 +195,7 @@
                             <!-- Admin -->
                             <li class="nav-item"><a class="nav-link" href="{% url 'center:admin_dashboard' %}"><i class="fas fa-tachometer-alt me-1"></i>{% trans "Yönetim Paneli" %}</a></li>
                         {% elif user.producer %}
-                            <!-- Üretici -->
-                            <li class="nav-item"><a class="nav-link" href="{% url 'producer:dashboard' %}"><i class="fas fa-home me-1"></i>{% trans "Dashboard" %}</a></li>
-                            <li class="nav-item"><a class="nav-link" href="{% url 'producer:order_list' %}"><i class="fas fa-list-alt me-1"></i>{% trans "Siparişler" %}</a></li>
-                            <li class="nav-item"><a class="nav-link" href="{% url 'producer:mold_list' %}"><i class="fas fa-cube me-1"></i>{% trans "Kalıplar" %}</a></li>
-                            <li class="nav-item"><a class="nav-link" href="{% url 'producer:revision_requests' %}"><i class="fas fa-edit me-1"></i>{% trans "Revizyonlar" %} {% if pending_revision_requests > 0 %}<span class="badge bg-danger ms-1">{{ pending_revision_requests }}</span>{% endif %}</a></li>
+                            <!-- Üretici - Tekrarlayan linkler kaldırıldı, sol menü yeterli -->
                         {% else %}
                             <!-- İşitme Merkezi -->
                             <li class="nav-item"><a class="nav-link" href="{% url 'center:dashboard' %}"><i class="fas fa-home me-1"></i>{% trans "Dashboard" %}</a></li>
