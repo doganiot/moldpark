@@ -4,6 +4,467 @@
 
 {% block title %}{{ ear_mold.patient_name }} {{ ear_mold.patient_surname }} - Kalıp Detayı{% endblock %}
 
+{% block extra_css %}
+<!-- Revizyon Timeline CSS -->
+<style>
+.revision-timeline {
+    position: relative;
+}
+
+.revision-item {
+    transition: all 0.3s ease;
+}
+
+.revision-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.timeline-container {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline-container::before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #dee2e6;
+}
+
+.timeline-item {
+    position: relative;
+    padding-bottom: 15px;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -22px;
+    top: 5px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 2px #dee2e6;
+}
+
+.timeline-content {
+    background: #f8f9fa;
+    padding: 10px 15px;
+    border-radius: 8px;
+    border-left: 3px solid #007bff;
+}
+
+.revision-actions {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.process-timeline {
+    border-top: 1px solid #dee2e6;
+    padding-top: 15px;
+    margin-top: 15px;
+}
+
+/* Gelişmiş Dosya Yükleme Stilleri */
+.file-drop-area {
+    border: 2px dashed #dee2e6;
+    border-radius: 12px;
+    background: #f8f9fa;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.file-drop-area:hover {
+    border-color: #007bff;
+    background: #e7f3ff;
+}
+
+.file-drop-area.drag-over {
+    border-color: #28a745;
+    background: #d4edda;
+    transform: scale(1.02);
+}
+
+.file-drop-area.drag-over i {
+    color: #28a745 !important;
+}
+
+.progress {
+    height: 8px;
+    border-radius: 4px;
+}
+
+.progress-bar {
+    border-radius: 4px;
+}
+
+/* Kalite kontrol checklist stilleri */
+.form-check {
+    margin-bottom: 10px;
+}
+
+.form-check-input:checked {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+/* Responsive düzenlemeler */
+@media (max-width: 768px) {
+    .revision-actions {
+        width: 100%;
+        justify-content: flex-start;
+        margin-top: 10px;
+    }
+    
+    .timeline-container {
+        padding-left: 20px;
+    }
+    
+    .timeline-marker {
+        left: -17px;
+        width: 8px;
+        height: 8px;
+    }
+    
+    .file-drop-area {
+        padding: 20px 10px !important;
+    }
+}
+</style>
+
+<!-- Revizyon Yönetimi JavaScript -->
+<script>
+// Revizyon yanıtlama
+function respondRevision(revisionId, action) {
+    const message = action === 'accept' ? 
+        'Revizyon talebini kabul etmek istediğinizden emin misiniz?' : 
+        'Revizyon talebini reddetmek istediğinizden emin misiniz?';
+        
+    if (!confirm(message)) return;
+    
+    const formData = new FormData();
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    formData.append('action', action);
+    
+    fetch(`/producer/revisions/${revisionId}/respond/`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.message || 'Bir hata oluştu');
+        }
+    })
+    .catch(error => {
+        console.error('Hata:', error);
+        alert('Bir hata oluştu. Lütfen tekrar deneyin.');
+    });
+}
+
+// Revizyon işini başlatma
+function startRevisionWork(revisionId) {
+    if (!confirm('Revizyon çalışmasını başlatmak istediğinizden emin misiniz?')) return;
+    
+    const formData = new FormData();
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    
+    fetch(`/producer/revisions/${revisionId}/start-work/`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (data.redirect_url) {
+                window.location.href = data.redirect_url;
+            } else {
+                location.reload();
+            }
+        } else {
+            alert(data.message || 'Bir hata oluştu');
+        }
+    })
+    .catch(error => {
+        console.error('Hata:', error);
+        alert('Bir hata oluştu. Lütfen tekrar deneyin.');
+    });
+}
+
+// Gelişmiş Dosya Yükleme Sistemi
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // Tüm revizyon modal'ları için drag & drop setup
+    document.querySelectorAll('[id^="uploadModal"]').forEach(modal => {
+        const modalId = modal.id.replace('uploadModal', '');
+        setupFileUpload(modalId);
+    });
+    
+    // Checklist kontrolleri
+    document.querySelectorAll('[id^="check"]').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const modalId = this.id.split('_')[1];
+            updateSubmitButton(modalId);
+        });
+    });
+});
+
+function setupFileUpload(revisionId) {
+    const dropArea = document.getElementById(`dropArea${revisionId}`);
+    const fileInput = document.getElementById(`fileInput${revisionId}`);
+    const fileInfo = document.getElementById(`fileInfo${revisionId}`);
+    const fileName = document.getElementById(`fileName${revisionId}`);
+    const fileSize = document.getElementById(`fileSize${revisionId}`);
+    
+    if (!dropArea || !fileInput) return;
+    
+    // Drag & Drop Events
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, preventDefaults, false);
+        document.body.addEventListener(eventName, preventDefaults, false);
+    });
+    
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropArea.addEventListener(eventName, () => dropArea.classList.add('drag-over'), false);
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, () => dropArea.classList.remove('drag-over'), false);
+    });
+    
+    dropArea.addEventListener('drop', (e) => {
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            handleFile(files[0], revisionId);
+        }
+    });
+    
+    // Click to select
+    dropArea.addEventListener('click', () => fileInput.click());
+    
+    // File input change
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            handleFile(e.target.files[0], revisionId);
+        }
+    });
+}
+
+function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+}
+
+function handleFile(file, revisionId) {
+    // Dosya validasyonu
+    const validationResult = validateFile(file);
+    if (!validationResult.valid) {
+        showError(validationResult.message);
+        return;
+    }
+    
+    // Dosya bilgilerini göster
+    displayFileInfo(file, revisionId);
+    
+    // Submit butonunu güncelle
+    updateSubmitButton(revisionId);
+}
+
+function validateFile(file) {
+    const maxSize = 52428800; // 50MB
+    const allowedExtensions = ['stl', 'obj', 'ply', '3mf', 'amf'];
+    
+    // Boyut kontrolü
+    if (file.size > maxSize) {
+        return {
+            valid: false,
+            message: 'Dosya boyutu 50MB\'dan büyük olamaz.'
+        };
+    }
+    
+    // Format kontrolü
+    const fileExtension = file.name.split('.').pop().toLowerCase();
+    if (!allowedExtensions.includes(fileExtension)) {
+        return {
+            valid: false,
+            message: 'Sadece STL, OBJ, PLY, 3MF, AMF dosyaları yüklenebilir.'
+        };
+    }
+    
+    return { valid: true };
+}
+
+function displayFileInfo(file, revisionId) {
+    const fileInfo = document.getElementById(`fileInfo${revisionId}`);
+    const fileName = document.getElementById(`fileName${revisionId}`);
+    const fileSize = document.getElementById(`fileSize${revisionId}`);
+    const dropArea = document.getElementById(`dropArea${revisionId}`);
+    
+    if (fileName) fileName.textContent = file.name;
+    if (fileSize) fileSize.textContent = formatFileSize(file.size);
+    if (fileInfo) fileInfo.classList.remove('d-none');
+    if (dropArea) dropArea.style.display = 'none';
+}
+
+function clearFile(revisionId) {
+    const fileInput = document.getElementById(`fileInput${revisionId}`);
+    const fileInfo = document.getElementById(`fileInfo${revisionId}`);
+    const dropArea = document.getElementById(`dropArea${revisionId}`);
+    
+    if (fileInput) fileInput.value = '';
+    if (fileInfo) fileInfo.classList.add('d-none');
+    if (dropArea) dropArea.style.display = 'block';
+    
+    updateSubmitButton(revisionId);
+}
+
+function updateSubmitButton(revisionId) {
+    const fileInput = document.getElementById(`fileInput${revisionId}`);
+    const submitBtn = document.getElementById(`submitBtn${revisionId}`);
+    const check1 = document.getElementById(`check1_${revisionId}`);
+    const check2 = document.getElementById(`check2_${revisionId}`);
+    const check3 = document.getElementById(`check3_${revisionId}`);
+    
+    if (!submitBtn) return;
+    
+    const hasFile = fileInput && fileInput.files.length > 0;
+    const allChecked = check1?.checked && check2?.checked && check3?.checked;
+    
+    submitBtn.disabled = !(hasFile && allChecked);
+    
+    if (hasFile && allChecked) {
+        submitBtn.classList.remove('btn-secondary');
+        submitBtn.classList.add('btn-success');
+    } else {
+        submitBtn.classList.remove('btn-success');
+        submitBtn.classList.add('btn-secondary');
+    }
+}
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function showError(message) {
+    // Bootstrap alert veya custom notification
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-danger alert-dismissible fade show position-fixed';
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 300px;';
+    alertDiv.innerHTML = `
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(alertDiv);
+    
+    // Otomatik kaldır
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.parentNode.removeChild(alertDiv);
+        }
+    }, 5000);
+}
+
+// Form submission with progress
+document.querySelectorAll('[id^="revisionForm"]').forEach(form => {
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formId = this.id;
+        const revisionId = formId.replace('revisionForm', '');
+        const progressContainer = document.getElementById(`uploadProgress${revisionId}`);
+        const progressBar = document.getElementById(`progressBar${revisionId}`);
+        const progressPercent = document.getElementById(`progressPercent${revisionId}`);
+        const submitBtn = document.getElementById(`submitBtn${revisionId}`);
+        const submitText = document.getElementById(`submitText${revisionId}`);
+        
+        // Progress göster
+        if (progressContainer) progressContainer.classList.remove('d-none');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            if (submitText) submitText.textContent = 'Yükleniyor...';
+        }
+        
+        // FormData oluştur
+        const formData = new FormData(this);
+        
+        // XMLHttpRequest ile progress tracking
+        const xhr = new XMLHttpRequest();
+        
+        xhr.upload.addEventListener('progress', function(e) {
+            if (e.lengthComputable) {
+                const percentComplete = (e.loaded / e.total) * 100;
+                if (progressBar) progressBar.style.width = percentComplete + '%';
+                if (progressPercent) progressPercent.textContent = Math.round(percentComplete) + '%';
+            }
+        });
+        
+        xhr.addEventListener('load', function() {
+            if (xhr.status === 200) {
+                // Başarılı
+                showSuccess('Revizyon dosyası başarıyla yüklendi!');
+                setTimeout(() => window.location.reload(), 1500);
+            } else {
+                showError('Dosya yükleme hatası. Lütfen tekrar deneyin.');
+                resetForm(revisionId);
+            }
+        });
+        
+        xhr.addEventListener('error', function() {
+            showError('Ağ hatası. Lütfen bağlantınızı kontrol edin.');
+            resetForm(revisionId);
+        });
+        
+        xhr.open('POST', form.action || window.location.href);
+        xhr.send(formData);
+    });
+});
+
+function resetForm(revisionId) {
+    const progressContainer = document.getElementById(`uploadProgress${revisionId}`);
+    const submitBtn = document.getElementById(`submitBtn${revisionId}`);
+    const submitText = document.getElementById(`submitText${revisionId}`);
+    
+    if (progressContainer) progressContainer.classList.add('d-none');
+    if (submitBtn) {
+        submitBtn.disabled = false;
+        if (submitText) submitText.textContent = 'Dosyayı Yükle';
+    }
+}
+
+function showSuccess(message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-success alert-dismissible fade show position-fixed';
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 300px;';
+    alertDiv.innerHTML = `
+        <i class="fas fa-check-circle me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(alertDiv);
+    
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.parentNode.removeChild(alertDiv);
+        }
+    }, 3000);
+}
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="container">
     <!-- Header -->
@@ -398,6 +859,282 @@
                 </div>
             </div>
             {% endif %}
+            
+            <!-- Kapsamlı Revizyon Yönetimi -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-history me-2 text-info"></i>
+                            Revizyon Geçmişi & Yönetimi
+                        </h5>
+                        {% if revision_stats.total > 0 %}
+                        <span class="badge bg-info">{{ revision_stats.total }} Revizyon</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Revizyon İstatistikleri -->
+                    {% if revision_stats.total > 0 %}
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="text-center p-3 border rounded bg-light">
+                                <h4 class="text-primary mb-1">{{ revision_stats.total }}</h4>
+                                <small class="text-muted">Toplam Revizyon</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3 border rounded bg-light">
+                                <h4 class="text-success mb-1">{{ revision_stats.completed }}</h4>
+                                <small class="text-muted">Tamamlanan</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3 border rounded bg-light">
+                                <h4 class="text-warning mb-1">{{ revision_stats.pending }}</h4>
+                                <small class="text-muted">Bekleyen</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3 border rounded bg-light">
+                                <h4 class="text-info mb-1">{{ revision_stats.in_progress }}</h4>
+                                <small class="text-muted">İşlemde</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if revision_stats.avg_completion_time %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-chart-line me-2"></i>
+                        <strong>Ortalama Tamamlanma Süresi:</strong> {{ revision_stats.avg_completion_time }} gün
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Revizyon Listesi -->
+                    <div class="revision-timeline">
+                        {% for revision in all_revisions %}
+                        <div class="revision-item mb-3 p-3 border rounded {% if revision == active_revision %}border-warning bg-warning bg-opacity-10{% endif %}">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div class="flex-grow-1">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <span class="badge bg-{{ revision.get_status_color }} me-2">
+                                            {{ revision.get_status_display }}
+                                        </span>
+                                        <h6 class="mb-0">{{ revision.title }}</h6>
+                                        {% if revision == active_revision %}
+                                        <span class="badge bg-warning ms-2">AKTİF</span>
+                                        {% endif %}
+                                    </div>
+                                    <p class="text-muted mb-2">{{ revision.description|truncatewords:20 }}</p>
+                                    <div class="d-flex gap-3 text-sm">
+                                        <small><i class="fas fa-tag me-1"></i>{{ revision.get_revision_type_display }}</small>
+                                        <small><i class="fas fa-clock me-1"></i>{{ revision.created_at|date:"d.m.Y H:i" }}</small>
+                                        <small><i class="fas fa-flag me-1"></i>{{ revision.get_priority_display }}</small>
+                                    </div>
+                                </div>
+                                <div class="revision-actions">
+                                    <!-- Durum bazında eylemler -->
+                                    {% if revision.status == 'producer_review' %}
+                                    <button class="btn btn-sm btn-success me-1" onclick="respondRevision({{ revision.id }}, 'accept')">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" onclick="respondRevision({{ revision.id }}, 'reject')">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                    {% elif revision.status == 'accepted' %}
+                                    <button class="btn btn-sm btn-primary" onclick="startRevisionWork({{ revision.id }})">
+                                        <i class="fas fa-play"></i> Başla
+                                    </button>
+                                    {% elif revision.status == 'in_progress' %}
+                                    <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#uploadModal{{ revision.id }}">
+                                        <i class="fas fa-upload"></i> Dosya Yükle
+                                    </button>
+                                    {% endif %}
+                                    
+                                    <a href="{% url 'producer:revision_request_detail' revision.id %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                </div>
+                            </div>
+                            
+                            <!-- Timeline Gösterimi -->
+                            {% if revision.process_steps %}
+                            <div class="process-timeline mt-3">
+                                <div class="timeline-container">
+                                    {% for step in revision.process_steps %}
+                                    <div class="timeline-item">
+                                        <div class="timeline-marker bg-{{ step.status|default:'secondary' }}"></div>
+                                        <div class="timeline-content">
+                                            <small class="text-muted">{{ step.timestamp|date:"d.m H:i" }}</small>
+                                            <p class="mb-0">{{ step.description }}</p>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            <!-- Dosya Bilgileri -->
+                            {% if revision.revised_file %}
+                            <div class="mt-3 p-2 bg-success bg-opacity-10 rounded">
+                                <i class="fas fa-file-alt text-success me-2"></i>
+                                <strong>Revize Dosya:</strong> {{ revision.revised_file.name|cut:"revised/" }}
+                                {% if revision.revision_notes %}
+                                <br><small class="text-muted">{{ revision.revision_notes }}</small>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                                                                 <!-- Gelişmiş Dosya Yükleme Modal -->
+                         {% if revision.status == 'in_progress' %}
+                         <div class="modal fade" id="uploadModal{{ revision.id }}" tabindex="-1">
+                             <div class="modal-dialog modal-lg">
+                                 <div class="modal-content">
+                                     <div class="modal-header">
+                                         <h5 class="modal-title">
+                                             <i class="fas fa-cloud-upload-alt me-2"></i>
+                                             Revizyon Dosyası Yükle
+                                         </h5>
+                                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                     </div>
+                                     <form method="post" enctype="multipart/form-data" id="revisionForm{{ revision.id }}">
+                                         <div class="modal-body">
+                                             {% csrf_token %}
+                                             <input type="hidden" name="action" value="upload_revision">
+                                             <input type="hidden" name="revision_id" value="{{ revision.id }}">
+                                             
+                                             <!-- Gelişmiş Dosya Yükleme Alanı -->
+                                             <div class="mb-4">
+                                                 <label class="form-label fw-bold">Revize Edilmiş Dosya:</label>
+                                                 
+                                                 <!-- Drag & Drop Alanı -->
+                                                 <div class="file-drop-area" id="dropArea{{ revision.id }}">
+                                                     <div class="text-center py-5">
+                                                         <i class="fas fa-cloud-upload-alt fa-3x text-primary mb-3"></i>
+                                                         <h5 class="mb-2">Dosyayı buraya sürükleyin</h5>
+                                                         <p class="text-muted mb-3">veya dosya seçmek için tıklayın</p>
+                                                         <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('fileInput{{ revision.id }}').click()">
+                                                             <i class="fas fa-folder-open me-2"></i>Dosya Seç
+                                                         </button>
+                                                     </div>
+                                                     <input type="file" name="revised_file" id="fileInput{{ revision.id }}" 
+                                                            class="d-none" accept=".stl,.obj,.ply,.3mf,.amf" required>
+                                                 </div>
+                                                 
+                                                 <!-- Dosya Bilgileri -->
+                                                 <div id="fileInfo{{ revision.id }}" class="mt-3 d-none">
+                                                     <div class="card border-success">
+                                                         <div class="card-body py-2">
+                                                             <div class="d-flex align-items-center">
+                                                                 <i class="fas fa-file-alt text-success me-2"></i>
+                                                                 <div class="flex-grow-1">
+                                                                     <strong id="fileName{{ revision.id }}"></strong>
+                                                                     <small class="text-muted d-block" id="fileSize{{ revision.id }}"></small>
+                                                                 </div>
+                                                                 <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearFile({{ revision.id }})">
+                                                                     <i class="fas fa-times"></i>
+                                                                 </button>
+                                                             </div>
+                                                         </div>
+                                                     </div>
+                                                 </div>
+                                                 
+                                                 <!-- Progress Bar -->
+                                                 <div id="uploadProgress{{ revision.id }}" class="mt-3 d-none">
+                                                     <div class="d-flex justify-content-between align-items-center mb-2">
+                                                         <small class="text-muted">Dosya yükleniyor...</small>
+                                                         <small id="progressPercent{{ revision.id }}">0%</small>
+                                                     </div>
+                                                     <div class="progress">
+                                                         <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                                              id="progressBar{{ revision.id }}" 
+                                                              role="progressbar" style="width: 0%"></div>
+                                                     </div>
+                                                 </div>
+                                                 
+                                                 <!-- Dosya Gereksinimleri -->
+                                                 <div class="alert alert-info mt-3">
+                                                     <h6 class="mb-2"><i class="fas fa-info-circle me-2"></i>Dosya Gereksinimleri:</h6>
+                                                     <ul class="mb-0">
+                                                         <li><strong>Formatlar:</strong> STL, OBJ, PLY, 3MF, AMF</li>
+                                                         <li><strong>Maksimum boyut:</strong> 50MB</li>
+                                                         <li><strong>Önerilen:</strong> Yüksek çözünürlük, temiz mesh</li>
+                                                     </ul>
+                                                 </div>
+                                             </div>
+                                             
+                                             <!-- Revizyon Notları -->
+                                             <div class="mb-3">
+                                                 <label class="form-label fw-bold">Revizyon Notları:</label>
+                                                 <textarea name="revision_notes" class="form-control" rows="4" 
+                                                           placeholder="Yapılan değişiklikler hakkında detaylı açıklama yazın...
+&#10;Örnek: 
+- Kulak kanalı genişliği 0.5mm artırıldı
+- Yüzey pürüzlülüğü düzeltildi
+- Ventilasyon deliği yeniden konumlandırıldı"></textarea>
+                                                 <small class="text-muted">
+                                                     <i class="fas fa-lightbulb me-1"></i>
+                                                     Detaylı açıklama kalite kontrol sürecini hızlandırır
+                                                 </small>
+                                             </div>
+                                             
+                                             <!-- Kalite Kontrol Checklist -->
+                                             <div class="card border-warning">
+                                                 <div class="card-header bg-warning bg-opacity-10">
+                                                     <h6 class="mb-0">
+                                                         <i class="fas fa-clipboard-check me-2"></i>
+                                                         Yükleme Öncesi Kontrol Listesi
+                                                     </h6>
+                                                 </div>
+                                                 <div class="card-body">
+                                                     <div class="form-check">
+                                                         <input class="form-check-input" type="checkbox" id="check1_{{ revision.id }}">
+                                                         <label class="form-check-label" for="check1_{{ revision.id }}">
+                                                             Dosya istenilen revizyonları içeriyor
+                                                         </label>
+                                                     </div>
+                                                     <div class="form-check">
+                                                         <input class="form-check-input" type="checkbox" id="check2_{{ revision.id }}">
+                                                         <label class="form-check-label" for="check2_{{ revision.id }}">
+                                                             3D model hataları kontrol edildi
+                                                         </label>
+                                                     </div>
+                                                     <div class="form-check">
+                                                         <input class="form-check-input" type="checkbox" id="check3_{{ revision.id }}">
+                                                         <label class="form-check-label" for="check3_{{ revision.id }}">
+                                                             Dosya boyutları uygun
+                                                         </label>
+                                                     </div>
+                                                 </div>
+                                             </div>
+                                         </div>
+                                         
+                                         <div class="modal-footer">
+                                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                 <i class="fas fa-times me-2"></i>İptal
+                                             </button>
+                                             <button type="submit" class="btn btn-success" id="submitBtn{{ revision.id }}" disabled>
+                                                 <i class="fas fa-upload me-2"></i>
+                                                 <span id="submitText{{ revision.id }}">Dosyayı Yükle</span>
+                                             </button>
+                                         </div>
+                                     </form>
+                                 </div>
+                             </div>
+                         </div>
+                         {% endif %}
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-history fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">Henüz Revizyon Talebi Yok</h5>
+                        <p class="text-muted">Bu kalıp için henüz revizyon talebi bulunmuyor.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
             
             <!-- Sipariş Bilgileri -->
             <div class="card mb-4">
