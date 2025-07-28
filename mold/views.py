@@ -17,6 +17,7 @@ from center.models import Center
 import logging
 import json
 import os
+import uuid
 from PIL import Image
 import tempfile
 from django.conf import settings
@@ -57,17 +58,37 @@ def mold_create(request):
         center = request.user.center
         
         # Abonelik kontrolü
+        subscription = None
         try:
-            subscription = request.user.subscription
+            from core.models import UserSubscription
+            subscription = UserSubscription.objects.filter(user=request.user).first()
+            
+            if not subscription:
+                # Deneme paketi oluştur
+                from core.models import PricingPlan
+                trial_plan = PricingPlan.objects.filter(plan_type='trial', is_active=True).first()
+                if trial_plan:
+                    subscription = UserSubscription.objects.create(
+                        user=request.user,
+                        plan=trial_plan,
+                        status='active'
+                    )
+                    messages.info(request, 
+                        f'🎉 Size özel {trial_plan.monthly_model_limit} kalıp gönderme hakkı tanımlandı!')
+                else:
+                    messages.error(request, 
+                        '❌ Abonelik planı bulunamadı. Lütfen yönetici ile iletişime geçin.')
+                    return redirect('center:dashboard')
+            
             if not subscription.can_create_model():
                 messages.error(request, 
                     '❌ Kalıp kotanız doldu. Lütfen aboneliğinizi kontrol edin.')
                 return redirect('core:subscription_dashboard')
         except Exception as e:
-            logger.error(f"Subscription check error: {e}")
+            logger.error(f"Subscription check error: {str(e)}")
             messages.error(request, 
-                '⚠️ Abonelik bilgileriniz kontrol edilemiyor. Lütfen tekrar deneyin.')
-            return redirect('core:subscription_dashboard')
+                f'⚠️ Abonelik kontrolünde hata: {str(e)}')
+            return redirect('center:dashboard')
         
         # Üretici ağ kontrolü
         active_networks = ProducerNetwork.objects.filter(
@@ -177,9 +198,9 @@ def mold_create(request):
                     return redirect('mold:mold_detail', pk=mold.pk)
                     
                 except Exception as e:
-                    logger.error(f"Mold creation error: {e}")
+                    logger.error(f"Mold creation error: {str(e)}", exc_info=True)
                     messages.error(request, 
-                        '❌ Kalıp oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.')
+                        f'❌ Kalıp oluşturulurken bir hata oluştu: {str(e)}')
                     
             else:
                 # Form hataları
@@ -194,7 +215,7 @@ def mold_create(request):
             'form': form,
             'active_networks': active_networks,
             'subscription': subscription,
-            'remaining_limit': subscription.get_remaining_models() if subscription else 0,
+            'remaining_limit': subscription.get_remaining_models() if subscription and hasattr(subscription, 'get_remaining_models') else 0,
         }
         
         return render(request, 'mold/mold_form.html', context)
