@@ -1087,20 +1087,27 @@ def mold_upload_result(request, pk):
                 ear_mold.save()
             
             # Merkeze basit bildirim gönder
-            if revision_completed:
-                send_success_notification(
-                    ear_mold.center.user,
-                    'Revizyon Talebiniz Tamamlandı',
-                    f'{ear_mold.patient_name} {ear_mold.patient_surname} hastanız için revizyon talebiniz {producer.company_name} tarafından tamamlandı. Yeni kalıp dosyası hazır!',
-                    related_url=f'/mold/{ear_mold.id}/'
-                )
-            else:
-                send_success_notification(
-                    ear_mold.center.user,
-                    'Kalıp Üretiminiz Tamamlandı',
-                    f'{ear_mold.patient_name} {ear_mold.patient_surname} hastanız için kalıp üretimi {producer.company_name} tarafından tamamlandı. Dosyayı indirebilirsiniz!',
-                    related_url=f'/mold/{ear_mold.id}/'
-                )
+            try:
+                print(f"DEBUG: Merkeze bildirim gönderiliyor - User: {ear_mold.center.user.username}")
+                if revision_completed:
+                    notification = send_success_notification(
+                        ear_mold.center.user,
+                        'Revizyon Talebiniz Tamamlandı',
+                        f'{ear_mold.patient_name} {ear_mold.patient_surname} hastanız için revizyon talebiniz {producer.company_name} tarafından tamamlandı. Yeni kalıp dosyası hazır!',
+                        related_url=f'/mold/{ear_mold.id}/'
+                    )
+                    print(f"DEBUG: Revizyon bildirimi gönderildi - ID: {notification.id if notification else 'HATA'}")
+                else:
+                    notification = send_success_notification(
+                        ear_mold.center.user,
+                        'Kalıp Üretiminiz Tamamlandı',
+                        f'{ear_mold.patient_name} {ear_mold.patient_surname} hastanız için kalıp üretimi {producer.company_name} tarafından tamamlandı. Dosyayı indirebilirsiniz!',
+                        related_url=f'/mold/{ear_mold.id}/'
+                    )
+                    print(f"DEBUG: Kalıp bildirimi gönderildi - ID: {notification.id if notification else 'HATA'}")
+            except Exception as e:
+                print(f"DEBUG: Bildirim gönderme hatası: {str(e)}")
+                logger.error(f"Notification error: {str(e)}", exc_info=True)
             
             # Admin'lere sistem bildirimi
             admin_users = User.objects.filter(is_superuser=True)
@@ -1624,16 +1631,16 @@ def revision_request_respond(request, request_id):
                 
                 # Bildirim gönder
                 try:
-                    from notifications.signals import notify
-                    notify.send(
-                        sender=request.user,
-                        recipient=revision_request.center.user,
-                        verb='revizyon kabul edildi',
-                        description=f'#{revision_request.id} numaralı revizyon talebiniz kabul edildi. Tahmini teslim: {revision_request.expected_delivery.strftime("%d.%m.%Y")}',
-                        action_object=revision_request
+                    send_success_notification(
+                        revision_request.center.user,
+                        'Revizyon Talebiniz Kabul Edildi',
+                        f'#{revision_request.id} numaralı revizyon talebiniz kabul edildi. Tahmini teslim: {revision_request.expected_delivery.strftime("%d.%m.%Y")}. {response or ""}',
+                        related_url=f'/mold/{revision_request.modeled_mold.ear_mold.id}/'
                     )
+                    print(f"DEBUG: Revizyon kabul bildirimi gönderildi - Request ID: {revision_request.id}")
                 except Exception as e:
                     print(f"Bildirim gönderme hatası: {e}")
+                    logger.error(f"Revision accept notification error: {str(e)}", exc_info=True)
                 
                 messages.success(request, f'Revizyon talebi kabul edildi. Tahmini teslim: {revision_request.expected_delivery.strftime("%d.%m.%Y")}')
                 
@@ -1660,16 +1667,16 @@ def revision_request_respond(request, request_id):
                 
                 # Bildirim gönder
                 try:
-                    from notifications.signals import notify
-                    notify.send(
-                        sender=request.user,
-                        recipient=revision_request.center.user,
-                        verb='revizyon reddedildi',
-                        description=f'#{revision_request.id} numaralı revizyon talebiniz reddedildi. Nedeni: {reason}',
-                        action_object=revision_request
+                    send_warning_notification(
+                        revision_request.center.user,
+                        'Revizyon Talebiniz Reddedildi',
+                        f'#{revision_request.id} numaralı revizyon talebiniz reddedildi. Nedeni: {reason}',
+                        related_url=f'/mold/{revision_request.modeled_mold.ear_mold.id}/'
                     )
+                    print(f"DEBUG: Revizyon red bildirimi gönderildi - Request ID: {revision_request.id}")
                 except Exception as e:
                     print(f"Bildirim gönderme hatası: {e}")
+                    logger.error(f"Revision reject notification error: {str(e)}", exc_info=True)
                 
                 messages.success(request, 'Revizyon talebi reddedildi.')
             
@@ -1719,16 +1726,17 @@ def revision_start_work(request, request_id):
             
             # Bildirim gönder
             try:
-                from notifications.signals import notify
-                notify.send(
-                    sender=request.user,
-                    recipient=revision_request.center.user,
-                    verb='revizyon çalışması başladı',
-                    description=f'#{revision_request.id} numaralı revizyon talebi için çalışma başlatıldı',
-                    action_object=revision_request
+                # SimpleNotification ile bildirim gönder
+                send_success_notification(
+                    revision_request.center.user,
+                    'Revizyon Çalışması Başladı',
+                    f'#{revision_request.id} numaralı revizyon talebiniz için üretici çalışmaya başladı. Revizyon türü: {revision_request.get_revision_type_display()}',
+                    related_url=f'/mold/{revision_request.modeled_mold.ear_mold.id}/'
                 )
+                print(f"DEBUG: Revizyon başlama bildirimi gönderildi - Request ID: {revision_request.id}")
             except Exception as e:
                 print(f"Bildirim gönderme hatası: {e}")
+                logger.error(f"Revision start notification error: {str(e)}", exc_info=True)
             
             messages.success(request, 'Revizyon çalışması başarıyla başlatıldı.')
             return redirect('producer:revision_requests')
@@ -1812,16 +1820,16 @@ def revision_complete_work(request, request_id):
             
             # Bildirim gönder
             try:
-                from notifications.signals import notify
-                notify.send(
-                    sender=request.user,
-                    recipient=revision_request.center.user,
-                    verb='revizyon tamamlandı',
-                    description=f'#{revision_request.id} numaralı revizyon talebi tamamlandı ve revize edilmiş dosya yüklendi',
-                    action_object=revision_request
+                send_success_notification(
+                    revision_request.center.user,
+                    'Revizyon Tamamlandı',
+                    f'#{revision_request.id} numaralı revizyon talebiniz tamamlandı ve revize edilmiş dosya yüklendi. {revision_notes or ""}',
+                    related_url=f'/mold/{revision_request.modeled_mold.ear_mold.id}/'
                 )
+                print(f"DEBUG: Revizyon tamamlama bildirimi gönderildi - Request ID: {revision_request.id}")
             except Exception as e:
                 print(f"Bildirim gönderme hatası: {e}")
+                logger.error(f"Revision complete notification error: {str(e)}", exc_info=True)
             
             messages.success(request, 'Revizyon başarıyla tamamlandı ve dosya yüklendi!')
             return redirect('producer:revision_requests')
