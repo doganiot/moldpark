@@ -408,14 +408,29 @@ function deleteNotification(notificationId) {
 }
 
 function updateNotificationCount(count) {
-    // Navbar'daki sayacı güncelle
-    const badge = document.querySelector('.notification-badge');
-    if (badge) {
-        if (count > 0) {
-            badge.textContent = count;
-            badge.style.display = 'inline';
-        } else {
-            badge.style.display = 'none';
+    // Navbar'daki bildirim badge'lerini güncelle
+    if (typeof updateNotificationBadges === 'function') {
+        updateNotificationBadges(count);
+    } else {
+        // Fallback: Doğrudan badge'leri güncelle
+        const notificationLink = document.querySelector('#notificationDropdown');
+        if (notificationLink) {
+            const existingBadge = notificationLink.querySelector('.badge');
+            if (count > 0) {
+                if (existingBadge) {
+                    existingBadge.textContent = count;
+                    existingBadge.style.display = 'inline';
+                } else {
+                    const newBadge = document.createElement('span');
+                    newBadge.className = 'badge bg-danger ms-1';
+                    newBadge.textContent = count;
+                    notificationLink.appendChild(newBadge);
+                }
+            } else {
+                if (existingBadge) {
+                    existingBadge.style.display = 'none';
+                }
+            }
         }
     }
 }

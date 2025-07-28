@@ -126,8 +126,8 @@
                                 </td>
                                 <td>
                                     <div>
-                                        <strong>{{ request.center.name }}</strong><br>
-                                        <small class="text-muted">{{ request.center.city }}</small>
+                                        <strong>{{ request.center.name|default:"Merkez Bulunamadı" }}</strong><br>
+                                        <small class="text-muted">{{ request.center.phone|default:"" }}</small>
                                     </div>
                                 </td>
                                 <td>

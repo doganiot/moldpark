@@ -115,7 +115,11 @@
                                     {{ revision.modeled_mold.ear_mold.patient_name }} 
                                     {{ revision.modeled_mold.ear_mold.patient_surname }}
                                 </td>
-                                <td>{{ revision.center.company_name }}</td>
+                                <td>
+                                    <strong>{{ revision.center.name|default:"Merkez Bulunamadı" }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ revision.center.phone|default:"" }}</small>
+                                </td>
                                 <td>
                                     <span class="badge bg-secondary">
                                         {{ revision.get_revision_type_display }}
@@ -159,6 +163,10 @@
                                                     <p><strong>Açıklama:</strong> {{ revision.description }}</p>
                                                     <p><strong>Revizyon Türü:</strong> {{ revision.get_revision_type_display }}</p>
                                                     <p><strong>Öncelik:</strong> {{ revision.get_priority_display }}</p>
+                                                    <p><strong>İşitme Merkezi:</strong> {{ revision.center.name|default:"Merkez Bulunamadı" }}</p>
+                                                    {% if revision.center.phone %}
+                                                    <p><strong>Telefon:</strong> {{ revision.center.phone }}</p>
+                                                    {% endif %}
                                                 </div>
                                                 <div class="col-md-6">
                                                     <h6>Süreç Bilgileri</h6>

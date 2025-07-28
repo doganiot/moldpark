@@ -1,422 +1,325 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Revizyon Talebi Detayı - MoldPark{% endblock %}
+{% block title %}Revizyon Detayı #{{ revision_request.id }} - MoldPark{% endblock %}
+
+{% block extra_css %}
+<style>
+    .revision-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 0.5rem;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .status-badge {
+        font-size: 1rem;
+        padding: 0.5rem 1rem;
+    }
+    
+    .info-card {
+        border: none;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        transition: transform 0.2s ease;
+    }
+    
+    .info-card:hover {
+        transform: translateY(-2px);
+    }
+    
+    .timeline {
+        position: relative;
+        padding-left: 30px;
+    }
+    
+    .timeline::before {
+        content: '';
+        position: absolute;
+        left: 15px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #dee2e6;
+    }
+    
+    .timeline-item {
+        position: relative;
+        margin-bottom: 20px;
+    }
+    
+    .timeline-marker {
+        position: absolute;
+        left: -23px;
+        top: 5px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #0d6efd;
+        border: 2px solid #fff;
+        box-shadow: 0 0 0 2px #dee2e6;
+    }
+    
+    .timeline-content {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        border-left: 3px solid #0d6efd;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <!-- Başlık -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2><i class="fas fa-edit text-warning me-2"></i>Revizyon Talebi Detayı</h2>
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{% url 'producer:dashboard' %}">Dashboard</a></li>
-                <li class="breadcrumb-item"><a href="{% url 'producer:revision_requests' %}">Revizyon Talepleri</a></li>
-                <li class="breadcrumb-item active">Detay</li>
-            </ol>
-        </nav>
-    </div>
-
+<div class="container-fluid py-4">
     <div class="row">
-        <!-- Sol Kolon - Revizyon Detayları -->
-        <div class="col-md-8">
-            <!-- Revizyon Bilgileri -->
-            <div class="card mb-4">
-                <div class="card-header bg-warning text-dark">
-                    <h5 class="mb-0">
-                        <i class="fas fa-info-circle me-2"></i>Revizyon Talebi Bilgileri
-                    </h5>
+        <div class="col-12">
+            <!-- Header -->
+            <div class="revision-header">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h2 class="mb-1">
+                            <i class="fas fa-tools me-2"></i>
+                            Revizyon Talebi #{{ revision_request.id }}
+                        </h2>
+                        <p class="mb-0 opacity-90">{{ revision_request.title }}</p>
+                    </div>
+                    <div class="col-md-4 text-md-end">
+                        <span class="status-badge badge bg-{{ revision_request.get_status_color }}">
+                            {{ revision_request.get_status_display }}
+                        </span>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6>Talep Bilgileri</h6>
-                            <table class="table table-borderless table-sm">
-                                <tr>
-                                    <th width="40%">Başlık:</th>
-                                    <td><strong>{{ revision_request.title }}</strong></td>
-                                </tr>
-                                <tr>
-                                    <th>Revizyon Türü:</th>
-                                    <td>
-                                        <span class="badge bg-secondary">
-                                            {{ revision_request.get_revision_type_display }}
-                                        </span>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Öncelik:</th>
-                                    <td>
+            </div>
+
+            <div class="row">
+                <!-- Sol Taraf - Ana Bilgiler -->
+                <div class="col-lg-8">
+                    <!-- Revizyon Detayları -->
+                    <div class="card info-card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-info-circle me-2"></i>Revizyon Detayları
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Revizyon Türü:</strong> {{ revision_request.get_revision_type_display }}</p>
+                                    <p><strong>Öncelik:</strong> 
                                         <span class="badge bg-{{ revision_request.get_priority_color }}">
                                             {{ revision_request.get_priority_display }}
                                         </span>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Durum:</th>
-                                    <td>
-                                        <span class="badge bg-{{ revision_request.get_status_color }}">
-                                            {{ revision_request.get_status_display }}
-                                        </span>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Oluşturulma:</th>
-                                    <td>{{ revision_request.created_at|date:"d.m.Y H:i" }}</td>
-                                </tr>
-                            </table>
+                                    </p>
+                                    <p><strong>Oluşturulma Tarihi:</strong> {{ revision_request.created_at|date:"d.m.Y H:i" }}</p>
+                                    {% if revision_request.expected_delivery %}
+                                    <p><strong>Beklenen Teslim:</strong> {{ revision_request.expected_delivery|date:"d.m.Y" }}</p>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Hasta:</strong> {{ revision_request.modeled_mold.ear_mold.patient_name }} {{ revision_request.modeled_mold.ear_mold.patient_surname }}</p>
+                                    <p><strong>İşitme Merkezi:</strong> {{ revision_request.center.name }}</p>
+                                    <p><strong>Telefon:</strong> {{ revision_request.center.phone|default:"Belirtilmemiş" }}</p>
+                                    <p><strong>Son Güncelleme:</strong> {{ revision_request.updated_at|date:"d.m.Y H:i" }}</p>
+                                </div>
+                            </div>
+                            
+                            <hr>
+                            
+                            <div class="mb-3">
+                                <h6>Açıklama</h6>
+                                <p class="text-muted">{{ revision_request.description|linebreaks }}</p>
+                            </div>
+                            
+                            {% if revision_request.producer_response %}
+                            <div class="mb-3">
+                                <h6>Üretici Yanıtı</h6>
+                                <div class="alert alert-info">
+                                    {{ revision_request.producer_response|linebreaks }}
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if revision_request.rejection_reason %}
+                            <div class="mb-3">
+                                <h6>Red Nedeni</h6>
+                                <div class="alert alert-danger">
+                                    {{ revision_request.rejection_reason|linebreaks }}
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if revision_request.revision_notes %}
+                            <div class="mb-3">
+                                <h6>Revizyon Notları</h6>
+                                <div class="alert alert-success">
+                                    {{ revision_request.revision_notes|linebreaks }}
+                                </div>
+                            </div>
+                            {% endif %}
                         </div>
-                        <div class="col-md-6">
-                            <h6>Merkez Bilgileri</h6>
-                            <table class="table table-borderless table-sm">
-                                <tr>
-                                    <th width="40%">Merkez:</th>
-                                    <td><strong>{{ revision_request.center.name }}</strong></td>
-                                </tr>
-                                <tr>
-                                    <th>Şehir:</th>
-                                    <td>{{ revision_request.center.city }}</td>
-                                </tr>
-                                <tr>
-                                    <th>Telefon:</th>
-                                    <td>{{ revision_request.center.phone }}</td>
-                                </tr>
-                                <tr>
-                                    <th>E-posta:</th>
-                                    <td>{{ revision_request.center.email }}</td>
-                                </tr>
-                            </table>
+                    </div>
+
+                    <!-- İşlemler -->
+                    <div class="card info-card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-cogs me-2"></i>İşlemler
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {% if revision_request.status == 'pending' %}
+                            <!-- Bekleyen talep için yanıtlama formu -->
+                            <form method="post" action="{% url 'producer:revision_request_respond' revision_request.id %}">
+                                {% csrf_token %}
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Yanıt Türü</label>
+                                    <div class="btn-group w-100" role="group">
+                                        <input type="radio" class="btn-check" name="action" value="accept" id="accept" checked>
+                                        <label class="btn btn-outline-success" for="accept">Kabul Et</label>
+                                        
+                                        <input type="radio" class="btn-check" name="action" value="reject" id="reject">
+                                        <label class="btn btn-outline-danger" for="reject">Reddet</label>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="response" class="form-label">Yanıtınız</label>
+                                    <textarea name="response" id="response" class="form-control" rows="4" 
+                                              placeholder="Revizyon talebi hakkında açıklamanızı yazın..."></textarea>
+                                </div>
+                                
+                                <div class="mb-3 d-none" id="reject-reason-field">
+                                    <label for="reason" class="form-label">Red Nedeni <span class="text-danger">*</span></label>
+                                    <textarea name="reason" id="reason" class="form-control" rows="3" 
+                                              placeholder="Red nedeninizi detaylı olarak açıklayın... (minimum 20 karakter)"></textarea>
+                                </div>
+                                
+                                <div class="d-grid gap-2">
+                                    <button type="submit" class="btn btn-primary btn-lg">
+                                        <i class="fas fa-paper-plane me-2"></i>Yanıtı Gönder
+                                    </button>
+                                </div>
+                            </form>
+                            
+                            {% elif revision_request.status == 'accepted' %}
+                            <!-- Kabul edilmiş talep için çalışma başlatma -->
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle me-2"></i>
+                                Revizyon talebi kabul edilmiştir. Çalışmaya başlayabilirsiniz.
+                            </div>
+                            <div class="d-grid">
+                                <a href="{% url 'producer:revision_start_work' revision_request.id %}" 
+                                   class="btn btn-info btn-lg">
+                                    <i class="fas fa-play me-2"></i>Çalışmaya Başla
+                                </a>
+                            </div>
+                            
+                            {% elif revision_request.status == 'in_progress' %}
+                            <!-- İşlemde olan talep için tamamlama -->
+                            <div class="alert alert-warning">
+                                <i class="fas fa-cog me-2"></i>
+                                Revizyon çalışması devam ediyor. Revize edilmiş dosyayı yükleyebilirsiniz.
+                            </div>
+                            <div class="d-grid">
+                                <a href="{% url 'producer:revision_complete_work' revision_request.id %}" 
+                                   class="btn btn-warning btn-lg">
+                                    <i class="fas fa-upload me-2"></i>Dosya Yükle ve Tamamla
+                                </a>
+                            </div>
+                            
+                            {% elif revision_request.status == 'completed' %}
+                            <!-- Tamamlanmış talep -->
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle me-2"></i>
+                                Revizyon talebi başarıyla tamamlanmıştır.
+                            </div>
+                            {% if revision_request.revised_file %}
+                            <p><strong>Yüklenen Dosya:</strong> 
+                                <a href="{{ revision_request.revised_file.url }}" target="_blank">
+                                    {{ revision_request.revised_file.name|cut:revision_request.revised_file.name|slice:":20" }}...
+                                </a>
+                            </p>
+                            {% endif %}
+                            
+                            {% else %}
+                            <!-- Diğer durumlar -->
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Bu talep zaten yanıtlanmış durumda.
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Kalıp Bilgileri -->
-            <div class="card mb-4">
-                <div class="card-header bg-info text-white">
-                    <h5 class="mb-0">
-                        <i class="fas fa-cube me-2"></i>Kalıp Bilgileri
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6>Hasta Bilgileri</h6>
-                            <table class="table table-borderless table-sm">
-                                <tr>
-                                    <th width="40%">Hasta:</th>
-                                    <td><strong>{{ revision_request.modeled_mold.ear_mold.patient_name }} {{ revision_request.modeled_mold.ear_mold.patient_surname }}</strong></td>
-                                </tr>
-                                <tr>
-                                    <th>Yaş:</th>
-                                    <td>{{ revision_request.modeled_mold.ear_mold.patient_age }}</td>
-                                </tr>
-                                <tr>
-                                    <th>Cinsiyet:</th>
-                                    <td>{{ revision_request.modeled_mold.ear_mold.get_patient_gender_display }}</td>
-                                </tr>
-                                <tr>
-                                    <th>Kalıp Türü:</th>
-                                    <td>{{ revision_request.modeled_mold.ear_mold.get_mold_type_display }}</td>
-                                </tr>
-                                <tr>
-                                    <th>Vent Çapı:</th>
-                                    <td>{{ revision_request.modeled_mold.ear_mold.vent_diameter }}mm</td>
-                                </tr>
-                            </table>
+                <!-- Sağ Taraf - Yan Bilgiler -->
+                <div class="col-lg-4">
+                    <!-- Süreç Takibi -->
+                    <div class="card info-card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-history me-2"></i>Süreç Takibi
+                            </h5>
                         </div>
-                        <div class="col-md-6">
-                            <h6>Kalıp Dosyası Bilgileri</h6>
-                            <table class="table table-borderless table-sm">
-                                <tr>
-                                    <th width="40%">Dosya:</th>
-                                    <td>
-                                        <a href="{{ revision_request.modeled_mold.file.url }}" target="_blank" class="text-decoration-none">
-                                            <i class="fas fa-download me-1"></i>
-                                            {{ revision_request.modeled_mold.file.name|cut:"modeled/" }}
-                                        </a>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Yüklenme:</th>
-                                    <td>{{ revision_request.modeled_mold.created_at|date:"d.m.Y H:i" }}</td>
-                                </tr>
-                                <tr>
-                                    <th>Durum:</th>
-                                    <td>
-                                        <span class="badge {% if revision_request.modeled_mold.status == 'approved' %}bg-success{% elif revision_request.modeled_mold.status == 'rejected' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
-                                            {{ revision_request.modeled_mold.get_status_display }}
-                                        </span>
-                                    </td>
-                                </tr>
-                                {% if revision_request.modeled_mold.notes %}
-                                <tr>
-                                    <th>Notlar:</th>
-                                    <td>{{ revision_request.modeled_mold.notes }}</td>
-                                </tr>
+                        <div class="card-body">
+                            <div class="timeline">
+                                {% if revision_request.process_steps %}
+                                    {% for step in revision_request.process_steps %}
+                                    <div class="timeline-item">
+                                        <div class="timeline-marker"></div>
+                                        <div class="timeline-content">
+                                            <h6 class="mb-1">{{ step.step }}</h6>
+                                            <small class="text-muted">{{ step.timestamp|date:"d.m.Y H:i" }}</small>
+                                            {% if step.description %}
+                                            <p class="mb-0 mt-1">{{ step.description }}</p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="text-center text-muted py-3">
+                                        <i class="fas fa-clock fa-2x mb-2"></i>
+                                        <p>Henüz süreç adımı bulunmamaktadır.</p>
+                                    </div>
                                 {% endif %}
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Revizyon Açıklaması -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-comment-alt me-2"></i>Revizyon Açıklaması
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <p class="mb-0">{{ revision_request.description|linebreaks }}</p>
-                </div>
-            </div>
-
-            <!-- Ek Dosyalar -->
-            {% if revision_request.reference_image or revision_request.attachment %}
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-paperclip me-2"></i>Ek Dosyalar
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        {% if revision_request.reference_image %}
-                        <div class="col-md-6">
-                            <h6>Referans Görsel</h6>
-                            <div class="text-center">
-                                <img src="{{ revision_request.reference_image.url }}" 
-                                     alt="Referans Görsel" 
-                                     class="img-fluid rounded border"
-                                     style="max-height: 200px;">
-                                <br>
-                                <a href="{{ revision_request.reference_image.url }}" 
-                                   target="_blank" 
-                                   class="btn btn-sm btn-outline-primary mt-2">
-                                    <i class="fas fa-external-link-alt me-1"></i>Büyük Görüntüle
-                                </a>
                             </div>
                         </div>
-                        {% endif %}
-                        {% if revision_request.attachment %}
-                        <div class="col-md-6">
-                            <h6>Ek Dosya</h6>
-                            <div class="text-center">
-                                <i class="fas fa-file fa-3x text-muted mb-2"></i>
-                                <br>
-                                <a href="{{ revision_request.attachment.url }}" 
-                                   class="btn btn-outline-primary" 
-                                   download>
-                                    <i class="fas fa-download me-1"></i>
-                                    {{ revision_request.attachment.name|cut:"revision_requests/" }}
-                                </a>
-                            </div>
-                        </div>
-                        {% endif %}
                     </div>
-                </div>
-            </div>
-            {% endif %}
 
-            <!-- Üretici Yanıtı -->
-            {% if revision_request.producer_response %}
-            <div class="card mb-4">
-                <div class="card-header bg-success text-white">
-                    <h5 class="mb-0">
-                        <i class="fas fa-reply me-2"></i>Üretici Yanıtı
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <p class="mb-0">{{ revision_request.producer_response|linebreaks }}</p>
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Revize Edilmiş Dosya Yükleme -->
-            {% if revision_request.status == 'accepted' or revision_request.status == 'in_progress' %}
-            <div class="card mb-4 border-primary">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">
-                        <i class="fas fa-upload me-2"></i>Revize Edilmiş Dosya Yükleme
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle me-2"></i>
-                        <strong>Revizyon İçin Dosya Yükleme:</strong> Revizyon talebine göre güncellenen 3D model dosyasını yükleyiniz. 
-                        Dosya yüklendikten sonra revizyon otomatik olarak tamamlanmış duruma geçecektir.
-                    </div>
-                    
-                    <form method="post" action="{% url 'producer:revision_upload_file' revision_request.pk %}" enctype="multipart/form-data" id="revisionUploadForm">
-                        {% csrf_token %}
-                        
-                        <div class="mb-3">
-                            <label for="revised_file" class="form-label">
-                                <i class="fas fa-file-upload me-1"></i>Revize Edilmiş 3D Model Dosyası
-                            </label>
-                            <input type="file" 
-                                   class="form-control" 
-                                   id="revised_file" 
-                                   name="revised_file" 
-                                   accept=".stl,.obj,.ply,.3mf,.amf" 
-                                   required>
-                            <div class="form-text">
-                                <i class="fas fa-info-circle me-1"></i>
-                                Desteklenen formatlar: STL, OBJ, PLY, 3MF, AMF (Maksimum 50MB)
-                            </div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="revision_notes" class="form-label">
-                                <i class="fas fa-sticky-note me-1"></i>Revizyon Notları (İsteğe Bağlı)
-                            </label>
-                            <textarea class="form-control" 
-                                      id="revision_notes" 
-                                      name="revision_notes" 
-                                      rows="3" 
-                                      placeholder="Yapılan değişiklikler hakkında açıklama yazabilirsiniz..."></textarea>
-                        </div>
-                        
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-success btn-lg">
-                                <i class="fas fa-upload me-2"></i>Revize Edilmiş Dosyayı Yükle
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Yüklenen Revizyon Dosyası -->
-            {% if revision_request.status == 'completed' and revision_request.revised_file %}
-            <div class="card mb-4 border-success">
-                <div class="card-header bg-success text-white">
-                    <h5 class="mb-0">
-                        <i class="fas fa-check-circle me-2"></i>Revizyon Tamamlandı
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="alert alert-success">
-                        <i class="fas fa-check-circle me-2"></i>
-                        <strong>Revizyon başarıyla tamamlandı!</strong> 
-                        Güncellenen dosya merkeze teslim edilmiştir.
-                    </div>
-                    
-                    <h6><i class="fas fa-file-download me-2"></i>Yüklenen Dosya:</h6>
-                    <div class="d-flex align-items-center p-3 bg-light rounded">
-                        <i class="fas fa-cube fa-2x text-success me-3"></i>
-                        <div class="flex-grow-1">
-                            <h6 class="mb-1">{{ revision_request.revised_file.name|cut:"revised/" }}</h6>
-                            <small class="text-muted">
-                                Yüklenme: {{ revision_request.completed_at|date:"d.m.Y H:i" }}
-                            </small>
-                        </div>
-                        <a href="{{ revision_request.revised_file.url }}" 
-                           class="btn btn-outline-success" 
-                           download>
-                            <i class="fas fa-download me-1"></i>İndir
-                        </a>
-                    </div>
-                    
-                    {% if revision_request.revision_notes %}
-                    <div class="mt-3">
-                        <h6><i class="fas fa-sticky-note me-2"></i>Revizyon Notları:</h6>
-                        <div class="bg-light p-3 rounded">
-                            {{ revision_request.revision_notes|linebreaks }}
-                        </div>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-            {% endif %}
-        </div>
-
-        <!-- Sağ Kolon - İşlemler -->
-        <div class="col-md-4">
-            <!-- Hızlı İşlemler -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h6 class="mb-0"><i class="fas fa-bolt me-2"></i>Hızlı İşlemler</h6>
-                </div>
-                <div class="card-body">
-                    {% if revision_request.status == 'producer_review' %}
-                    <!-- Bekleyen talep için yanıt verme formu -->
-                    <form method="post" action="{% url 'producer:revision_request_respond' revision_request.pk %}">
-                        {% csrf_token %}
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Yanıtınız</label>
-                            <textarea name="producer_response" 
-                                      class="form-control" 
-                                      rows="4" 
-                                      placeholder="Revizyon talebi hakkında açıklamanızı yazın..."></textarea>
-                        </div>
-                        
-                        <div class="d-grid gap-2">
-                            <button type="submit" 
-                                    name="action" 
-                                    value="accept" 
-                                    class="btn btn-success"
-                                    onclick="return confirm('Revizyon talebini kabul etmek istediğinizden emin misiniz? Kalıp dosyası revizyona alınacaktır.')">
-                                <i class="fas fa-check me-1"></i>Kabul Et
-                            </button>
-                            <button type="submit" 
-                                    name="action" 
-                                    value="reject" 
-                                    class="btn btn-danger"
-                                    onclick="return confirm('Revizyon talebini reddetmek istediğinizden emin misiniz?')">
-                                <i class="fas fa-times me-1"></i>Reddet
-                            </button>
-                        </div>
-                    </form>
-                    {% elif revision_request.status == 'accepted' %}
-                    <!-- Kabul edilmiş talep için çalışma başlatma -->
-                    <div class="alert alert-success">
-                        <i class="fas fa-check-circle me-1"></i>
-                        Revizyon talebi kabul edilmiştir. Çalışmaya başlayabilirsiniz.
-                    </div>
-                    <form method="post" action="{% url 'producer:revision_start_work' revision_request.pk %}">
-                        {% csrf_token %}
-                        <div class="d-grid">
-                            <button type="submit" 
-                                    class="btn btn-primary"
-                                    onclick="return confirm('Revizyon çalışmasını başlatmak istediğinizden emin misiniz?')">
-                                <i class="fas fa-play me-1"></i>Çalışmaya Başla
-                            </button>
-                        </div>
-                    </form>
-                    {% elif revision_request.status == 'in_progress' %}
-                    <div class="alert alert-warning">
-                        <i class="fas fa-cog me-1"></i>
-                        Revizyon çalışması devam ediyor. Revize edilmiş dosyayı yükleyebilirsiniz.
-                    </div>
-                    {% elif revision_request.status == 'completed' %}
-                    <div class="alert alert-success">
-                        <i class="fas fa-check-circle me-1"></i>
-                        Revizyon talebi tamamlanmıştır.
-                    </div>
-                    {% else %}
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle me-1"></i>
-                        Bu talep zaten yanıtlanmış durumda.
-                    </div>
-                    {% endif %}
-                    
-                    <hr>
-                    
-                    <!-- Diğer İşlemler -->
+                    <!-- Kalıp Bilgileri -->
                     {% if producer_order %}
-                    <a href="{% url 'producer:mold_detail' producer_order.pk %}" 
-                       class="btn btn-outline-primary w-100 mb-2">
-                        <i class="fas fa-cube me-1"></i>Kalıp Detayına Git
-                    </a>
+                    <div class="card info-card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-cube me-2"></i>Kalıp Bilgileri
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Sipariş:</strong> #{{ producer_order.id }}</p>
+                            <p><strong>Kalıp Türü:</strong> {{ revision_request.modeled_mold.ear_mold.get_mold_type_display }}</p>
+                            <p><strong>Kulak Tarafı:</strong> {{ revision_request.modeled_mold.ear_mold.get_ear_side_display }}</p>
+                            <p><strong>Sipariş Durumu:</strong> 
+                                <span class="badge bg-{{ producer_order.get_status_color }}">
+                                    {{ producer_order.get_status_display }}
+                                </span>
+                            </p>
+                            <div class="d-grid mt-3">
+                                <a href="{% url 'producer:mold_detail' producer_order.id %}" class="btn btn-outline-primary">
+                                    <i class="fas fa-eye me-2"></i>Kalıp Detayına Git
+                                </a>
+                            </div>
+                        </div>
+                    </div>
                     {% endif %}
-                    
-                    <a href="{% url 'producer:revision_requests' %}" 
-                       class="btn btn-outline-secondary w-100">
-                        <i class="fas fa-arrow-left me-1"></i>Listeye Dön
+                </div>
+            </div>
+
+            <!-- Geri Dönme -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <a href="{% url 'producer:revision_requests' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Revizyon Listesine Dön
                     </a>
                 </div>
             </div>
@@ -427,85 +330,56 @@
 
 {% block extra_js %}
 <script>
-$(document).ready(function() {
-    // Dosya yükleme doğrulaması
-    $('#revised_file').on('change', function() {
-        const file = this.files[0];
-        if (file) {
-            // Dosya boyutu kontrolü (50MB)
-            const maxSize = 50 * 1024 * 1024; // 50MB
-            if (file.size > maxSize) {
-                alert('Dosya boyutu 50MB\'dan büyük olamaz!');
-                this.value = '';
-                return;
+document.addEventListener('DOMContentLoaded', function() {
+    // Yanıt türü değişimi
+    const acceptRadio = document.getElementById('accept');
+    const rejectRadio = document.getElementById('reject');
+    const rejectReasonField = document.getElementById('reject-reason-field');
+    const reasonTextarea = document.getElementById('reason');
+    
+    if (acceptRadio && rejectRadio && rejectReasonField) {
+        acceptRadio.addEventListener('change', function() {
+            if (this.checked) {
+                rejectReasonField.classList.add('d-none');
+                reasonTextarea.required = false;
+            }
+        });
+        
+        rejectRadio.addEventListener('change', function() {
+            if (this.checked) {
+                rejectReasonField.classList.remove('d-none');
+                reasonTextarea.required = true;
+            }
+        });
+    }
+    
+    // Form validasyonu
+    const form = document.querySelector('form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const action = document.querySelector('input[name="action"]:checked').value;
+            const reason = document.getElementById('reason').value.trim();
+            
+            if (action === 'reject' && reason.length < 20) {
+                e.preventDefault();
+                alert('Red nedeni en az 20 karakter olmalıdır.');
+                return false;
             }
             
-            // Dosya türü kontrolü
-            const allowedTypes = ['stl', 'obj', 'ply', '3mf', 'amf'];
-            const fileExtension = file.name.split('.').pop().toLowerCase();
-            if (!allowedTypes.includes(fileExtension)) {
-                alert('Sadece STL, OBJ, PLY, 3MF ve AMF dosyaları yüklenebilir!');
-                this.value = '';
-                return;
+            // Onay mesajı
+            if (action === 'accept') {
+                if (!confirm('Revizyon talebini kabul etmek istediğinizden emin misiniz?')) {
+                    e.preventDefault();
+                    return false;
+                }
+            } else if (action === 'reject') {
+                if (!confirm('Revizyon talebini reddetmek istediğinizden emin misiniz?')) {
+                    e.preventDefault();
+                    return false;
+                }
             }
-            
-            // Dosya boyutu gösterimi
-            const fileSize = (file.size / (1024 * 1024)).toFixed(2);
-            $('#file-info').remove();
-            $(this).after(`
-                <div id="file-info" class="mt-2 p-2 bg-success text-white rounded">
-                    <i class="fas fa-check-circle me-1"></i>
-                    <strong>${file.name}</strong> (${fileSize} MB)
-                </div>
-            `);
-        }
-    });
-    
-    // Form gönderim doğrulaması
-    $('#revisionUploadForm').on('submit', function(e) {
-        const fileInput = $('#revised_file')[0];
-        if (!fileInput.files.length) {
-            e.preventDefault();
-            alert('Lütfen revize edilmiş dosyayı seçin!');
-            return false;
-        }
-        
-        // Yükleme progress gösterimi
-        const submitBtn = $(this).find('button[type="submit"]');
-        submitBtn.prop('disabled', true);
-        submitBtn.html('<i class="fas fa-spinner fa-spin me-2"></i>Dosya Yükleniyor...');
-        
-        // Form gönderilirken loading göster
-        const loadingDiv = $(`
-            <div class="alert alert-info mt-3" id="upload-progress">
-                <i class="fas fa-spinner fa-spin me-2"></i>
-                Dosya yükleniyor... Lütfen bekleyiniz.
-            </div>
-        `);
-        $(this).after(loadingDiv);
-        
-        return true;
-    });
-    
-    // Progress tracking için form event'i
-    $('#revisionUploadForm').on('submit', function() {
-        let progress = 0;
-        const interval = setInterval(function() {
-            progress += 10;
-            if (progress <= 90) {
-                $('#upload-progress').html(`
-                    <i class="fas fa-spinner fa-spin me-2"></i>
-                    Dosya yükleniyor... ${progress}%
-                `);
-            } else {
-                clearInterval(interval);
-                $('#upload-progress').html(`
-                    <i class="fas fa-check-circle me-2"></i>
-                    Dosya yüklendi, işleniyor...
-                `);
-            }
-        }, 500);
-    });
+        });
+    }
 });
 </script>
 {% endblock %} 

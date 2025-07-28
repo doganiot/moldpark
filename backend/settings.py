@@ -209,7 +209,7 @@ ACCOUNT_EMAIL_VERIFICATION = "none"
 ACCOUNT_SIGNUP_PASSWORD_ENTER_TWICE = True
 ACCOUNT_USERNAME_MIN_LENGTH = 4
 LOGIN_URL = '/accounts/login/'
-LOGIN_REDIRECT_URL = 'center:dashboard'
+LOGIN_REDIRECT_URL = 'accounts:smart_redirect'
 ACCOUNT_LOGOUT_REDIRECT_URL = 'core:home'
 
 # AllAuth Form Customization

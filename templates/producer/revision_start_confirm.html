@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Revizyon Başlat - MoldPark{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white text-center">
+                    <h4 class="mb-0">
+                        <i class="fas fa-play me-2"></i>
+                        Revizyon Çalışmasını Başlat
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    <!-- Revizyon Bilgileri -->
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle me-2"></i>Revizyon Talebi #{{ revision_request.id }}</h6>
+                        <p class="mb-1"><strong>Başlık:</strong> {{ revision_request.title }}</p>
+                        <p class="mb-1"><strong>Hasta:</strong> {{ revision_request.modeled_mold.ear_mold.patient_name }} {{ revision_request.modeled_mold.ear_mold.patient_surname }}</p>
+                        <p class="mb-1"><strong>Merkez:</strong> {{ revision_request.center.name }}</p>
+                        <p class="mb-0"><strong>Öncelik:</strong> 
+                            <span class="badge bg-{{ revision_request.get_priority_color }}">
+                                {{ revision_request.get_priority_display }}
+                            </span>
+                        </p>
+                    </div>
+
+                    <!-- Açıklama -->
+                    <div class="mb-4">
+                        <h6>Revizyon Açıklaması:</h6>
+                        <div class="bg-light p-3 rounded">
+                            {{ revision_request.description|linebreaks }}
+                        </div>
+                    </div>
+
+                    <!-- Onay Formu -->
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Dikkat:</strong> Revizyon çalışmasını başlattığınızda, talep "İşlemde" durumuna geçecektir. 
+                            Bu işlem geri alınamaz.
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-info btn-lg">
+                                <i class="fas fa-play me-2"></i>
+                                Evet, Çalışmaya Başla
+                            </button>
+                            <a href="{% url 'producer:revision_request_detail' revision_request.id %}" 
+                               class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>
+                                Geri Dön
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

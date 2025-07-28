@@ -62,23 +62,14 @@
     </a>
     
     <!-- Modern Navbar -->
-    <nav class="navbar navbar-expand-lg fixed-top navbar-modern" role="navigation" aria-label="Ana navigasyon">
+        <nav class="navbar navbar-expand-lg fixed-top navbar-modern" role="navigation" aria-label="Ana navigasyon">
         <div class="container">
-            {% if not 'login' in request.path and not 'signup' in request.path and not 'password_reset' in request.path and not 'account' in request.path %}
-                {% if user.is_staff %}
-                <a class="navbar-brand d-flex align-items-center" href="{% url 'center:admin_dashboard' %}" title="Yönetim Paneli">
-                {% elif user.producer %}
-                <a class="navbar-brand d-flex align-items-center" href="{% url 'producer:dashboard' %}" title="Üretici Paneli">
-                {% elif user.center %}
-                <a class="navbar-brand d-flex align-items-center" href="{% url 'center:dashboard' %}" title="Merkez Paneli">
-                {% else %}
-                <a class="navbar-brand d-flex align-items-center" href="{% url 'core:home' %}" title="Ana Sayfa">
-                {% endif %}
-                    <img src="{% static 'images/moldpark_logo.jpg' %}" alt="MoldPark Logo" 
-                         class="me-2 brand-logo shadow-lg" 
-                         style="width: 120px; height: 50px; object-fit: contain; border-radius: 8px;">
-                </a>
-            {% endif %}
+            <!-- Logo -->
+            <a class="navbar-brand d-flex align-items-center" href="{% if user.is_authenticated %}{% url 'accounts:smart_home_redirect' %}{% else %}{% url 'core:home' %}{% endif %}" title="{% if user.is_authenticated %}Dashboard{% else %}Ana Sayfa{% endif %}">
+                <img src="{% static 'images/moldpark_logo.jpg' %}" alt="MoldPark Logo" 
+                     class="me-2 brand-logo shadow-lg" 
+                     style="width: 120px; height: 50px; object-fit: contain; border-radius: 8px;">
+            </a>
             
             <!-- Mobile Quick Actions -->
             <div class="d-flex d-lg-none align-items-center gap-2">
@@ -143,9 +134,8 @@
                 {% if user.is_authenticated and user.producer %}
                     <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                         <li class="nav-item">
-                            <a class="nav-link {% if request.resolver_match.url_name == 'producer_dashboard' %}active{% endif %}" 
-                               href="{% url 'producer:dashboard' %}">
-                                <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                            <a class="nav-link" href="{% url 'producer:dashboard' %}">
+                                <i class="fas fa-home me-1"></i>Dashboard
                             </a>
                         </li>
                         <li class="nav-item">
@@ -154,22 +144,10 @@
                                 <i class="fas fa-cube me-1"></i>Kalıplar
                             </a>
                         </li>
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="producerToolsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="fas fa-tools me-1"></i>Üretim Araçları
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'producer:revision_requests' %}">
+                                <i class="fas fa-edit me-1"></i>Revizyonlar
                             </a>
-                            <ul class="dropdown-menu" aria-labelledby="producerToolsDropdown">
-                                <li><a class="dropdown-item" href="{% url 'producer:revision_requests' %}">
-                                    <i class="fas fa-edit me-2"></i>Revizyon Talepleri
-                                </a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="#" id="recent3DComparison">
-                                    <i class="fas fa-cube me-2"></i>3D Karşılaştırma
-                                </a></li>
-                                <li><a class="dropdown-item" href="{% url 'producer:order_list' %}">
-                                    <i class="fas fa-list me-2"></i>Tüm Siparişler
-                                </a></li>
-                            </ul>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link {% if 'message' in request.resolver_match.url_name %}active{% endif %}" 
@@ -178,12 +156,6 @@
                                 {% if unread_message_count > 0 %}
                                     <span class="badge bg-danger ms-1 message-badge">{{ unread_message_count }}</span>
                                 {% endif %}
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if 'network' in request.resolver_match.url_name %}active{% endif %}" 
-                               href="{% url 'producer:network_list' %}">
-                                <i class="fas fa-network-wired me-1"></i>Ağ
                             </a>
                         </li>
                     </ul>
@@ -197,16 +169,15 @@
                     {% else %}
                         {% if user.is_staff %}
                             <!-- Admin -->
-                            <li class="nav-item"><a class="nav-link" href="{% url 'center:admin_dashboard' %}"><i class="fas fa-tachometer-alt me-1"></i>{% trans "Yönetim Paneli" %}</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{% url 'center:admin_dashboard' %}"><i class="fas fa-tachometer-alt me-1"></i>{% trans "Dashboard" %}</a></li>
                             <li class="nav-item"><a class="nav-link {% if 'message' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:message_list' %}" onclick="clearMessageBadges()"><i class="fas fa-envelope me-1"></i>{% trans "Mesajlar" %}{% if unread_message_count > 0 %}<span class="badge bg-danger ms-1 message-badge">{{ unread_message_count }}</span>{% endif %}</a></li>
                         {% elif user.producer %}
-                            <!-- Üretici - Tekrarlayan linkler kaldırıldı, sol menü yeterli -->
+                            <!-- Üretici - Sol menü zaten var, burada tekrarlama -->
                         {% else %}
                             <!-- İşitme Merkezi -->
                             <li class="nav-item"><a class="nav-link" href="{% url 'center:dashboard' %}"><i class="fas fa-home me-1"></i>{% trans "Dashboard" %}</a></li>
                             <li class="nav-item"><a class="nav-link" href="{% url 'mold:mold_list' %}"><i class="fas fa-cube me-1"></i>{% trans "Kalıplarım" %}</a></li>
                             <li class="nav-item"><a class="nav-link {% if 'message' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:message_list' %}" onclick="clearMessageBadges()"><i class="fas fa-envelope me-1"></i>{% trans "Mesajlar" %}{% if unread_message_count > 0 %}<span class="badge bg-danger ms-1 message-badge">{{ unread_message_count }}</span>{% endif %}</a></li>
-                            <li class="nav-item"><a class="nav-link" href="{% url 'center:network_management' %}"><i class="fas fa-network-wired me-1"></i>{% trans "Üretici Ağları" %}</a></li>
                         {% endif %}
                         <!-- Bildirimler -->
                         <li class="nav-item dropdown">
@@ -276,8 +247,8 @@
                     </li>
                     
                     {% if user.is_authenticated %}
-                        <!-- Yeni Kalıp butonu (sadece işitme merkezleri için, üretici merkezler görmesin) -->
-                        {% if user.center and not user.producer %}
+                        <!-- Yeni Kalıp butonu (sadece normal işitme merkezleri için, admin ve üretici merkezler görmesin) -->
+                        {% if user.center and not user.producer and not user.is_staff and not user.is_superuser %}
                             <li class="nav-item me-2">
                                 <a class="btn btn-primary" href="{% url 'mold:mold_create' %}">
                                     <i class="fas fa-plus me-1"></i>Yeni Kalıp
@@ -308,13 +279,16 @@
                                 <li><hr class="dropdown-divider"></li>
                                 
                                 {% if user.producer %}
+                                    <li><a class="dropdown-item" href="{% url 'producer:dashboard' %}"><i class="fas fa-home me-2"></i>{% trans "Dashboard" %}</a></li>
                                     <li><a class="dropdown-item" href="{% url 'producer:profile' %}"><i class="fas fa-user me-2"></i>{% trans "Profil Ayarları" %}</a></li>
                                     <li><a class="dropdown-item" href="{% url 'producer:network_list' %}"><i class="fas fa-network-wired me-2"></i>{% trans "Ağ Yönetimi" %}</a></li>
                                 {% elif user.center %}
+                                    <li><a class="dropdown-item" href="{% url 'center:dashboard' %}"><i class="fas fa-home me-2"></i>{% trans "Dashboard" %}</a></li>
                                     <li><a class="dropdown-item" href="{% url 'center:profile' %}"><i class="fas fa-user me-2"></i>{% trans "Profil Ayarları" %}</a></li>
-                                    <li><a class="dropdown-item" href="{% url 'core:subscription_dashboard' %}"><i class="fas fa-credit-card me-2"></i>{% trans "Abonelik Yönetimi" %}</a></li>
-                                {% else %}
-                                    <li><a class="dropdown-item" href="{% url 'center:profile' %}"><i class="fas fa-user me-2"></i>{% trans "Profil Ayarları" %}</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'core:subscription_dashboard' %}"><i class="fas fa-credit-card me-2"></i>{% trans "Abonelik" %}</a></li>
+                                {% elif user.is_staff %}
+                                    <li><a class="dropdown-item" href="{% url 'center:admin_dashboard' %}"><i class="fas fa-tachometer-alt me-2"></i>{% trans "Admin Dashboard" %}</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'core:admin_dashboard' %}"><i class="fas fa-cog me-2"></i>{% trans "Sistem Yönetimi" %}</a></li>
                                 {% endif %}
                                 
                                 <li><hr class="dropdown-divider"></li>
@@ -413,11 +387,9 @@
             })
             .then(data => {
                 if (data.success) {
-                    // Navbar'daki badge'i gizle
-                    const badge = document.querySelector('.notification-badge');
-                    if (badge) {
-                        badge.style.display = 'none';
-                    }
+                    // Navbar'daki tüm bildirim badge'lerini güncelle
+                    const count = data.unread_count || 0;
+                    updateNotificationBadges(count);
                     
                     // Dropdown'u kapat
                     const dropdown = bootstrap.Dropdown.getInstance(document.getElementById('notificationDropdown'));
@@ -428,10 +400,12 @@
                     // Başarı mesajı göster
                     showToast('Tüm bildirimler okundu olarak işaretlendi!', 'success');
                     
+                    console.log('Updated notification count to:', count);
+                    
                     // Sayfayı yenile (güncel bildirimler için)
                     setTimeout(() => {
                         location.reload();
-                    }, 1000);
+                    }, 500);
                 }
             })
             .catch(error => {
@@ -447,6 +421,92 @@
         messageBadges.forEach(badge => {
             badge.style.display = 'none';
         });
+    }
+
+        function updateNotificationBadges(count) {
+        console.log('updateNotificationBadges called with count:', count);
+        
+        // Navbar'daki bildirim dropdown badge'ini güncelle
+        const notificationLink = document.querySelector('#notificationDropdown');
+        if (notificationLink) {
+            const existingBadge = notificationLink.querySelector('.badge');
+            console.log('Found notification link, existing badge:', existingBadge);
+            
+            if (count > 0) {
+                if (existingBadge) {
+                    existingBadge.textContent = count;
+                    existingBadge.style.display = 'inline';
+                    console.log('Updated existing badge to:', count);
+                } else {
+                    // Yeni badge oluştur
+                    const newBadge = document.createElement('span');
+                    newBadge.className = 'badge bg-danger ms-1';
+                    newBadge.textContent = count;
+                    notificationLink.appendChild(newBadge);
+                    console.log('Created new badge with count:', count);
+                }
+            } else {
+                // Badge'i gizle veya kaldır
+                if (existingBadge) {
+                    existingBadge.style.display = 'none';
+                    console.log('Hidden existing badge');
+                }
+            }
+        } else {
+            console.log('Notification link not found!');
+        }
+
+        // Dropdown header'daki badge'i güncelle  
+        const dropdownHeaderBadge = document.querySelector('.dropdown-header .badge');
+        if (dropdownHeaderBadge) {
+            if (count > 0) {
+                dropdownHeaderBadge.textContent = count;
+                dropdownHeaderBadge.style.display = 'inline';
+            } else {
+                dropdownHeaderBadge.style.display = 'none';
+            }
+            console.log('Updated dropdown header badge');
+        }
+    }
+
+    function showToast(message, type = 'info') {
+        // Basit toast mesajı göster
+        console.log(`Toast [${type}]: ${message}`);
+        
+        // Eğer bootstrap toast varsa kullan, yoksa alert
+        if (typeof bootstrap !== 'undefined' && bootstrap.Toast) {
+            // Toast container oluştur (eğer yoksa)
+            let toastContainer = document.querySelector('.toast-container');
+            if (!toastContainer) {
+                toastContainer = document.createElement('div');
+                toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
+                document.body.appendChild(toastContainer);
+            }
+            
+            // Toast oluştur
+            const toastHtml = `
+                <div class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="toast-header">
+                        <strong class="me-auto">${type === 'success' ? 'Başarılı' : type === 'error' ? 'Hata' : 'Bilgi'}</strong>
+                        <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+                    </div>
+                    <div class="toast-body">${message}</div>
+                </div>
+            `;
+            toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+            
+            const toastElement = toastContainer.lastElementChild;
+            const toast = new bootstrap.Toast(toastElement);
+            toast.show();
+            
+            // Toast kapandıktan sonra DOM'dan kaldır
+            toastElement.addEventListener('hidden.bs.toast', () => {
+                toastElement.remove();
+            });
+        } else {
+            // Fallback: alert kullan
+            alert(message);
+        }
     }
 
     function getCsrfToken() {
@@ -570,52 +630,33 @@
     <footer class="glass-card mt-auto">
         <div class="container py-5">
             <div class="row">
-                <div class="col-lg-4 mb-4">
-                    <div class="d-flex align-items-center mb-3">
-                        <img src="{% static 'images/moldpark_logo.jpg' %}" alt="MoldPark" class="me-2" style="height: 40px; border-radius: 8px;">
-                        <h4 class="mb-0 gradient-text">MoldPark</h4>
-                    </div>
-                    <p class="text-muted">{% trans "Profesyonel kulak kalıbı üretim ve yönetim sistemi ile işitme sektöründe yenilikçi çözümler sunuyoruz." %}</p>
-                    <div class="d-flex gap-3">
-                        <a href="#" class="text-muted hover-primary">
-                            <i class="fab fa-twitter fs-5"></i>
-                        </a>
-                        <a href="#" class="text-muted hover-primary">
-                            <i class="fab fa-linkedin fs-5"></i>
-                        </a>
-                        <a href="#" class="text-muted hover-primary">
-                            <i class="fab fa-instagram fs-5"></i>
-                        </a>
-                    </div>
-                </div>
-                <div class="col-lg-2 col-md-6 mb-4">
+                <div class="col-lg-3 col-md-6 mb-4">
                     <h6 class="fw-bold mb-3">{% trans "Platform" %}</h6>
                     <ul class="list-unstyled">
-                        <li class="mb-2"><a href="{% url 'core:home' %}" class="text-muted text-decoration-none hover-primary">{% trans "Ana Sayfa" %}</a></li>
                         <li class="mb-2"><a href="{% url 'core:pricing' %}" class="text-muted text-decoration-none hover-primary">{% trans "Fiyatlandırma" %}</a></li>
                         <li class="mb-2"><a href="{% url 'core:features' %}" class="text-muted text-decoration-none hover-primary">{% trans "Özellikler" %}</a></li>
-                        <li class="mb-2"><a href="#register" class="text-muted text-decoration-none hover-primary">{% trans "Kayıt Ol" %}</a></li>
+                        <li class="mb-2"><a href="{% url 'producer:register' %}" class="text-muted text-decoration-none hover-primary">{% trans "Kayıt Ol" %}</a></li>
                     </ul>
                 </div>
-                <div class="col-lg-2 col-md-6 mb-4">
+                <div class="col-lg-3 col-md-6 mb-4">
                     <h6 class="fw-bold mb-3">{% trans "Hizmetler" %}</h6>
                     <ul class="list-unstyled">
-                        <li class="mb-2"><span class="text-muted">{% trans "AI Modelleme" %}</span></li>
-                        <li class="mb-2"><span class="text-muted">{% trans "Hızlı Üretim" %}</span></li>
-                        <li class="mb-2"><span class="text-muted">{% trans "Kalite Kontrol" %}</span></li>
-                        <li class="mb-2"><span class="text-muted">{% trans "7/24 Destek" %}</span></li>
+                        <li class="mb-2"><a href="{% url 'core:features' %}#ai-modeling" class="text-muted text-decoration-none hover-primary">{% trans "AI Modelleme" %}</a></li>
+                        <li class="mb-2"><a href="{% url 'core:features' %}#fast-production" class="text-muted text-decoration-none hover-primary">{% trans "Hızlı Üretim" %}</a></li>
+                        <li class="mb-2"><a href="{% url 'core:features' %}#quality-control" class="text-muted text-decoration-none hover-primary">{% trans "Kalite Kontrol" %}</a></li>
+                        <li class="mb-2"><a href="{% url 'core:contact' %}" class="text-muted text-decoration-none hover-primary">{% trans "7/24 Destek" %}</a></li>
                     </ul>
                 </div>
-                <div class="col-lg-2 col-md-6 mb-4">
+                <div class="col-lg-3 col-md-6 mb-4">
                     <h6 class="fw-bold mb-3">{% trans "Destek" %}</h6>
                     <ul class="list-unstyled">
                         <li class="mb-2"><a href="{% url 'core:contact' %}" class="text-muted text-decoration-none hover-primary">{% trans "İletişim" %}</a></li>
                         <li class="mb-2"><a href="{% url 'core:help_center' %}" class="text-muted text-decoration-none hover-primary">{% trans "Yardım Merkezi" %}</a></li>
                         <li class="mb-2"><a href="{% url 'core:documentation' %}" class="text-muted text-decoration-none hover-primary">{% trans "Dokümantasyon" %}</a></li>
-                        <li class="mb-2"><span class="text-muted">API</span></li>
+                        <li class="mb-2"><a href="{% url 'core:documentation' %}" class="text-muted text-decoration-none hover-primary">API</a></li>
                     </ul>
                 </div>
-                <div class="col-lg-2 col-md-6 mb-4">
+                <div class="col-lg-3 col-md-6 mb-4">
                     <h6 class="fw-bold mb-3">{% trans "İletişim" %}</h6>
                     <ul class="list-unstyled">
                         <li class="mb-2">

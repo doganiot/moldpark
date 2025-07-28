@@ -1568,86 +1568,43 @@ def revision_requests(request):
 @login_required
 @producer_required
 def revision_request_respond(request, request_id):
-    """Gelişmiş Üretici Revizyon Talebi Yanıtı - Kapsamlı Doğrulama"""
-    if request.method == 'POST':
-        try:
-            from mold.models import RevisionRequest
-            from django.utils import timezone
-            from datetime import timedelta
-            import json
-            
-            # Güvenlik kontrolleri
-            revision_request = get_object_or_404(
-                RevisionRequest,
-                id=request_id,
-                modeled_mold__ear_mold__producer_orders__producer=request.user.producer
-            )
-            
-            # Durum kontrolü - Gelişmiş
-            valid_statuses = ['pending', 'producer_review']
-            if revision_request.status not in valid_statuses:
-                return JsonResponse({
-                    'success': False,
-                    'message': f'Bu revizyon talebi yanıtlanamaz. Mevcut durum: {revision_request.get_status_display()}',
-                    'current_status': revision_request.status
-                })
-            
-            # İş yükü kontrolü - Aynı anda çok fazla revizyon kabul etmeyi önle
-            producer = request.user.producer
-            active_revisions = RevisionRequest.objects.filter(
-                modeled_mold__ear_mold__producer_orders__producer=producer,
-                status__in=['accepted', 'in_progress', 'quality_check']
-            ).count()
-            
-            # Input validasyonu
+    """Üretici Revizyon Talebi Yanıtı - Basitleştirilmiş"""
+    try:
+        from mold.models import RevisionRequest
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        # Güvenlik kontrolleri
+        revision_request = get_object_or_404(
+            RevisionRequest,
+            id=request_id,
+            modeled_mold__ear_mold__producer_orders__producer=request.user.producer
+        )
+        
+        # Durum kontrolü
+        if revision_request.status not in ['pending', 'producer_review']:
+            messages.error(request, f'Bu revizyon talebi yanıtlanamaz. Mevcut durum: {revision_request.get_status_display()}')
+            return redirect('producer:revision_requests')
+        
+        if request.method == 'POST':
             action = request.POST.get('action', '').strip()
             response = request.POST.get('response', '').strip()
             reason = request.POST.get('reason', '').strip()
             
-            # Action kontrolü
             if action not in ['accept', 'reject']:
-                return JsonResponse({
-                    'success': False,
-                    'message': 'Geçersiz işlem türü.'
-                })
+                messages.error(request, 'Geçersiz işlem türü.')
+                return redirect('producer:revision_requests')
             
             now = timezone.now()
             
-            # Zaman kontrolü - Son 5 dakika içinde aynı revizyon için yanıt verilmiş mi?
-            recent_response = RevisionRequest.objects.filter(
-                id=request_id,
-                producer_reviewed_at__gte=now - timedelta(minutes=5)
-            ).exists()
-            
-            if recent_response:
-                return JsonResponse({
-                    'success': False,
-                    'message': 'Bu revizyon talebi için zaten yakın zamanda yanıt verilmiş.'
-                })
-            
             if action == 'accept':
-                # Kapasite kontrolü - Aynı anda maksimum 10 aktif revizyon
-                if active_revisions >= 10:
-                    return JsonResponse({
-                        'success': False,
-                        'message': f'Maksimum revizyon kapasitesine ulaşıldı. Aktif: {active_revisions}/10. Önce mevcut revizyonları tamamlayın.',
-                        'capacity_full': True
-                    })
-                
-                # Minimum yanıt süresi kontrolü (spam önleme)
-                if response and len(response) < 10:
-                    return JsonResponse({
-                        'success': False,
-                        'message': 'Lütfen kabul nedeninizi daha detaylı açıklayın (minimum 10 karakter).'
-                    })
-                
                 # Kabul işlemi
                 revision_request.status = 'accepted'
                 revision_request.producer_response = response or 'Revizyon talebi kabul edildi'
                 revision_request.producer_reviewed_at = now
                 revision_request.producer_response_time = now - revision_request.created_at
                 
-                # Öncelik bazında teslim tarihi hesaplama - Gelişmiş
+                # Teslim tarihi hesaplama
                 priority_days = {
                     'urgent': 2,
                     'high': 4,
@@ -1655,34 +1612,17 @@ def revision_request_respond(request, request_id):
                     'low': 10,
                 }
                 base_days = priority_days.get(revision_request.priority, 7)
-                
-                # Revizyon türüne göre ek süre
-                revision_complexity = {
-                    'size_adjustment': 0,
-                    'shape_modification': 1,
-                    'vent_adjustment': 0,
-                    'surface_finishing': 1,
-                    'fit_improvement': 2,
-                    'comfort_issue': 1,
-                    'quality_issue': 2,
-                    'complete_remake': 5,
-                }
-                extra_days = revision_complexity.get(revision_request.revision_type, 1)
-                
-                total_days = base_days + extra_days
-                revision_request.expected_delivery = now.date() + timedelta(days=total_days)
-                
-                # İstatistik güncelleme
+                revision_request.expected_delivery = now.date() + timedelta(days=base_days)
                 revision_request.save()
                 
-                # Süreç adımı ekle - Detaylı
+                # Süreç adımı ekle
                 revision_request.add_process_step(
                     'Üretici tarafından kabul edildi',
                     'accepted',
                     f'Kabul edildi. Tahmini teslim: {revision_request.expected_delivery.strftime("%d.%m.%Y")}. {response or ""}'
                 )
                 
-                # İşitme merkezine bildirim gönder
+                # Bildirim gönder
                 try:
                     from notifications.signals import notify
                     notify.send(
@@ -1695,47 +1635,30 @@ def revision_request_respond(request, request_id):
                 except Exception as e:
                     print(f"Bildirim gönderme hatası: {e}")
                 
-                return JsonResponse({
-                    'success': True,
-                    'message': f'Revizyon talebi kabul edildi. Tahmini teslim: {revision_request.expected_delivery.strftime("%d.%m.%Y")}',
-                    'expected_delivery': revision_request.expected_delivery.strftime("%d.%m.%Y"),
-                    'total_days': total_days
-                })
+                messages.success(request, f'Revizyon talebi kabul edildi. Tahmini teslim: {revision_request.expected_delivery.strftime("%d.%m.%Y")}')
                 
             elif action == 'reject':
-                # Red nedeni validasyonu - Gelişmiş
+                # Red nedeni kontrolü
                 if not reason or len(reason.strip()) < 20:
-                    return JsonResponse({
-                        'success': False,
-                        'message': 'Red nedeni zorunludur ve en az 20 karakter olmalıdır.'
-                    })
+                    messages.error(request, 'Red nedeni zorunludur ve en az 20 karakter olmalıdır.')
+                    return redirect('producer:revision_requests')
                 
-                # Geçerli red nedenleri kontrolü
-                valid_rejection_reasons = [
-                    'teknik_imkansizlik', 'maliyet_yuksek', 'sure_yetersiz',
-                    'kapasitede_degil', 'ozellik_desteklenmiyor', 'diger'
-                ]
-                
-                rejection_category = request.POST.get('rejection_category', 'diger')
-                if rejection_category not in valid_rejection_reasons:
-                    rejection_category = 'diger'
-                
-                # Red işlemi - Gelişmiş
+                # Red işlemi
                 revision_request.status = 'producer_rejected'
                 revision_request.producer_response = response or 'Revizyon talebi reddedildi'
-                revision_request.rejection_reason = f"[{rejection_category}] {reason}"
+                revision_request.rejection_reason = reason
                 revision_request.producer_reviewed_at = now
                 revision_request.producer_response_time = now - revision_request.created_at
                 revision_request.save()
                 
-                # Süreç adımı ekle - Detaylı
+                # Süreç adımı ekle
                 revision_request.add_process_step(
                     'Üretici tarafından reddedildi',
                     'producer_rejected',
-                    f'Red kategorisi: {rejection_category}. Nedeni: {reason}'
+                    f'Red nedeni: {reason}'
                 )
                 
-                # İşitme merkezine bildirim gönder
+                # Bildirim gönder
                 try:
                     from notifications.signals import notify
                     notify.send(
@@ -1748,279 +1671,204 @@ def revision_request_respond(request, request_id):
                 except Exception as e:
                     print(f"Bildirim gönderme hatası: {e}")
                 
-                return JsonResponse({
-                    'success': True,
-                    'message': 'Revizyon talebi reddedildi.',
-                    'rejection_category': rejection_category
-                })
+                messages.success(request, 'Revizyon talebi reddedildi.')
             
-            else:
-                return JsonResponse({
-                    'success': False,
-                    'message': 'Geçersiz işlem.'
-                })
-                
-        except RevisionRequest.DoesNotExist:
-            return JsonResponse({
-                'success': False,
-                'message': 'Revizyon talebi bulunamadı.'
-            })
-        except PermissionError:
-            return JsonResponse({
-                'success': False,
-                'message': 'Bu işlem için yetkiniz bulunmuyor.'
-            })
-        except ValidationError as e:
-            return JsonResponse({
-                'success': False,
-                'message': f'Doğrulama hatası: {str(e)}'
-            })
-        except Exception as e:
-            # Detaylı hata loglama
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.error(f"Revizyon yanıtlama hatası - User: {request.user.id}, Revision: {request_id}, Error: {str(e)}")
+            return redirect('producer:revision_requests')
             
-            return JsonResponse({
-                'success': False,
-                'message': 'Sistem hatası oluştu. Lütfen tekrar deneyin.',
-                'error_code': 'REVISION_RESPONSE_ERROR'
-            })
-    
-    return JsonResponse({
-        'success': False,
-        'message': 'Sadece POST istekleri kabul edilir.'
-    })
+        # GET request - revizyon detay sayfasına yönlendir
+        return redirect('producer:revision_request_detail', request_id)
+        
+    except RevisionRequest.DoesNotExist:
+        messages.error(request, 'Revizyon talebi bulunamadı.')
+        return redirect('producer:revision_requests')
+    except Exception as e:
+        messages.error(request, f'Bir hata oluştu: {str(e)}')
+        return redirect('producer:revision_requests')
 
 
 @login_required
 @producer_required
 def revision_start_work(request, request_id):
-    """Revizyon işine başla"""
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Sadece POST method desteklenir'}, status=405)
-    
+    """Revizyon işine başla - Basitleştirilmiş"""
     try:
-        producer_center = request.user.producer
-        if not producer_center:
-            return JsonResponse({'error': 'Üretici merkez bulunamadı'}, status=404)
+        from mold.models import RevisionRequest
+        from django.utils import timezone
         
-        revision_request = get_object_or_404(RevisionRequest, 
-                                           id=request_id,
-                                           modeled_mold__ear_mold__producer_orders__producer=producer_center)
-        
-        if revision_request.status != 'accepted':
-            return JsonResponse({'error': f'Geçersiz durum: {revision_request.status}'}, status=400)
-        
-        # Çalışmayı başlat
-        revision_request.status = 'in_progress'
-        revision_request.work_started_at = timezone.now()
-        revision_request.save(update_fields=['status', 'work_started_at'])
-        
-        # Bildirim gönder
-        notify.send(
-            sender=request.user,
-            recipient=revision_request.center.user,
-            verb='revizyon çalışması başladı',
-            description=f'{revision_request.title} revizyon talebi için çalışma başlatıldı.'
+        revision_request = get_object_or_404(
+            RevisionRequest,
+            id=request_id,
+            modeled_mold__ear_mold__producer_orders__producer=request.user.producer
         )
         
-        # Başarılı yanıt
-        mold_detail_url = f"/producer/molds/{revision_request.modeled_mold.ear_mold.id}/"
+        if revision_request.status != 'accepted':
+            messages.error(request, f'Bu revizyon talebi için çalışma başlatılamaz. Mevcut durum: {revision_request.get_status_display()}')
+            return redirect('producer:revision_requests')
         
-        return JsonResponse({
-            'success': True,
-            'message': 'Revizyon çalışması başarıyla başlatıldı.',
-            'redirect_url': mold_detail_url
+        if request.method == 'POST':
+            # Çalışmayı başlat
+            revision_request.status = 'in_progress'
+            revision_request.work_started_at = timezone.now()
+            revision_request.save()
+            
+            # Süreç adımı ekle
+            revision_request.add_process_step(
+                'Revizyon çalışması başlatıldı',
+                'in_progress',
+                'Üretici revizyon çalışmasına başladı'
+            )
+            
+            # Bildirim gönder
+            try:
+                from notifications.signals import notify
+                notify.send(
+                    sender=request.user,
+                    recipient=revision_request.center.user,
+                    verb='revizyon çalışması başladı',
+                    description=f'#{revision_request.id} numaralı revizyon talebi için çalışma başlatıldı',
+                    action_object=revision_request
+                )
+            except Exception as e:
+                print(f"Bildirim gönderme hatası: {e}")
+            
+            messages.success(request, 'Revizyon çalışması başarıyla başlatıldı.')
+            return redirect('producer:revision_requests')
+            
+        # GET request için onay sayfası göster
+        return render(request, 'producer/revision_start_confirm.html', {
+            'revision_request': revision_request
         })
         
+    except RevisionRequest.DoesNotExist:
+        messages.error(request, 'Revizyon talebi bulunamadı.')
+        return redirect('producer:revision_requests')
     except Exception as e:
-        return JsonResponse({
-            'success': False,
-            'message': f'Hata: {str(e)}'
-        })
-    
-    return JsonResponse({
-        'success': False,
-        'message': 'Geçersiz istek'
-    })
+        messages.error(request, f'Bir hata oluştu: {str(e)}')
+        return redirect('producer:revision_requests')
 
 
 @login_required
 @producer_required
 def revision_complete_work(request, request_id):
-    """Revizyon çalışmasını tamamla"""
-    if request.method == 'POST':
-        try:
-            from mold.models import RevisionRequest, ModeledMold
-            
-            producer_center = get_object_or_404(Producer, user=request.user)
-            revision_request = get_object_or_404(
-                RevisionRequest,
-                id=request_id,
-                modeled_mold__ear_mold__producer_orders__producer=producer_center
-            )
-            
-            # Sadece in_progress durumunda tamamlanabilir
-            if revision_request.status != 'in_progress':
-                return JsonResponse({
-                    'success': False,
-                    'message': 'Bu revizyon talebi tamamlanamaz.'
-                })
-            
-            # Yeni model dosyası yüklendi mi kontrol et
-            if 'revised_file' in request.FILES:
-                revised_file = request.FILES['revised_file']
-                
-                # Yeni modeled ear mold oluştur
-                new_modeled_mold = ModeledMold.objects.create(
-                    ear_mold=revision_request.modeled_mold.ear_mold,
-                    file=revised_file,
-                    notes=f'Revizyon dosyası - #{revision_request.id}',
-                    status='approved'
-                )
-                
-                # Eski modeled mold'u pasif yap
-                if revision_request.modeled_mold:
-                    revision_request.modeled_mold.is_active = False
-                    revision_request.modeled_mold.save()
-                
-                # Yeni modeled mold'u aktif yap
-                revision_request.modeled_mold = new_modeled_mold
-            
-            # Durumu güncelle
-            revision_request.status = 'quality_check'
-            revision_request.quality_checked_at = timezone.now()
-            revision_request.save()
-            
-            # Süreç adımı ekle
-            revision_request.add_process_step(
-                'Revizyon çalışması tamamlandı',
-                'Kalite kontrol aşamasına geçildi',
-                request.user
-            )
-            
-            # Bildirim gönder
-            try:
-                from core.utils import send_notification
-                send_notification(
-                    revision_request.center.user,
-                    f'Revizyon Tamamlandı',
-                    f'#{revision_request.id} numaralı revizyon talebiniz tamamlandı ve kalite kontrole alındı.',
-                    'success'
-                )
-            except Exception:
-                pass
-            
-            return JsonResponse({
-                'success': True,
-                'message': 'Revizyon çalışması tamamlandı.'
-            })
-            
-        except Exception as e:
-            return JsonResponse({
-                'success': False,
-                'message': f'Hata: {str(e)}'
-            })
-    
-    return JsonResponse({
-        'success': False,
-        'message': 'Geçersiz istek.'
-    })
-
-
-@login_required
-@producer_required
-def revision_upload_file(request, request_id):
-    """Revizyon talebine revize edilmiş dosya yükleme"""
+    """Revizyon çalışmasını tamamla - Basitleştirilmiş"""
     try:
-        from mold.models import RevisionRequest
+        from mold.models import RevisionRequest, ModeledMold
         from django.utils import timezone
         
-        producer_center = get_object_or_404(Producer, user=request.user)
         revision_request = get_object_or_404(
             RevisionRequest,
             id=request_id,
-            modeled_mold__ear_mold__producer_orders__producer=producer_center
+            modeled_mold__ear_mold__producer_orders__producer=request.user.producer
         )
         
-        # Sadece accepted ve in_progress durumlarında dosya yüklenebilir
-        if revision_request.status not in ['accepted', 'in_progress']:
-            messages.error(request, 'Bu revizyon talebi için dosya yüklenemez.')
-            return redirect('producer:revision_request_detail', request_id)
+        if revision_request.status != 'in_progress':
+            messages.error(request, f'Bu revizyon talebi tamamlanamaz. Mevcut durum: {revision_request.get_status_display()}')
+            return redirect('producer:revision_requests')
         
         if request.method == 'POST':
             revised_file = request.FILES.get('revised_file')
-            revision_notes = request.POST.get('revision_notes', '')
+            revision_notes = request.POST.get('revision_notes', '').strip()
             
             if not revised_file:
-                messages.error(request, 'Lütfen revize edilmiş dosyayı seçin.')
-                return redirect('producer:revision_request_detail', request_id)
+                messages.error(request, 'Revize edilmiş dosya yüklenmesi zorunludur.')
+                return redirect('producer:revision_requests')
             
             # Dosya boyutu kontrolü (50MB)
             if revised_file.size > 52428800:  # 50MB
                 messages.error(request, 'Dosya boyutu 50MB\'dan büyük olamaz.')
-                return redirect('producer:revision_request_detail', request_id)
+                return redirect('producer:revision_requests')
             
             # Dosya formatı kontrolü
             allowed_extensions = ['stl', 'obj', 'ply', '3mf', 'amf']
             file_extension = revised_file.name.split('.')[-1].lower()
             if file_extension not in allowed_extensions:
                 messages.error(request, f'Sadece {", ".join(allowed_extensions).upper()} dosyaları yüklenebilir.')
-                return redirect('producer:revision_request_detail', request_id)
+                return redirect('producer:revision_requests')
             
+            # Revizyon dosyasını kaydet
+            revision_request.revised_file = revised_file
+            revision_request.revision_notes = revision_notes
+            revision_request.status = 'completed'
+            revision_request.completed_at = timezone.now()
+            revision_request.save()
+            
+            # Kalıp durumunu güncelle
+            ear_mold = revision_request.modeled_mold.ear_mold
+            ear_mold.status = 'completed'
+            ear_mold.save()
+            
+            # Sipariş durumunu güncelle
+            producer_order = ear_mold.producer_orders.filter(producer=request.user.producer).first()
+            if producer_order:
+                producer_order.status = 'delivered'
+                producer_order.actual_delivery = timezone.now()
+                producer_order.save()
+            
+            # Süreç adımı ekle
+            revision_request.add_process_step(
+                'Revizyon tamamlandı',
+                'completed',
+                f'Revize edilmiş dosya yüklendi: {revised_file.name}' + (f' - {revision_notes}' if revision_notes else '')
+            )
+            
+            # Bildirim gönder
             try:
-                # Revizyon talebi güncelleme
-                revision_request.revised_file = revised_file
-                revision_request.revision_notes = revision_notes
-                revision_request.status = 'completed'
-                revision_request.completed_at = timezone.now()
-                revision_request.save()
-                
-                # Kalıp durumunu güncelle - revizyon tamamlandığında kalıp artık completed
-                ear_mold = revision_request.modeled_mold.ear_mold
-                ear_mold.status = 'completed'
-                ear_mold.save()
-                
-                # Sipariş durumunu güncelle
-                producer_order = revision_request.modeled_mold.ear_mold.producer_orders.first() # Assuming one order per ear_mold
-                if producer_order:
-                    producer_order.status = 'delivered'
-                    producer_order.save()
-                
-                # Süreç adımı ekle
-                revision_request.add_process_step(
-                    'Revize edilmiş dosya yüklendi',
-                    'completed',
-                    f'Dosya: {revised_file.name}' + (f' - {revision_notes}' if revision_notes else '')
+                from notifications.signals import notify
+                notify.send(
+                    sender=request.user,
+                    recipient=revision_request.center.user,
+                    verb='revizyon tamamlandı',
+                    description=f'#{revision_request.id} numaralı revizyon talebi tamamlandı ve revize edilmiş dosya yüklendi',
+                    action_object=revision_request
                 )
-                
-                # Merkeze bildirim gönder
-                try:
-                    from django.contrib.auth.models import User
-                    from notifications.signals import notify
-                    
-                    notify.send(
-                        sender=request.user,
-                        recipient=revision_request.center.user,
-                        verb='revizyon tamamlandı',
-                        description=f'Revizyon talebi tamamlandı ve revize edilmiş dosya yüklendi. Talep: {revision_request.title}',
-                        action_object=revision_request
-                    )
-                except Exception as e:
-                    print(f"Bildirim gönderme hatası: {e}")
-                
-                messages.success(request, 'Revize edilmiş dosya başarıyla yüklendi! Revizyon talebi tamamlandı.')
-                return redirect('producer:revision_request_detail', request_id)
-                
             except Exception as e:
-                messages.error(request, f'Dosya yükleme hatası: {str(e)}')
-                return redirect('producer:revision_request_detail', request_id)
+                print(f"Bildirim gönderme hatası: {e}")
+            
+            messages.success(request, 'Revizyon başarıyla tamamlandı ve dosya yüklendi!')
+            return redirect('producer:revision_requests')
+            
+        # GET request için form sayfası göster
+        return render(request, 'producer/revision_complete_form.html', {
+            'revision_request': revision_request
+        })
         
-        else:
-            messages.error(request, 'Geçersiz istek.')
-            return redirect('producer:revision_request_detail', request_id)
-    
+    except RevisionRequest.DoesNotExist:
+        messages.error(request, 'Revizyon talebi bulunamadı.')
+        return redirect('producer:revision_requests')
+    except Exception as e:
+        messages.error(request, f'Bir hata oluştu: {str(e)}')
+        return redirect('producer:revision_requests')
+
+
+
+
+@login_required
+@producer_required
+def revision_request_detail(request, request_id):
+    """Revizyon talebi detay sayfası"""
+    try:
+        from mold.models import RevisionRequest
+        
+        revision_request = get_object_or_404(
+            RevisionRequest,
+            id=request_id,
+            modeled_mold__ear_mold__producer_orders__producer=request.user.producer
+        )
+        
+        # İlgili sipariş bilgisi
+        producer_order = revision_request.modeled_mold.ear_mold.producer_orders.filter(
+            producer=request.user.producer
+        ).first()
+        
+        context = {
+            'revision_request': revision_request,
+            'producer_order': producer_order,
+        }
+        
+        return render(request, 'producer/revision_request_detail.html', context)
+        
+    except RevisionRequest.DoesNotExist:
+        messages.error(request, 'Revizyon talebi bulunamadı.')
+        return redirect('producer:revision_requests')
     except Exception as e:
         messages.error(request, f'Bir hata oluştu: {str(e)}')
         return redirect('producer:revision_requests')

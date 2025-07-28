@@ -800,13 +800,17 @@ def privacy_policy(request):
 
 def pricing(request):
     """Fiyatlandırma sayfası - artık talep sistemi ile çalışıyor"""
+    # Giriş yapmış kullanıcıları abonelik sayfasına yönlendir
+    if request.user.is_authenticated:
+        return redirect('core:subscription_dashboard')
+    
     plans = PricingPlan.objects.filter(is_active=True).exclude(plan_type='trial').order_by('price_usd')
     
     context = {
         'plans': plans
     }
     
-    # Giriş yapmış kullanıcı için ek bilgiler
+    # Giriş yapmış kullanıcı için ek bilgiler (bu kod zaten çalışmayacak ama template'ler için bırakıyoruz)
     if request.user.is_authenticated:
         # Kullanıcının mevcut aboneliği
         try:
@@ -1089,7 +1093,10 @@ def mark_all_notifications_read(request):
         mark_all_as_read(request.user)
         
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({'success': True})
+            return JsonResponse({
+                'success': True,
+                'unread_count': get_unread_count(request.user)
+            })
         
         messages.success(request, 'Tüm bildirimler okundu olarak işaretlendi.')
     
