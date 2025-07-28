@@ -4,7 +4,6 @@
 const CACHE_NAME = 'moldpark-cache-v1';
 const STATIC_CACHE_URLS = [
     '/',
-    '/static/css/custom.css',
     '/static/js/custom.js',
     '/static/images/moldpark_logo.jpg',
     '/static/favicon.ico'
