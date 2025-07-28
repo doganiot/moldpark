@@ -95,6 +95,7 @@ urlpatterns = [
 # Internationalized URLs
 urlpatterns += i18n_patterns(
     path('account/', include('allauth.urls')),
+    path('accounts/', include('accounts.urls')),  # accounts app URL'leri
     path('', include('core.urls')),
     path('center/', include('center.urls')),
     path('mold/', include('mold.urls')),
