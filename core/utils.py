@@ -69,3 +69,7 @@ def send_order_notification(user, title, message, related_url=None, order_id=Non
 
 def send_system_notification(user, title, message, related_url=None):
     return send_notification(user, title, message, 'system', related_url) 
+
+
+def send_message_notification(user, title, message, related_url=None):
+    return send_notification(user, title, message, 'message', related_url) 

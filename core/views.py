@@ -699,6 +699,14 @@ def message_create(request):
                         description=message.subject,
                         target=message
                     )
+                    # Basit bildirim (Zil ikonu)
+                    from core.utils import send_message_notification
+                    send_message_notification(
+                        recipient,
+                        'Yeni Mesaj',
+                        f'Admin tarafından yeni bir mesaj aldınız: {message.subject}',
+                        related_url=f'/messages/{message.id}/'
+                    )
                 
                 messages.success(request, 'Mesaj başarıyla gönderildi.')
                 return redirect('core:message_list')
@@ -727,6 +735,13 @@ def message_create(request):
                         verb='yeni mesaj gönderdi',
                         description=message.subject,
                         target=message
+                    )
+                    from core.utils import send_message_notification
+                    send_message_notification(
+                        admin,
+                        'Yeni Mesaj',
+                        f'Yeni bir kullanıcı mesajı aldınız: {message.subject}',
+                        related_url=f'/messages/{message.id}/'
                     )
                 
                 messages.success(request, 'Mesajınız başarıyla gönderildi.')
