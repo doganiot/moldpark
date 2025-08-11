@@ -849,13 +849,13 @@
                         <i class="fas fa-bell text-danger"></i>
                     </div>
                     <h5 class="fw-bold mb-0">{% trans "Bildirimler" %}</h5>
-                    {% if unread_notifications %}
-                    <div class="badge bg-danger">{{ unread_notifications.count }}</div>
+                    {% if recent_notifications %}
+                    <div class="badge bg-danger">{{ unread_notifications_count }}</div>
                     {% endif %}
                 </div>
                 
-                {% if unread_notifications %}
-                    {% for notification in unread_notifications %}
+                {% if recent_notifications %}
+                    {% for notification in recent_notifications %}
                     <div class="notification-item">
                         <div class="notification-icon bg-{{ notification.get_color }} bg-opacity-10">
                             <i class="{{ notification.get_icon }} text-{{ notification.get_color }}"></i>

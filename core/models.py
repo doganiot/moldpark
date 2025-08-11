@@ -522,3 +522,47 @@ class SimpleNotification(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.title}"
+
+
+# ---------------------------------------------
+# Signals
+# ---------------------------------------------
+
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from django.core.mail import send_mail
+from django.conf import settings
+
+
+@receiver(post_save, sender=SimpleNotification)
+def send_notification_email(sender, instance, created, **kwargs):
+    """Yeni oluşturulan bildirimleri kullanıcıya e-posta ile gönderir."""
+    if not created:
+        return  # Yalnızca yeni bildirimler
+
+    user = instance.user
+
+    # Kullanıcının e-posta adresi yoksa çık.
+    if not getattr(user, "email", None):
+        return
+
+    try:
+        email_subject = instance.title
+        email_message = instance.message
+
+        # İlgili URL varsa e-posta gövdesine ekleyelim.
+        if instance.related_url:
+            email_message += f"\n\nDetaylı bilgi: {instance.related_url}"
+
+        send_mail(
+            subject=email_subject,
+            message=email_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=True,
+        )
+    except Exception as e:
+        # Log hatayı; uygulama akışını kesme.
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Bildirim e-posta gönderim hatası: {e}")

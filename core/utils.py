@@ -14,6 +14,7 @@ def send_notification(user, title, message, notification_type='info', related_ur
             related_url=related_url,
             related_object_id=related_object_id
         )
+
         return notification
     except Exception as e:
         print(f"Bildirim gönderme hatası: {e}")

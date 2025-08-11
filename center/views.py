@@ -215,10 +215,11 @@ def dashboard(request):
     
     # BİLDİRİMLER
     from core.models import SimpleNotification
-    unread_notifications = SimpleNotification.objects.filter(
-        user=request.user, 
+    recent_notifications = SimpleNotification.objects.filter(
+        user=request.user,
         is_read=False
     ).order_by('-created_at')[:5]
+    unread_notifications_count = recent_notifications.count()
     
     # MESAJ İSTATİSTİKLERİ
     from core.models import Message, MessageRecipient
@@ -308,7 +309,8 @@ def dashboard(request):
         'network_stats': network_stats,
         'recent_molds': recent_molds,
         'daily_activity': daily_activity,
-        'unread_notifications': unread_notifications,
+        'recent_notifications': recent_notifications,
+        'unread_notifications_count': unread_notifications_count,
         'completion_rate': completion_rate,
         'average_processing_time': average_processing_time,
         'shipment_stats': shipment_stats,

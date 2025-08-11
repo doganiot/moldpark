@@ -886,7 +886,7 @@ def mold_download(request, pk, file_id=None):
     # ÖNEMLİ GÜVENLİK: Önce bu üreticiye ait sipariş olup olmadığını kontrol et
     try:
         producer_order = ProducerOrder.objects.select_related('ear_mold', 'center').get(
-            ear_mold_id=pk,  # Kalıp ID'si ile erişim
+            pk=pk,  # Sipariş ID'si ile erişim
             producer=producer  # Sadece kendi siparişleri
         )
         ear_mold = producer_order.ear_mold

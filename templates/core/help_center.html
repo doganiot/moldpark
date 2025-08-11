@@ -136,6 +136,7 @@
                     <li><a href="#kulak-kalibi" class="active">Kulak Kalıbı Nedir?</a></li>
                     <li><a href="#kalip-cesitleri">Kalıp Çeşitleri</a></li>
                     <li><a href="#kalip-alma">Kalıp Alma İşlemi</a></li>
+                    <li><a href="#kalip-tarama">Kalıp Tarama İşlemi</a></li>
                     <li><a href="#dijital-kalip">Dijital Kalıp Teknolojisi</a></li>
                     <li><a href="#bakim">Bakım ve Temizlik</a></li>
                     <li><a href="#sss">Sık Sorulan Sorular</a></li>
@@ -200,6 +201,48 @@
                 <div class="warning-box">
                     <h5><i class="fas fa-exclamation-triangle"></i> Dikkat</h5>
                     <p>Kalıp alma işlemi mutlaka uzman bir odyolog veya işitme cihazı teknikeri tarafından yapılmalıdır.</p>
+                </div>
+            </div>
+
+            <!-- Kalıp Tarama İşlemi -->
+            <div class="help-card" id="kalip-tarama">
+                <h3>Kalıp Tarama İşlemi</h3>
+                <p>Bu bölüm, fiziksel kalıp örneğinin hassas 3D tarama ile dijitalleştirilmesi sırasında izlenmesi gereken adımları açıklar.</p>
+
+                <h5 class="mt-4">1. Kalıp Hazırlığı</h5>
+                <ul class="help-list">
+                    <li><i class="fas fa-check-circle"></i>Kalıp mutlaka <strong>uzman ve yetkili</strong> kişiler tarafından alınmalıdır.</li>
+                    <li><i class="fas fa-check-circle"></i>Kalıp yüzeyinde <strong>mum, yağ, toz</strong> gibi <em>hiçbir kalıntı</em> kalmamalıdır.</li>
+                    <li><i class="fas fa-check-circle"></i>Kalıbın alt kısmındaki ve kulak boynundaki fazlalıklar maket bıçağıyla düzgünce <strong>kesilmelidir</strong>.</li>
+                </ul>
+
+                <h5 class="mt-4">2. 3D Tarayıcı Seçimi</h5>
+                <div class="tip-box">
+                    <p>Tarayıcı en az <strong>0.01 mm hassasiyet</strong> sunmalı ve <strong>döner tabla</strong> ile modeli tüm açılardan tarayabilmelidir.</p>
+                </div>
+
+                <h5 class="mt-4">3. Tarama Süreci</h5>
+                <ol>
+                    <li>Kalıp döner tablaya yerleştirilir ve <strong>tüm yönleri</strong> eksiksiz taranır.</li>
+                    <li>Gölge/kör noktaları önlemek için gerekirse <em>çoklu tarama</em> yapılır.</li>
+                </ol>
+
+                <h5 class="mt-4">4. Dosya Formatı ve Aktarım</h5>
+                <p>Tarama tamamlandığında model <code>.ply</code> veya <code>.stl</code> formatında dışa aktarılmalıdır.</p>
+                <ul class="help-list">
+                    <li><i class="fas fa-cloud-upload-alt"></i> Dosya, çalıştığınız üretici merkeze <strong>MoldPark</strong> platformu üzerinden yüklenmelidir.</li>
+                </ul>
+
+                <h5 class="mt-4">5. Örnek Görseller</h5>
+                <p>Aşağıdaki görseller, ideal tarama çıktılarının nasıl görünmesi gerektiğini gösterir:</p>
+                <div class="row g-3">
+                    <div class="col-md-6"><img src="{% static 'images/tarama_tarama/scan_example1.jpg' %}" alt="Tarama Örneği 1" class="img-fluid rounded shadow"></div>
+                    <div class="col-md-6"><img src="{% static 'images/tarama_tarama/scan_example2.jpg' %}" alt="Tarama Örneği 2" class="img-fluid rounded shadow"></div>
+                </div>
+
+                <div class="warning-box mt-4">
+                    <h5><i class="fas fa-exclamation-triangle"></i> Önemli Uyarı</h5>
+                    <p>Hatalı veya eksik taramalar, üretim sürecini geciktirir ve kalitenin düşmesine neden olur. Tarama sırasında <strong>yüksek çözünürlük</strong> ve <strong>temiz yüzey</strong> kritik öneme sahiptir.</p>
                 </div>
             </div>
 

@@ -21,6 +21,7 @@ import uuid
 from PIL import Image
 import tempfile
 from django.conf import settings
+from core.utils import send_success_notification, send_order_notification, send_system_notification
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +59,6 @@ def mold_create(request):
         center = request.user.center
         
         # Abonelik kontrolü
-        subscription = None
         try:
             from core.models import UserSubscription
             subscription = UserSubscription.objects.filter(user=request.user).first()
