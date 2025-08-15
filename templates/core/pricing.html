@@ -1,8 +1,9 @@
 {% extends 'base.html' %}
+{% load i18n %}
 {% load static %}
 {% load moldpark_extras %}
 
-{% block title %}Fiyatlandırma - MoldPark{% endblock %}
+{% block title %}{% trans "Fiyatlandırma" %} - MoldPark{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -220,9 +221,9 @@
             <div class="col-lg-12 text-center">
                 <h3 class="mb-0 fw-bold">
                     <i class="fas fa-gift me-2 text-danger"></i>
-                    🎉 KAMPANYA: YENİ ÜYELERE 6 AY ÜCRETSİZ!
+                    🎉 {% trans "KAMPANYA: YENİ ÜYELERE 6 AY ÜCRETSİZ!" %}
                 </h3>
-                <p class="mb-0 mt-2">Hem işitme merkezleri hem de üretici merkezler için geçerli • Kredi kartı gerekmez</p>
+                <p class="mb-0 mt-2">{% trans "Hem işitme merkezleri hem de üretici merkezler için geçerli" %} • {% trans "Kredi kartı gerekmez" %}</p>
             </div>
         </div>
     </div>
@@ -233,16 +234,16 @@
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-lg-8 text-center">
-                <h1 class="display-3 fw-bold mb-4 text-black">Fiyatlandırma Planları</h1>
-                <p class="lead text-black">İhtiyacınıza uygun planı seçin ve talebinizi gönderin</p>
+                <h1 class="display-3 fw-bold mb-4 text-black">{% trans "Fiyatlandırma Planları" %}</h1>
+                <p class="lead text-black">{% trans "İhtiyacınıza uygun planı seçin ve talebinizi gönderin" %}</p>
                 <div class="mt-4">
                     <span class="badge bg-white bg-opacity-20 text-black px-4 py-2 rounded-pill me-2">
                         <i class="fas fa-shield-alt me-2"></i>
-                        Manuel Onay Sistemi
+                        {% trans "Manuel Onay Sistemi" %}
                     </span>
                     <span class="badge bg-success text-white px-4 py-2 rounded-pill">
                         <i class="fas fa-gift me-2"></i>
-                        6 Ay Ücretsiz Aktif
+                        {% trans "6 Ay Ücretsiz Aktif" %}
                     </span>
                 </div>
             </div>

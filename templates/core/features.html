@@ -1,14 +1,15 @@
 {% extends 'base.html' %}
+{% load i18n %}
 {% load static %}
 
-{% block title %}Özellikler - MoldPark{% endblock %}
+{% block title %}{% trans "Özellikler" %} - MoldPark{% endblock %}
 
 {% block content %}
 <div class="container py-5">
     <!-- Hero Section -->
     <div class="text-center mb-5">
-        <h1 class="display-4 fw-bold mb-3">MoldPark Özellikleri</h1>
-        <p class="lead text-muted">Kulak kalıbı yönetiminde profesyonel çözümler</p>
+        <h1 class="display-4 fw-bold mb-3">MoldPark {% trans "Özellikleri" %}</h1>
+        <p class="lead text-muted">{% trans "Kulak kalıbı yönetiminde profesyonel çözümler" %}</p>
     </div>
 
     <!-- Ana Özellikler -->
@@ -20,8 +21,8 @@
                     <div class="text-primary mb-3">
                         <i class="fas fa-cube fa-2x"></i>
                     </div>
-                    <h3 class="h5 card-title">Kalıp Yönetimi</h3>
-                    <p class="card-text text-muted">Tüm kalıp süreçlerinizi tek platformdan yönetin. Siparişten teslimata kadar her aşamayı takip edin.</p>
+                    <h3 class="h5 card-title">{% trans "Kalıp Yönetimi" %}</h3>
+                    <p class="card-text text-muted">{% trans "Tüm kalıp süreçlerinizi tek platformdan yönetin. Siparişten teslimata kadar her aşamayı takip edin." %}</p>
                     <ul class="list-unstyled text-muted small">
                         <li><i class="fas fa-check text-success me-2"></i>Detaylı kalıp bilgileri</li>
                         <li><i class="fas fa-check text-success me-2"></i>Durum takibi</li>
@@ -38,8 +39,8 @@
                     <div class="text-success mb-3">
                         <i class="fas fa-network-wired fa-2x"></i>
                     </div>
-                    <h3 class="h5 card-title">Üretici Ağı</h3>
-                    <p class="card-text text-muted">Güvenilir üretici merkezleriyle çalışın. İhtiyaçlarınıza uygun üreticiyi seçin ve hızlı teslimat alın.</p>
+                    <h3 class="h5 card-title">{% trans "Üretici Ağı" %}</h3>
+                    <p class="card-text text-muted">{% trans "Güvenilir üretici merkezleriyle çalışın. İhtiyaçlarınıza uygun üreticiyi seçin ve hızlı teslimat alın." %}</p>
                     <ul class="list-unstyled text-muted small">
                         <li><i class="fas fa-check text-success me-2"></i>Doğrulanmış üreticiler</li>
                         <li><i class="fas fa-check text-success me-2"></i>Kalite kontrol</li>
@@ -56,8 +57,8 @@
                     <div class="text-info mb-3">
                         <i class="fas fa-bell fa-2x"></i>
                     </div>
-                    <h3 class="h5 card-title">Akıllı Bildirimler</h3>
-                    <p class="card-text text-muted">Kalıp süreçlerinizi anlık takip edin. Önemli güncellemelerden anında haberdar olun.</p>
+                    <h3 class="h5 card-title">{% trans "Akıllı Bildirimler" %}</h3>
+                    <p class="card-text text-muted">{% trans "Kalıp süreçlerinizi anlık takip edin. Önemli güncellemelerden anında haberdar olun." %}</p>
                     <ul class="list-unstyled text-muted small">
                         <li><i class="fas fa-check text-success me-2"></i>Durum bildirimleri</li>
                         <li><i class="fas fa-check text-success me-2"></i>Revizyon talepleri</li>

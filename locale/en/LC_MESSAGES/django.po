@@ -96,6 +96,131 @@ msgstr "Producer Center"
 msgid "Sistem Yöneticisi"
 msgstr "System Administrator"
 
+# Campaign Messages
+msgid "ÖZEL KAMPANYA: 6 AYLIK ÜCRETSİZ KULLANIM!"
+msgstr "SPECIAL OFFER: 6 MONTHS FREE!"
+
+msgid "Yeni üyelere özel 6 ay boyunca tüm özellikleri ücretsiz kullanın. Kredi kartı gerekmez!"
+msgstr "New members get 6 months free access to all features. No credit card required!"
+
+msgid "Hemen Başla"
+msgstr "Start Now"
+
+msgid "Kampanya sınırlı sürelidir"
+msgstr "Limited time offer"
+
+msgid "6 Ay Ücretsiz"
+msgstr "6 Months Free"
+
+msgid "ÖZEL KAMPANYA"
+msgstr "SPECIAL OFFER"
+
+msgid "6 Ay Boyunca Tamamen Ücretsiz!"
+msgstr "Completely Free for 6 Months!"
+
+msgid "Yeni üyelere özel kampanyamızdan yararlanın."
+msgstr "Take advantage of our special offer for new members."
+
+msgid "İşitme merkezleri ve üretici merkezler için 6 ay ücretsiz kullanım!"
+msgstr "6 months free for hearing centers and producer centers!"
+
+msgid "Kredi kartı gerekmez, otomatik yenileme yok."
+msgstr "No credit card required, no auto-renewal."
+
+msgid "6 ay ücretsiz kullanım"
+msgstr "6 months free usage"
+
+msgid "Aylık 100 kalıp hakkı"
+msgstr "100 molds per month"
+
+msgid "Tüm üretici ağlarına erişim"
+msgstr "Access to all producer networks"
+
+msgid "7/24 destek"
+msgstr "24/7 support"
+
+msgid "Hemen Kaydol"
+msgstr "Sign Up Now"
+
+msgid "Aylık 200 sipariş hakkı"
+msgstr "200 orders per month"
+
+msgid "Otomatik sipariş eşleştirme"
+msgstr "Automatic order matching"
+
+msgid "Detaylı raporlama"
+msgstr "Detailed reporting"
+
+msgid "Üretici Olarak Kaydol"
+msgstr "Sign Up as Producer"
+
+msgid "6 aylık süre sonunda otomatik yenileme yapılmaz. İstediğiniz zaman iptal edebilirsiniz."
+msgstr "No automatic renewal after 6 months. You can cancel anytime."
+
+msgid "KAMPANYA: YENİ ÜYELERE 6 AY ÜCRETSİZ!"
+msgstr "OFFER: 6 MONTHS FREE FOR NEW MEMBERS!"
+
+msgid "Hem işitme merkezleri hem de üretici merkezler için geçerli"
+msgstr "Valid for both hearing centers and producer centers"
+
+msgid "Kredi kartı gerekmez"
+msgstr "No credit card required"
+
+msgid "Fiyatlandırma"
+msgstr "Pricing"
+
+msgid "Fiyatlandırma Planları"
+msgstr "Pricing Plans"
+
+msgid "İhtiyacınıza uygun planı seçin ve talebinizi gönderin"
+msgstr "Choose the plan that suits your needs and submit your request"
+
+msgid "Manuel Onay Sistemi"
+msgstr "Manual Approval System"
+
+msgid "6 Ay Ücretsiz Aktif"
+msgstr "6 Months Free Active"
+
+msgid "Özellikler"
+msgstr "Features"
+
+msgid "Neden"
+msgstr "Why"
+
+msgid "Modern teknoloji ve uzman ekibimizle kulak kalıbı üretiminde sektörün en gelişmiş çözümlerini sunuyoruz."
+msgstr "We offer the most advanced solutions in ear mold production with our modern technology and expert team."
+
+msgid "Esnek"
+msgstr "Flexible"
+
+msgid "İhtiyacınıza uygun planı seçin ve hemen başlayın"
+msgstr "Choose the plan that suits your needs and get started"
+
+# Features Page
+msgid "Özellikler"
+msgstr "Features"
+
+msgid "Kulak kalıbı yönetiminde profesyonel çözümler"
+msgstr "Professional solutions for ear mold management"
+
+msgid "Kalıp Yönetimi"
+msgstr "Mold Management"
+
+msgid "Tüm kalıp süreçlerinizi tek platformdan yönetin. Siparişten teslimata kadar her aşamayı takip edin."
+msgstr "Manage all your mold processes from a single platform. Track every stage from order to delivery."
+
+msgid "Üretici Ağı"
+msgstr "Producer Network"
+
+msgid "Güvenilir üretici merkezleriyle çalışın. İhtiyaçlarınıza uygun üreticiyi seçin ve hızlı teslimat alın."
+msgstr "Work with reliable producer centers. Choose the right producer for your needs and get fast delivery."
+
+msgid "Akıllı Bildirimler"
+msgstr "Smart Notifications"
+
+msgid "Kalıp süreçlerinizi anlık takip edin. Önemli güncellemelerden anında haberdar olun."
+msgstr "Track your mold processes in real-time. Get instant updates on important changes."
+
 # Actions
 msgid "Düzenle"
 msgstr "Edit"
