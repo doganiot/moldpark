@@ -1,7 +1,8 @@
 {% extends 'base.html' %}
+{% load i18n %}
 {% load static %}
 
-{% block title %}Dokümantasyon - MoldPark{% endblock %}
+{% block title %}{% trans "Dokümantasyon" %} - MoldPark{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -127,8 +128,8 @@
     <div class="container">
         <div class="row">
             <div class="col-lg-8 mx-auto text-center">
-                <h1 class="mb-4">MoldPark Dokümantasyon</h1>
-                <p class="lead">İşitme merkezleri ve üretici merkezler için kapsamlı kullanım kılavuzu</p>
+                <h1 class="mb-4">MoldPark {% trans "Dokümantasyon" %}</h1>
+                <p class="lead">{% trans "İşitme merkezleri ve üretici merkezler için kapsamlı kullanım kılavuzu" %}</p>
             </div>
         </div>
     </div>
@@ -139,15 +140,15 @@
         <!-- Sol Menü -->
         <div class="col-lg-3">
             <div class="docs-nav">
-                <h5 class="mb-3">İçindekiler</h5>
+                <h5 class="mb-3">{% trans "İçindekiler" %}</h5>
                 <ul>
-                    <li><a href="#genel-bakis" class="active">Genel Bakış</a></li>
-                    <li><a href="#isitme-merkezi">İşitme Merkezi Rehberi</a></li>
-                    <li><a href="#uretici-merkez">Üretici Merkez Rehberi</a></li>
-                    <li><a href="#kalip-yonetimi">Kalıp Yönetimi</a></li>
-                    <li><a href="#revizyon">Revizyon Sistemi</a></li>
-                    <li><a href="#abonelik">Abonelik ve Ödeme</a></li>
-                    <li><a href="#destek">Destek ve İletişim</a></li>
+                    <li><a href="#genel-bakis" class="active">{% trans "Genel Bakış" %}</a></li>
+                    <li><a href="#isitme-merkezi">{% trans "İşitme Merkezi Rehberi" %}</a></li>
+                    <li><a href="#uretici-merkez">{% trans "Üretici Merkez Rehberi" %}</a></li>
+                    <li><a href="#kalip-yonetimi">{% trans "Kalıp Yönetimi" %}</a></li>
+                    <li><a href="#revizyon">{% trans "Revizyon Sistemi" %}</a></li>
+                    <li><a href="#abonelik">{% trans "Abonelik ve Ödeme" %}</a></li>
+                    <li><a href="#destek">{% trans "Destek ve İletişim" %}</a></li>
                 </ul>
             </div>
         </div>

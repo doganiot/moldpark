@@ -1,5 +1,8 @@
 {% extends 'base.html' %}
+{% load i18n %}
 {% load crispy_forms_tags %}
+
+{% block title %}{% trans "İletişim" %} - MoldPark{% endblock %}
 
 {% block content %}
 <div class="container">
@@ -7,9 +10,9 @@
         <div class="col-md-8">
             <div class="card border-0 shadow-sm">
                 <div class="card-body p-5">
-                    <h2 class="text-center mb-4">İletişim</h2>
+                    <h2 class="text-center mb-4">{% trans "İletişim" %}</h2>
                     <p class="text-muted text-center mb-5">
-                        Sorularınız veya önerileriniz için bize ulaşın.
+                        {% trans "Sorularınız veya önerileriniz için bize ulaşın." %}
                     </p>
 
                     <form method="post">
@@ -17,7 +20,7 @@
                         {{ form|crispy }}
                         <div class="d-grid">
                             <button type="submit" class="btn btn-primary btn-lg">
-                                Mesaj Gönder
+                                {% trans "Mesaj Gönder" %}
                             </button>
                         </div>
                     </form>
@@ -28,7 +31,7 @@
                 <div class="col-md-4">
                     <div class="text-center">
                         <i class="fas fa-map-marker-alt fa-2x text-primary mb-3"></i>
-                        <h5>Adres</h5>
+                        <h5>{% trans "Adres" %}</h5>
                         <p class="text-muted">
                             Çarşı Mahallesi<br>
                             Gülbahar Hatun Caddesi, Sarmaşık Sk.<br>
@@ -39,7 +42,7 @@
                 <div class="col-md-4">
                     <div class="text-center">
                         <i class="fas fa-phone fa-2x text-primary mb-3"></i>
-                        <h5>Telefon</h5>
+                        <h5>{% trans "Telefon" %}</h5>
                         <p class="text-muted">
                             0462 841 41 46<br>
                             0544 221 92 84
@@ -49,7 +52,7 @@
                 <div class="col-md-4">
                     <div class="text-center">
                         <i class="fas fa-envelope fa-2x text-primary mb-3"></i>
-                        <h5>E-posta</h5>
+                        <h5>{% trans "E-posta" %}</h5>
                         <p class="text-muted">
                             info@moldpark.com<br>
                             destek@moldpark.com

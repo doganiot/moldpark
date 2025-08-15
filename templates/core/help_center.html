@@ -1,7 +1,8 @@
 {% extends 'base.html' %}
+{% load i18n %}
 {% load static %}
 
-{% block title %}Yardım Merkezi - MoldPark{% endblock %}
+{% block title %}{% trans "Yardım Merkezi" %} - MoldPark{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -119,8 +120,8 @@
     <div class="container">
         <div class="row">
             <div class="col-lg-8 mx-auto text-center">
-                <h1 class="mb-4">MoldPark Yardım Merkezi</h1>
-                <p class="lead">Kulak kalıbı üretimi hakkında bilmeniz gereken her şey burada.</p>
+                <h1 class="mb-4">MoldPark {% trans "Yardım Merkezi" %}</h1>
+                <p class="lead">{% trans "Kulak kalıbı üretimi hakkında bilmeniz gereken her şey burada." %}</p>
             </div>
         </div>
     </div>
@@ -131,15 +132,15 @@
         <!-- Sol Menü -->
         <div class="col-lg-3">
             <div class="help-nav">
-                <h5 class="mb-3">İçindekiler</h5>
+                <h5 class="mb-3">{% trans "İçindekiler" %}</h5>
                 <ul>
-                    <li><a href="#kulak-kalibi" class="active">Kulak Kalıbı Nedir?</a></li>
-                    <li><a href="#kalip-cesitleri">Kalıp Çeşitleri</a></li>
-                    <li><a href="#kalip-alma">Kalıp Alma İşlemi</a></li>
-                    <li><a href="#kalip-tarama">Kalıp Tarama İşlemi</a></li>
-                    <li><a href="#dijital-kalip">Dijital Kalıp Teknolojisi</a></li>
-                    <li><a href="#bakim">Bakım ve Temizlik</a></li>
-                    <li><a href="#sss">Sık Sorulan Sorular</a></li>
+                    <li><a href="#kulak-kalibi" class="active">{% trans "Kulak Kalıbı Nedir?" %}</a></li>
+                    <li><a href="#kalip-cesitleri">{% trans "Kalıp Çeşitleri" %}</a></li>
+                    <li><a href="#kalip-alma">{% trans "Kalıp Alma İşlemi" %}</a></li>
+                    <li><a href="#kalip-tarama">{% trans "Kalıp Tarama İşlemi" %}</a></li>
+                    <li><a href="#dijital-kalip">{% trans "Dijital Kalıp Teknolojisi" %}</a></li>
+                    <li><a href="#bakim">{% trans "Bakım ve Temizlik" %}</a></li>
+                    <li><a href="#sss">{% trans "Sık Sorulan Sorular" %}</a></li>
                 </ul>
             </div>
         </div>

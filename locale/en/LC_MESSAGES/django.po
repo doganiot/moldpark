@@ -221,6 +221,91 @@ msgstr "Smart Notifications"
 msgid "Kalıp süreçlerinizi anlık takip edin. Önemli güncellemelerden anında haberdar olun."
 msgstr "Track your mold processes in real-time. Get instant updates on important changes."
 
+# Contact Page
+msgid "İletişim"
+msgstr "Contact"
+
+msgid "Sorularınız veya önerileriniz için bize ulaşın."
+msgstr "Contact us for your questions or suggestions."
+
+msgid "Mesaj Gönder"
+msgstr "Send Message"
+
+msgid "Adres"
+msgstr "Address"
+
+msgid "Telefon"
+msgstr "Phone"
+
+msgid "E-posta"
+msgstr "Email"
+
+# Help Center Page
+msgid "Yardım Merkezi"
+msgstr "Help Center"
+
+msgid "Kulak kalıbı üretimi hakkında bilmeniz gereken her şey burada."
+msgstr "Everything you need to know about ear mold production is here."
+
+msgid "İçindekiler"
+msgstr "Contents"
+
+msgid "Kulak Kalıbı Nedir?"
+msgstr "What is an Ear Mold?"
+
+msgid "Kalıp Çeşitleri"
+msgstr "Mold Types"
+
+msgid "Kalıp Alma İşlemi"
+msgstr "Mold Taking Process"
+
+msgid "Kalıp Tarama İşlemi"
+msgstr "Mold Scanning Process"
+
+msgid "Dijital Kalıp Teknolojisi"
+msgstr "Digital Mold Technology"
+
+msgid "Bakım ve Temizlik"
+msgstr "Care and Cleaning"
+
+msgid "Sık Sorulan Sorular"
+msgstr "Frequently Asked Questions"
+
+# Documentation Page
+msgid "Dokümantasyon"
+msgstr "Documentation"
+
+msgid "İşitme merkezleri ve üretici merkezler için kapsamlı kullanım kılavuzu"
+msgstr "Comprehensive user guide for hearing centers and producer centers"
+
+msgid "Genel Bakış"
+msgstr "Overview"
+
+msgid "İşitme Merkezi Rehberi"
+msgstr "Hearing Center Guide"
+
+msgid "Üretici Merkez Rehberi"
+msgstr "Producer Center Guide"
+
+msgid "Kalıp Yönetimi"
+msgstr "Mold Management"
+
+msgid "Revizyon Sistemi"
+msgstr "Revision System"
+
+msgid "Abonelik ve Ödeme"
+msgstr "Subscription and Payment"
+
+msgid "Destek ve İletişim"
+msgstr "Support and Contact"
+
+# Footer Links
+msgid "Destek"
+msgstr "Support"
+
+msgid "API"
+msgstr "API"
+
 # Actions
 msgid "Düzenle"
 msgstr "Edit"
