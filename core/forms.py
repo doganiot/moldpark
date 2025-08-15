@@ -1,12 +1,31 @@
 from django import forms
+from django.utils.translation import gettext_lazy as _
 from .models import ContactMessage, Message, User, SubscriptionRequest, PricingPlan
 
 class ContactForm(forms.ModelForm):
     class Meta:
         model = ContactMessage
         fields = ['name', 'email', 'subject', 'message']
+        labels = {
+            'name': _('İsim'),
+            'email': _('E-posta'),
+            'subject': _('Konu'),
+            'message': _('Mesaj'),
+        }
         widgets = {
-            'message': forms.Textarea(attrs={'rows': 4}),
+            'message': forms.Textarea(attrs={
+                'rows': 4,
+                'placeholder': _('Mesajınızı buraya yazın...')
+            }),
+            'name': forms.TextInput(attrs={
+                'placeholder': _('Adınız Soyadınız')
+            }),
+            'email': forms.EmailInput(attrs={
+                'placeholder': _('ornek@email.com')
+            }),
+            'subject': forms.TextInput(attrs={
+                'placeholder': _('Mesaj konusu')
+            }),
         } 
 
 class MessageForm(forms.ModelForm):
@@ -15,15 +34,21 @@ class MessageForm(forms.ModelForm):
     class Meta:
         model = Message
         fields = ['subject', 'content', 'priority', 'attachment']
+        labels = {
+            'subject': _('Konu'),
+            'content': _('Mesaj'),
+            'priority': _('Öncelik'),
+            'attachment': _('Dosya Eki'),
+        }
         widgets = {
             'subject': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Mesaj konusu...'
+                'placeholder': _('Mesaj konusu...')
             }),
             'content': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 6,
-                'placeholder': 'Mesajınızı yazın...'
+                'placeholder': _('Mesajınızı yazın...')
             }),
             'priority': forms.Select(attrs={
                 'class': 'form-select'
@@ -42,8 +67,8 @@ class MessageForm(forms.ModelForm):
             if not self.user.is_superuser:
                 # Merkez ve üreticiler sadece normal öncelik seçebilir
                 self.fields['priority'].choices = [
-                    ('normal', 'Normal'),
-                    ('high', 'Yüksek')
+                    ('normal', _('Normal')),
+                    ('high', _('Yüksek'))
                 ]
 
 

@@ -1,4 +1,5 @@
 from django import forms
+from django.utils.translation import gettext_lazy as _
 from .models import EarMold, Revision, ModeledMold, QualityCheck, RevisionRequest, MoldEvaluation
 from producer.models import Producer, ProducerNetwork
 from django.core.exceptions import ValidationError
@@ -6,14 +7,14 @@ from django.core.exceptions import ValidationError
 class EarMoldForm(forms.ModelForm):
     # Sipariş türü seçimi
     order_type = forms.ChoiceField(
-        label='Sipariş Türü',
+        label=_('Sipariş Türü'),
         choices=[
-            ('digital', 'Dijital Tarama (STL/OBJ/PLY dosyası)'),
-            ('physical', 'Fiziksel Kalıp Gönderimi'),
+            ('digital', _('Dijital Tarama (STL/OBJ/PLY dosyası)')),
+            ('physical', _('Fiziksel Kalıp Gönderimi')),
         ],
         widget=forms.RadioSelect(attrs={'class': 'form-check-input'}),
         initial='digital',
-        help_text='Dijital tarama dosyası göndermek veya fiziksel kalıp göndermek istediğinizi seçin'
+        help_text=_('Dijital tarama dosyası göndermek veya fiziksel kalıp göndermek istediğinizi seçin')
     )
 
     class Meta:
@@ -23,20 +24,33 @@ class EarMoldForm(forms.ModelForm):
             'ear_side', 'mold_type', 'vent_diameter', 'scan_file', 'notes', 
             'priority', 'special_instructions', 'is_physical_shipment'
         ]
+        labels = {
+            'patient_name': _('Hasta Adı'),
+            'patient_surname': _('Hasta Soyadı'),
+            'patient_age': _('Yaş'),
+            'patient_gender': _('Cinsiyet'),
+            'ear_side': _('Kulak Tarafı'),
+            'mold_type': _('Kalıp Türü'),
+            'vent_diameter': _('Vent Çapı'),
+            'scan_file': _('Tarama Dosyası'),
+            'notes': _('Notlar'),
+            'priority': _('Öncelik'),
+            'special_instructions': _('Özel Talimatlar'),
+        }
         widgets = {
             'patient_name': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Hasta adını girin'
+                'placeholder': _('Hasta adını girin')
             }),
             'patient_surname': forms.TextInput(attrs={
                 'class': 'form-control', 
-                'placeholder': 'Hasta soyadını girin'
+                'placeholder': _('Hasta soyadını girin')
             }),
             'patient_age': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'min': 0,
                 'max': 150,
-                'placeholder': 'Yaş'
+                'placeholder': _('Yaş')
             }),
             'patient_gender': forms.Select(attrs={'class': 'form-select'}),
             'ear_side': forms.RadioSelect(attrs={'class': 'form-check-input'}),
@@ -54,13 +68,13 @@ class EarMoldForm(forms.ModelForm):
             'notes': forms.Textarea(attrs={
                 'rows': 4,
                 'class': 'form-control',
-                'placeholder': 'Kalıp ile ilgili özel notlar...'
+                'placeholder': _('Kalıp ile ilgili özel notlar...')
             }),
             'priority': forms.Select(attrs={'class': 'form-select'}),
             'special_instructions': forms.Textarea(attrs={
                 'rows': 3,
                 'class': 'form-control',
-                'placeholder': 'Üretici için özel talimatlar...'
+                'placeholder': _('Üretici için özel talimatlar...')
             }),
         }
         

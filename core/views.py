@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
+from django.utils.translation import gettext as _
 from .models import ContactMessage, Message, MessageRecipient, PricingPlan, UserSubscription, PaymentHistory, SimpleNotification, SubscriptionRequest
 from .forms import ContactForm, MessageForm, AdminMessageForm, MessageReplyForm, SubscriptionRequestForm
 from django.views.generic import TemplateView
@@ -104,7 +105,7 @@ def contact(request):
         form = ContactForm(request.POST)
         if form.is_valid():
             form.save()
-            messages.success(request, 'Mesajınız başarıyla gönderildi.')
+            messages.success(request, _('Mesajınız başarıyla gönderildi.'))
             return redirect('core:contact')
     else:
         form = ContactForm()

@@ -306,6 +306,102 @@ msgstr "Support"
 msgid "API"
 msgstr "API"
 
+# Form Fields - Contact Form
+msgid "İsim"
+msgstr "Name"
+
+msgid "Konu"
+msgstr "Subject"
+
+msgid "Mesajınızı buraya yazın..."
+msgstr "Write your message here..."
+
+msgid "Adınız Soyadınız"
+msgstr "Your Full Name"
+
+msgid "ornek@email.com"
+msgstr "example@email.com"
+
+msgid "Mesaj konusu"
+msgstr "Message subject"
+
+msgid "Mesaj konusu..."
+msgstr "Message subject..."
+
+msgid "Mesajınızı yazın..."
+msgstr "Write your message..."
+
+msgid "Öncelik"
+msgstr "Priority"
+
+msgid "Dosya Eki"
+msgstr "Attachment"
+
+msgid "Normal"
+msgstr "Normal"
+
+msgid "Yüksek"
+msgstr "High"
+
+# Form Fields - EarMold Form
+msgid "Sipariş Türü"
+msgstr "Order Type"
+
+msgid "Dijital Tarama (STL/OBJ/PLY dosyası)"
+msgstr "Digital Scan (STL/OBJ/PLY file)"
+
+msgid "Fiziksel Kalıp Gönderimi"
+msgstr "Physical Mold Shipment"
+
+msgid "Dijital tarama dosyası göndermek veya fiziksel kalıp göndermek istediğinizi seçin"
+msgstr "Choose whether you want to send a digital scan file or ship a physical mold"
+
+msgid "Hasta Adı"
+msgstr "Patient Name"
+
+msgid "Hasta Soyadı"
+msgstr "Patient Surname"
+
+msgid "Yaş"
+msgstr "Age"
+
+msgid "Cinsiyet"
+msgstr "Gender"
+
+msgid "Kulak Tarafı"
+msgstr "Ear Side"
+
+msgid "Kalıp Türü"
+msgstr "Mold Type"
+
+msgid "Vent Çapı"
+msgstr "Vent Diameter"
+
+msgid "Tarama Dosyası"
+msgstr "Scan File"
+
+msgid "Notlar"
+msgstr "Notes"
+
+msgid "Özel Talimatlar"
+msgstr "Special Instructions"
+
+msgid "Hasta adını girin"
+msgstr "Enter patient name"
+
+msgid "Hasta soyadını girin"
+msgstr "Enter patient surname"
+
+msgid "Kalıp ile ilgili özel notlar..."
+msgstr "Special notes about the mold..."
+
+msgid "Üretici için özel talimatlar..."
+msgstr "Special instructions for the producer..."
+
+# Messages
+msgid "Mesajınız başarıyla gönderildi."
+msgstr "Your message has been sent successfully."
+
 # Actions
 msgid "Düzenle"
 msgstr "Edit"
