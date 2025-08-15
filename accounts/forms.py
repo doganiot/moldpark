@@ -133,30 +133,46 @@ class CustomSignupForm(SignupForm):
                 notification_preferences=self.cleaned_data.get('notification_preferences', ['system'])
             )
             
-            # OTOMATIK DENEME PAKETİ VER
+            # 6 AYLIK ÜCRETSİZ KAMPANYA ABONELİĞİ
             from core.models import PricingPlan, UserSubscription, SimpleNotification
+            from datetime import timedelta
+            from django.utils import timezone
+            
             try:
-                # Deneme paketini al
-                trial_plan = PricingPlan.objects.get(plan_type='trial', is_active=True)
+                # 6 Aylık ücretsiz kampanya planını al
+                trial_plan = PricingPlan.objects.filter(
+                    plan_type='trial', 
+                    is_active=True,
+                    trial_days__gte=180  # 6 aylık plan
+                ).first()
                 
-                # Deneme aboneliği oluştur
-                subscription = UserSubscription.objects.create(
-                    user=user,
-                    plan=trial_plan,
-                    status='active',
-                    models_used_this_month=0,
-                    amount_paid=0,
-                    currency='USD'
-                )
+                if not trial_plan:
+                    # Eğer 6 aylık plan yoksa normal deneme paketini al
+                    trial_plan = PricingPlan.objects.filter(plan_type='trial', is_active=True).first()
                 
-                # Hoşgeldin bildirimi gönder
-                SimpleNotification.objects.create(
-                    user=user,
-                    title='🎉 Hoş Geldiniz!',
-                    message=f'Size özel {trial_plan.monthly_model_limit} kalıp gönderme hakkı hediye ettik! Platformu keşfetmeye başlayın.',
-                    notification_type='success',
-                    related_url='/subscription/'
-                )
+                if trial_plan:
+                    # 6 aylık ücretsiz abonelik oluştur
+                    end_date = timezone.now() + timedelta(days=180)  # 6 ay sonra
+                    
+                    subscription = UserSubscription.objects.create(
+                        user=user,
+                        plan=trial_plan,
+                        status='active',
+                        start_date=timezone.now(),
+                        end_date=end_date,  # 6 ay sonrası
+                        models_used_this_month=0,
+                        amount_paid=0,
+                        currency='USD'
+                    )
+                    
+                    # Hoşgeldin bildirimi gönder
+                    SimpleNotification.objects.create(
+                        user=user,
+                        title='🎉 6 Aylık Ücretsiz Kampanya!',
+                        message=f'Hoş geldiniz! Size özel 6 ay boyunca ücretsiz kullanım hakkı tanıdık. Aylık {trial_plan.monthly_model_limit} kalıp gönderme hakkınız bulunmaktadır. Hemen kullanmaya başlayın!',
+                        notification_type='success',
+                        related_url='/subscription/'
+                    )
                 
             except PricingPlan.DoesNotExist:
                 # Deneme paketi yoksa normal devam et ama admin'i bilgilendir

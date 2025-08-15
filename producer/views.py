@@ -127,6 +127,54 @@ def producer_register(request):
             producer.is_verified = False  # Admin onayı beklesin
             producer.save()
             
+            # 6 AYLIK ÜCRETSİZ KAMPANYA ABONELİĞİ - ÜRETİCİ MERKEZ İÇİN
+            from core.models import PricingPlan, UserSubscription, SimpleNotification
+            from datetime import timedelta
+            from django.utils import timezone
+            
+            try:
+                # Üretici merkezler için 6 aylık ücretsiz planı al
+                producer_trial = PricingPlan.objects.filter(
+                    plan_type='producer_trial',
+                    is_active=True,
+                    trial_days__gte=180
+                ).first()
+                
+                if not producer_trial:
+                    # Alternatif olarak normal üretici trial planı ara
+                    producer_trial = PricingPlan.objects.filter(
+                        name__icontains='üretici',
+                        plan_type='trial',
+                        is_active=True
+                    ).first()
+                
+                if producer_trial:
+                    # 6 aylık ücretsiz abonelik oluştur
+                    end_date = timezone.now() + timedelta(days=180)
+                    
+                    subscription = UserSubscription.objects.create(
+                        user=user,
+                        plan=producer_trial,
+                        status='active',
+                        start_date=timezone.now(),
+                        end_date=end_date,  # 6 ay sonrası
+                        models_used_this_month=0,
+                        amount_paid=0,
+                        currency='USD'
+                    )
+                    
+                    # Hoşgeldin bildirimi
+                    SimpleNotification.objects.create(
+                        user=user,
+                        title='🏭 6 Aylık Ücretsiz Üretici Kampanyası!',
+                        message=f'Hoş geldiniz! Üretici merkez olarak 6 ay boyunca platformu ücretsiz kullanabilirsiniz. Aylık {producer_trial.monthly_model_limit} sipariş alma hakkınız bulunmaktadır.',
+                        notification_type='success',
+                        related_url='/subscription/'
+                    )
+            except Exception as e:
+                # Hata durumunda sessizce devam et
+                pass
+            
             # Admin'e bildirim gönder
             admin_users = User.objects.filter(is_superuser=True)
             for admin in admin_users:
@@ -135,11 +183,12 @@ def producer_register(request):
                     recipient=admin,
                     verb='yeni üretici merkez kaydı',
                     action_object=producer,
-                    description=f'{producer.company_name} adlı üretici merkez onay bekliyor.'
+                    description=f'{producer.company_name} adlı üretici merkez onay bekliyor. 6 aylık ücretsiz kampanya otomatik tanımlandı.'
                 )
             
             messages.success(request, 
-                'Üretici merkez kaydınız başarıyla oluşturuldu! '
+                '🎉 Üretici merkez kaydınız başarıyla oluşturuldu! '
+                '6 AYLIK ÜCRETSİZ kullanım hakkınız tanımlandı. '
                 'Hesabınız admin onayından sonra aktif olacaktır.'
             )
             return redirect('producer:login')

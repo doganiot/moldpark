@@ -14,8 +14,39 @@
     </div>
 
     <div class="row">
-        <!-- Deneme Paketi Uyarısı -->
-        {% if subscription and subscription.plan.plan_type == 'trial' %}
+        <!-- 6 Aylık Kampanya Bilgisi -->
+        {% if subscription and subscription.plan.trial_days >= 180 %}
+        <div class="col-12 mb-4">
+            <div class="alert alert-success border-0 shadow-sm bg-gradient">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-gift fa-3x me-3 text-warning"></i>
+                    <div class="flex-grow-1">
+                        <h5 class="alert-heading mb-2">🎉 6 Aylık Ücretsiz Kampanya Kullanıyorsunuz!</h5>
+                        <p class="mb-2">
+                            {% if subscription.end_date %}
+                                <strong>{{ subscription.end_date|timeuntil }}</strong> boyunca platformun tüm özelliklerini ücretsiz kullanabilirsiniz.
+                                <br>
+                                <small class="text-muted">Kampanya bitiş tarihi: {{ subscription.end_date|date:"d M Y" }}</small>
+                            {% else %}
+                                6 aylık özel kampanyamızdan yararlanıyorsunuz. Tüm özellikleri ücretsiz kullanmaya devam edin!
+                            {% endif %}
+                        </p>
+                        <div class="mt-3">
+                            <span class="badge bg-white text-success me-2">
+                                <i class="fas fa-check me-1"></i>Kredi Kartı Gerekmez
+                            </span>
+                            <span class="badge bg-white text-success me-2">
+                                <i class="fas fa-check me-1"></i>Otomatik Yenileme Yok
+                            </span>
+                            <span class="badge bg-white text-success">
+                                <i class="fas fa-check me-1"></i>İptal Edilebilir
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% elif subscription and subscription.plan.plan_type == 'trial' %}
         <div class="col-12 mb-4">
             <div class="alert alert-warning border-0 shadow-sm">
                 <div class="d-flex align-items-center">

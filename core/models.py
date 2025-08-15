@@ -187,6 +187,7 @@ class PricingPlan(models.Model):
     
     PLAN_TYPE_CHOICES = [
         ('trial', 'Ücretsiz Deneme'),
+        ('producer_trial', 'Üretici - Ücretsiz Deneme'),
         ('pay_per_use', 'Kullandıkça Öde'),
         ('center_basic', 'İşitme Merkezi - Temel'),
         ('center_professional', 'İşitme Merkezi - Profesyonel'),
@@ -195,7 +196,7 @@ class PricingPlan(models.Model):
     ]
     
     name = models.CharField('Plan Adı', max_length=100)
-    plan_type = models.CharField('Plan Türü', max_length=20, choices=PLAN_TYPE_CHOICES, unique=True)
+    plan_type = models.CharField('Plan Türü', max_length=20, choices=PLAN_TYPE_CHOICES)
     description = models.TextField('Açıklama')
     
     # Fiyatlar
@@ -209,6 +210,12 @@ class PricingPlan(models.Model):
     # Özellikler
     features = models.JSONField('Özellikler', default=list, blank=True)
     
+    # Kampanya ve Görünüm
+    trial_days = models.IntegerField('Deneme Süresi (Gün)', default=0, help_text='0 ise deneme süresi yok')
+    badge_text = models.CharField('Rozet Metni', max_length=50, blank=True, null=True, help_text='Örn: YENİ, POPÜLER')
+    is_featured = models.BooleanField('Öne Çıkan', default=False)
+    order = models.IntegerField('Sıralama', default=0, help_text='Küçük değer önce gösterilir')
+    
     # Durum
     is_active = models.BooleanField('Aktif', default=True)
     created_at = models.DateTimeField('Oluşturulma Tarihi', auto_now_add=True)
@@ -217,7 +224,7 @@ class PricingPlan(models.Model):
     class Meta:
         verbose_name = 'Fiyatlandırma Planı'
         verbose_name_plural = 'Fiyatlandırma Planları'
-        ordering = ['price_usd']
+        ordering = ['order', 'price_usd']
     
     def __str__(self):
         return f'{self.name} - ${self.price_usd}'
