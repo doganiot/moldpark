@@ -261,6 +261,48 @@ def dashboard(request):
         'delivered_to_producer': physical_shipments.filter(shipment_status='delivered_to_producer').count(),
     }
     
+    # FATURA BİLGİLERİ
+    from core.models import Invoice, UserSubscription
+    from datetime import datetime
+
+    invoice_stats = {
+        'total_invoices': 0,
+        'paid_invoices': 0,
+        'pending_invoices': 0,
+        'overdue_invoices': 0,
+        'total_amount': 0,
+        'paid_amount': 0,
+        'pending_amount': 0,
+        'recent_invoices': []
+    }
+
+    try:
+        # Bu ayın faturaları
+        current_month = datetime.now().month
+        current_year = datetime.now().year
+
+        invoices = Invoice.objects.filter(
+            user=request.user,
+            invoice_type='center',
+            issue_date__year=current_year,
+            issue_date__month=current_month
+        )
+
+        invoice_stats['total_invoices'] = invoices.count()
+        invoice_stats['paid_invoices'] = invoices.filter(status='paid').count()
+        invoice_stats['pending_invoices'] = invoices.filter(status='issued').count()
+        invoice_stats['overdue_invoices'] = invoices.filter(status='overdue').count()
+
+        invoice_stats['total_amount'] = sum(inv.total_amount for inv in invoices)
+        invoice_stats['paid_amount'] = sum(inv.total_amount for inv in invoices.filter(status='paid'))
+        invoice_stats['pending_amount'] = sum(inv.total_amount for inv in invoices.filter(status='issued'))
+
+        # Son 3 fatura
+        invoice_stats['recent_invoices'] = invoices.order_by('-issue_date')[:3]
+
+    except Exception as e:
+        print(f"Fatura bilgilerini yüklerken hata: {e}")
+
     # HızLI İSTATİSTİK KARTLARI
     quick_stats = [
         {
@@ -316,6 +358,7 @@ def dashboard(request):
         'shipment_stats': shipment_stats,
         'subscription_alerts': subscription_alerts,
         'quick_stats': quick_stats,
+        'invoice_stats': invoice_stats,
         'has_active_subscription': has_active_subscription,
         'total_messages': total_messages,
         'unread_message_count': unread_message_count,

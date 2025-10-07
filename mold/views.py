@@ -58,23 +58,22 @@ def mold_create(request):
     try:
         center = request.user.center
         
-        # Abonelik kontrolü
+        # Abonelik kontrolü - Yeni sistem
         try:
-            from core.models import UserSubscription
+            from core.models import UserSubscription, PricingPlan
             subscription = UserSubscription.objects.filter(user=request.user).first()
             
             if not subscription:
-                # Deneme paketi oluştur
-                from core.models import PricingPlan
-                trial_plan = PricingPlan.objects.filter(plan_type='trial', is_active=True).first()
-                if trial_plan:
+                # Standard planı oluştur
+                standard_plan = PricingPlan.objects.filter(plan_type='standard', is_active=True).first()
+                if standard_plan:
                     subscription = UserSubscription.objects.create(
                         user=request.user,
-                        plan=trial_plan,
+                        plan=standard_plan,
                         status='active'
                     )
-                    messages.info(request, 
-                        f'🎉 Size özel {trial_plan.monthly_model_limit} kalıp gönderme hakkı tanımlandı!')
+                    messages.success(request, 
+                        f'✅ Aboneliğiniz başarıyla oluşturuldu! Aylık {standard_plan.monthly_fee_try} TL sistem kullanımı + kalıp başına {standard_plan.per_mold_price_try} TL ödeyerek sınırsız kalıp üretebilirsiniz.')
                 else:
                     messages.error(request, 
                         '❌ Abonelik planı bulunamadı. Lütfen yönetici ile iletişime geçin.')
@@ -82,7 +81,7 @@ def mold_create(request):
             
             if not subscription.can_create_model():
                 messages.error(request, 
-                    '❌ Kalıp kotanız doldu. Lütfen aboneliğinizi kontrol edin.')
+                    '❌ Aboneliğiniz aktif değil. Lütfen aboneliğinizi kontrol edin.')
                 return redirect('core:subscription_dashboard')
         except Exception as e:
             logger.error(f"Subscription check error: {str(e)}")
@@ -109,8 +108,25 @@ def mold_create(request):
                     # Kalıbı oluştur
                     mold = form.save()
                     
-                    # Abonelik kotasını kullan
-                    subscription.use_model_quota()
+                    # Kalıp oluşturma maliyetini hesapla ve kaydet
+                    mold_cost = subscription.add_mold_usage(ear_mold=mold)
+
+                    # Detaylı maliyet bilgisini hesapla
+                    physical_cost = subscription.plan.per_mold_price_try if mold.is_physical_shipment else 0
+                    digital_cost = subscription.plan.modeling_service_fee_try if mold.scan_file else 0
+
+                    # Maliyet bilgisini kullanıcıya göster
+                    if physical_cost > 0 and digital_cost > 0:
+                        cost_details = f'💰 Fiziksel: ₺{physical_cost} + Digital: ₺{digital_cost} = ₺{mold_cost}'
+                    elif physical_cost > 0:
+                        cost_details = f'💰 Fiziksel kalıp: ₺{physical_cost}'
+                    elif digital_cost > 0:
+                        cost_details = f'💰 Digital tarama: ₺{digital_cost}'
+                    else:
+                        cost_details = f'💰 Bu kalıp için ücret: ₺{mold_cost}'
+
+                    messages.info(request,
+                        f'{cost_details} (Bu ay toplam: ₺{subscription.get_current_month_total()})')
                     
                     # Üretici seç (şimdilik ilk aktif ağ)
                     selected_network = active_networks.first()
@@ -215,7 +231,9 @@ def mold_create(request):
             'form': form,
             'active_networks': active_networks,
             'subscription': subscription,
-            'remaining_limit': subscription.get_remaining_models() if subscription and hasattr(subscription, 'get_remaining_models') else 0,
+            'mold_price': subscription.plan.per_mold_price_try if subscription else 0,
+            'monthly_fee': subscription.plan.monthly_fee_try if subscription else 0,
+            'current_month_total': subscription.get_current_month_total() if subscription else 0,
         }
         
         return render(request, 'mold/mold_form.html', context)

@@ -214,16 +214,16 @@
 {% endblock %}
 
 {% block content %}
-<!-- 6 Month Free Campaign Banner -->
-<div class="campaign-announcement bg-warning text-dark py-3 position-relative overflow-hidden">
+<!-- Yeni Fiyatlandırma Sistemi Banner -->
+<div class="campaign-announcement bg-primary text-white py-3 position-relative overflow-hidden">
     <div class="container">
         <div class="row align-items-center">
             <div class="col-lg-12 text-center">
                 <h3 class="mb-0 fw-bold">
-                    <i class="fas fa-gift me-2 text-danger"></i>
-                    🎉 {% trans "KAMPANYA: YENİ ÜYELERE 6 AY ÜCRETSİZ!" %}
+                    <i class="fas fa-hand-holding-usd me-2"></i>
+                    💰 {% trans "KULLANDIĞINIZ KADAR ÖDEYIN!" %}
                 </h3>
-                <p class="mb-0 mt-2">{% trans "Hem işitme merkezleri hem de üretici merkezler için geçerli" %} • {% trans "Kredi kartı gerekmez" %}</p>
+                <p class="mb-0 mt-2">{% trans "100 TL/ay sistem kullanımı + 450 TL/kalıp (kargo hariç)" %}</p>
             </div>
         </div>
     </div>
@@ -234,16 +234,16 @@
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-lg-8 text-center">
-                <h1 class="display-3 fw-bold mb-4 text-black">{% trans "Fiyatlandırma Planları" %}</h1>
-                <p class="lead text-black">{% trans "İhtiyacınıza uygun planı seçin ve talebinizi gönderin" %}</p>
+                <h1 class="display-3 fw-bold mb-4 text-black">{% trans "Basit ve Şeffaf Fiyatlandırma" %}</h1>
+                <p class="lead text-black">{% trans "Sadece kullandığınız kadar ödeyin - gizli ücret yok!" %}</p>
                 <div class="mt-4">
                     <span class="badge bg-white bg-opacity-20 text-black px-4 py-2 rounded-pill me-2">
-                        <i class="fas fa-shield-alt me-2"></i>
-                        {% trans "Manuel Onay Sistemi" %}
+                        <i class="fas fa-infinity me-2"></i>
+                        {% trans "Sınırsız Kalıp" %}
                     </span>
                     <span class="badge bg-success text-white px-4 py-2 rounded-pill">
-                        <i class="fas fa-gift me-2"></i>
-                        {% trans "6 Ay Ücretsiz Aktif" %}
+                        <i class="fas fa-hand-holding-usd me-2"></i>
+                        {% trans "Kullandıkça Öde" %}
                     </span>
                 </div>
             </div>
@@ -309,36 +309,46 @@
         {% endif %}
     {% endif %}
 
-    <!-- Fiyatlandırma Planları -->
+    <!-- Fiyatlandırma Planı - Tek Paket -->
     <div class="row g-4 justify-content-center">
         {% for plan in plans %}
-        <div class="col-lg-4 col-md-6">
-            <div class="plan-card {% if plan.plan_type == 'standard' %}popular{% endif %} plan-{{ plan.plan_type }}">
-                <div class="p-4 text-center">
-                    <div class="plan-icon">
-                        <i class="fas fa-{% if plan.plan_type == 'basic' %}rocket{% elif plan.plan_type == 'standard' %}crown{% elif plan.plan_type == 'premium' %}gem{% else %}building{% endif %}"></i>
+        <div class="col-lg-8 col-md-10">
+            <div class="plan-card popular plan-standard">
+                <div class="p-5 text-center">
+                    <div class="plan-icon" style="width: 100px; height: 100px; margin: 2rem auto;">
+                        <i class="fas fa-star"></i>
                     </div>
                     
-                    <h3 class="fw-bold mb-3">{{ plan.name }}</h3>
+                    <h2 class="fw-bold mb-3">{{ plan.name }}</h2>
                     
                     <div class="mb-4">
-                        <div class="plan-price">${{ plan.price_usd }}</div>
-                        <div class="plan-price-currency">/ay</div>
-                        <div class="text-muted small mt-2">≈ ₺{{ plan.price_try }} TRY/ay</div>
-                    </div>
-                    
-                    <div class="mb-4">
-                        {% if plan.plan_type == 'enterprise' %}
-                            <div class="h5 text-warning">
-                                <i class="fas fa-handshake me-2"></i>İletişim Gerekli
+                        <div class="row text-center">
+                            <div class="col-md-6 mb-3">
+                                <div class="border rounded p-4 bg-light">
+                                    <div class="text-muted mb-2">Aylık Sistem Kullanımı</div>
+                                    <div class="plan-price">₺{{ plan.monthly_fee_try }}</div>
+                                    <div class="plan-price-currency">/ay</div>
+                                </div>
                             </div>
-                        {% else %}
-                            <div class="h5 text-primary">{{ plan.get_limit_display }}</div>
-                        {% endif %}
-                        <small class="text-muted">{{ plan.description }}</small>
+                            <div class="col-md-6 mb-3">
+                                <div class="border rounded p-4 bg-light">
+                                    <div class="text-muted mb-2">Kalıp Başına Ücret</div>
+                                    <div class="plan-price">₺{{ plan.per_mold_price_try }}</div>
+                                    <div class="plan-price-currency">/kalıp</div>
+                                    <small class="text-muted">(kargo hariç)</small>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     
-                    <ul class="feature-list mb-4">
+                    <div class="mb-4">
+                        <div class="h5 text-success">
+                            <i class="fas fa-infinity me-2"></i>{{ plan.get_limit_display }}
+                        </div>
+                        <p class="text-muted">{{ plan.description }}</p>
+                    </div>
+                    
+                    <ul class="feature-list mb-4 text-start">
                         {% for feature in plan.features %}
                             <li>
                                 <div class="feature-icon">
@@ -346,119 +356,31 @@
                                 </div>
                                 {{ feature }}
                             </li>
-                        {% empty %}
-                            <!-- Fallback features if features list is empty -->
-                            {% if plan.plan_type == 'basic' %}
-                                <li>
-                                    <div class="feature-icon">
-                                        <i class="fas fa-check"></i>
-                                    </div>
-                                    {{ plan.monthly_model_limit }} kalıp/ay
-                                </li>
-                                <li>
-                                    <div class="feature-icon">
-                                        <i class="fas fa-check"></i>
-                                    </div>
-                                    Temel üretici ağı erişimi
-                                </li>
-                                <li>
-                                    <div class="feature-icon">
-                                        <i class="fas fa-check"></i>
-                                    </div>
-                                    E-posta desteği
-                                </li>
-                            {% elif plan.plan_type == 'standard' %}
-                                <li>
-                                    <div class="feature-icon">
-                                        <i class="fas fa-check"></i>
-                                    </div>
-                                    {{ plan.monthly_model_limit }} kalıp/ay
-                                </li>
-                                <li>
-                                    <div class="feature-icon">
-                                        <i class="fas fa-check"></i>
-                                    </div>
-                                    Tüm üretici ağı erişimi
-                                </li>
-                                <li>
-                                    <div class="feature-icon">
-                                        <i class="fas fa-check"></i>
-                                    </div>
-                                    Öncelikli destek
-                                </li>
-                            {% elif plan.plan_type == 'premium' %}
-                                <li>
-                                    <div class="feature-icon">
-                                        <i class="fas fa-check"></i>
-                                    </div>
-                                    {{ plan.monthly_model_limit }} kalıp/ay
-                                </li>
-                                <li>
-                                    <div class="feature-icon">
-                                        <i class="fas fa-check"></i>
-                                    </div>
-                                    Premium ağ erişimi
-                                </li>
-                                <li>
-                                    <div class="feature-icon">
-                                        <i class="fas fa-check"></i>
-                                    </div>
-                                    7/24 destek
-                                </li>
-                            {% else %}
-                                <li>
-                                    <div class="feature-icon">
-                                        <i class="fas fa-check"></i>
-                                    </div>
-                                    Sınırsız kalıp
-                                </li>
-                                <li>
-                                    <div class="feature-icon">
-                                        <i class="fas fa-check"></i>
-                                    </div>
-                                    Özel ağ erişimi
-                                </li>
-                                <li>
-                                    <div class="feature-icon">
-                                        <i class="fas fa-check"></i>
-                                    </div>
-                                    Dedicated destek
-                                </li>
-                            {% endif %}
                         {% endfor %}
                     </ul>
                     
                     {% if user.is_authenticated %}
-                        {% if plan.plan_type == 'enterprise' %}
-                            <!-- Kurumsal Plan - İletişim Gerekli -->
-                            <a href="{% url 'core:contact' %}" class="btn-request-plan" style="background: linear-gradient(135deg, #6b7280, #4b5563);">
-                                <i class="fas fa-phone me-2"></i>
-                                İletişime Geç
-                            </a>
-                            <div class="mt-2">
-                                <small class="text-muted">
-                                    <i class="fas fa-info-circle me-1"></i>
-                                    Özel fiyatlandırma için iletişime geçin
-                                </small>
+                        {% if current_subscription and current_subscription.plan.id == plan.id %}
+                            <div class="btn-request-plan success" disabled style="cursor: default;">
+                                <i class="fas fa-check-circle me-2"></i>
+                                Aktif Aboneliğiniz
+                            </div>
+                            <div class="mt-3">
+                                <a href="{% url 'core:subscription_dashboard' %}" class="btn btn-outline-primary">
+                                    <i class="fas fa-chart-line me-2"></i>
+                                    Kullanım Detayları
+                                </a>
                             </div>
                         {% else %}
-                            <!-- Normal Planlar -->
+                            <!-- Plan Talep Et -->
                             <form method="post" action="{% url 'core:request_subscription' %}">
                                 {% csrf_token %}
                                 <input type="hidden" name="plan_id" value="{{ plan.id }}">
-                                <button type="submit" class="btn-request-plan {% if plan.plan_type == 'standard' %}success{% endif %}">
-                                    <i class="fas fa-paper-plane me-2"></i>
-                                    Bu Planı Talep Et
+                                <button type="submit" class="btn-request-plan success">
+                                    <i class="fas fa-rocket me-2"></i>
+                                    Hemen Başla
                                 </button>
                             </form>
-                            
-                            {% if current_subscription.plan.id == plan.id %}
-                            <div class="mt-2">
-                                <span class="badge bg-success">
-                                    <i class="fas fa-check me-1"></i>Mevcut Planınız
-                                </span>
-                            </div>
-                            {% endif %}
                             
                             {% for request in pending_requests %}
                                 {% if request.plan.id == plan.id %}
@@ -471,10 +393,16 @@
                             {% endfor %}
                         {% endif %}
                     {% else %}
-                        <a href="{% url 'account_signup' %}" class="btn-request-plan">
+                        <a href="{% url 'account_signup' %}" class="btn-request-plan success">
                             <i class="fas fa-user-plus me-2"></i>
-                            Kayıt Ol
+                            Ücretsiz Kayıt Ol
                         </a>
+                        <div class="mt-3">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Kayıt olduktan sonra hemen kullanmaya başlayabilirsiniz
+                            </small>
+                        </div>
                     {% endif %}
                 </div>
             </div>
@@ -482,45 +410,68 @@
         {% endfor %}
     </div>
     
-    <!-- Nasıl Çalışır? -->
+    <!-- Maliyet Hesaplama Örnekleri -->
     <div class="how-it-works">
         <div class="text-center mb-5">
-            <h2 class="fw-bold mb-3">Nasıl Çalışır?</h2>
-            <p class="text-muted">Abonelik süreciniz basit adımlarla tamamlanır</p>
+            <h2 class="fw-bold mb-3">Maliyet Hesaplama Örnekleri</h2>
+            <p class="text-muted">Aylık maliyetinizi kolayca hesaplayın</p>
         </div>
         
-        <div class="row">
-            <div class="col-md-3">
-                <div class="step-item">
-                    <div class="step-number">1</div>
-                    <h5 class="fw-bold">Plan Seçin</h5>
-                    <p class="text-muted">İhtiyacınıza uygun planı seçin ve talep gönderin</p>
-                </div>
-                <div class="step-connector d-none d-md-block"></div>
-            </div>
-            <div class="col-md-3">
-                <div class="step-item">
-                    <div class="step-number">2</div>
-                    <h5 class="fw-bold">Admin Onayı</h5>
-                    <p class="text-muted">Talebiniz admin tarafından incelenir ve onaylanır</p>
-                </div>
-                <div class="step-connector d-none d-md-block"></div>
-            </div>
-            <div class="col-md-3">
-                <div class="step-item">
-                    <div class="step-number">3</div>
-                    <h5 class="fw-bold">Abonelik Aktif</h5>
-                    <p class="text-muted">Onay sonrası aboneliğiniz otomatik olarak başlar</p>
-                </div>
-                <div class="step-connector d-none d-md-block"></div>
-            </div>
-            <div class="col-md-3">
-                <div class="step-item">
-                    <div class="step-number">4</div>
-                    <h5 class="fw-bold">Kullanmaya Başlayın</h5>
-                    <p class="text-muted">Platforma tam erişim ile kalıp üretimine başlayın</p>
+        <div class="row justify-content-center">
+            <div class="col-md-4 mb-3">
+                <div class="card h-100 border-primary">
+                    <div class="card-body text-center">
+                        <div class="display-6 mb-3">📊</div>
+                        <h5 class="fw-bold">5 Kalıp/Ay</h5>
+                        <hr>
+                        <div class="text-start">
+                            <p class="mb-2">Sistem Kullanımı: <strong>₺100</strong></p>
+                            <p class="mb-2">Kalıp Ücreti: <strong>₺2,250</strong> (5 x ₺450)</p>
+                            <hr>
+                            <h4 class="text-primary">Toplam: ₺2,350</h4>
+                        </div>
+                    </div>
                 </div>
             </div>
+            
+            <div class="col-md-4 mb-3">
+                <div class="card h-100 border-success">
+                    <div class="card-body text-center">
+                        <div class="display-6 mb-3">📈</div>
+                        <h5 class="fw-bold">10 Kalıp/Ay</h5>
+                        <hr>
+                        <div class="text-start">
+                            <p class="mb-2">Sistem Kullanımı: <strong>₺100</strong></p>
+                            <p class="mb-2">Kalıp Ücreti: <strong>₺4,500</strong> (10 x ₺450)</p>
+                            <hr>
+                            <h4 class="text-success">Toplam: ₺4,600</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4 mb-3">
+                <div class="card h-100 border-warning">
+                    <div class="card-body text-center">
+                        <div class="display-6 mb-3">🚀</div>
+                        <h5 class="fw-bold">20 Kalıp/Ay</h5>
+                        <hr>
+                        <div class="text-start">
+                            <p class="mb-2">Sistem Kullanımı: <strong>₺100</strong></p>
+                            <p class="mb-2">Kalıp Ücreti: <strong>₺9,000</strong> (20 x ₺450)</p>
+                            <hr>
+                            <h4 class="text-warning">Toplam: ₺9,100</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="text-center mt-4">
+            <p class="text-muted">
+                <i class="fas fa-info-circle me-2"></i>
+                Kargo ücreti ayrı olarak hesaplanır ve faturaya eklenir.
+            </p>
         </div>
     </div>
 </div>

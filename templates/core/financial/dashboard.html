@@ -1,0 +1,406 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load moldpark_extras %}
+{% load humanize %}
+
+{% block title %}Finansal Dashboard - MoldPark Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: transform 0.2s;
+    }
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .stat-value {
+        font-size: 2rem;
+        font-weight: bold;
+        margin: 10px 0;
+    }
+    .stat-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .revenue-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+    .profit-card { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; }
+    .commission-card { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; }
+    .fees-card { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; }
+    
+    .period-selector {
+        background: white;
+        border-radius: 12px;
+        padding: 15px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .invoice-table {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .trend-chart {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .badge-revenue { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .badge-profit { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Başlık ve Filtre -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h2><i class="fas fa-chart-line me-2"></i>Finansal Dashboard</h2>
+            <p class="text-muted">Dönem: <strong>{{ period_name }}</strong></p>
+        </div>
+        <div class="col-md-6 text-end">
+            <div class="btn-group">
+                <a href="?period=this_month" class="btn btn-sm {% if period == 'this_month' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                    Bu Ay
+                </a>
+                <a href="?period=last_month" class="btn btn-sm {% if period == 'last_month' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                    Geçen Ay
+                </a>
+                <a href="?period=this_year" class="btn btn-sm {% if period == 'this_year' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                    Bu Yıl
+                </a>
+                <a href="?period=all_time" class="btn btn-sm {% if period == 'all_time' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                    Tüm Zamanlar
+                </a>
+            </div>
+            <a href="{% url 'core:financial_reports' %}" class="btn btn-sm btn-success ms-2">
+                <i class="fas fa-file-pdf me-1"></i>Raporlar
+            </a>
+        </div>
+    </div>
+
+    <!-- Ana İstatistikler -->
+    <div class="row">
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card revenue-card">
+                <div class="stat-label">Toplam Gelir</div>
+                <div class="stat-value">₺{{ total_stats.gross_revenue|floatformat:2|intcomma }}</div>
+                <small><i class="fas fa-chart-line me-1"></i>Brüt gelir</small>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card profit-card">
+                <div class="stat-label">MoldPark Kazancı</div>
+                <div class="stat-value">₺{{ total_stats.moldpark_earnings|floatformat:2|intcomma }}</div>
+                <small><i class="fas fa-coins me-1"></i>Net kazanç</small>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card commission-card">
+                <div class="stat-label">Komisyonlar</div>
+                <div class="stat-value">₺{{ producer_stats.moldpark_commission|floatformat:2|intcomma }}</div>
+                <small><i class="fas fa-percentage me-1"></i>%6.5 üretici komisyonu</small>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card fees-card">
+                <div class="stat-label">Kart Komisyonları</div>
+                <div class="stat-value">₺{{ total_stats.total_credit_card_fees|floatformat:2|intcomma }}</div>
+                <small><i class="fas fa-credit-card me-1"></i>%2.6 kart ücreti</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- İşitme Merkezi ve Üretici İstatistikleri -->
+    <div class="row mt-4">
+        <div class="col-lg-6">
+            <div class="stat-card" style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);">
+                <h5><i class="fas fa-hospital me-2"></i>İşitme Merkezleri Gelirleri</h5>
+                <hr>
+                <div class="row">
+                    <div class="col-6">
+                        <p class="mb-2"><strong>Aylık Sistem Ücretleri:</strong></p>
+                        <p class="mb-2"><strong>Fiziksel Kalıp:</strong></p>
+                        <p class="mb-2"><strong>Digital Tarama:</strong></p>
+                        <p class="mb-2"><strong>Kredi Kartı Ücreti:</strong></p>
+                    </div>
+                    <div class="col-6 text-end">
+                        <p class="mb-2">₺{{ center_stats.monthly_fees|floatformat:2|intcomma }}</p>
+                        <p class="mb-2">₺{{ center_stats.physical_revenue|floatformat:2|intcomma }}</p>
+                        <p class="mb-2">₺{{ center_stats.digital_revenue|floatformat:2|intcomma }}</p>
+                        <p class="mb-2 text-danger">-₺{{ center_stats.credit_card_fees|floatformat:2|intcomma }}</p>
+                    </div>
+                </div>
+                <hr>
+                <div class="d-flex justify-content-between">
+                    <h6>Toplam Net:</h6>
+                    <h6>₺{{ center_stats.net_revenue|floatformat:2|intcomma }}</h6>
+                </div>
+                <small class="text-muted">{{ center_stats.count }} fatura</small>
+            </div>
+        </div>
+        
+        <div class="col-lg-6">
+            <div class="stat-card" style="background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);">
+                <h5><i class="fas fa-industry me-2"></i>Üretici Merkezler Komisyonu</h5>
+                <hr>
+                <div class="row">
+                    <div class="col-6">
+                        <p class="mb-2"><strong>Brüt Gelir:</strong></p>
+                        <p class="mb-2"><strong>MoldPark Komisyon:</strong></p>
+                        <p class="mb-2"><strong>Kredi Kartı Ücreti:</strong></p>
+                    </div>
+                    <div class="col-6 text-end">
+                        <p class="mb-2">₺{{ producer_stats.gross_revenue|floatformat:2|intcomma }}</p>
+                        <p class="mb-2 text-success">₺{{ producer_stats.moldpark_commission|floatformat:2|intcomma }}</p>
+                        <p class="mb-2 text-danger">-₺{{ producer_stats.credit_card_fees|floatformat:2|intcomma }}</p>
+                    </div>
+                </div>
+                <hr>
+                <div class="d-flex justify-content-between">
+                    <h6>Üreticiye Kalan:</h6>
+                    <h6>₺{{ producer_stats.net_to_producers|floatformat:2|intcomma }}</h6>
+                </div>
+                <small class="text-muted">{{ producer_stats.count }} fatura</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kalıp ve Fatura İstatistikleri -->
+    <div class="row mt-4">
+        <div class="col-lg-8">
+            <div class="trend-chart">
+                <h5><i class="fas fa-chart-area me-2"></i>Aylık Trendler (Son 6 Ay)</h5>
+                <canvas id="monthlyTrendChart" height="80"></canvas>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="stat-card" style="background: white;">
+                <h5><i class="fas fa-info-circle me-2"></i>Genel İstatistikler</h5>
+                <hr>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Aktif İşitme Merkezi:</span>
+                        <strong>{{ stats.active_centers }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Aktif Üretici Merkez:</span>
+                        <strong>{{ stats.active_producers }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Aktif Abonelik:</span>
+                        <strong>{{ stats.active_subscriptions }}</strong>
+                    </div>
+                </div>
+                <hr>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Fiziksel Kalıp:</span>
+                        <strong>{{ mold_stats.total_physical }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Digital Tarama:</span>
+                        <strong>{{ mold_stats.total_digital }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Üretici Siparişi:</span>
+                        <strong>{{ mold_stats.total_producer_orders }}</strong>
+                    </div>
+                </div>
+                <hr>
+                <div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Toplam Fatura:</span>
+                        <strong>{{ stats.total_invoices }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span><span class="badge bg-success">Ödendi</span>:</span>
+                        <strong>{{ stats.paid_invoices }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span><span class="badge bg-warning">Bekliyor</span>:</span>
+                        <strong>{{ stats.pending_invoices }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span><span class="badge bg-danger">Vadesi Geçmiş</span>:</span>
+                        <strong>{{ stats.overdue_invoices }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Son Faturalar -->
+    <div class="row mt-4">
+        <div class="col-lg-6">
+            <div class="invoice-table">
+                <h5><i class="fas fa-file-invoice me-2"></i>Son Faturalar</h5>
+                <div class="table-responsive mt-3">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Fatura No</th>
+                                <th>Tür</th>
+                                <th>Tutar</th>
+                                <th>Durum</th>
+                                <th>Tarih</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for invoice in recent_invoices %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'core:invoice_detail' invoice.id %}">
+                                        {{ invoice.invoice_number }}
+                                    </a>
+                                </td>
+                                <td>
+                                    {% if invoice.invoice_type == 'center' %}
+                                        <span class="badge bg-info">Merkez</span>
+                                    {% else %}
+                                        <span class="badge bg-warning">Üretici</span>
+                                    {% endif %}
+                                </td>
+                                <td>₺{{ invoice.total_amount|floatformat:2|intcomma }}</td>
+                                <td>
+                                    {% if invoice.status == 'paid' %}
+                                        <span class="badge bg-success">Ödendi</span>
+                                    {% elif invoice.status == 'issued' %}
+                                        <span class="badge bg-warning">Bekliyor</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Vadesi Geçmiş</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ invoice.issue_date|date:"d.m.Y" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted">Henüz fatura yok</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="text-end mt-3">
+                    <a href="{% url 'core:invoice_list' %}" class="btn btn-sm btn-primary">
+                        Tüm Faturaları Görüntüle <i class="fas fa-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-6">
+            <div class="invoice-table">
+                <h5><i class="fas fa-exclamation-triangle text-danger me-2"></i>Vadesi Geçmiş Faturalar</h5>
+                <div class="table-responsive mt-3">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Fatura No</th>
+                                <th>Kullanıcı</th>
+                                <th>Tutar</th>
+                                <th>Vade Tarihi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for invoice in overdue_invoices %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'core:invoice_detail' invoice.id %}">
+                                        {{ invoice.invoice_number }}
+                                    </a>
+                                </td>
+                                <td>{{ invoice.user.get_full_name|default:invoice.user.username }}</td>
+                                <td>₺{{ invoice.total_amount|floatformat:2|intcomma }}</td>
+                                <td>
+                                    <span class="text-danger">
+                                        {{ invoice.due_date|date:"d.m.Y" }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center text-success">
+                                    <i class="fas fa-check-circle me-1"></i>Vadesi geçmiş fatura yok
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+    // Aylık trend grafiği
+    const monthlyTrendCtx = document.getElementById('monthlyTrendChart').getContext('2d');
+    const monthlyTrendData = {{ monthly_trends|safe }};
+    
+    new Chart(monthlyTrendCtx, {
+        type: 'line',
+        data: {
+            labels: monthlyTrendData.map(d => d.month),
+            datasets: [{
+                label: 'Gelir',
+                data: monthlyTrendData.map(d => d.revenue),
+                borderColor: '#667eea',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                tension: 0.4,
+                fill: true
+            }, {
+                label: 'Net Kar',
+                data: monthlyTrendData.map(d => d.profit),
+                borderColor: '#f093fb',
+                backgroundColor: 'rgba(240, 147, 251, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': ₺' + context.parsed.y.toLocaleString('tr-TR', {minimumFractionDigits: 2});
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '₺' + value.toLocaleString('tr-TR');
+                        }
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}
+

@@ -183,43 +183,42 @@ class MessageRecipient(models.Model):
 
 
 class PricingPlan(models.Model):
-    """Fiyatlandırma Planları"""
+    """Fiyatlandırma Planları - Basitleştirilmiş Sistem"""
     
     PLAN_TYPE_CHOICES = [
-        ('trial', 'Ücretsiz Deneme'),
-        ('producer_trial', 'Üretici - Ücretsiz Deneme'),
-        ('pay_per_use', 'Kullandıkça Öde'),
-        ('center_basic', 'İşitme Merkezi - Temel'),
-        ('center_professional', 'İşitme Merkezi - Profesyonel'),
-        ('producer', 'Üretici Merkez'),
-        ('enterprise', 'Kurumsal'),
+        ('standard', 'Standart Paket'),  # Tek paket sistemi
     ]
     
     name = models.CharField('Plan Adı', max_length=100)
-    plan_type = models.CharField('Plan Türü', max_length=20, choices=PLAN_TYPE_CHOICES)
+    plan_type = models.CharField('Plan Türü', max_length=20, choices=PLAN_TYPE_CHOICES, default='standard')
     description = models.TextField('Açıklama')
     
-    # Fiyatlar
-    price_usd = models.DecimalField('Fiyat (USD)', max_digits=10, decimal_places=2)
-    price_try = models.DecimalField('Fiyat (TL)', max_digits=10, decimal_places=2)
+    # Fiyatlar - Sistem kullanım bedeli (aylık)
+    monthly_fee_try = models.DecimalField('Aylık Sistem Kullanım Bedeli (TL)', max_digits=10, decimal_places=2, default=100.00)
     
-    # Limitler
-    monthly_model_limit = models.IntegerField('Aylık Model Limiti', null=True, blank=True, help_text='Null ise sınırsız')
-    is_monthly = models.BooleanField('Aylık Plan', default=True)
+    # Fiziksel kalıp gönderme ücreti
+    per_mold_price_try = models.DecimalField('Fiziksel Kalıp Gönderme Ücreti (TL)', max_digits=10, decimal_places=2, default=450.00)
+    
+    # Digital tarama hizmeti ücreti
+    modeling_service_fee_try = models.DecimalField('Digital Tarama Hizmeti Ücreti (TL)', max_digits=10, decimal_places=2, default=50.00)
     
     # Özellikler
     features = models.JSONField('Özellikler', default=list, blank=True)
-    
-    # Kampanya ve Görünüm
-    trial_days = models.IntegerField('Deneme Süresi (Gün)', default=0, help_text='0 ise deneme süresi yok')
-    badge_text = models.CharField('Rozet Metni', max_length=50, blank=True, null=True, help_text='Örn: YENİ, POPÜLER')
-    is_featured = models.BooleanField('Öne Çıkan', default=False)
-    order = models.IntegerField('Sıralama', default=0, help_text='Küçük değer önce gösterilir')
     
     # Durum
     is_active = models.BooleanField('Aktif', default=True)
     created_at = models.DateTimeField('Oluşturulma Tarihi', auto_now_add=True)
     updated_at = models.DateTimeField('Güncellenme Tarihi', auto_now=True)
+    
+    # Eski alanları koruyalım (geriye dönük uyumluluk için)
+    price_usd = models.DecimalField('Fiyat (USD)', max_digits=10, decimal_places=2, default=0)
+    price_try = models.DecimalField('Fiyat (TL)', max_digits=10, decimal_places=2, default=100.00)
+    monthly_model_limit = models.IntegerField('Aylık Model Limiti', null=True, blank=True, help_text='Null ise sınırsız')
+    is_monthly = models.BooleanField('Aylık Plan', default=True)
+    trial_days = models.IntegerField('Deneme Süresi (Gün)', default=0, help_text='0 ise deneme süresi yok')
+    badge_text = models.CharField('Rozet Metni', max_length=50, blank=True, null=True, help_text='Örn: YENİ, POPÜLER')
+    is_featured = models.BooleanField('Öne Çıkan', default=False)
+    order = models.IntegerField('Sıralama', default=0, help_text='Küçük değer önce gösterilir')
     
     class Meta:
         verbose_name = 'Fiyatlandırma Planı'
@@ -227,29 +226,44 @@ class PricingPlan(models.Model):
         ordering = ['order', 'price_usd']
     
     def __str__(self):
-        return f'{self.name} - ${self.price_usd}'
+        return f'{self.name} - ₺{self.monthly_fee_try}/ay + ₺{self.per_mold_price_try}/fiziksel kalıp + ₺{self.modeling_service_fee_try}/tarama'
     
     def get_price_display(self):
         """Fiyat görüntüleme"""
-        if self.is_monthly:
-            return f'${self.price_usd}/ay (₺{self.price_try}/ay)'
-        else:
-            return f'${self.price_usd} (₺{self.price_try})'
+        return f'₺{self.monthly_fee_try}/ay (sistem) + ₺{self.per_mold_price_try}/fiziksel kalıp + ₺{self.modeling_service_fee_try}/digital tarama'
     
     def get_limit_display(self):
-        """Limit görüntüleme"""
-        if self.plan_type == 'enterprise' or self.monthly_model_limit == -1:
-            return 'İletişim Gerekli'
-        elif self.monthly_model_limit == 0:
-            return 'Sınırsız'
-        elif self.monthly_model_limit:
-            return f'{self.monthly_model_limit} kalıp/ay'
-        else:
-            return 'Sınırsız'
+        """Limit görüntüleme - Artık sınırsız"""
+        return 'Sınırsız (kullandıkça öde)'
+    
+    def calculate_total_cost(self, physical_mold_count=0, digital_scan_count=0):
+        """Toplam maliyet hesaplama
+        
+        Args:
+            physical_mold_count: Fiziksel kalıp gönderme sayısı
+            digital_scan_count: Digital tarama hizmeti sayısı
+        """
+        physical_cost = self.per_mold_price_try * physical_mold_count
+        digital_cost = self.modeling_service_fee_try * digital_scan_count
+        return self.monthly_fee_try + physical_cost + digital_cost
+    
+    def calculate_per_order_cost(self, has_physical=True, has_digital=True):
+        """Sipariş başına maliyet
+        
+        Args:
+            has_physical: Fiziksel kalıp var mı?
+            has_digital: Digital tarama var mı?
+        """
+        cost = 0
+        if has_physical:
+            cost += self.per_mold_price_try
+        if has_digital:
+            cost += self.modeling_service_fee_try
+        return cost
 
 
 class UserSubscription(models.Model):
-    """Kullanıcı Abonelikleri"""
+    """Kullanıcı Abonelikleri - Kullandıkça Öde Sistemi"""
     
     STATUS_CHOICES = [
         ('active', 'Aktif'),
@@ -266,16 +280,23 @@ class UserSubscription(models.Model):
     end_date = models.DateTimeField('Bitiş Tarihi', null=True, blank=True)
     status = models.CharField('Durum', max_length=10, choices=STATUS_CHOICES, default='active')
     
-    # Kullanım İstatistikleri
+    # Kullanım İstatistikleri (Artık limit yok, sadece sayaç)
     models_used_this_month = models.IntegerField('Bu Ay Kullanılan Model Sayısı', default=0)
+    models_used_total = models.IntegerField('Toplam Kullanılan Model Sayısı', default=0)
+    digital_scans_this_month = models.IntegerField('Bu Ay Digital Tarama Sayısı', default=0)
     last_reset_date = models.DateTimeField('Son Sıfırlama Tarihi', default=timezone.now)
     
     # Ödeme Bilgileri
-    amount_paid = models.DecimalField('Ödenen Tutar', max_digits=10, decimal_places=2, default=0)
-    currency = models.CharField('Para Birimi', max_length=3, choices=[('USD', 'USD'), ('TRY', 'TRY')], default='USD')
+    monthly_fee_paid = models.BooleanField('Bu Ay Aylık Ücret Ödendi', default=False)
+    total_mold_cost_this_month = models.DecimalField('Bu Ay Kalıp Maliyeti', max_digits=10, decimal_places=2, default=0)
+    last_payment_date = models.DateTimeField('Son Ödeme Tarihi', null=True, blank=True)
+    currency = models.CharField('Para Birimi', max_length=3, choices=[('USD', 'USD'), ('TRY', 'TRY')], default='TRY')
     
     created_at = models.DateTimeField('Oluşturulma Tarihi', auto_now_add=True)
     updated_at = models.DateTimeField('Güncellenme Tarihi', auto_now=True)
+    
+    # Geriye dönük uyumluluk
+    amount_paid = models.DecimalField('Ödenen Tutar', max_digits=10, decimal_places=2, default=0)
     
     class Meta:
         verbose_name = 'Kullanıcı Aboneliği'
@@ -294,40 +315,71 @@ class UserSubscription(models.Model):
         return True
     
     def can_create_model(self):
-        """Model oluşturabilir mi?"""
-        if not self.is_valid():
-            return False
-        
-        # Sınırsız plan ise
-        if not self.plan.monthly_model_limit:
-            return True
-        
-        # Aylık limit kontrolü
-        self.reset_monthly_usage_if_needed()
-        return self.models_used_this_month < self.plan.monthly_model_limit
+        """Model oluşturabilir mi? - Artık her zaman True (ödeme yapılacak)"""
+        return self.is_valid()
     
-    def use_model_quota(self):
-        """Model kotası kullan"""
+    def add_mold_usage(self, ear_mold=None):
+        """Kalıp kullanımı ekle ve maliyeti hesapla
+
+        Args:
+            ear_mold: EarMold nesnesi (ücret hesaplaması için)
+
+        Returns:
+            float: Toplam maliyet (fiziksel + dijital)
+        """
         self.reset_monthly_usage_if_needed()
-        self.models_used_this_month += 1
+
+        physical_cost = 0
+        digital_cost = 0
+
+        if ear_mold:
+            # Fiziksel kalıp gönderimi varsa ücret al
+            if ear_mold.is_physical_shipment:
+                physical_cost = self.plan.per_mold_price_try  # 450 TL
+                self.models_used_this_month += 1
+
+            # Dijital tarama dosyası varsa ücret al
+            if ear_mold.scan_file:
+                digital_cost = self.plan.modeling_service_fee_try  # 50 TL
+                self.digital_scans_this_month += 1
+        else:
+            # Geriye uyumluluk için eski davranış
+            physical_cost = self.plan.per_mold_price_try
+            self.models_used_this_month += 1
+
+        total_cost = physical_cost + digital_cost
+        self.total_mold_cost_this_month += total_cost
+        self.models_used_total += 1
+
         self.save()
+        return total_cost
     
     def reset_monthly_usage_if_needed(self):
         """Gerekirse aylık kullanımı sıfırla"""
         now = timezone.now()
-        if (now.year != self.last_reset_date.year or 
+        if (now.year != self.last_reset_date.year or
             now.month != self.last_reset_date.month):
             self.models_used_this_month = 0
+            self.digital_scans_this_month = 0
+            self.total_mold_cost_this_month = 0
+            self.monthly_fee_paid = False
             self.last_reset_date = now
             self.save()
     
     def get_remaining_models(self):
-        """Kalan model sayısı"""
-        if not self.plan.monthly_model_limit:
-            return None  # Sınırsız
-        
+        """Kalan model sayısı - Artık sınırsız"""
+        return None  # Sınırsız
+    
+    def get_current_month_total(self):
+        """Bu ay toplam maliyet"""
         self.reset_monthly_usage_if_needed()
-        return max(0, self.plan.monthly_model_limit - self.models_used_this_month)
+        monthly_fee = self.plan.monthly_fee_try if not self.monthly_fee_paid else 0
+        return monthly_fee + self.total_mold_cost_this_month
+    
+    # Geriye dönük uyumluluk için eski methodlar
+    def use_model_quota(self):
+        """Eski method - yeni sisteme yönlendir"""
+        return self.add_mold_usage()
 
 
 class PaymentHistory(models.Model):
@@ -573,3 +625,290 @@ def send_notification_email(sender, instance, created, **kwargs):
         import logging
         logger = logging.getLogger(__name__)
         logger.error(f"Bildirim e-posta gönderim hatası: {e}")
+
+
+# ============================================
+# FATURA VE MALİ YÖNETİM MODELLERİ
+# ============================================
+
+class Invoice(models.Model):
+    """Fatura Modeli - Center ve Producer için"""
+    
+    INVOICE_TYPE_CHOICES = [
+        ('center', 'İşitme Merkezi Faturası'),
+        ('producer', 'Üretici Merkez Faturası'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('draft', 'Taslak'),
+        ('issued', 'Kesildi'),
+        ('paid', 'Ödendi'),
+        ('overdue', 'Vadesi Geçmiş'),
+        ('cancelled', 'İptal Edildi'),
+    ]
+    
+    # Temel Bilgiler
+    invoice_number = models.CharField('Fatura No', max_length=50, unique=True)
+    invoice_type = models.CharField('Fatura Türü', max_length=20, choices=INVOICE_TYPE_CHOICES)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='invoices', verbose_name='Kullanıcı')
+    
+    # Tarih Bilgileri
+    issue_date = models.DateField('Kesim Tarihi', default=timezone.now)
+    due_date = models.DateField('Vade Tarihi')
+    payment_date = models.DateField('Ödeme Tarihi', null=True, blank=True)
+    
+    # Mali Bilgiler
+    subtotal = models.DecimalField('Ara Toplam', max_digits=10, decimal_places=2, default=0)
+    
+    # İşitme Merkezi için
+    monthly_fee = models.DecimalField('Aylık Sistem Ücreti', max_digits=10, decimal_places=2, default=0)
+    physical_mold_count = models.IntegerField('Fiziksel Kalıp Sayısı', default=0)
+    physical_mold_cost = models.DecimalField('Fiziksel Kalıp Maliyeti', max_digits=10, decimal_places=2, default=0)
+    digital_scan_count = models.IntegerField('Digital Tarama Sayısı', default=0)
+    digital_scan_cost = models.DecimalField('Digital Tarama Maliyeti', max_digits=10, decimal_places=2, default=0)
+    
+    # Geriye dönük uyumluluk için eski alanlar
+    mold_count = models.IntegerField('Kalıp Sayısı (Eski)', default=0)
+    mold_cost = models.DecimalField('Kalıp Maliyeti (Eski)', max_digits=10, decimal_places=2, default=0)
+    modeling_count = models.IntegerField('Modeleme Sayısı (Eski)', default=0)
+    modeling_cost = models.DecimalField('Modeleme Maliyeti (Eski)', max_digits=10, decimal_places=2, default=0)
+    
+    # Üretici için
+    producer_order_count = models.IntegerField('Sipariş Sayısı', default=0)
+    producer_revenue = models.DecimalField('Üretici Geliri', max_digits=10, decimal_places=2, default=0)
+    
+    # Komisyonlar ve Kesintiler
+    moldpark_commission = models.DecimalField('MoldPark Komisyonu (%6.5)', max_digits=10, decimal_places=2, default=0)
+    credit_card_fee = models.DecimalField('Kredi Kartı Komisyonu (%2.6)', max_digits=10, decimal_places=2, default=0)
+    
+    # Toplam
+    total_amount = models.DecimalField('Toplam Tutar', max_digits=10, decimal_places=2, default=0)
+    net_amount = models.DecimalField('Net Tutar (Komisyon Sonrası)', max_digits=10, decimal_places=2, default=0)
+    
+    # Durum
+    status = models.CharField('Durum', max_length=20, choices=STATUS_CHOICES, default='draft')
+    
+    # Notlar
+    notes = models.TextField('Notlar', blank=True)
+    
+    # Tarihler
+    created_at = models.DateTimeField('Oluşturulma', auto_now_add=True)
+    updated_at = models.DateTimeField('Güncellenme', auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Fatura'
+        verbose_name_plural = 'Faturalar'
+        ordering = ['-issue_date', '-created_at']
+        indexes = [
+            models.Index(fields=['invoice_number']),
+            models.Index(fields=['user', 'status']),
+            models.Index(fields=['issue_date']),
+        ]
+    
+    def __str__(self):
+        return f'{self.invoice_number} - {self.user.get_full_name()} - ₺{self.total_amount}'
+    
+    def calculate_center_invoice(self, subscription, physical_mold_count=0, digital_scan_count=0):
+        """İşitme merkezi faturası hesapla
+        
+        Args:
+            subscription: Kullanıcı aboneliği
+            physical_mold_count: Fiziksel kalıp gönderme sayısı
+            digital_scan_count: Digital tarama hizmeti sayısı
+        """
+        from decimal import Decimal
+        
+        self.invoice_type = 'center'
+        self.monthly_fee = subscription.plan.monthly_fee_try
+        
+        # Yeni sistem
+        self.physical_mold_count = physical_mold_count
+        self.physical_mold_cost = subscription.plan.per_mold_price_try * physical_mold_count
+        self.digital_scan_count = digital_scan_count
+        self.digital_scan_cost = subscription.plan.modeling_service_fee_try * digital_scan_count
+        
+        # Geriye dönük uyumluluk
+        self.mold_count = physical_mold_count
+        self.mold_cost = self.physical_mold_cost
+        self.modeling_count = digital_scan_count
+        self.modeling_cost = self.digital_scan_cost
+        
+        self.subtotal = self.monthly_fee + self.physical_mold_cost + self.digital_scan_cost
+        
+        # Kredi kartı komisyonu %2.6
+        self.credit_card_fee = self.subtotal * Decimal('0.026')
+        
+        self.total_amount = self.subtotal + self.credit_card_fee
+        self.net_amount = self.total_amount
+        
+        self.save()
+        return self.total_amount
+    
+    def calculate_producer_invoice(self, order_count, revenue):
+        """Üretici faturası hesapla"""
+        from decimal import Decimal
+        
+        self.invoice_type = 'producer'
+        self.producer_order_count = order_count
+        self.producer_revenue = revenue
+        
+        self.subtotal = revenue
+        
+        # MoldPark komisyonu %6.5
+        self.moldpark_commission = self.subtotal * Decimal('0.065')
+        
+        # Kredi kartı komisyonu %2.6
+        self.credit_card_fee = self.subtotal * Decimal('0.026')
+        
+        # Net tutar (komisyonlar düşüldükten sonra)
+        self.net_amount = self.subtotal - self.moldpark_commission - self.credit_card_fee
+        self.total_amount = self.subtotal
+        
+        self.save()
+        return self.net_amount
+    
+    def mark_as_paid(self, payment_date=None):
+        """Faturayı ödendi olarak işaretle"""
+        self.status = 'paid'
+        self.payment_date = payment_date or timezone.now().date()
+        self.save()
+    
+    def mark_as_overdue(self):
+        """Faturayı vadesi geçmiş olarak işaretle"""
+        if self.status == 'issued' and self.due_date < timezone.now().date():
+            self.status = 'overdue'
+            self.save()
+            return True
+        return False
+    
+    @staticmethod
+    def generate_invoice_number(invoice_type):
+        """Fatura numarası oluştur"""
+        prefix = 'CTR' if invoice_type == 'center' else 'PRD'
+        date_part = timezone.now().strftime('%Y%m')
+        
+        # Bu ay için son fatura numarasını bul
+        last_invoice = Invoice.objects.filter(
+            invoice_number__startswith=f'{prefix}{date_part}'
+        ).order_by('-invoice_number').first()
+        
+        if last_invoice:
+            # Son numarayı al ve 1 artır
+            last_num = int(last_invoice.invoice_number[-4:])
+            new_num = last_num + 1
+        else:
+            new_num = 1
+        
+        return f'{prefix}{date_part}{new_num:04d}'
+
+
+class FinancialSummary(models.Model):
+    """Aylık Mali Özet"""
+    
+    # Dönem
+    year = models.IntegerField('Yıl')
+    month = models.IntegerField('Ay')
+    
+    # İşitme Merkezleri Gelirleri
+    center_monthly_fees = models.DecimalField('Aylık Sistem Ücretleri', max_digits=12, decimal_places=2, default=0)
+    center_mold_revenue = models.DecimalField('Kalıp Gelirleri', max_digits=12, decimal_places=2, default=0)
+    center_modeling_revenue = models.DecimalField('Modeleme Gelirleri', max_digits=12, decimal_places=2, default=0)
+    center_total_revenue = models.DecimalField('Merkez Toplam Gelir', max_digits=12, decimal_places=2, default=0)
+    
+    # Üretici Gelirleri ve Komisyonlar
+    producer_gross_revenue = models.DecimalField('Üretici Brüt Gelir', max_digits=12, decimal_places=2, default=0)
+    moldpark_commission_revenue = models.DecimalField('MoldPark Komisyon Geliri', max_digits=12, decimal_places=2, default=0)
+    producer_net_revenue = models.DecimalField('Üretici Net Gelir', max_digits=12, decimal_places=2, default=0)
+    
+    # Kredi Kartı Komisyonları
+    total_credit_card_fees = models.DecimalField('Toplam KK Komisyonu', max_digits=12, decimal_places=2, default=0)
+    
+    # Toplam Gelir
+    total_gross_revenue = models.DecimalField('Toplam Brüt Gelir', max_digits=12, decimal_places=2, default=0)
+    total_net_revenue = models.DecimalField('Toplam Net Gelir', max_digits=12, decimal_places=2, default=0)
+    
+    # İstatistikler
+    total_centers = models.IntegerField('Toplam Merkez Sayısı', default=0)
+    total_producers = models.IntegerField('Toplam Üretici Sayısı', default=0)
+    total_molds = models.IntegerField('Toplam Kalıp Sayısı', default=0)
+    total_modelings = models.IntegerField('Toplam Modeleme Sayısı', default=0)
+    total_invoices = models.IntegerField('Toplam Fatura Sayısı', default=0)
+    
+    created_at = models.DateTimeField('Oluşturulma', auto_now_add=True)
+    updated_at = models.DateTimeField('Güncellenme', auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Mali Özet'
+        verbose_name_plural = 'Mali Özetler'
+        unique_together = ['year', 'month']
+        ordering = ['-year', '-month']
+    
+    def __str__(self):
+        return f'{self.year}/{self.month:02d} - Toplam: ₺{self.total_net_revenue}'
+    
+    @staticmethod
+    def calculate_monthly_summary(year, month):
+        """Aylık mali özeti hesapla"""
+        from datetime import date
+        from calendar import monthrange
+        
+        start_date = date(year, month, 1)
+        last_day = monthrange(year, month)[1]
+        end_date = date(year, month, last_day)
+        
+        # Bu ayki faturalar
+        invoices = Invoice.objects.filter(
+            issue_date__gte=start_date,
+            issue_date__lte=end_date,
+            status__in=['issued', 'paid']
+        )
+        
+        summary, created = FinancialSummary.objects.get_or_create(
+            year=year,
+            month=month
+        )
+        
+        # İşitme merkezi faturaları
+        center_invoices = invoices.filter(invoice_type='center')
+        summary.center_monthly_fees = sum(inv.monthly_fee for inv in center_invoices)
+        # Yeni sistem ile eski sistemi birleştir
+        summary.center_mold_revenue = sum((inv.physical_mold_cost or 0) + (inv.mold_cost or 0) for inv in center_invoices)
+        summary.center_modeling_revenue = sum((inv.digital_scan_cost or 0) + (inv.modeling_cost or 0) for inv in center_invoices)
+        summary.center_total_revenue = summary.center_monthly_fees + summary.center_mold_revenue + summary.center_modeling_revenue
+        
+        # Üretici faturaları
+        producer_invoices = invoices.filter(invoice_type='producer')
+        summary.producer_gross_revenue = sum(inv.producer_revenue for inv in producer_invoices)
+        summary.moldpark_commission_revenue = sum(inv.moldpark_commission for inv in producer_invoices)
+        summary.producer_net_revenue = sum(inv.net_amount for inv in producer_invoices)
+        
+        # Toplam kredi kartı komisyonları
+        summary.total_credit_card_fees = sum(inv.credit_card_fee for inv in invoices)
+        
+        # Toplamlar
+        summary.total_gross_revenue = summary.center_total_revenue + summary.producer_gross_revenue
+        summary.total_net_revenue = summary.center_total_revenue + summary.moldpark_commission_revenue - summary.total_credit_card_fees
+        
+        # İstatistikler
+        from center.models import Center
+        from producer.models import Producer
+        
+        summary.total_centers = Center.objects.filter(is_active=True).count()
+        summary.total_producers = Producer.objects.filter(is_active=True).count()
+        # Yeni ve eski sistemi birleştir
+        summary.total_molds = center_invoices.aggregate(
+            total=models.Sum('physical_mold_count')
+        )['total'] or 0
+        if summary.total_molds == 0:  # Eski sistem
+            summary.total_molds = center_invoices.aggregate(total=models.Sum('mold_count'))['total'] or 0
+        
+        summary.total_modelings = center_invoices.aggregate(
+            total=models.Sum('digital_scan_count')
+        )['total'] or 0
+        if summary.total_modelings == 0:  # Eski sistem
+            summary.total_modelings = center_invoices.aggregate(total=models.Sum('modeling_count'))['total'] or 0
+        
+        summary.total_invoices = invoices.count()
+        
+        summary.save()
+        return summary

@@ -227,10 +227,11 @@ class SubscriptionRequestForm(forms.ModelForm):
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         
-        # Sadece aktif planları göster (trial hariç)
+        # Sadece aktif standard planı göster
         self.fields['plan'].queryset = PricingPlan.objects.filter(
-            is_active=True
-        ).exclude(plan_type='trial')
+            is_active=True,
+            plan_type='standard'
+        )
         
         # Plan seçimi zorunlu
         self.fields['plan'].required = True

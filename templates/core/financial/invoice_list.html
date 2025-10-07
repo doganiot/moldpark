@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load moldpark_extras %}
+{% load humanize %}
+
+{% block title %}Faturalar - MoldPark Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h2><i class="fas fa-file-invoice me-2"></i>Fatura Yönetimi</h2>
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="{% url 'core:financial_dashboard' %}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left me-1"></i>Dashboard'a Dön
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtreler -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Fatura Türü</label>
+                    <select name="type" class="form-select" onchange="this.form.submit()">
+                        <option value="all" {% if invoice_type == 'all' %}selected{% endif %}>Tümü</option>
+                        <option value="center" {% if invoice_type == 'center' %}selected{% endif %}>İşitme Merkezi</option>
+                        <option value="producer" {% if invoice_type == 'producer' %}selected{% endif %}>Üretici Merkez</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Durum</label>
+                    <select name="status" class="form-select" onchange="this.form.submit()">
+                        <option value="all" {% if status == 'all' %}selected{% endif %}>Tümü</option>
+                        <option value="issued" {% if status == 'issued' %}selected{% endif %}>Bekliyor</option>
+                        <option value="paid" {% if status == 'paid' %}selected{% endif %}>Ödendi</option>
+                        <option value="overdue" {% if status == 'overdue' %}selected{% endif %}>Vadesi Geçmiş</option>
+                        <option value="cancelled" {% if status == 'cancelled' %}selected{% endif %}>İptal</option>
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <a href="{% url 'core:invoice_list' %}" class="btn btn-secondary w-100">
+                        <i class="fas fa-redo me-1"></i>Filtreleri Temizle
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Özet İstatistikler -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Toplam Fatura</h5>
+                    <h3 class="text-primary">{{ summary.total_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Toplam Tutar</h5>
+                    <h3 class="text-info">₺{{ summary.total_amount|floatformat:2|intcomma }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Ödenen</h5>
+                    <h3 class="text-success">₺{{ summary.paid_amount|floatformat:2|intcomma }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Bekleyen</h5>
+                    <h3 class="text-warning">₺{{ summary.pending_amount|floatformat:2|intcomma }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fatura Listesi -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Fatura No</th>
+                            <th>Tür</th>
+                            <th>Kullanıcı</th>
+                            <th>Ara Toplam</th>
+                            <th>Komisyon</th>
+                            <th>Kart Ücreti</th>
+                            <th>Toplam</th>
+                            <th>Durum</th>
+                            <th>Tarih</th>
+                            <th>İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for invoice in invoices %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'core:invoice_detail' invoice.id %}" class="fw-bold">
+                                    {{ invoice.invoice_number }}
+                                </a>
+                            </td>
+                            <td>
+                                {% if invoice.invoice_type == 'center' %}
+                                    <span class="badge bg-info"><i class="fas fa-hospital me-1"></i>Merkez</span>
+                                {% else %}
+                                    <span class="badge bg-warning"><i class="fas fa-industry me-1"></i>Üretici</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ invoice.user.get_full_name|default:invoice.user.username }}</td>
+                            <td>₺{{ invoice.subtotal|floatformat:2|intcomma }}</td>
+                            <td>
+                                {% if invoice.moldpark_commission > 0 %}
+                                    <span class="text-success">₺{{ invoice.moldpark_commission|floatformat:2|intcomma }}</span>
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>₺{{ invoice.credit_card_fee|floatformat:2|intcomma }}</td>
+                            <td class="fw-bold">₺{{ invoice.total_amount|floatformat:2|intcomma }}</td>
+                            <td>
+                                {% if invoice.status == 'paid' %}
+                                    <span class="badge bg-success">Ödendi</span>
+                                {% elif invoice.status == 'issued' %}
+                                    <span class="badge bg-warning">Bekliyor</span>
+                                {% elif invoice.status == 'overdue' %}
+                                    <span class="badge bg-danger">Vadesi Geçmiş</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">İptal</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ invoice.issue_date|date:"d.m.Y" }}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'core:invoice_detail' invoice.id %}" class="btn btn-outline-primary" title="Detay">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    {% if invoice.status == 'issued' %}
+                                    <button class="btn btn-outline-success mark-paid-btn" data-invoice-id="{{ invoice.id }}" title="Ödendi İşaretle">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="10" class="text-center text-muted py-4">
+                                <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+                                Henüz fatura bulunmuyor
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.querySelectorAll('.mark-paid-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const invoiceId = this.dataset.invoiceId;
+        if (confirm('Bu faturayı ödendi olarak işaretlemek istediğinizden emin misiniz?')) {
+            fetch(`{% url 'core:invoice_mark_paid' 0 %}`.replace('0', invoiceId), {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Hata: ' + data.message);
+                }
+            });
+        }
+    });
+});
+</script>
+{% endblock %}
+

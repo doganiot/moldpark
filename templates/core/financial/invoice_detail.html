@@ -1,0 +1,257 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load moldpark_extras %}
+{% load humanize %}
+
+{% block title %}Fatura Detay - {{ invoice.invoice_number }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .invoice-container {
+        background: white;
+        border-radius: 12px;
+        padding: 40px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .invoice-header {
+        border-bottom: 3px solid #667eea;
+        padding-bottom: 20px;
+        margin-bottom: 30px;
+    }
+    .invoice-info {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 30px;
+    }
+    .invoice-table th {
+        background: #667eea;
+        color: white;
+    }
+    .invoice-total {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-top: 30px;
+    }
+    .status-badge-large {
+        font-size: 1.2rem;
+        padding: 10px 20px;
+    }
+    @media print {
+        .no-print { display: none; }
+        .invoice-container { box-shadow: none; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-3 no-print">
+        <div class="col-md-6">
+            <a href="{% url 'core:invoice_list' %}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left me-1"></i>Faturalara Dön
+            </a>
+        </div>
+        <div class="col-md-6 text-end">
+            <button onclick="window.print()" class="btn btn-primary">
+                <i class="fas fa-print me-1"></i>Yazdır
+            </button>
+            {% if invoice.status == 'issued' %}
+            <button class="btn btn-success mark-paid-btn" data-invoice-id="{{ invoice.id }}">
+                <i class="fas fa-check me-1"></i>Ödendi İşaretle
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="invoice-container">
+        <!-- Fatura Başlık -->
+        <div class="invoice-header">
+            <div class="row">
+                <div class="col-md-6">
+                    <h1 class="mb-3">FATURA</h1>
+                    <p class="mb-1"><strong>Fatura No:</strong> {{ invoice.invoice_number }}</p>
+                    <p class="mb-1"><strong>Düzenlenme Tarihi:</strong> {{ invoice.issue_date|date:"d.m.Y" }}</p>
+                    <p class="mb-1"><strong>Vade Tarihi:</strong> {{ invoice.due_date|date:"d.m.Y" }}</p>
+                    {% if invoice.payment_date %}
+                    <p class="mb-1"><strong>Ödeme Tarihi:</strong> {{ invoice.payment_date|date:"d.m.Y" }}</p>
+                    {% endif %}
+                </div>
+                <div class="col-md-6 text-end">
+                    <img src="{% static 'images/moldpark_logo.jpg' %}" alt="MoldPark" style="max-height: 80px;" class="mb-3">
+                    <h3>MoldPark</h3>
+                    <p class="mb-1">Kulak Kalıbı Üretim Yönetim Sistemi</p>
+                    <p class="mb-1">www.moldpark.com</p>
+                    <p class="mb-1">destek@moldpark.com</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Müşteri Bilgileri -->
+        <div class="invoice-info">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5><i class="fas fa-user me-2"></i>Müşteri Bilgileri</h5>
+                    <p class="mb-1"><strong>Ad Soyad:</strong> {{ invoice.user.get_full_name|default:invoice.user.username }}</p>
+                    <p class="mb-1"><strong>E-posta:</strong> {{ invoice.user.email }}</p>
+                    <p class="mb-1"><strong>Kullanıcı Tipi:</strong> 
+                        {% if invoice.invoice_type == 'center' %}
+                            İşitme Merkezi
+                        {% else %}
+                            Üretici Merkez
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="col-md-6">
+                    <h5><i class="fas fa-info-circle me-2"></i>Fatura Durumu</h5>
+                    <p class="mb-3">
+                        {% if invoice.status == 'paid' %}
+                            <span class="status-badge-large badge bg-success">Ödendi</span>
+                        {% elif invoice.status == 'issued' %}
+                            <span class="status-badge-large badge bg-warning">Ödeme Bekliyor</span>
+                        {% elif invoice.status == 'overdue' %}
+                            <span class="status-badge-large badge bg-danger">Vadesi Geçmiş</span>
+                        {% else %}
+                            <span class="status-badge-large badge bg-secondary">İptal Edildi</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fatura Kalemleri -->
+        <div class="mb-4">
+            <h5><i class="fas fa-list me-2"></i>Fatura Kalemleri</h5>
+            <table class="table invoice-table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Hizmet</th>
+                        <th>Miktar</th>
+                        <th>Birim Fiyat</th>
+                        <th class="text-end">Toplam</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if invoice.invoice_type == 'center' %}
+                        <!-- İşitme Merkezi Faturas -->
+                        <tr>
+                            <td><strong>Aylık Sistem Kullanım Ücreti</strong></td>
+                            <td>1</td>
+                            <td>₺{{ invoice.monthly_fee|floatformat:2|intcomma }}</td>
+                            <td class="text-end">₺{{ invoice.monthly_fee|floatformat:2|intcomma }}</td>
+                        </tr>
+                        {% if invoice.physical_mold_count > 0 %}
+                        <tr>
+                            <td>Fiziksel Kalıp Gönderme Hizmeti</td>
+                            <td>{{ invoice.physical_mold_count }}</td>
+                            <td>₺450.00</td>
+                            <td class="text-end">₺{{ invoice.physical_mold_cost|floatformat:2|intcomma }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if invoice.mold_count > 0 %}
+                        <tr>
+                            <td>Fiziksel Kalıp Hizmeti (Eski)</td>
+                            <td>{{ invoice.mold_count }}</td>
+                            <td>₺450.00</td>
+                            <td class="text-end">₺{{ invoice.mold_cost|floatformat:2|intcomma }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if invoice.digital_scan_count > 0 %}
+                        <tr>
+                            <td>Digital Tarama Hizmeti</td>
+                            <td>{{ invoice.digital_scan_count }}</td>
+                            <td>₺50.00</td>
+                            <td class="text-end">₺{{ invoice.digital_scan_cost|floatformat:2|intcomma }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if invoice.modeling_count > 0 %}
+                        <tr>
+                            <td>Modeleme Hizmeti (Eski)</td>
+                            <td>{{ invoice.modeling_count }}</td>
+                            <td>₺50.00</td>
+                            <td class="text-end">₺{{ invoice.modeling_cost|floatformat:2|intcomma }}</td>
+                        </tr>
+                        {% endif %}
+                    {% else %}
+                        <!-- Üretici Merkez Faturası -->
+                        <tr>
+                            <td>Üretici Siparişleri (Brüt Gelir)</td>
+                            <td>{{ invoice.producer_order_count }}</td>
+                            <td>-</td>
+                            <td class="text-end">₺{{ invoice.producer_revenue|floatformat:2|intcomma }}</td>
+                        </tr>
+                        <tr class="table-warning">
+                            <td><strong>MoldPark Komisyonu (%6.5)</strong></td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td class="text-end text-danger">-₺{{ invoice.moldpark_commission|floatformat:2|intcomma }}</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="3" class="text-end"><strong>Ara Toplam:</strong></td>
+                        <td class="text-end"><strong>₺{{ invoice.subtotal|floatformat:2|intcomma }}</strong></td>
+                    </tr>
+                    <tr class="table-info">
+                        <td colspan="3" class="text-end">Kredi Kartı Komisyonu (%2.6):</td>
+                        <td class="text-end">₺{{ invoice.credit_card_fee|floatformat:2|intcomma }}</td>
+                    </tr>
+                    <tr class="table-success">
+                        <td colspan="3" class="text-end"><h5>TOPLAM:</h5></td>
+                        <td class="text-end"><h5>₺{{ invoice.total_amount|floatformat:2|intcomma }}</h5></td>
+                    </tr>
+                    {% if invoice.invoice_type == 'producer' %}
+                    <tr class="table-primary">
+                        <td colspan="3" class="text-end"><h5>ÜRETİCİYE NET ÖDEME:</h5></td>
+                        <td class="text-end"><h5>₺{{ invoice.net_amount|floatformat:2|intcomma }}</h5></td>
+                    </tr>
+                    {% endif %}
+                </tfoot>
+            </table>
+        </div>
+
+        <!-- Notlar -->
+        {% if invoice.notes %}
+        <div class="alert alert-info">
+            <h6><i class="fas fa-sticky-note me-2"></i>Notlar:</h6>
+            <p class="mb-0">{{ invoice.notes }}</p>
+        </div>
+        {% endif %}
+
+        <!-- Alt Bilgi -->
+        <div class="invoice-total mt-4 text-center">
+            <p class="mb-1"><small class="text-muted">Bu fatura MoldPark sistemi tarafından otomatik olarak oluşturulmuştur.</small></p>
+            <p class="mb-0"><small class="text-muted">Herhangi bir sorunuz için destek@moldpark.com adresinden bizimle iletişime geçebilirsiniz.</small></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.querySelectorAll('.mark-paid-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const invoiceId = this.dataset.invoiceId;
+        if (confirm('Bu faturayı ödendi olarak işaretlemek istediğinizden emin misiniz?')) {
+            fetch(`{% url 'core:invoice_mark_paid' 0 %}`.replace('0', invoiceId), {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Hata: ' + data.message);
+                }
+            });
+        }
+    });
+});
+</script>
+{% endblock %}
+

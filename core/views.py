@@ -815,12 +815,9 @@ def privacy_policy(request):
     return render(request, 'core/privacy.html')
 
 def pricing(request):
-    """Fiyatlandırma sayfası - artık talep sistemi ile çalışıyor"""
-    # Giriş yapmış kullanıcıları abonelik sayfasına yönlendir
-    if request.user.is_authenticated:
-        return redirect('core:subscription_dashboard')
-    
-    plans = PricingPlan.objects.filter(is_active=True).exclude(plan_type='trial').order_by('price_usd')
+    """Fiyatlandırma sayfası - basitleştirilmiş tek paket sistemi"""
+    # Sadece aktif standard planı göster
+    plans = PricingPlan.objects.filter(is_active=True, plan_type='standard')
     
     context = {
         'plans': plans

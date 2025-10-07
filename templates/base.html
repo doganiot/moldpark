@@ -248,6 +248,13 @@
                     
                     {% if user.is_authenticated %}
                         <!-- Yeni Kalıp butonu (sadece normal işitme merkezleri için, admin ve üretici merkezler görmesin) -->
+                        {% if user.is_superuser %}
+                            <li class="nav-item me-2">
+                                <a class="btn btn-success" href="{% url 'core:financial_dashboard' %}">
+                                    <i class="fas fa-chart-line me-1"></i>Finansal Dashboard
+                                </a>
+                            </li>
+                        {% endif %}
                         {% if user.center and not user.producer and not user.is_staff and not user.is_superuser %}
                             <li class="nav-item me-2">
                                 <a class="btn btn-primary" href="{% url 'mold:mold_create' %}">

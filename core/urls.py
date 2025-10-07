@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views
+from . import views, views_financial
 from .api import SystemStatusAPI, production_pipeline_api, alerts_api, health_check_api
 from . import api
 from django.shortcuts import redirect
@@ -65,4 +65,12 @@ urlpatterns = [
     path('notifications/mark-all-read/', views.mark_all_notifications_read, name='mark_all_notifications_read'),
     path('notifications/<int:notification_id>/delete/', views.delete_notification, name='delete_notification'),
     path('documentation/', views.documentation, name='documentation'),
+    
+    # Finansal Yönetim (Admin)
+    path('financial/', views_financial.financial_dashboard, name='financial_dashboard'),
+    path('financial/invoices/', views_financial.invoice_list, name='invoice_list'),
+    path('financial/invoices/<int:invoice_id>/', views_financial.invoice_detail, name='invoice_detail'),
+    path('financial/invoices/<int:invoice_id>/mark-paid/', views_financial.invoice_mark_paid, name='invoice_mark_paid'),
+    path('financial/generate-summary/', views_financial.generate_monthly_summary, name='generate_monthly_summary'),
+    path('financial/reports/', views_financial.financial_reports, name='financial_reports'),
 ] 

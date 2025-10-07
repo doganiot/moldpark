@@ -1,0 +1,28 @@
+Tam Konka Kalıbı
+Kulak kepçesinin tamamı boyutunda kalıp kalıbıdır. Güçlü performans ve maksimum ses yalıtımı sağlar.
+Orta işitme kaybı
+İleri işitme kaybı
+Çok ileri işitme kaybı
+Maksimum yalıtım
+
+Yarım Konka Kalıbı
+Kulak kepçesinin yarısı boyutunda, daha az görünür ve konforlu bir kulak kalıbı çözümü.
+
+Hafif işitme kaybı
+Orta işitme kaybı
+Konforlu kullanım
+Estetik görünüm
+
+Probe Kalıbı
+Kulak kanalı izi alınarak üretilen, minimum görünürlük sağlayan özel tasarım kalıp.
+Hafif işitme kaybı
+Orta işitme kaybı
+Görünmez tasarım
+Kanal içi konfor
+
+İskelet Tip Kalıp
+Kulak arkası işitme cihazlarında kullanılan çok popüler bir kalıp tipidir. Full mold kalıplara kıyasla daha hafif ve kozmetik açıdan daha iyidir. Kulak kanalına sıkıca oturur ancak konkayı açıkta bırakır.
+Hafif işitme kaybı
+Orta işitme kaybı
+Kozmetik görünüm
+Konforlu kullanım

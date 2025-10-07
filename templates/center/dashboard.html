@@ -17,6 +17,36 @@
     --dashboard-gray: #6b7280;
 }
 
+/* Billing Styles */
+.billing-stat {
+    text-align: center;
+    padding: 15px 10px;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 8px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.billing-stat .stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.billing-stat .stat-label {
+    font-size: 0.75rem;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.invoice-item {
+    transition: background-color 0.2s;
+}
+
+.invoice-item:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
 
 
 .dashboard-hero {
@@ -840,7 +870,74 @@
                 </div>
             </div>
         </div>
-        
+
+        <!-- Billing Overview -->
+        <div class="col-lg-4">
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <div class="card-icon bg-success bg-opacity-10">
+                        <i class="fas fa-file-invoice-dollar text-success"></i>
+                    </div>
+                    <h5 class="fw-bold mb-0">{% trans "Bu Ay Faturalandırma" %}</h5>
+                </div>
+
+                <div class="billing-overview p-4">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="billing-stat">
+                                <div class="stat-value text-primary">{{ invoice_stats.total_invoices }}</div>
+                                <div class="stat-label">Toplam Fatura</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="billing-stat">
+                                <div class="stat-value text-success">₺{{ invoice_stats.paid_amount|floatformat:0|intcomma }}</div>
+                                <div class="stat-label">Ödenen</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="billing-stat">
+                                <div class="stat-value text-warning">₺{{ invoice_stats.pending_amount|floatformat:0|intcomma }}</div>
+                                <div class="stat-label">Bekleyen</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="billing-stat">
+                                <div class="stat-value text-danger">{{ invoice_stats.overdue_invoices }}</div>
+                                <div class="stat-label">Vadesi Geçmiş</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if invoice_stats.recent_invoices %}
+                    <div class="recent-invoices mt-4">
+                        <h6 class="fw-semibold mb-3">Son Faturalar</h6>
+                        {% for invoice in invoice_stats.recent_invoices %}
+                        <div class="invoice-item d-flex justify-content-between align-items-center py-2 border-bottom">
+                            <div>
+                                <span class="fw-semibold">{{ invoice.invoice_number }}</span>
+                                <small class="text-muted d-block">{{ invoice.issue_date|date:"d.m.Y" }}</small>
+                            </div>
+                            <div class="text-end">
+                                <div class="fw-semibold">₺{{ invoice.total_amount|floatformat:0|intcomma }}</div>
+                                <span class="badge bg-{% if invoice.status == 'paid' %}success{% elif invoice.status == 'issued' %}warning{% else %}danger{% endif %} badge-sm">
+                                    {% if invoice.status == 'paid' %}Ödendi{% elif invoice.status == 'issued' %}Bekliyor{% else %}Vadesi Geçmiş{% endif %}
+                                </span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <div class="text-center mt-3">
+                        <a href="#" class="btn btn-outline-success btn-sm" onclick="alert('Fatura detayları yakında eklenecek')">
+                            {% trans "Fatura Geçmişini Gör" %} <i class="fas fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Notifications -->
         <div class="col-lg-4">
             <div class="dashboard-card">
