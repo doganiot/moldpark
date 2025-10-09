@@ -1,0 +1,403 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}Kullanım Detaylarım - MoldPark{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="mb-0">
+                                <i class="fas fa-file-invoice me-2"></i>
+                                Faturalarım
+                            </h4>
+                            <small class="text-white-50">Maliyetlerinizi, faturalarınızı ve ödeme geçmişinizi takip edin</small>
+                        </div>
+                        <div class="text-end">
+                            <div class="h5 mb-0">{{ total_amount|floatformat:2 }} ₺</div>
+                            <small class="text-white-50">Toplam Maliyet</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Current Month Usage Summary -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-info">
+                <div class="card-header bg-info bg-opacity-10">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar-alt me-2 text-info"></i>
+                        Bu Ay Kullanım Özeti
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-1">
+                            <div class="border rounded p-2">
+                                <div class="h5 text-primary mb-1">{{ current_month_stats.total_molds }}</div>
+                                <small class="text-muted">Toplam Kalıp</small>
+                            </div>
+                        </div>
+                        <div class="col-md-1">
+                            <div class="border rounded p-2">
+                                <div class="h5 text-success mb-1">{{ current_month_stats.physical_molds }}</div>
+                                <small class="text-muted">Fiziksel Kalıp</small>
+                            </div>
+                        </div>
+                        <div class="col-md-1">
+                            <div class="border rounded p-2">
+                                <div class="h5 text-warning mb-1">{{ current_month_stats.modeling_services }}</div>
+                                <small class="text-muted">3D Modelleme</small>
+                            </div>
+                        </div>
+                        <div class="col-md-1">
+                            <div class="border rounded p-2">
+                                <div class="h5 text-info mb-1">{{ current_month_stats.monthly_fee|floatformat:0 }} ₺</div>
+                                <small class="text-muted">Aylık Ücret</small>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="border rounded p-2">
+                                <div class="h5 text-danger mb-1">{{ current_month_stats.physical_cost|floatformat:0 }} ₺</div>
+                                <small class="text-muted">Fiziksel Kalıp Maliyeti</small>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="border rounded p-2">
+                                <div class="h5 text-warning mb-1">{{ current_month_stats.modeling_cost|floatformat:0 }} ₺</div>
+                                <small class="text-muted">3D Modelleme Maliyeti</small>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="border rounded p-2">
+                                <div class="h5 text-primary mb-1">{{ current_month_stats.estimated_total|floatformat:0 }} ₺</div>
+                                <small class="text-muted">Tahmini Toplam</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Usage History -->
+    {% if monthly_usage %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history me-2"></i>
+                        Aylık Kullanım Geçmişi
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Dönem</th>
+                                    <th>Aylık Ücret</th>
+                                    <th>Fiziksel Kalıp</th>
+                                    <th>3D Modelleme</th>
+                                    <th>Ara Toplam</th>
+                                    <th>KK Komisyonu</th>
+                                    <th>Toplam</th>
+                                    <th>Durum</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for usage in monthly_usage %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ usage.month_name }} {{ usage.year }}</strong>
+                                    </td>
+                                    <td>{{ usage.monthly_fee|floatformat:0 }} ₺</td>
+                                    <td>
+                                        {{ usage.physical_molds }} adet<br>
+                                        <small class="text-muted">{{ usage.physical_cost|floatformat:0 }} ₺</small>
+                                    </td>
+                                    <td>
+                                        {{ usage.modeling_services }} adet<br>
+                                        <small class="text-muted">{{ usage.modeling_cost|floatformat:0 }} ₺</small>
+                                    </td>
+                                    <td>{{ usage.subtotal|floatformat:0 }} ₺</td>
+                                    <td>{{ usage.credit_card_fee|floatformat:0 }} ₺</td>
+                                    <td>
+                                        <strong class="text-primary">{{ usage.total|floatformat:0 }} ₺</strong>
+                                    </td>
+                                    <td>
+                                        {% if usage.status == 'paid' %}
+                                            <span class="badge bg-success">Ödendi</span>
+                                        {% elif usage.status == 'overdue' %}
+                                            <span class="badge bg-danger">Vadesi Geçmiş</span>
+                                        {% elif usage.status == 'issued' %}
+                                            <span class="badge bg-warning">Bekliyor</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ usage.status|title }}</span>
+                                        {% endif %}
+                                        {% if usage.invoice_id %}
+                                        <br><small><a href="{% url 'center:usage_invoice_detail' usage.invoice_id %}" class="text-decoration-none">Detay →</a></small>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card border-primary">
+                <div class="card-body text-center">
+                    <div class="display-6 text-primary mb-2">
+                        <i class="fas fa-file-invoice"></i>
+                    </div>
+                    <h3 class="text-primary">{{ total_invoices }}</h3>
+                    <p class="text-muted mb-0">Toplam Fatura</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-success">
+                <div class="card-body text-center">
+                    <div class="display-6 text-success mb-2">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <h3 class="text-success">{{ paid_invoices }}</h3>
+                    <p class="text-muted mb-0">Ödenmiş Fatura</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-warning">
+                <div class="card-body text-center">
+                    <div class="display-6 text-warning mb-2">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <h3 class="text-warning">{{ pending_invoices }}</h3>
+                    <p class="text-muted mb-0">Bekleyen Fatura</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-filter me-2"></i>
+                Filtreler
+            </h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Durum</label>
+                    <select name="status" class="form-select">
+                        <option value="">Tümü</option>
+                        {% for status_value, status_label in status_choices %}
+                        <option value="{{ status_value }}" {% if status_filter == status_value %}selected{% endif %}>
+                            {{ status_label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Yıl</label>
+                    <select name="year" class="form-select">
+                        <option value="">Tümü</option>
+                        {% for year_date in years %}
+                        <option value="{{ year_date.year }}" {% if year_filter == year_date.year|stringformat:"s" %}selected{% endif %}>
+                            {{ year_date.year }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Ay</label>
+                    <select name="month" class="form-select">
+                        <option value="">Tümü</option>
+                        <option value="1" {% if month_filter == '1' %}selected{% endif %}>Ocak</option>
+                        <option value="2" {% if month_filter == '2' %}selected{% endif %}>Şubat</option>
+                        <option value="3" {% if month_filter == '3' %}selected{% endif %}>Mart</option>
+                        <option value="4" {% if month_filter == '4' %}selected{% endif %}>Nisan</option>
+                        <option value="5" {% if month_filter == '5' %}selected{% endif %}>Mayıs</option>
+                        <option value="6" {% if month_filter == '6' %}selected{% endif %}>Haziran</option>
+                        <option value="7" {% if month_filter == '7' %}selected{% endif %}>Temmuz</option>
+                        <option value="8" {% if month_filter == '8' %}selected{% endif %}>Ağustos</option>
+                        <option value="9" {% if month_filter == '9' %}selected{% endif %}>Eylül</option>
+                        <option value="10" {% if month_filter == '10' %}selected{% endif %}>Ekim</option>
+                        <option value="11" {% if month_filter == '11' %}selected{% endif %}>Kasım</option>
+                        <option value="12" {% if month_filter == '12' %}selected{% endif %}>Aralık</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="fas fa-search me-1"></i>
+                        Filtrele
+                    </button>
+                    <a href="{% url 'center:usage_details' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times me-1"></i>
+                        Temizle
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Detailed Invoice History -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-list me-2"></i>
+                Detaylı Fatura Geçmişi
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if page_obj %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Fatura No</th>
+                                <th>Kesim Tarihi</th>
+                                <th>Vade Tarihi</th>
+                                <th>Tutar</th>
+                                <th>Durum</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for invoice in page_obj %}
+                            <tr>
+                                <td>
+                                    <strong>{{ invoice.invoice_number }}</strong>
+                                </td>
+                                <td>{{ invoice.issue_date|date:"d.m.Y" }}</td>
+                                <td>{{ invoice.due_date|date:"d.m.Y" }}</td>
+                                <td>
+                                    <strong class="text-primary">{{ invoice.total_amount|floatformat:2 }} ₺</strong>
+                                </td>
+                                <td>
+                                    {% if invoice.status == 'paid' %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check me-1"></i>Ödendi
+                                        </span>
+                                    {% elif invoice.status == 'overdue' %}
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-exclamation-triangle me-1"></i>Vadesi Geçmiş
+                                        </span>
+                                    {% elif invoice.status == 'issued' %}
+                                        <span class="badge bg-warning">
+                                            <i class="fas fa-clock me-1"></i>Bekliyor
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ invoice.get_status_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'center:usage_invoice_detail' invoice.id %}"
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye me-1"></i>Detay
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                {% if page_obj.has_other_pages %}
+                <nav aria-label="Fatura sayfalandırma" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if year_filter %}&year={{ year_filter }}{% endif %}{% if month_filter %}&month={{ month_filter }}{% endif %}">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <a class="page-link"><i class="fas fa-chevron-left"></i></a>
+                        </li>
+                        {% endif %}
+
+                        {% for page_num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == page_num %}
+                        <li class="page-item active">
+                            <a class="page-link">{{ page_num }}</a>
+                        </li>
+                        {% elif page_num > page_obj.number|add:'-3' and page_num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_num }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if year_filter %}&year={{ year_filter }}{% endif %}{% if month_filter %}&month={{ month_filter }}{% endif %}">{{ page_num }}</a>
+                        </li>
+                        {% endif %}
+                        {% endfor %}
+
+                        {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if year_filter %}&year={{ year_filter }}{% endif %}{% if month_filter %}&month={{ month_filter }}{% endif %}">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <a class="page-link"><i class="fas fa-chevron-right"></i></a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">Henüz kullanım verisi bulunmuyor</h5>
+                    <p class="text-muted">İlk faturanız ayın 28'inde oluşturulacaktır.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.table th {
+    border-top: none;
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.card-header {
+    border-bottom: 2px solid #e9ecef;
+}
+
+.badge {
+    font-size: 0.75rem;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+</style>
+{% endblock %}
+

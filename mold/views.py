@@ -113,7 +113,7 @@ def mold_create(request):
 
                     # Detaylı maliyet bilgisini hesapla
                     physical_cost = subscription.plan.per_mold_price_try if mold.is_physical_shipment else 0
-                    digital_cost = subscription.plan.modeling_service_fee_try if mold.scan_file else 0
+                    digital_cost = subscription.plan.modeling_service_fee_try if not mold.is_physical_shipment else 0
 
                     # Maliyet bilgisini kullanıcıya göster
                     if physical_cost > 0 and digital_cost > 0:

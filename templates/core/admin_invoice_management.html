@@ -1,0 +1,307 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Fatura Yönetimi - Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="fas fa-file-invoice text-primary me-2"></i>
+                        Fatura Yönetimi
+                    </h2>
+                    <p class="text-muted mb-0">Tüm faturaları görüntüleyin ve yönetin</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'core:admin_financial_dashboard' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-chart-line me-1"></i>Finans Dashboard
+                    </a>
+                    <a href="{% url 'core:admin_generate_invoices' %}" class="btn btn-success">
+                        <i class="fas fa-plus me-1"></i>Fatura Oluştur
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Durum</label>
+                            <select name="status" class="form-select">
+                                <option value="">Tümü</option>
+                                {% for value, label in status_choices %}
+                                <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Fatura Türü</label>
+                            <select name="type" class="form-select">
+                                <option value="">Tümü</option>
+                                {% for value, label in type_choices %}
+                                <option value="{{ value }}" {% if type_filter == value %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Arama</label>
+                            <input type="text" name="search" class="form-control"
+                                   placeholder="Fatura no, isim, firma ara..."
+                                   value="{{ search_query }}">
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-search me-1"></i>Filtrele
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invoices Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Fatura No</th>
+                                    <th>Kullanıcı/Firma</th>
+                                    <th>Tür</th>
+                                    <th>Tutar</th>
+                                    <th>Durum</th>
+                                    <th>Kesim Tarihi</th>
+                                    <th>Vade Tarihi</th>
+                                    <th>İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for invoice in page_obj %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ invoice.invoice_number }}</strong>
+                                    </td>
+                                    <td>
+                                        {% if invoice.invoice_type == 'producer_monthly' %}
+                                            <div>
+                                                <strong>{{ invoice.producer.company_name }}</strong>
+                                                <br><small class="text-muted">{{ invoice.producer.user.get_full_name }}</small>
+                                            </div>
+                                        {% else %}
+                                            <div>
+                                                <strong>{{ invoice.user.get_full_name }}</strong>
+                                                {% if invoice.user.center %}
+                                                <br><small class="text-muted">{{ invoice.user.center.name }}</small>
+                                                {% endif %}
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ invoice.get_status_color }}">
+                                            {{ invoice.get_invoice_type_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <strong class="text-primary">₺{{ invoice.total_amount|floatformat:2 }}</strong>
+                                        {% if invoice.net_amount != invoice.total_amount %}
+                                        <br><small class="text-muted">Net: ₺{{ invoice.net_amount|floatformat:2 }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if invoice.status == 'paid' %}
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check me-1"></i>{{ invoice.get_status_display }}
+                                            </span>
+                                        {% elif invoice.status == 'overdue' %}
+                                            <span class="badge bg-danger">
+                                                <i class="fas fa-exclamation-triangle me-1"></i>{{ invoice.get_status_display }}
+                                            </span>
+                                        {% elif invoice.status == 'sent' %}
+                                            <span class="badge bg-info">
+                                                <i class="fas fa-paper-plane me-1"></i>{{ invoice.get_status_display }}
+                                            </span>
+                                        {% elif invoice.status == 'issued' %}
+                                            <span class="badge bg-warning">
+                                                <i class="fas fa-clock me-1"></i>{{ invoice.get_status_display }}
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ invoice.get_status_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ invoice.issue_date|date:"d.m.Y" }}</td>
+                                    <td>
+                                        {{ invoice.due_date|date:"d.m.Y" }}
+                                        {% if invoice.is_overdue %}
+                                        <br><small class="text-danger">Vadesi geçmiş!</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <a href="{% url 'core:admin_invoice_detail' invoice.id %}"
+                                               class="btn btn-sm btn-outline-primary"
+                                               title="Detay">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            {% if invoice.status == 'issued' %}
+                                            <button type="button" class="btn btn-sm btn-outline-success"
+                                                    onclick="updateInvoiceStatus({{ invoice.id }}, 'sent')"
+                                                    title="Gönderildi Olarak İşaretle">
+                                                <i class="fas fa-paper-plane"></i>
+                                            </button>
+                                            {% endif %}
+                                            {% if invoice.status in 'sent,issued' %}
+                                            <button type="button" class="btn btn-sm btn-outline-success"
+                                                    onclick="markAsPaid({{ invoice.id }})"
+                                                    title="Ödendi Olarak İşaretle">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="8" class="text-center py-5">
+                                        <div class="d-flex flex-column align-items-center">
+                                            <i class="fas fa-file-invoice fa-3x text-muted mb-3"></i>
+                                            <p class="text-muted mb-0">Henüz fatura bulunmuyor.</p>
+                                            <a href="{% url 'core:admin_generate_invoices' %}" class="btn btn-primary mt-3">
+                                                <i class="fas fa-plus me-2"></i>Fatura Oluştur
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <nav>
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1{% if status_filter %}&status={{ status_filter }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">İlk</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">Önceki</a>
+                        </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">Sonraki</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">Son</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function updateInvoiceStatus(invoiceId, action) {
+    if (!confirm('Bu işlemi yapmak istediğinize emin misiniz?')) return;
+
+    fetch(`/core/admin/invoices/${invoiceId}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': getCsrfToken()
+        },
+        body: `action=${action}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Hata: ' + (data.error || 'İşlem başarısız'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Bir hata oluştu');
+    });
+}
+
+function markAsPaid(invoiceId) {
+    const paymentMethod = prompt('Ödeme yöntemi (bank_transfer, credit_card, cash):', 'bank_transfer');
+    const transactionId = prompt('İşlem ID (opsiyonel):', '');
+
+    if (!paymentMethod) return;
+
+    fetch(`/core/admin/invoices/${invoiceId}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': getCsrfToken()
+        },
+        body: `action=mark_paid&payment_method=${paymentMethod}&transaction_id=${transactionId}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Hata: ' + (data.error || 'İşlem başarısız'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Bir hata oluştu');
+    });
+}
+
+function getCsrfToken() {
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+        const [name, value] = cookie.trim().split('=');
+        if (name === 'csrftoken') {
+            return value;
+        }
+    }
+    return '';
+}
+</script>
+{% endblock %}

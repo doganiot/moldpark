@@ -1220,6 +1220,81 @@ function showSuccess(message) {
             </div>
             {% endif %}
 
+            <!-- Fiziksel Kalıp İşlemleri -->
+            {% if ear_mold.is_physical_shipment %}
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-cogs me-2"></i>
+                        Fiziksel Kalıp İşlemleri
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% if ear_mold.status == 'shipped_to_producer' %}
+                        <div class="col-md-6 mb-3">
+                            <a href="{% url 'producer:receive_physical_shipment' ear_mold.id %}"
+                               class="btn btn-success btn-lg w-100">
+                                <i class="fas fa-box-open me-2"></i>
+                                Kargo Teslim Alındı
+                            </a>
+                        </div>
+                        {% endif %}
+
+                        {% if ear_mold.status == 'processing' %}
+                        <div class="col-md-6 mb-3">
+                            <a href="{% url 'producer:start_physical_production' ear_mold.id %}"
+                               class="btn btn-info btn-lg w-100">
+                                <i class="fas fa-play me-2"></i>
+                                Üretime Başla
+                            </a>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <a href="{% url 'producer:complete_physical_production' ear_mold.id %}"
+                               class="btn btn-warning btn-lg w-100">
+                                <i class="fas fa-check-circle me-2"></i>
+                                Üretimi Tamamla
+                            </a>
+                        </div>
+                        {% endif %}
+
+                        {% if ear_mold.status == 'completed' %}
+                        <div class="col-md-6 mb-3">
+                            <a href="{% url 'producer:ship_to_center' ear_mold.id %}"
+                               class="btn btn-primary btn-lg w-100">
+                                <i class="fas fa-truck me-2"></i>
+                                Merkeze Gönder
+                            </a>
+                        </div>
+                        {% endif %}
+
+                        {% if ear_mold.status == 'shipped_to_center' %}
+                        <div class="col-md-6 mb-3">
+                            <a href="{% url 'producer:mark_delivered' ear_mold.id %}"
+                               class="btn btn-success btn-lg w-100">
+                                <i class="fas fa-check-double me-2"></i>
+                                Teslim Edildi
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Durum Açıklaması -->
+                    <div class="alert alert-info mt-3">
+                        <h6><i class="fas fa-info-circle me-2"></i>Fiziksel Kalıp Süreci</h6>
+                        <ul class="mb-0 small">
+                            <li><strong>Kargo Teslim Alındı:</strong> Fiziksel kalıp üreticiye ulaştı</li>
+                            <li><strong>İşlemeye Alındı:</strong> Kalıp üretime hazır</li>
+                            <li><strong>Üretime Başla:</strong> Üretim süreci başlatıldı</li>
+                            <li><strong>Üretimi Tamamla:</strong> Kalıp üretimi bitti, kargoya hazır</li>
+                            <li><strong>Merkeze Gönder:</strong> Kalıp merkeze kargoya verildi</li>
+                            <li><strong>Teslim Edildi:</strong> Kalıp merkeze ulaştı</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Kargo Bilgisi Ekleme -->
             {% if producer_order.status in 'packaging,quality_check' %}
             <div class="card mb-4">

@@ -1,0 +1,300 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Kazançlarım ve Ödemelerim - MoldPark{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="mb-0">
+                                <i class="fas fa-money-bill-wave me-2"></i>
+                                Kazançlarım ve Ödemelerim
+                            </h4>
+                            <small class="text-white-50">Verdiğiniz hizmetlerin karşılığını ve ödeme geçmişinizi takip edin</small>
+                        </div>
+                        <div class="text-end">
+                            <div class="h5 mb-0">{{ total_net_amount_received|floatformat:0 }} ₺</div>
+                            <small class="text-white-50">Toplam Alınan Ödeme</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kazanç Özeti -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Bu Ay Brüt Kazanç</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">₺{{ earnings_this_month.gross_revenue|floatformat:0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Bu Ay Net Kazanç</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">₺{{ earnings_this_month.net_earnings|floatformat:0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-coins fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Bekleyen Ödeme</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">₺{{ pending_payments|floatformat:0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Toplam Sipariş</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_orders_completed|intcomma }}</div>
+                            <div class="text-xs text-muted">Tamamlanan</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-shopping-cart fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Aylık Kazanç Trendi -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-bar me-1"></i>Son 6 Ay Kazanç Trendi
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Dönem</th>
+                                    <th>Brüt Kazanç</th>
+                                    <th>MoldPark Ücreti</th>
+                                    <th>KK Komisyonu</th>
+                                    <th>Net Kazanç</th>
+                                    <th>Durum</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for earning in monthly_earnings %}
+                                <tr>
+                                    <td><strong>{{ earning.month_name }}</strong></td>
+                                    <td>₺{{ earning.gross_revenue|floatformat:0 }}</td>
+                                    <td class="text-danger">-₺{{ earning.deductions|floatformat:0 }}</td>
+                                    <td class="text-danger">-%2.6</td>
+                                    <td class="text-success"><strong>₺{{ earning.net_earnings|floatformat:0 }}</strong></td>
+                                    <td>
+                                        {% if earning.net_earnings > 0 %}
+                                            <span class="badge bg-success">Kazanç Var</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Kazanç Yok</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ödeme Geçmişi -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history me-2"></i>
+                        Ödeme Geçmişi
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if page_obj %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Fatura No</th>
+                                        <th>Dönem</th>
+                                        <th>Brüt Tutar</th>
+                                        <th>Kesintiler</th>
+                                        <th>Net Ödeme</th>
+                                        <th>Durum</th>
+                                        <th>İşlemler</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for invoice in page_obj %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ invoice.invoice_number }}</strong>
+                                        </td>
+                                        <td>{{ invoice.issue_date|date:"F Y" }}</td>
+                                        <td>₺{{ invoice.producer_gross_revenue|floatformat:2 }}</td>
+                                        <td class="text-danger">
+                                            -₺{{ invoice.total_deductions|floatformat:2 }}
+                                            <br><small>MoldPark: ₺{{ invoice.moldpark_system_fee|floatformat:2 }}</small>
+                                        </td>
+                                        <td class="text-success">
+                                            <strong>₺{{ invoice.net_amount|floatformat:2 }}</strong>
+                                        </td>
+                                        <td>
+                                            {% if invoice.status == 'paid' %}
+                                                <span class="badge bg-success">
+                                                    <i class="fas fa-check me-1"></i>Ödendi
+                                                </span>
+                                                <br><small class="text-muted">{{ invoice.payment_date|date:"d.m.Y" }}</small>
+                                            {% elif invoice.status == 'sent' %}
+                                                <span class="badge bg-info">
+                                                    <i class="fas fa-paper-plane me-1"></i>Gönderildi
+                                                </span>
+                                            {% elif invoice.status == 'issued' %}
+                                                <span class="badge bg-warning">
+                                                    <i class="fas fa-clock me-1"></i>Hazırlanıyor
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">{{ invoice.get_status_display }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if invoice.status == 'paid' %}
+                                                <span class="text-success">
+                                                    <i class="fas fa-check-circle me-1"></i>Ödeme Tamamlandı
+                                                </span>
+                                            {% else %}
+                                                <span class="text-muted">
+                                                    <i class="fas fa-clock me-1"></i>Bekliyor
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="7" class="text-center py-5">
+                                            <div class="d-flex flex-column align-items-center">
+                                                <i class="fas fa-money-bill-wave fa-3x text-muted mb-3"></i>
+                                                <p class="text-muted mb-0">Henüz ödeme bulunmuyor.</p>
+                                                <p class="text-muted small">İlk ödemeniz ay sonunda gerçekleştirilecektir.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination -->
+                        {% if page_obj.has_other_pages %}
+                        <nav aria-label="Ödeme sayfalandırma" class="mt-4">
+                            <ul class="pagination justify-content-center">
+                                {% if page_obj.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=1{% if status_filter %}&status={{ status_filter }}{% endif %}{% if year_filter %}&year={{ year_filter }}{% endif %}{% if month_filter %}&month={{ month_filter }}{% endif %}">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if year_filter %}&year={{ year_filter }}{% endif %}{% if month_filter %}&month={{ month_filter }}{% endif %}">Önceki</a>
+                                </li>
+                                {% endif %}
+
+                                {% for num in page_obj.paginator.page_range %}
+                                {% if page_obj.number == num %}
+                                <li class="page-item active">
+                                    <a class="page-link">{{ num }}</a>
+                                </li>
+                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ num }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if year_filter %}&year={{ year_filter }}{% endif %}{% if month_filter %}&month={{ month_filter }}{% endif %}">{{ num }}</a>
+                                </li>
+                                {% endif %}
+                                {% endfor %}
+
+                                {% if page_obj.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if year_filter %}&year={{ year_filter }}{% endif %}{% if month_filter %}&month={{ month_filter }}{% endif %}">Sonraki</a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if year_filter %}&year={{ year_filter }}{% endif %}{% if month_filter %}&month={{ month_filter }}{% endif %}">Son</a>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                        {% endif %}
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-money-bill-wave fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">Henüz ödeme verisi bulunmuyor</h5>
+                            <p class="text-muted">İlk ödemeniz ayın 28'inde gerçekleştirilecektir.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bilgilendirme -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <h6><i class="fas fa-info-circle me-2"></i>Ödeme Süreci Hakkında</h6>
+                <ul class="mb-0">
+                    <li><strong>Aylık Ödeme:</strong> Her ayın 28'inde tamamlanan siparişler için fatura hazırlanır</li>
+                    <li><strong>Kesintiler:</strong> MoldPark sistem ücreti (%6.5) ve KK komisyonu (%2.6) düşüldükten sonra ödeme yapılır</li>
+                    <li><strong>Ödeme Süresi:</strong> Fatura gönderildikten sonra 15 gün içinde ödeme yapılır</li>
+                    <li><strong>İletişim:</strong> Ödeme ile ilgili sorularınız için admin ile iletişime geçebilirsiniz</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

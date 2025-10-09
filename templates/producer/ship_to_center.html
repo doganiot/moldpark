@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Merkeze Gönder - {{ mold.patient_name }} {{ mold.patient_surname }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-truck me-2"></i>
+                        Tamamlanan Kalıbı Merkeze Gönder
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-shipping-fast fa-4x text-primary mb-3"></i>
+                        <h5>{{ mold.patient_name }} {{ mold.patient_surname }}</h5>
+                        <p class="text-muted">Hasta için tamamlanan fiziksel kalıp merkeze kargoya verilecek.</p>
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Kargo Şirketi <span class="text-danger">*</span></label>
+                                <select name="carrier" class="form-select" required>
+                                    <option value="">Seçiniz...</option>
+                                    {% for carrier_value, carrier_name in carrier_choices %}
+                                    <option value="{{ carrier_value }}">{{ carrier_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Takip Numarası <span class="text-danger">*</span></label>
+                                <input type="text" name="tracking_number" class="form-control" required
+                                       placeholder="Kargo takip numarasını girin">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Tahmini Teslimat Tarihi</label>
+                            <input type="date" name="estimated_delivery" class="form-control">
+                        </div>
+
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-info-circle me-2"></i>İşlem Açıklaması</h6>
+                            <p class="mb-0">Bu işlem kalıbın merkeze gönderildiğini belirtir. Kargo bilgileri kaydedilir ve merkez bilgilendirilir.</p>
+                        </div>
+
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-truck me-2"></i>
+                                Merkeze Gönder
+                            </button>
+                            <a href="{% url 'producer:mold_detail' mold.id %}" class="btn btn-secondary btn-lg ms-2">
+                                <i class="fas fa-times me-2"></i>
+                                İptal
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

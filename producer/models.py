@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator
 from center.models import Center
 from django.utils import timezone
+from decimal import Decimal
 
 
 class Producer(models.Model):
@@ -169,6 +170,122 @@ class Producer(models.Model):
         else:
             return 'secondary'
 
+    def get_monthly_revenue(self, year=None, month=None):
+        """Belirtilen ay için toplam geliri hesapla"""
+        from django.db.models import Q
+        from decimal import Decimal
+
+        if not year or not month:
+            from datetime import date
+            current_date = date.today()
+            year = current_date.year
+            month = current_date.month
+
+        # Ayın başlangıç ve bitiş tarihlerini hesapla
+        from datetime import date
+        start_date = date(year, month, 1)
+        if month == 12:
+            end_date = date(year + 1, 1, 1)
+        else:
+            end_date = date(year, month + 1, 1)
+
+        # Tamamlanan siparişleri al
+        completed_orders = self.orders.filter(
+            status='delivered',
+            actual_delivery__gte=start_date,
+            actual_delivery__lt=end_date
+        )
+
+        total_revenue = Decimal('0.00')
+        for order in completed_orders:
+            # Sipariş türüne göre fiyat belirle
+            if order.ear_mold.is_physical_shipment:
+                total_revenue += Decimal('350.00')  # Fiziksel kalıp
+            else:
+                total_revenue += Decimal('150.00')  # Dijital tarama
+
+        return total_revenue
+
+    def get_total_earnings(self):
+        """Toplam kazançları hesapla"""
+        from decimal import Decimal
+
+        total_gross = Decimal('0.00')
+        total_completed_orders = 0
+
+        # Tüm tamamlanan siparişler için
+        for order in self.orders.filter(status='delivered'):
+            if order.ear_mold.is_physical_shipment:
+                total_gross += Decimal('350.00')
+            else:
+                total_gross += Decimal('150.00')
+            total_completed_orders += 1
+
+        # Kesintiler
+        moldpark_fee = total_gross * Decimal('0.065')  # %6.5
+        credit_card_fee = total_gross * Decimal('0.026')  # %2.6
+        total_deductions = moldpark_fee + credit_card_fee
+
+        net_earnings = total_gross - total_deductions
+
+        return {
+            'total_orders': total_completed_orders,
+            'gross_revenue': total_gross,
+            'moldpark_fee': moldpark_fee,
+            'credit_card_fee': credit_card_fee,
+            'total_deductions': total_deductions,
+            'net_earnings': net_earnings
+        }
+
+    def get_pending_payments(self):
+        """Ödenmemiş fatura tutarlarını hesapla"""
+        from decimal import Decimal
+
+        pending_invoices = self.invoices.filter(
+            status__in=['sent', 'issued']
+        )
+
+        total_pending = Decimal('0.00')
+        for invoice in pending_invoices:
+            total_pending += invoice.net_amount
+
+        return total_pending
+
+    def get_earnings_by_month(self, limit=12):
+        """Son X ay için aylık kazançları döndür"""
+        from datetime import date, timedelta
+        from calendar import monthrange
+
+        earnings = []
+        current_date = date.today()
+
+        for i in range(limit):
+            target_date = current_date - timedelta(days=30 * i)
+            year = target_date.year
+            month = target_date.month
+
+            monthly_revenue = self.get_monthly_revenue(year, month)
+
+            # Kesintiler
+            moldpark_fee = monthly_revenue * Decimal('0.065')
+            credit_card_fee = monthly_revenue * Decimal('0.026')
+            net_earnings = monthly_revenue - moldpark_fee - credit_card_fee
+
+            earnings.append({
+                'year': year,
+                'month': month,
+                'month_name': {
+                    1: 'Ocak', 2: 'Şubat', 3: 'Mart', 4: 'Nisan',
+                    5: 'Mayıs', 6: 'Haziran', 7: 'Temmuz', 8: 'Ağustos',
+                    9: 'Eylül', 10: 'Ekim', 11: 'Kasım', 12: 'Aralık'
+                }.get(month, ''),
+                'gross_revenue': monthly_revenue,
+                'net_earnings': net_earnings,
+                'deductions': moldpark_fee + credit_card_fee
+            })
+
+        return earnings
+
 
 class ProducerNetwork(models.Model):
     """Üretici-Merkez Ağ İlişkisi"""
@@ -275,7 +392,10 @@ class ProducerOrder(models.Model):
     shipping_company = models.CharField('Kargo Şirketi', max_length=100, blank=True)
     tracking_number = models.CharField('Takip Numarası', max_length=100, blank=True)
     shipping_cost = models.DecimalField('Kargo Ücreti', max_digits=10, decimal_places=2, blank=True, null=True)
-    
+
+    # Fiyat Bilgileri
+    price = models.DecimalField('Sipariş Tutarı', max_digits=10, decimal_places=2, default=0.00, help_text='Bu sipariş için üreticiye ödenecek toplam tutar')
+
     # Notlar
     producer_notes = models.TextField('Üretici Notları', blank=True)
     center_notes = models.TextField('Merkez Notları', blank=True)
@@ -292,11 +412,36 @@ class ProducerOrder(models.Model):
     def __str__(self):
         return f'{self.order_number} - {self.center.name}'
 
+    def calculate_price(self):
+        """Sipariş fiyatını hesapla"""
+        from core.models import PricingPlan
+
+        # Aktif fiyatlandırma planını al
+        try:
+            pricing_plan = PricingPlan.objects.filter(is_active=True).first()
+            if not pricing_plan:
+                # Varsayılan fiyatlar
+                return 450.00 if self.ear_mold.is_physical_shipment else 50.00
+        except PricingPlan.DoesNotExist:
+            # Varsayılan fiyatlar
+            return 450.00 if self.ear_mold.is_physical_shipment else 50.00
+
+        # Fiziksel gönderim için per_mold_price_try, dijital için modeling_service_fee_try
+        if self.ear_mold.is_physical_shipment:
+            return pricing_plan.per_mold_price_try
+        else:
+            return pricing_plan.modeling_service_fee_try
+
     def save(self, *args, **kwargs):
         if not self.order_number:
             # Otomatik sipariş numarası oluştur
             import uuid
             self.order_number = f'PRD-{uuid.uuid4().hex[:8].upper()}'
+
+        # Eğer price 0 ise hesapla
+        if self.price == 0:
+            self.price = self.calculate_price()
+
         super().save(*args, **kwargs)
 
     def get_status_color(self):

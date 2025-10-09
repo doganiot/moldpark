@@ -24,11 +24,12 @@ class EarMold(models.Model):
     
     STATUS_CHOICES = (
         ('waiting', 'Bekliyor'),
+        ('shipped_to_producer', 'Üreticiye Gönderildi'),
         ('processing', 'İşleniyor'),
         ('completed', 'Tamamlandı'),
         ('revision', 'Revizyon'),
         ('rejected', 'Reddedildi'),
-        ('shipping', 'Kargoda'),
+        ('shipped_to_center', 'Merkeze Gönderildi'),
         ('delivered', 'Teslim Edildi'),
     )
     

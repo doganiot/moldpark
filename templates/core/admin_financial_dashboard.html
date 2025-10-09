@@ -1,0 +1,322 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% load static %}
+
+{% block title %}MoldPark Finans Dashboard - Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="fas fa-chart-line text-success me-2"></i>
+                        MoldPark Finans Dashboard
+                    </h2>
+                    <p class="text-muted mb-0">Sistem genel finansal durumu ve gelir takibi</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'core:admin_invoice_management' %}" class="btn btn-primary">
+                        <i class="fas fa-file-invoice me-1"></i>Faturalar
+                    </a>
+                    <a href="{% url 'core:admin_generate_invoices' %}" class="btn btn-success">
+                        <i class="fas fa-plus me-1"></i>Fatura Oluştur
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ana İstatistikler -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Bu Ay Gelir</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">₺{{ current_month_revenue|floatformat:0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Bekleyen Ödemeler</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">₺{{ total_pending_amount|floatformat:0 }}</div>
+                            <div class="text-xs text-muted">
+                                Merkez: ₺{{ pending_center_invoices|floatformat:0 }} |
+                                Üretici: ₺{{ pending_producer_payments|floatformat:0 }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Toplam İşlem</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_molds|intcomma }}</div>
+                            <div class="text-xs text-muted">Tamamlanan: {{ completed_molds|intcomma }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-cube fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Aktif Kullanıcılar</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_centers|intcomma }}</div>
+                            <div class="text-xs text-muted">Merkez: {{ total_centers|intcomma }} | Üretici: {{ total_producers|intcomma }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gelir Trendi -->
+    <div class="row mb-4">
+        <div class="col-xl-8 col-lg-7">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Son 6 Ay Gelir Trendi</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-area">
+                        <canvas id="revenueChart" width="100%" height="50"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4 col-lg-5">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Bu Ay Komisyon Kırılımı</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-pie pt-4">
+                        <canvas id="commissionChart" width="100%" height="50"></canvas>
+                    </div>
+                    <hr>
+                    <div class="text-center small">
+                        <span class="mr-2">
+                            <i class="fas fa-circle text-primary"></i> Sistem Ücreti (%6.5)
+                        </span>
+                        <span class="mr-2">
+                            <i class="fas fa-circle text-success"></i> KK Komisyonu (%2.6)
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Listeler -->
+    <div class="row">
+        <!-- En Çok Gelir Getiren Merkezler -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-trophy me-1"></i>En Çok Gelir Getiren Merkezler
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if top_centers %}
+                        <div class="table-responsive">
+                            <table class="table table-borderless">
+                                <tbody>
+                                    {% for item in top_centers %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="badge bg-primary rounded-pill me-2" style="width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">
+                                                    {{ forloop.counter }}
+                                                </div>
+                                                <div>
+                                                    <div class="font-weight-bold">{{ item.center.name }}</div>
+                                                    <small class="text-muted">{{ item.center.city|default:"Şehir bilgisi yok" }}</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="text-end">
+                                            <span class="badge bg-success">₺{{ item.revenue|floatformat:0 }}</span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">Henüz gelir verisi bulunmuyor</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- En Çok Kazanç Getiren Üreticiler -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-success">
+                        <i class="fas fa-star me-1"></i>En Çok MoldPark'a Gelir Sağlayan Üreticiler
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if top_producers %}
+                        <div class="table-responsive">
+                            <table class="table table-borderless">
+                                <tbody>
+                                    {% for item in top_producers %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="badge bg-success rounded-pill me-2" style="width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">
+                                                    {{ forloop.counter }}
+                                                </div>
+                                                <div>
+                                                    <div class="font-weight-bold">{{ item.producer.company_name }}</div>
+                                                    <small class="text-muted">{{ item.total_orders }} sipariş</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="text-end">
+                                            <span class="badge bg-warning text-dark">₺{{ item.moldpark_revenue|floatformat:0 }}</span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-industry fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">Henüz üretici gelir verisi bulunmuyor</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Gelir Trendi Chart
+const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+const revenueData = {{ revenue_trend|safe }};
+
+new Chart(revenueCtx, {
+    type: 'line',
+    data: {
+        labels: revenueData.map(item => item.month_name),
+        datasets: [{
+            label: 'Aylık Gelir (₺)',
+            data: revenueData.map(item => parseFloat(item.revenue)),
+            borderColor: 'rgb(75, 192, 192)',
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            tension: 0.1
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'top',
+            },
+            title: {
+                display: true,
+                text: 'MoldPark Aylık Gelir Trendi'
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return '₺' + value.toLocaleString('tr-TR');
+                    }
+                }
+            }
+        }
+    }
+});
+
+// Komisyon Chart (örnek veri)
+const commissionCtx = document.getElementById('commissionChart').getContext('2d');
+new Chart(commissionCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['Sistem Ücreti (%6.5)', 'KK Komisyonu (%2.6)'],
+        datasets: [{
+            data: [65, 26], // Örnek yüzdeler
+            backgroundColor: [
+                'rgb(255, 99, 132)',
+                'rgb(54, 162, 235)'
+            ],
+            hoverOffset: 4
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'bottom',
+            }
+        }
+    }
+});
+</script>
+
+<style>
+.border-left-primary {
+    border-left: 0.25rem solid #4e73df !important;
+}
+.border-left-success {
+    border-left: 0.25rem solid #1cc88a !important;
+}
+.border-left-info {
+    border-left: 0.25rem solid #36b9cc !important;
+}
+.border-left-warning {
+    border-left: 0.25rem solid #f6c23e !important;
+}
+</style>
+{% endblock %}

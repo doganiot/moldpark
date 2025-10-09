@@ -1,0 +1,376 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Fatura Detayı - {{ invoice.invoice_number }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="fas fa-file-invoice text-primary me-2"></i>
+                        {{ invoice.invoice_number }}
+                    </h2>
+                    <p class="text-muted mb-0">{{ invoice.get_invoice_type_display }}</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'core:admin_invoice_management' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>Geri
+                    </a>
+                    {% if invoice.status == 'issued' %}
+                    <form method="post" class="d-inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="mark_sent">
+                        <button type="submit" class="btn btn-info">
+                            <i class="fas fa-paper-plane me-1"></i>Gönderildi
+                        </button>
+                    </form>
+                    {% endif %}
+                    {% if invoice.status in 'sent,issued' %}
+                    <button type="button" class="btn btn-success" onclick="markAsPaid()">
+                        <i class="fas fa-check me-1"></i>Ödendi
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Fatura Bilgileri -->
+        <div class="col-lg-8 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Fatura Bilgileri</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Genel Bilgiler</h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><strong>Fatura No:</strong></td>
+                                    <td>{{ invoice.invoice_number }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Tür:</strong></td>
+                                    <td>{{ invoice.get_invoice_type_display }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Durum:</strong></td>
+                                    <td>
+                                        <span class="badge bg-{{ invoice.get_status_color }}">
+                                            {{ invoice.get_status_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Kesim Tarihi:</strong></td>
+                                    <td>{{ invoice.issue_date|date:"d.m.Y" }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Vade Tarihi:</strong></td>
+                                    <td>{{ invoice.due_date|date:"d.m.Y" }}</td>
+                                </tr>
+                                {% if invoice.payment_date %}
+                                <tr>
+                                    <td><strong>Ödeme Tarihi:</strong></td>
+                                    <td>{{ invoice.payment_date|date:"d.m.Y" }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if invoice.sent_date %}
+                                <tr>
+                                    <td><strong>Gönderilme:</strong></td>
+                                    <td>{{ invoice.sent_date|date:"d.m.Y H:i" }}</td>
+                                </tr>
+                                {% endif %}
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Kullanıcı Bilgileri</h6>
+                            <table class="table table-sm">
+                                {% if invoice.invoice_type == 'producer_monthly' %}
+                                <tr>
+                                    <td><strong>Firma:</strong></td>
+                                    <td>{{ invoice.producer.company_name }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>İletişim:</strong></td>
+                                    <td>{{ invoice.producer.user.get_full_name }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>E-posta:</strong></td>
+                                    <td>{{ invoice.producer.contact_email|default:invoice.producer.user.email }}</td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td><strong>Ad Soyad:</strong></td>
+                                    <td>{{ invoice.user.get_full_name }}</td>
+                                </tr>
+                                {% if invoice.user.center %}
+                                <tr>
+                                    <td><strong>Merkez:</strong></td>
+                                    <td>{{ invoice.user.center.name }}</td>
+                                </tr>
+                                {% endif %}
+                                <tr>
+                                    <td><strong>E-posta:</strong></td>
+                                    <td>{{ invoice.user.email }}</td>
+                                </tr>
+                                {% endif %}
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- İşlem Kırılımları -->
+            {% if invoice.breakdown_data %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">İşlem Kırılımları</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% if invoice.breakdown_data.monthly_fee %}
+                        <div class="col-md-6 mb-3">
+                            <div class="border rounded p-3">
+                                <div class="d-flex justify-content-between">
+                                    <span>Aylık Sistem Ücreti</span>
+                                    <strong>₺{{ invoice.breakdown_data.monthly_fee|floatformat:2 }}</strong>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if invoice.breakdown_data.physical_molds %}
+                        <div class="col-md-6 mb-3">
+                            <div class="border rounded p-3">
+                                <div class="d-flex justify-content-between">
+                                    <span>Fiziksel Kalıp ({{ invoice.breakdown_data.physical_molds.count }} adet)</span>
+                                    <strong>₺{{ invoice.breakdown_data.physical_molds.total|floatformat:2 }}</strong>
+                                </div>
+                                <small class="text-muted">
+                                    Birim fiyat: ₺{{ invoice.breakdown_data.physical_molds.unit_price|floatformat:2 }}
+                                </small>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if invoice.breakdown_data.digital_scans %}
+                        <div class="col-md-6 mb-3">
+                            <div class="border rounded p-3">
+                                <div class="d-flex justify-content-between">
+                                    <span>Dijital Tarama ({{ invoice.breakdown_data.digital_scans.count }} adet)</span>
+                                    <strong>₺{{ invoice.breakdown_data.digital_scans.total|floatformat:2 }}</strong>
+                                </div>
+                                <small class="text-muted">
+                                    Birim fiyat: ₺{{ invoice.breakdown_data.digital_scans.unit_price|floatformat:2 }}
+                                </small>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if invoice.breakdown_data.orders %}
+                        <div class="col-12">
+                            <h6>Sipariş Detayları</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Sipariş No</th>
+                                            <th>Tür</th>
+                                            <th>Kazanç</th>
+                                            <th>Tarih</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for order in invoice.breakdown_data.orders %}
+                                        <tr>
+                                            <td>{{ order.order_number }}</td>
+                                            <td>{{ order.mold_type }}</td>
+                                            <td>₺{{ order.revenue|floatformat:2 }}</td>
+                                            <td>{{ order.completed_at|date:"d.m.Y" }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Özet ve İşlemler -->
+        <div class="col-lg-4">
+            <!-- Mali Özet -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Mali Özet</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Ara Toplam:</span>
+                        <strong>₺{{ invoice.subtotal|floatformat:2 }}</strong>
+                    </div>
+
+                    {% if invoice.invoice_type == 'center_monthly' %}
+                        <div class="d-flex justify-content-between mb-2 text-danger">
+                            <span>MoldPark Sistem Ücreti (%6.5):</span>
+                            <strong>-₺{{ invoice.moldpark_system_fee|floatformat:2 }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2 text-danger">
+                            <span>KK Komisyonu (%2.6):</span>
+                            <strong>-₺{{ invoice.credit_card_fee|floatformat:2 }}</strong>
+                        </div>
+                    {% else %}
+                        <div class="d-flex justify-content-between mb-2 text-danger">
+                            <span>MoldPark Sistem Ücreti (%6.5):</span>
+                            <strong>-₺{{ invoice.moldpark_system_fee|floatformat:2 }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2 text-danger">
+                            <span>KK Komisyonu (%2.6):</span>
+                            <strong>-₺{{ invoice.credit_card_fee|floatformat:2 }}</strong>
+                        </div>
+                    {% endif %}
+
+                    <hr>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span><strong>Toplam:</strong></span>
+                        <strong class="text-primary">₺{{ invoice.total_amount|floatformat:2 }}</strong>
+                    </div>
+                    {% if invoice.invoice_type == 'producer_monthly' %}
+                    <div class="d-flex justify-content-between">
+                        <span><strong>Ödenecek Tutar:</strong></span>
+                        <strong class="text-success">₺{{ invoice.net_amount|floatformat:2 }}</strong>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- İşlem Geçmişi -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">İşlem Geçmişi</h5>
+                </div>
+                <div class="card-body">
+                    {% if transactions %}
+                        <div class="timeline">
+                            {% for transaction in transactions %}
+                            <div class="timeline-item">
+                                <div class="timeline-marker bg-primary"></div>
+                                <div class="timeline-content">
+                                    <div class="d-flex justify-content-between">
+                                        <strong>{{ transaction.get_transaction_type_display }}</strong>
+                                        <span class="badge bg-{{ transaction.get_status_color }}">{{ transaction.get_status_display }}</span>
+                                    </div>
+                                    <div class="text-primary">₺{{ transaction.amount|floatformat:2 }}</div>
+                                    <small class="text-muted">{{ transaction.transaction_date|date:"d.m.Y H:i" }}</small>
+                                    {% if transaction.description %}
+                                    <p class="mb-0 mt-1">{{ transaction.description }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-0">Henüz işlem bulunmuyor.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Ödeme Modal -->
+<div class="modal fade" id="paymentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Ödemeyi Onayla</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="paymentForm" method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="mark_paid">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Ödeme Yöntemi</label>
+                        <select name="payment_method" class="form-select" required>
+                            <option value="bank_transfer">Banka Transferi</option>
+                            <option value="credit_card">Kredi Kartı</option>
+                            <option value="cash">Nakit</option>
+                            <option value="check">Çek</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">İşlem ID (Opsiyonel)</label>
+                        <input type="text" name="transaction_id" class="form-control" placeholder="Banka işlem ID'si vb.">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-success">Ödemeyi Onayla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function markAsPaid() {
+    const modal = new bootstrap.Modal(document.getElementById('paymentModal'));
+    modal.show();
+}
+</script>
+
+<style>
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -30px;
+    top: 0;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid #ddd;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+}
+
+.timeline-item:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: -21px;
+    top: 20px;
+    bottom: -20px;
+    width: 2px;
+    background: #ddd;
+}
+
+.timeline-content {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 4px solid #007bff;
+}
+</style>
+{% endblock %}

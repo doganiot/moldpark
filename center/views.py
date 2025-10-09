@@ -16,6 +16,7 @@ from producer.models import ProducerNetwork, Producer
 from django.http import JsonResponse
 from django.utils import timezone
 from django.core.paginator import Paginator
+from core.models import Invoice
 
 # Create your views here.
 
@@ -1140,3 +1141,166 @@ def network_management(request):
         'terminated_networks': terminated_networks,
         'stats': stats,
     })
+
+
+@login_required
+@center_required
+def billing_invoices(request):
+    """İşitme merkezi kullanım detayları - Maliyet ve kullanım takibi"""
+    center = request.user.center
+
+    # Mevcut ay kullanım özeti
+    from datetime import date
+    current_date = date.today()
+    current_month_start = date(current_date.year, current_date.month, 1)
+
+    if current_date.month == 12:
+        next_month = date(current_date.year + 1, 1, 1)
+    else:
+        next_month = date(current_date.year, current_date.month + 1, 1)
+    current_month_end = next_month
+
+    # Bu ay oluşturulan kalıplar
+    current_month_molds = EarMold.objects.filter(
+        center=center,
+        created_at__gte=current_month_start,
+        created_at__lt=current_month_end
+    )
+
+    # Bu ay kullanım özeti - Düzeltilmiş fiyatlandırma mantığı
+    physical_molds_count = current_month_molds.filter(is_physical_shipment=True).count()
+    digital_scans_count = current_month_molds.filter(is_physical_shipment=False).count()
+
+    current_month_stats = {
+        'total_molds': current_month_molds.count(),
+        'physical_molds': physical_molds_count,  # Fiziksel gönderim seçilen kalıplar
+        'modeling_services': digital_scans_count,  # Dijital tarama seçilen kalıplar (3D Modelleme Hizmeti)
+        'monthly_fee': 100.00,  # Aylık sistem ücreti
+        'physical_cost': physical_molds_count * 450.00,  # Fiziksel gönderim ücreti
+        'modeling_cost': digital_scans_count * 50.00,  # Dijital tarama ücreti (3D Modelleme)
+        'estimated_total': 100.00 + (physical_molds_count * 450.00) + (digital_scans_count * 50.00),
+    }
+
+    # Kullanıcının faturaları
+    invoices = Invoice.objects.filter(
+        user=request.user,
+        invoice_type='center'
+    ).order_by('-issue_date')
+
+    # Aylık kullanım detayları (faturalardan)
+    monthly_usage = []
+    for invoice in invoices:
+        if invoice.issue_date:
+            year = invoice.issue_date.year
+            month = invoice.issue_date.month
+            monthly_usage.append({
+                'year': year,
+                'month': month,
+                'month_name': {
+                    1: 'Ocak', 2: 'Şubat', 3: 'Mart', 4: 'Nisan',
+                    5: 'Mayıs', 6: 'Haziran', 7: 'Temmuz', 8: 'Ağustos',
+                    9: 'Eylül', 10: 'Ekim', 11: 'Kasım', 12: 'Aralık'
+                }.get(month, ''),
+                'monthly_fee': invoice.monthly_fee,
+                'physical_molds': invoice.physical_mold_count,
+                'physical_cost': invoice.physical_mold_cost,
+                'modeling_services': invoice.digital_scan_count,
+                'modeling_cost': invoice.digital_scan_cost,
+                'subtotal': invoice.subtotal,
+                'credit_card_fee': invoice.credit_card_fee,
+                'total': invoice.total_amount,
+                'status': invoice.status,
+                'invoice_id': invoice.id,
+            })
+
+    # İstatistikler
+    total_invoices = invoices.count()
+    paid_invoices = invoices.filter(status='paid').count()
+    pending_invoices = invoices.filter(status__in=['issued', 'overdue']).count()
+    total_amount = sum(invoice.total_amount for invoice in invoices if invoice.total_amount)
+
+    # Filtreleme
+    status_filter = request.GET.get('status', '')
+    year_filter = request.GET.get('year', '')
+    month_filter = request.GET.get('month', '')
+
+    if status_filter:
+        invoices = invoices.filter(status=status_filter)
+
+    if year_filter:
+        invoices = invoices.filter(issue_date__year=year_filter)
+
+    if month_filter:
+        invoices = invoices.filter(issue_date__month=month_filter)
+
+    # Sayfalama
+    paginator = Paginator(invoices, 10)  # Sayfa başına 10 fatura
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # Yıl seçenekleri
+    years = Invoice.objects.filter(
+        user=request.user,
+        invoice_type='center'
+    ).dates('issue_date', 'year', order='DESC')
+
+    context = {
+        'center': center,
+        'page_obj': page_obj,
+        'current_month_stats': current_month_stats,
+        'monthly_usage': monthly_usage[:12],  # Son 12 ay
+        'total_invoices': total_invoices,
+        'paid_invoices': paid_invoices,
+        'pending_invoices': pending_invoices,
+        'total_amount': total_amount,
+        'status_filter': status_filter,
+        'year_filter': year_filter,
+        'month_filter': month_filter,
+        'years': years,
+        'status_choices': Invoice.STATUS_CHOICES,
+    }
+
+    return render(request, 'center/billing_invoices.html', context)
+
+
+@login_required
+@center_required
+def billing_invoice_detail(request, invoice_id):
+    """Fatura detay sayfası"""
+    center = request.user.center
+
+    # Sadece kendi faturasını görebilir
+    invoice = get_object_or_404(
+        Invoice,
+        id=invoice_id,
+        user=request.user,
+        invoice_type='center'
+    )
+
+    # İlgili kalıpları bul (bu fatura döneminde oluşturulan)
+    related_molds = []
+    if invoice.issue_date:
+        # Fatura ayının başı ve sonu
+        year = invoice.issue_date.year
+        month = invoice.issue_date.month
+
+        from datetime import date
+        month_start = date(year, month, 1)
+        if month == 12:
+            month_end = date(year + 1, 1, 1)
+        else:
+            month_end = date(year, month + 1, 1)
+
+        related_molds = EarMold.objects.filter(
+            center=center,
+            created_at__gte=month_start,
+            created_at__lt=month_end
+        ).order_by('-created_at')
+
+    context = {
+        'center': center,
+        'invoice': invoice,
+        'related_molds': related_molds,
+    }
+
+    return render(request, 'center/billing_invoice_detail.html', context)

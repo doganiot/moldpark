@@ -1,10 +1,11 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.utils.translation import gettext as _
-from .models import ContactMessage, Message, MessageRecipient, PricingPlan, UserSubscription, PaymentHistory, SimpleNotification, SubscriptionRequest
+from .models import ContactMessage, Message, MessageRecipient, PricingPlan, UserSubscription, PaymentHistory, SimpleNotification, SubscriptionRequest, Invoice, Transaction, Commission
 from .forms import ContactForm, MessageForm, AdminMessageForm, MessageReplyForm, SubscriptionRequestForm
 from django.views.generic import TemplateView
 from django.contrib.auth.decorators import user_passes_test, login_required
+from django.contrib.admin.views.decorators import staff_member_required
 from center.models import Center
 from mold.models import EarMold
 from producer.models import Producer, ProducerOrder, ProducerNetwork
@@ -1160,3 +1161,364 @@ def documentation(request):
 def test_language(request):
     """Dil değiştirici test sayfası"""
     return render(request, 'test_language.html')
+
+
+# ============================================
+# ADMIN FİNANS YÖNETİMİ VİEW'LARI
+# ============================================
+
+@staff_member_required
+def admin_financial_dashboard(request):
+    """Admin Finans Dashboard - Tüm sistemi kapsayan finansal görünüm"""
+    try:
+        from decimal import Decimal
+        from django.db.models import Sum, Count
+        from datetime import date, timedelta
+
+        # Tarih filtreleri
+        today = date.today()
+        current_month_start = date(today.year, today.month, 1)
+        last_month_start = current_month_start - timedelta(days=30)
+        last_month_end = current_month_start - timedelta(days=1)
+
+        # === GENEL İSTATİSTİKLER ===
+        total_centers = User.objects.filter(center__isnull=False).count()
+        total_producers = Producer.objects.filter(is_active=True).count()
+        total_molds = EarMold.objects.count()
+        completed_molds = EarMold.objects.filter(status__in=['completed', 'delivered']).count()
+
+        # === BU AY GELİRLER ===
+        current_month_revenue = Decimal('0.00')
+
+        # Center faturalarından gelen gelir (sistem kullanım + fiziksel kalıp)
+        center_invoices = Invoice.objects.filter(
+            invoice_type__startswith='center',
+            issue_date__gte=current_month_start,
+            status='paid'
+        )
+
+        for invoice in center_invoices:
+            current_month_revenue += invoice.total_deductions  # MoldPark'a giden kısım
+
+        # Producer ödemelerinden gelen gelir (komisyonlar)
+        producer_invoices = Invoice.objects.filter(
+            invoice_type__startswith='producer',
+            issue_date__gte=current_month_start,
+            status='paid'
+        )
+
+        for invoice in producer_invoices:
+            current_month_revenue += invoice.total_deductions  # MoldPark komisyonları
+
+        # === ÖDENMEMİŞ TUTARLAR ===
+        pending_center_invoices = Invoice.objects.filter(
+            invoice_type__startswith='center',
+            status__in=['issued', 'sent']
+        ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
+
+        pending_producer_payments = Invoice.objects.filter(
+            invoice_type__startswith='producer',
+            status__in=['issued', 'sent']
+        ).aggregate(total=Sum('net_amount'))['total'] or Decimal('0.00')
+
+        # === SON 6 AY GELİR TRENDİ ===
+        revenue_trend = []
+        for i in range(5, -1, -1):
+            month_date = current_month_start - timedelta(days=30 * i)
+            month_start = date(month_date.year, month_date.month, 1)
+            if month_date.month == 12:
+                month_end = date(month_date.year + 1, 1, 1)
+            else:
+                month_end = date(month_date.year + 1, month_date.month + 1, 1)
+
+            month_revenue = Decimal('0.00')
+
+            # Center faturalarından
+            center_monthly = Invoice.objects.filter(
+                invoice_type__startswith='center',
+                issue_date__gte=month_start,
+                issue_date__lt=month_end,
+                status='paid'
+            ).aggregate(total=Sum('total_deductions'))['total'] or Decimal('0.00')
+
+            # Producer faturalarından
+            producer_monthly = Invoice.objects.filter(
+                invoice_type__startswith='producer',
+                issue_date__gte=month_start,
+                issue_date__lt=month_end,
+                status='paid'
+            ).aggregate(total=Sum('total_deductions'))['total'] or Decimal('0.00')
+
+            month_revenue = center_monthly + producer_monthly
+
+            revenue_trend.append({
+                'month': month_date.strftime('%Y-%m'),
+                'month_name': month_date.strftime('%B %Y'),
+                'revenue': month_revenue
+            })
+
+        # === EN FAZLA GELİR GETİREN MERKEZLER ===
+        top_centers = []
+        centers = User.objects.filter(center__isnull=False)
+        for center_user in centers:
+            center_revenue = Decimal('0.00')
+            center_invoices = Invoice.objects.filter(
+                user=center_user,
+                status='paid'
+            )
+            for invoice in center_invoices:
+                center_revenue += invoice.total_deductions
+
+            if center_revenue > 0:
+                top_centers.append({
+                    'center': center_user.center,
+                    'revenue': center_revenue
+                })
+
+        top_centers = sorted(top_centers, key=lambda x: x['revenue'], reverse=True)[:10]
+
+        # === EN FAZLA KAZANÇ GETİREN ÜRETİCİLER ===
+        top_producers = []
+        producers = Producer.objects.filter(is_active=True)
+        for producer in producers:
+            earnings = producer.get_total_earnings()
+            moldpark_share = earnings['moldpark_fee'] + earnings['credit_card_fee']
+
+            if moldpark_share > 0:
+                top_producers.append({
+                    'producer': producer,
+                    'moldpark_revenue': moldpark_share,
+                    'total_orders': earnings['total_orders']
+                })
+
+        top_producers = sorted(top_producers, key=lambda x: x['moldpark_revenue'], reverse=True)[:10]
+
+        context = {
+            # Genel İstatistikler
+            'total_centers': total_centers,
+            'total_producers': total_producers,
+            'total_molds': total_molds,
+            'completed_molds': completed_molds,
+
+            # Finansal Özet
+            'current_month_revenue': current_month_revenue,
+            'pending_center_invoices': pending_center_invoices,
+            'pending_producer_payments': pending_producer_payments,
+            'total_pending_amount': pending_center_invoices + pending_producer_payments,
+
+            # Trendler
+            'revenue_trend': revenue_trend,
+
+            # Top Listeler
+            'top_centers': top_centers,
+            'top_producers': top_producers,
+        }
+
+        return render(request, 'core/admin_financial_dashboard.html', context)
+
+    except Exception as e:
+        logger.error(f"Admin Financial Dashboard Error: {e}")
+        messages.error(request, 'Finans dashboard yüklenirken hata oluştu.')
+        return redirect('admin:index')
+
+
+@staff_member_required
+def admin_invoice_management(request):
+    """Admin Fatura Yönetimi - Tüm faturaları görüntüle ve yönet"""
+    try:
+        from django.core.paginator import Paginator
+
+        # Filtreler
+        status_filter = request.GET.get('status', '')
+        type_filter = request.GET.get('type', '')
+        search_query = request.GET.get('search', '')
+
+        invoices = Invoice.objects.select_related('user', 'producer', 'issued_by').order_by('-issue_date')
+
+        # Filtreleme
+        if status_filter:
+            invoices = invoices.filter(status=status_filter)
+        if type_filter:
+            invoices = invoices.filter(invoice_type__icontains=type_filter)
+        if search_query:
+            invoices = invoices.filter(
+                models.Q(invoice_number__icontains=search_query) |
+                models.Q(user__first_name__icontains=search_query) |
+                models.Q(user__last_name__icontains=search_query) |
+                models.Q(user__center__name__icontains=search_query) |
+                models.Q(producer__company_name__icontains=search_query)
+            )
+
+        # Sayfalama
+        paginator = Paginator(invoices, 25)
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+
+        context = {
+            'page_obj': page_obj,
+            'status_filter': status_filter,
+            'type_filter': type_filter,
+            'search_query': search_query,
+            'status_choices': Invoice.STATUS_CHOICES,
+            'type_choices': Invoice.INVOICE_TYPE_CHOICES,
+        }
+
+        return render(request, 'core/admin_invoice_management.html', context)
+
+    except Exception as e:
+        logger.error(f"Admin Invoice Management Error: {e}")
+        messages.error(request, 'Fatura yönetimi sayfası yüklenirken hata oluştu.')
+        return redirect('core:admin_financial_dashboard')
+
+
+@staff_member_required
+def admin_generate_invoices(request):
+    """Admin Otomatik Fatura Oluşturma"""
+    try:
+        from datetime import date
+        from decimal import Decimal
+
+        if request.method == 'POST':
+            invoice_type = request.POST.get('invoice_type')
+            target_date = request.POST.get('target_date')
+
+            if not target_date:
+                target_date = date.today()
+
+            generated_count = 0
+
+            if invoice_type in ['center', 'all']:
+                # Center faturaları oluştur
+                centers = User.objects.filter(center__isnull=False)
+                for center_user in centers:
+                    try:
+                        # Mevcut ay için fatura var mı kontrol et
+                        current_month = date(target_date.year, target_date.month, 1)
+                        existing_invoice = Invoice.objects.filter(
+                            user=center_user,
+                            invoice_type='center_monthly',
+                            issue_date__year=current_month.year,
+                            issue_date__month=current_month.month
+                        ).exists()
+
+                        if not existing_invoice:
+                            # Abonelik kontrolü
+                            try:
+                                subscription = center_user.subscription
+                                if subscription and subscription.status == 'active':
+                                    # Fatura oluştur
+                                    invoice = Invoice.objects.create(
+                                        invoice_number=f"INV-C-{center_user.id}-{current_month.strftime('%Y%m')}",
+                                        invoice_type='center_monthly',
+                                        user=center_user,
+                                        issue_date=current_month,
+                                        due_date=current_month.replace(day=28),  # Ay sonu
+                                        issued_by=request.user
+                                    )
+
+                                    # Faturayı hesapla
+                                    invoice.calculate_center_invoice(subscription)
+                                    invoice.save()
+                                    generated_count += 1
+
+                            except:
+                                continue
+
+                    except Exception as e:
+                        logger.error(f"Center invoice generation error for {center_user}: {e}")
+                        continue
+
+            if invoice_type in ['producer', 'all']:
+                # Producer faturaları oluştur
+                producers = Producer.objects.filter(is_active=True, is_verified=True)
+                for producer in producers:
+                    try:
+                        # Mevcut ay için fatura var mı kontrol et
+                        current_month = date(target_date.year, target_date.month, 1)
+                        existing_invoice = Invoice.objects.filter(
+                            producer=producer,
+                            invoice_type='producer_monthly',
+                            issue_date__year=current_month.year,
+                            issue_date__month=current_month.month
+                        ).exists()
+
+                        if not existing_invoice:
+                            # Kazanç var mı kontrol et
+                            monthly_revenue = producer.get_monthly_revenue(current_month.year, current_month.month)
+                            if monthly_revenue > 0:
+                                # Fatura oluştur
+                                invoice = Invoice.objects.create(
+                                    invoice_number=f"INV-P-{producer.id}-{current_month.strftime('%Y%m')}",
+                                    invoice_type='producer_monthly',
+                                    user=producer.user,
+                                    producer=producer,
+                                    issue_date=current_month,
+                                    due_date=current_month.replace(day=28),  # Ay sonu
+                                    issued_by=request.user
+                                )
+
+                                # Faturayı hesapla
+                                invoice.calculate_producer_invoice(producer)
+                                invoice.save()
+                                generated_count += 1
+
+                    except Exception as e:
+                        logger.error(f"Producer invoice generation error for {producer}: {e}")
+                        continue
+
+            messages.success(request, f'{generated_count} adet fatura başarıyla oluşturuldu.')
+            return redirect('core:admin_invoice_management')
+
+        context = {
+            'today': date.today().strftime('%Y-%m-%d')
+        }
+
+        return render(request, 'core/admin_generate_invoices.html', context)
+
+    except Exception as e:
+        logger.error(f"Admin Generate Invoices Error: {e}")
+        messages.error(request, 'Fatura oluşturma işlemi sırasında hata oluştu.')
+        return redirect('core:admin_financial_dashboard')
+
+
+@staff_member_required
+def admin_invoice_detail(request, invoice_id):
+    """Admin Fatura Detayı"""
+    try:
+        invoice = get_object_or_404(Invoice, id=invoice_id)
+
+        if request.method == 'POST':
+            action = request.POST.get('action')
+
+            if action == 'mark_sent':
+                invoice.mark_as_sent(request.user)
+                messages.success(request, 'Fatura gönderildi olarak işaretlendi.')
+
+            elif action == 'mark_paid':
+                payment_method = request.POST.get('payment_method', 'bank_transfer')
+                transaction_id = request.POST.get('transaction_id', '')
+                invoice.mark_as_paid(payment_method, transaction_id)
+                messages.success(request, 'Fatura ödendi olarak işaretlendi.')
+
+            elif action == 'mark_overdue':
+                if invoice.is_overdue():
+                    invoice.status = 'overdue'
+                    invoice.save()
+                    messages.success(request, 'Fatura vadesi geçmiş olarak işaretlendi.')
+                else:
+                    messages.warning(request, 'Fatura henüz vadesi geçmiş değil.')
+
+            return redirect('core:admin_invoice_detail', invoice_id=invoice.id)
+
+        context = {
+            'invoice': invoice,
+            'transactions': invoice.transactions.all(),
+            'commissions': invoice.commissions.all(),
+        }
+
+        return render(request, 'core/admin_invoice_detail.html', context)
+
+    except Exception as e:
+        logger.error(f"Admin Invoice Detail Error: {e}")
+        messages.error(request, 'Fatura detayı yüklenirken hata oluştu.')
+        return redirect('core:admin_invoice_management')

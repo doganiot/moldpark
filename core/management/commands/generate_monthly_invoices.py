@@ -55,13 +55,27 @@ class Command(BaseCommand):
         self.stdout.write(f'Dönem: {target_year}/{target_month:02d}')
         self.stdout.write(f'Mod: {"Önizleme (Dry Run)" if dry_run else "Gerçek Fatura Oluşturma"}\n')
         
-        # Ay başı ve sonu
+        # Ay başı ve 28'i (fatura kesim tarihi)
         from datetime import date
         month_start = date(target_year, target_month, 1)
-        if target_month == 12:
-            month_end = date(target_year + 1, 1, 1) - timedelta(days=1)
-        else:
-            month_end = date(target_year, target_month + 1, 1) - timedelta(days=1)
+        # Fatura ayın 28'inde kesiliyor
+        issue_date = date(target_year, target_month, 28)
+        # Eğer ayda 28 gün yoksa (şubat gibi), ayın son günü
+        try:
+            if target_month == 12:
+                next_month = date(target_year + 1, 1, 1)
+            else:
+                next_month = date(target_year, target_month + 1, 1)
+            month_end = next_month - timedelta(days=1)
+            if month_end.day < 28:
+                issue_date = month_end
+        except ValueError:
+            # Şubat ayının son günü
+            if target_month == 2:
+                if (target_year % 4 == 0 and target_year % 100 != 0) or (target_year % 400 == 0):
+                    issue_date = date(target_year, 2, 29)
+                else:
+                    issue_date = date(target_year, 2, 28)
         
         # İşitme Merkezleri için faturalar
         self.stdout.write('\n1. İşitme Merkezleri Faturaları Oluşturuluyor...')
@@ -113,8 +127,8 @@ class Command(BaseCommand):
                 invoice = Invoice.objects.create(
                     invoice_type='center',
                     user=user,
-                    issue_date=month_end,
-                    due_date=month_end + timedelta(days=15),
+                    issue_date=issue_date,
+                    due_date=issue_date + timedelta(days=15),
                     status='issued'
                 )
                 
@@ -140,7 +154,7 @@ class Command(BaseCommand):
                 physical_cost = plan.per_mold_price_try * physical_count
                 digital_cost = plan.modeling_service_fee_try * digital_count
                 subtotal = monthly_fee + physical_cost + digital_cost
-                credit_fee = subtotal * Decimal('0.026')
+                credit_fee = subtotal * Decimal('0.03')
                 total = subtotal + credit_fee
                 
                 center_count += 1
@@ -202,8 +216,8 @@ class Command(BaseCommand):
                 invoice = Invoice.objects.create(
                     invoice_type='producer',
                     user=user,
-                    issue_date=month_end,
-                    due_date=month_end + timedelta(days=15),
+                    issue_date=issue_date,
+                    due_date=issue_date + timedelta(days=15),
                     status='issued'
                 )
                 
@@ -226,7 +240,7 @@ class Command(BaseCommand):
             else:
                 # Dry run
                 moldpark_commission = gross_revenue * Decimal('0.065')
-                credit_fee = gross_revenue * Decimal('0.026')
+                credit_fee = gross_revenue * Decimal('0.03')
                 net_to_producer = gross_revenue - moldpark_commission - credit_fee
                 
                 producer_count += 1

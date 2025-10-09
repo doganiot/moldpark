@@ -12,7 +12,11 @@ urlpatterns = [
     
     # Network Management
     path('network/', views.network_management, name='network_management'),
-    
+
+    # Usage Details
+    path('usage/', views.billing_invoices, name='usage_details'),
+    path('usage/<int:invoice_id>/', views.billing_invoice_detail, name='usage_invoice_detail'),
+
     # Notifications
     path('notifications/', views.notification_list, name='notification_list'),
     path('notifications/<int:notification_id>/read/', views.mark_notification_read, name='mark_notification_read'),

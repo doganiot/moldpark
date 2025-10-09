@@ -61,7 +61,8 @@
                                     <th>Önizleme</th>
                                     <th>ID</th>
                                     <th>Hasta</th>
-                                    <th>Tip</th>
+                                    <th>Gönderim Türü</th>
+                                    <th>Kalıp Tipi</th>
                                     <th>Vent Çapı</th>
                                     <th>Durum</th>
                                     <th>Oluşturulma</th>
@@ -134,8 +135,19 @@
                                             {{ mold.patient_name }}
                                         </a>
                                     </td>
+                                    <td>
+                                        {% if mold.is_physical_shipment %}
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="fas fa-truck me-1"></i>Fiziksel Kalıp
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-info text-white">
+                                                <i class="fas fa-cloud-upload-alt me-1"></i>Dijital Tarama
+                                            </span>
+                                        {% endif %}
+                                    </td>
                                     <td>{{ mold.get_mold_type_display }}</td>
-                                    <td>{{ mold.vent_size }} mm</td>
+                                    <td>{{ mold.vent_diameter }} mm</td>
                                     <td>
                                         <span class="badge bg-{{ mold.get_status_color }} text-dark">
                                             {{ mold.get_status_display }}
@@ -166,7 +178,7 @@
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="9" class="text-center py-4">
+                                    <td colspan="10" class="text-center py-4">
                                         <div class="d-flex flex-column align-items-center">
                                             <i class="fas fa-cube text-muted mb-3" style="font-size: 48px;"></i>
                                             <p class="text-muted mb-0">Henüz kalıp yok.</p>

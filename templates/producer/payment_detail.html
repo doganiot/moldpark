@@ -1,0 +1,323 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}Ödeme Detayı - {{ invoice.invoice_number }} - {{ producer.company_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="mb-0">
+                                <i class="fas fa-money-bill-wave me-2"></i>
+                                Ödeme Detayı
+                            </h4>
+                            <small class="text-white-50">{{ invoice.invoice_number }}</small>
+                        </div>
+                        <div class="text-end">
+                            {% if invoice.status == 'paid' %}
+                                <span class="badge bg-success fs-6 px-3 py-2">
+                                    <i class="fas fa-check me-1"></i>Ödendi
+                                </span>
+                            {% elif invoice.status == 'overdue' %}
+                                <span class="badge bg-danger fs-6 px-3 py-2">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>Vadesi Geçmiş
+                                </span>
+                            {% elif invoice.status == 'issued' %}
+                                <span class="badge bg-warning fs-6 px-3 py-2">
+                                    <i class="fas fa-clock me-1"></i>Ödeme Bekliyor
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary fs-6 px-3 py-2">{{ invoice.get_status_display }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Payment Details -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Ödeme Bilgileri
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Fatura Numarası</label>
+                                <div class="h6 mb-0">{{ invoice.invoice_number }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Fatura Türü</label>
+                                <div class="h6 mb-0">{{ invoice.get_invoice_type_display }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Kesim Tarihi</label>
+                                <div class="h6 mb-0">{{ invoice.issue_date|date:"d.m.Y" }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Vade Tarihi</label>
+                                <div class="h6 mb-0">{{ invoice.due_date|date:"d.m.Y" }}</div>
+                            </div>
+                        </div>
+                        {% if invoice.payment_date %}
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Ödeme Tarihi</label>
+                                <div class="h6 mb-0">{{ invoice.payment_date|date:"d.m.Y" }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Breakdown -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calculator me-2"></i>
+                        Ödeme Hesaplaması
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-borderless">
+                            <tbody>
+                                <tr>
+                                    <td>Brüt Gelir ({{ invoice.producer_order_count }} sipariş)</td>
+                                    <td class="text-end">{{ invoice.producer_revenue|floatformat:0 }} ₺</td>
+                                </tr>
+                                <tr class="border-top">
+                                    <td>MoldPark Komisyonu (%6.5)</td>
+                                    <td class="text-end text-warning">{{ invoice.moldpark_commission|floatformat:0 }} ₺</td>
+                                </tr>
+                                <tr>
+                                    <td>Kredi Kartı Komisyonu (%3)</td>
+                                    <td class="text-end text-info">{{ invoice.credit_card_fee|floatformat:0 }} ₺</td>
+                                </tr>
+                                <tr class="border-top border-2">
+                                    <td><strong class="text-success">SİZE ÖDENECEK TUTAR</strong></td>
+                                    <td class="text-end"><strong class="text-success h5 mb-0">{{ invoice.net_amount|floatformat:0 }} ₺</strong></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="alert alert-success mt-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Hesaplama Açıklaması:</strong><br>
+                        Brüt gelirinizden MoldPark komisyonu (%6.5) ve kredi kartı işlem ücreti (%3) düşüldükten sonra kalan tutar size ödenir.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Related Orders -->
+            {% if related_orders %}
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-shopping-cart me-2"></i>
+                        Bu Dönem Tamamlanan Siparişler
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for order in related_orders %}
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100 border">
+                                <div class="card-body">
+                                    <h6 class="card-title">
+                                        <a href="{% url 'producer:order_detail' order.id %}" class="text-decoration-none">
+                                            Sipariş #{{ order.id }}
+                                        </a>
+                                    </h6>
+                                    <div class="small text-muted mb-2">
+                                        Teslim Tarihi: {{ order.actual_delivery|date:"d.m.Y" }}
+                                    </div>
+                                    <div class="mb-2">
+                                        <span class="badge bg-success">Teslim Edildi</span>
+                                    </div>
+                                    <div class="row text-center">
+                                        <div class="col-6">
+                                            <div class="border rounded p-2">
+                                                <strong>{{ order.price|floatformat:0 }} ₺</strong><br>
+                                                <small class="text-muted">Sipariş Tutarı</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="border rounded p-2">
+                                                <strong class="text-success">{{ order.price|floatformat:0 }} ₺</strong><br>
+                                                <small class="text-muted">Kazancınız</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Payment Status -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-credit-card me-2"></i>
+                        Ödeme Durumu
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if invoice.status == 'paid' %}
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <strong>Bu ödeme gerçekleştirilmiştir.</strong>
+                            {% if invoice.payment_date %}
+                            <br><small>Ödeme tarihi: {{ invoice.payment_date|date:"d.m.Y" }}</small>
+                            {% endif %}
+                        </div>
+                    {% elif invoice.status == 'overdue' %}
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Vadesi geçmiştir!</strong>
+                            <br><small>MoldPark yönetimi ile iletişime geçiniz.</small>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-clock me-2"></i>
+                            <strong>Ödeme bekleniyor.</strong>
+                            <br><small>Vade tarihi: {{ invoice.due_date|date:"d.m.Y" }}</small>
+                        </div>
+                    {% endif %}
+
+                    <hr>
+                    <div class="text-center">
+                        <h4 class="text-success mb-0">{{ invoice.net_amount|floatformat:0 }} ₺</h4>
+                        <small class="text-muted">Ödenecek Tutar</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Commission Info -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-percentage me-2"></i>
+                        Komisyon Bilgileri
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="border rounded p-3">
+                                <div class="h5 text-warning mb-1">%6.5</div>
+                                <small class="text-muted">MoldPark</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="border rounded p-3">
+                                <div class="h5 text-info mb-1">%3</div>
+                                <small class="text-muted">KK İşlem</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            Toplam komisyon oranı: <strong>%9.5</strong><br>
+                            Bu oranlar MoldPark'ın platform ve ödeme altyapısı giderlerini karşılar.
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-cogs me-2"></i>
+                        İşlemler
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'producer:payments' %}" class="btn btn-outline-success">
+                            <i class="fas fa-arrow-left me-2"></i>
+                            Tüm Ödemelere Dön
+                        </a>
+                        <button onclick="window.print()" class="btn btn-outline-secondary">
+                            <i class="fas fa-print me-2"></i>
+                            Yazdır
+                        </button>
+                        {% if invoice.status != 'paid' %}
+                        <button class="btn btn-success" disabled>
+                            <i class="fas fa-envelope me-2"></i>
+                            Bildirim Gönder (Yakında)
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card-header {
+    border-bottom: 2px solid #e9ecef;
+}
+
+.table-borderless tbody tr td {
+    border: none;
+    padding: 0.75rem 0;
+}
+
+.border-top {
+    border-top: 1px solid #dee2e6 !important;
+}
+
+.border-2 {
+    border-width: 2px !important;
+}
+
+.alert {
+    border-radius: 0.5rem;
+}
+
+.btn {
+    border-radius: 0.375rem;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Print functionality
+    window.print = function() {
+        window.print();
+    };
+});
+</script>
+{% endblock %}

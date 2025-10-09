@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+
+{% block title %}Otomatik Fatura Oluşturma - Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="fas fa-plus-circle text-success me-2"></i>
+                        Otomatik Fatura Oluşturma
+                    </h2>
+                    <p class="text-muted mb-0">Sistem kullanıcıları için otomatik fatura oluşturun</p>
+                </div>
+                <a href="{% url 'core:admin_invoice_management' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Fatura Yönetimi
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-cogs me-2"></i>
+                        Fatura Oluşturma Ayarları
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-info-circle me-2"></i>Nasıl Çalışır?</h6>
+                            <ul class="mb-0">
+                                <li><strong>İşitme Merkezi:</strong> Aylık sistem ücreti + tamamlanan kalıp işlemleri için fatura</li>
+                                <li><strong>Üretici Merkez:</strong> Tamamlanan siparişler için kazanç faturası</li>
+                                <li><strong>Otomatik Hesaplama:</strong> Sistem komisyonları ve kesintiler otomatik hesaplanır</li>
+                                <li><strong>Çift Oluşturma Önleme:</strong> Aynı dönem için birden fazla fatura oluşturulmaz</li>
+                            </ul>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Fatura Türü <span class="text-danger">*</span></label>
+                                <select name="invoice_type" class="form-select" required>
+                                    <option value="all">Tümü (İşitme + Üretici)</option>
+                                    <option value="center">Sadece İşitme Merkezleri</option>
+                                    <option value="producer">Sadece Üretici Merkezleri</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Hedef Dönem <span class="text-danger">*</span></label>
+                                <input type="date" name="target_date" class="form-control" value="{{ today }}" required>
+                                <small class="text-muted">Hangi ay için fatura oluşturulacak</small>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-warning">
+                            <h6><i class="fas fa-exclamation-triangle me-2"></i>Önemli Notlar</h6>
+                            <ul class="mb-0">
+                                <li>Seçilen dönem için daha önce fatura oluşturulmuşsa, tekrar oluşturulmaz</li>
+                                <li>Faturalar "taslak" durumunda oluşturulur, göndermek için ayrı işlem yapmanız gerekir</li>
+                                <li>İşitme merkezi faturalarında MoldPark sistem ücreti (%6.5) kesilir</li>
+                                <li>Üretici ödemelerinde MoldPark sistem ücreti (%6.5) + KK komisyonu (%2.6) kesilir</li>
+                            </ul>
+                        </div>
+
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-success btn-lg" onclick="return confirm('Fatura oluşturma işlemini başlatmak istediğinize emin misiniz?')">
+                                <i class="fas fa-play me-2"></i>
+                                Faturaları Oluştur
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- İstatistik Kartları -->
+            <div class="row mt-4">
+                <div class="col-md-4 mb-3">
+                    <div class="card border-left-primary">
+                        <div class="card-body text-center">
+                            <i class="fas fa-building fa-2x text-primary mb-2"></i>
+                            <h5>Aktif Merkezler</h5>
+                            <p class="text-muted mb-0">İşitme merkezleri</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card border-left-success">
+                        <div class="card-body text-center">
+                            <i class="fas fa-industry fa-2x text-success mb-2"></i>
+                            <h5>Aktif Üreticiler</h5>
+                            <p class="text-muted mb-0">Üretici merkezleri</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card border-left-warning">
+                        <div class="card-body text-center">
+                            <i class="fas fa-calendar-check fa-2x text-warning mb-2"></i>
+                            <h5>Bu Ay İşlemler</h5>
+                            <p class="text-muted mb-0">Tamamlanan işlemler</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Komisyon Açıklaması -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calculator me-2"></i>
+                        Komisyon ve Kesinti Açıklaması
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-primary">İşitme Merkezi Faturaları</h6>
+                            <ul>
+                                <li><strong>Sistem Ücreti:</strong> Aylık ₺100</li>
+                                <li><strong>Fiziksel Kalıp:</strong> ₺450/adet</li>
+                                <li><strong>Dijital Tarama:</strong> ₺50/adet</li>
+                                <li><strong>MoldPark Kesintisi:</strong> Toplamın %6.5'i</li>
+                                <li><strong>KK Komisyonu:</strong> Pay-per-use için %2.6</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-success">Üretici Ödemeleri</h6>
+                            <ul>
+                                <li><strong>Fiziksel Kalıp:</strong> ₺350 kazanç</li>
+                                <li><strong>Dijital Tarama:</strong> ₺150 kazanç</li>
+                                <li><strong>MoldPark Kesintisi:</strong> Toplamın %6.5'i</li>
+                                <li><strong>KK Komisyonu:</strong> %2.6</li>
+                                <li><strong>Net Ödeme:</strong> Kesintilerden sonraki tutar</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-light">
+                        <strong>Örnek Hesaplama:</strong><br>
+                        Üretici 10 fiziksel kalıp üretirse: (10 × ₺350) = ₺3.500 brüt<br>
+                        MoldPark kesintisi: ₺3.500 × %6.5 = ₺227.50<br>
+                        KK komisyonu: ₺3.500 × %2.6 = ₺91<br>
+                        <strong>Net ödeme: ₺3.500 - ₺227.50 - ₺91 = ₺3.181.50</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Üretimi Tamamla - {{ mold.patient_name }} {{ mold.patient_surname }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-warning text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-check-circle me-2"></i>
+                        Fiziksel Kalıp Üretimini Tamamla
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-check-double fa-4x text-warning mb-3"></i>
+                        <h5>{{ mold.patient_name }} {{ mold.patient_surname }}</h5>
+                        <p class="text-muted">Hasta için fiziksel kalıp üretimi tamamlandı olarak işaretlenecek.</p>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle me-2"></i>İşlem Açıklaması</h6>
+                        <p class="mb-0">Bu işlem kalıp üretiminin tamamlandığını belirtir. Kalıp artık merkeze gönderilmeye hazır hale gelir.</p>
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-warning btn-lg">
+                                <i class="fas fa-check-circle me-2"></i>
+                                Evet, Üretimi Tamamla
+                            </button>
+                            <a href="{% url 'producer:mold_detail' mold.id %}" class="btn btn-secondary btn-lg ms-2">
+                                <i class="fas fa-times me-2"></i>
+                                İptal
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

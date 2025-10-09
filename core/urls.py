@@ -73,4 +73,10 @@ urlpatterns = [
     path('financial/invoices/<int:invoice_id>/mark-paid/', views_financial.invoice_mark_paid, name='invoice_mark_paid'),
     path('financial/generate-summary/', views_financial.generate_monthly_summary, name='generate_monthly_summary'),
     path('financial/reports/', views_financial.financial_reports, name='financial_reports'),
+
+    # Yeni Admin Finans Dashboard
+    path('admin/financial/', views.admin_financial_dashboard, name='admin_financial_dashboard'),
+    path('admin/invoices/', views.admin_invoice_management, name='admin_invoice_management'),
+    path('admin/invoices/<int:invoice_id>/', views.admin_invoice_detail, name='admin_invoice_detail'),
+    path('admin/generate-invoices/', views.admin_generate_invoices, name='admin_generate_invoices'),
 ] 

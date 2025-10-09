@@ -338,8 +338,8 @@ class UserSubscription(models.Model):
                 physical_cost = self.plan.per_mold_price_try  # 450 TL
                 self.models_used_this_month += 1
 
-            # Dijital tarama dosyası varsa ücret al
-            if ear_mold.scan_file:
+            # Dijital tarama seçildiyse (3D Modelleme Hizmeti) ücret al
+            if not ear_mold.is_physical_shipment:
                 digital_cost = self.plan.modeling_service_fee_try  # 50 TL
                 self.digital_scans_this_month += 1
         else:
@@ -631,31 +631,133 @@ def send_notification_email(sender, instance, created, **kwargs):
 # FATURA VE MALİ YÖNETİM MODELLERİ
 # ============================================
 
-class Invoice(models.Model):
-    """Fatura Modeli - Center ve Producer için"""
-    
-    INVOICE_TYPE_CHOICES = [
-        ('center', 'İşitme Merkezi Faturası'),
-        ('producer', 'Üretici Merkez Faturası'),
+class Commission(models.Model):
+    """Komisyon ve Kazanç Takibi"""
+
+    COMMISSION_TYPE_CHOICES = [
+        ('moldpark_fee', 'MoldPark Sistem Ücreti (%6.5)'),
+        ('credit_card', 'Kredi Kartı Komisyonu (%2.6)'),
+        ('producer_commission', 'Üretici Komisyonu'),
     ]
-    
+
+    # İlişkiler
+    invoice = models.ForeignKey('Invoice', on_delete=models.CASCADE, related_name='commissions', verbose_name='Fatura')
+    producer = models.ForeignKey('producer.Producer', on_delete=models.CASCADE, null=True, blank=True, related_name='commissions', verbose_name='Üretici')
+
+    # Komisyon Bilgileri
+    commission_type = models.CharField('Komisyon Türü', max_length=20, choices=COMMISSION_TYPE_CHOICES)
+    amount = models.DecimalField('Tutar', max_digits=10, decimal_places=2)
+    percentage = models.DecimalField('Yüzde', max_digits=5, decimal_places=2, default=0)
+
+    # Açıklama
+    description = models.CharField('Açıklama', max_length=200, blank=True)
+
+    # Tarihler
+    created_at = models.DateTimeField('Oluşturulma Tarihi', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Komisyon'
+        verbose_name_plural = 'Komisyonlar'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.get_commission_type_display()} - ₺{self.amount}'
+
+
+class Transaction(models.Model):
+    """Merkezi İşlem Takibi - Tüm finansal hareketler"""
+
+    TRANSACTION_TYPE_CHOICES = [
+        # Center işlemleri
+        ('center_monthly_fee', 'İşitme Merkezi - Aylık Sistem Ücreti'),
+        ('center_physical_mold', 'İşitme Merkezi - Fiziksel Kalıp'),
+        ('center_digital_scan', 'İşitme Merkezi - Dijital Tarama'),
+
+        # Producer işlemleri
+        ('producer_payment', 'Üretici - Ödeme Alımı'),
+        ('producer_commission', 'Üretici - Komisyon Kesintisi'),
+
+        # MoldPark işlemleri
+        ('moldpark_commission', 'MoldPark - Sistem Komisyonu'),
+        ('moldpark_credit_card_fee', 'MoldPark - KK Komisyonu'),
+    ]
+
+    STATUS_CHOICES = [
+        ('pending', 'Beklemede'),
+        ('completed', 'Tamamlandı'),
+        ('failed', 'Başarısız'),
+        ('cancelled', 'İptal Edildi'),
+    ]
+
+    # İlişkiler
+    invoice = models.ForeignKey('Invoice', on_delete=models.CASCADE, null=True, blank=True, related_name='transactions', verbose_name='İlgili Fatura')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='transactions', verbose_name='Kullanıcı')
+    producer = models.ForeignKey('producer.Producer', on_delete=models.CASCADE, null=True, blank=True, related_name='transactions', verbose_name='Üretici')
+
+    # İşlem Bilgileri
+    transaction_type = models.CharField('İşlem Türü', max_length=25, choices=TRANSACTION_TYPE_CHOICES)
+    amount = models.DecimalField('Tutar', max_digits=10, decimal_places=2)
+    currency = models.CharField('Para Birimi', max_length=3, choices=[('TRY', 'TRY'), ('USD', 'USD')], default='TRY')
+    status = models.CharField('Durum', max_length=10, choices=STATUS_CHOICES, default='pending')
+
+    # Detaylar
+    description = models.TextField('Açıklama', blank=True)
+    reference_id = models.CharField('Referans ID', max_length=100, blank=True, help_text='Sipariş ID, kalıp ID vb.')
+    payment_method = models.CharField('Ödeme Yöntemi', max_length=50, blank=True)
+
+    # Tarihler
+    transaction_date = models.DateTimeField('İşlem Tarihi', default=timezone.now)
+    created_at = models.DateTimeField('Kayıt Tarihi', auto_now_add=True)
+    updated_at = models.DateTimeField('Güncellenme Tarihi', auto_now=True)
+
+    class Meta:
+        verbose_name = 'İşlem'
+        verbose_name_plural = 'İşlemler'
+        ordering = ['-transaction_date']
+        indexes = [
+            models.Index(fields=['transaction_type', 'status']),
+            models.Index(fields=['user', 'transaction_date']),
+            models.Index(fields=['producer', 'transaction_date']),
+        ]
+
+    def __str__(self):
+        return f'{self.user.get_full_name()} - {self.get_transaction_type_display()} - ₺{self.amount}'
+
+
+class Invoice(models.Model):
+    """Gelişmiş Fatura Modeli - Center ve Producer için"""
+
+    INVOICE_TYPE_CHOICES = [
+        ('center_monthly', 'İşitme Merkezi - Aylık Fatura'),
+        ('center_pay_per_use', 'İşitme Merkezi - Kullandıkça Öde'),
+        ('producer_monthly', 'Üretici - Aylık Kazanç Faturası'),
+        ('producer_payment', 'Üretici - Ödeme Faturası'),
+    ]
+
     STATUS_CHOICES = [
         ('draft', 'Taslak'),
         ('issued', 'Kesildi'),
+        ('sent', 'Gönderildi'),
         ('paid', 'Ödendi'),
         ('overdue', 'Vadesi Geçmiş'),
         ('cancelled', 'İptal Edildi'),
+        ('refunded', 'İade Edildi'),
     ]
     
     # Temel Bilgiler
     invoice_number = models.CharField('Fatura No', max_length=50, unique=True)
     invoice_type = models.CharField('Fatura Türü', max_length=20, choices=INVOICE_TYPE_CHOICES)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='invoices', verbose_name='Kullanıcı')
-    
+
+    # İlişkiler
+    producer = models.ForeignKey('producer.Producer', on_delete=models.CASCADE, null=True, blank=True, related_name='invoices', verbose_name='Üretici')
+    issued_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='issued_invoices', verbose_name='Faturayı Kesén')
+
     # Tarih Bilgileri
     issue_date = models.DateField('Kesim Tarihi', default=timezone.now)
     due_date = models.DateField('Vade Tarihi')
     payment_date = models.DateField('Ödeme Tarihi', null=True, blank=True)
+    sent_date = models.DateTimeField('Gönderilme Tarihi', null=True, blank=True)
     
     # Mali Bilgiler
     subtotal = models.DecimalField('Ara Toplam', max_digits=10, decimal_places=2, default=0)
@@ -673,17 +775,24 @@ class Invoice(models.Model):
     modeling_count = models.IntegerField('Modeleme Sayısı (Eski)', default=0)
     modeling_cost = models.DecimalField('Modeleme Maliyeti (Eski)', max_digits=10, decimal_places=2, default=0)
     
-    # Üretici için
-    producer_order_count = models.IntegerField('Sipariş Sayısı', default=0)
-    producer_revenue = models.DecimalField('Üretici Geliri', max_digits=10, decimal_places=2, default=0)
-    
-    # Komisyonlar ve Kesintiler
-    moldpark_commission = models.DecimalField('MoldPark Komisyonu (%6.5)', max_digits=10, decimal_places=2, default=0)
+    # Üretici için detaylı kazanç bilgileri
+    producer_order_count = models.IntegerField('Tamamlanan Sipariş Sayısı', default=0)
+    producer_gross_revenue = models.DecimalField('Üretici Brüt Geliri', max_digits=10, decimal_places=2, default=0)
+    producer_net_revenue = models.DecimalField('Üretici Net Geliri', max_digits=10, decimal_places=2, default=0)
+
+    # Komisyonlar ve Kesintiler (ayrıntılı)
+    moldpark_system_fee = models.DecimalField('MoldPark Sistem Ücreti (%6.5)', max_digits=10, decimal_places=2, default=0)
     credit_card_fee = models.DecimalField('Kredi Kartı Komisyonu (%2.6)', max_digits=10, decimal_places=2, default=0)
-    
-    # Toplam
+    producer_commission_amount = models.DecimalField('Üretici Komisyonu Kesintisi', max_digits=10, decimal_places=2, default=0)
+
+    # Toplamlar
     total_amount = models.DecimalField('Toplam Tutar', max_digits=10, decimal_places=2, default=0)
-    net_amount = models.DecimalField('Net Tutar (Komisyon Sonrası)', max_digits=10, decimal_places=2, default=0)
+    total_deductions = models.DecimalField('Toplam Kesintiler', max_digits=10, decimal_places=2, default=0)
+    net_amount = models.DecimalField('Net Ödenecek Tutar', max_digits=10, decimal_places=2, default=0)
+
+    # Detaylı işlem kırılımları
+    breakdown_data = models.JSONField('İşlem Kırılımları', default=dict, blank=True,
+        help_text='Faturadaki her işlem için detaylı kırılım bilgileri')
     
     # Durum
     status = models.CharField('Durum', max_length=20, choices=STATUS_CHOICES, default='draft')
@@ -708,70 +817,238 @@ class Invoice(models.Model):
     def __str__(self):
         return f'{self.invoice_number} - {self.user.get_full_name()} - ₺{self.total_amount}'
     
-    def calculate_center_invoice(self, subscription, physical_mold_count=0, digital_scan_count=0):
+    def calculate_center_invoice(self, subscription, period_start=None, period_end=None):
         """İşitme merkezi faturası hesapla
-        
+
         Args:
             subscription: Kullanıcı aboneliği
-            physical_mold_count: Fiziksel kalıp gönderme sayısı
-            digital_scan_count: Digital tarama hizmeti sayısı
+            period_start: Dönem başlangıcı (None ise aylık hesaplama)
+            period_end: Dönem sonu (None ise aylık hesaplama)
         """
         from decimal import Decimal
-        
-        self.invoice_type = 'center'
+        from django.db.models import Q
+
+        self.invoice_type = 'center_monthly'
         self.monthly_fee = subscription.plan.monthly_fee_try
-        
-        # Yeni sistem
-        self.physical_mold_count = physical_mold_count
-        self.physical_mold_cost = subscription.plan.per_mold_price_try * physical_mold_count
-        self.digital_scan_count = digital_scan_count
-        self.digital_scan_cost = subscription.plan.modeling_service_fee_try * digital_scan_count
-        
-        # Geriye dönük uyumluluk
-        self.mold_count = physical_mold_count
-        self.mold_cost = self.physical_mold_cost
-        self.modeling_count = digital_scan_count
-        self.modeling_cost = self.digital_scan_cost
-        
+
+        # Dönem belirleme
+        if not period_start or not period_end:
+            # Aylık fatura için mevcut ay
+            from datetime import date
+            current_date = date.today()
+            period_start = date(current_date.year, current_date.month, 1)
+            if current_date.month == 12:
+                period_end = date(current_date.year + 1, 1, 1)
+            else:
+                period_end = date(current_date.year, current_date.month + 1, 1)
+
+        # Bu dönemde tamamlanan kalıpları al
+        completed_molds = subscription.user.molds.filter(
+            Q(status='delivered') | Q(status='completed'),
+            created_at__gte=period_start,
+            created_at__lt=period_end
+        )
+
+        # Kullanım sayılarını hesapla
+        self.physical_mold_count = completed_molds.filter(is_physical_shipment=True).count()
+        self.digital_scan_count = completed_molds.filter(is_physical_shipment=False).count()
+
+        # Maliyet hesapla
+        self.physical_mold_cost = subscription.plan.per_mold_price_try * self.physical_mold_count
+        self.digital_scan_cost = subscription.plan.modeling_service_fee_try * self.digital_scan_count
+
+        # Ara toplam
         self.subtotal = self.monthly_fee + self.physical_mold_cost + self.digital_scan_cost
-        
-        # Kredi kartı komisyonu %2.6
-        self.credit_card_fee = self.subtotal * Decimal('0.026')
-        
+
+        # KK komisyonu (varsa)
+        if self.invoice_type == 'center_pay_per_use':
+            self.credit_card_fee = self.subtotal * Decimal('0.026')  # %2.6
+
+        # Toplam
         self.total_amount = self.subtotal + self.credit_card_fee
-        self.net_amount = self.total_amount
-        
-        self.save()
-        return self.total_amount
-    
-    def calculate_producer_invoice(self, order_count, revenue):
-        """Üretici faturası hesapla"""
-        from decimal import Decimal
-        
-        self.invoice_type = 'producer'
-        self.producer_order_count = order_count
-        self.producer_revenue = revenue
-        
-        self.subtotal = revenue
-        
-        # MoldPark komisyonu %6.5
-        self.moldpark_commission = self.subtotal * Decimal('0.065')
-        
+        self.net_amount = self.total_amount  # Center için kesinti yok
+
+        # İşlem kırılımlarını kaydet
+        self.breakdown_data = {
+            'monthly_fee': float(self.monthly_fee),
+            'physical_molds': {
+                'count': self.physical_mold_count,
+                'unit_price': float(subscription.plan.per_mold_price_try),
+                'total': float(self.physical_mold_cost)
+            },
+            'digital_scans': {
+                'count': self.digital_scan_count,
+                'unit_price': float(subscription.plan.modeling_service_fee_try),
+                'total': float(self.digital_scan_cost)
+            },
+            'credit_card_fee': float(self.credit_card_fee),
+            'period': {
+                'start': period_start.isoformat(),
+                'end': period_end.isoformat()
+            }
+        }
+
+        # Geriye dönük uyumluluk
+        self.mold_count = self.physical_mold_count
+        self.mold_cost = self.physical_mold_cost
+        self.modeling_count = self.digital_scan_count
+        self.modeling_cost = self.digital_scan_cost
+
+        # MoldPark sistem komisyonu %6.5 (center faturalarında MoldPark'a olan borç)
+        self.moldpark_system_fee = self.subtotal * Decimal('0.065')
+
         # Kredi kartı komisyonu %2.6
         self.credit_card_fee = self.subtotal * Decimal('0.026')
-        
-        # Net tutar (komisyonlar düşüldükten sonra)
-        self.net_amount = self.subtotal - self.moldpark_commission - self.credit_card_fee
+
+        # Toplam kesintiler
+        self.total_deductions = self.moldpark_system_fee + self.credit_card_fee
+
+        # Net tutar (ödenecek tutar)
+        self.net_amount = self.subtotal - self.total_deductions
+
+        # Toplam (fatura tutarı)
         self.total_amount = self.subtotal
-        
-        self.save()
-        return self.net_amount
+
+        return self.total_amount
+
+    def calculate_producer_invoice(self, producer, period_start=None, period_end=None):
+        """Üretici kazanç faturası hesapla
+
+        Args:
+            producer: Producer nesnesi
+            period_start: Dönem başlangıcı
+            period_end: Dönem sonu
+        """
+        from decimal import Decimal
+        from django.db.models import Q
+
+        self.invoice_type = 'producer_monthly'
+        self.producer = producer
+
+        # Dönem belirleme
+        if not period_start or not period_end:
+            from datetime import date
+            current_date = date.today()
+            period_start = date(current_date.year, current_date.month, 1)
+            if current_date.month == 12:
+                period_end = date(current_date.year + 1, 1, 1)
+            else:
+                period_end = date(current_date.year, current_date.month + 1, 1)
+
+        # Bu dönemde tamamlanan siparişleri al
+        completed_orders = producer.orders.filter(
+            status='delivered',
+            actual_delivery__gte=period_start,
+            actual_delivery__lt=period_end
+        )
+
+        self.producer_order_count = completed_orders.count()
+
+        # Brüt geliri hesapla (tamamlanan siparişlerin toplam tutarı)
+        # Not: Gerçek uygulamada siparişlerde birim fiyat bilgisi olması gerekiyor
+        total_gross = 0
+        order_details = []
+
+        for order in completed_orders:
+            # Sipariş başına kazanç hesapla (farklı sipariş türleri için farklı fiyatlar)
+            if order.ear_mold.is_physical_shipment:
+                order_revenue = Decimal('350.00')  # Fiziksel kalıp için 350 TL
+            else:
+                order_revenue = Decimal('150.00')  # Dijital tarama için 150 TL
+
+            total_gross += order_revenue
+            order_details.append({
+                'order_id': order.id,
+                'order_number': order.order_number,
+                'mold_type': 'Fiziksel Kalıp' if order.ear_mold.is_physical_shipment else 'Dijital Tarama',
+                'revenue': float(order_revenue),
+                'completed_at': order.completed_at.isoformat() if order.completed_at else None
+            })
+
+        self.producer_gross_revenue = total_gross
+        self.subtotal = total_gross
+
+        # Komisyon kesintileri
+        self.moldpark_system_fee = self.subtotal * Decimal('0.065')  # %6.5 MoldPark sistem ücreti
+        self.credit_card_fee = self.subtotal * Decimal('0.026')  # %2.6 KK komisyonu
+
+        # Toplam kesintiler
+        self.total_deductions = self.moldpark_system_fee + self.credit_card_fee
+        self.net_amount = self.subtotal - self.total_deductions
+
+        # Toplam (ödenecek tutar)
+        self.total_amount = self.net_amount
+
+        # Kırılım verilerini kaydet
+        self.breakdown_data = {
+            'gross_revenue': float(self.producer_gross_revenue),
+            'orders': order_details,
+            'deductions': {
+                'moldpark_system_fee': float(self.moldpark_system_fee),
+                'credit_card_fee': float(self.credit_card_fee),
+                'total_deductions': float(self.total_deductions)
+            },
+            'net_amount': float(self.net_amount),
+            'period': {
+                'start': period_start.isoformat(),
+                'end': period_end.isoformat()
+            }
+        }
     
-    def mark_as_paid(self, payment_date=None):
+    def mark_as_sent(self, admin_user):
+        """Faturayı gönderildi olarak işaretle"""
+        if self.status in ['issued']:
+            self.status = 'sent'
+            self.sent_date = timezone.now()
+            self.issued_by = admin_user
+            self.save()
+
+            # Transaction oluştur
+            Transaction.objects.create(
+                user=self.user,
+                producer=self.producer,
+                invoice=self,
+                transaction_type='center_monthly_fee' if 'center' in self.invoice_type else 'producer_payment',
+                amount=self.total_amount,
+                description=f'Fatura gönderildi: {self.invoice_number}',
+                reference_id=self.invoice_number,
+                status='pending'
+            )
+
+    def mark_as_paid(self, payment_method='', transaction_id=''):
         """Faturayı ödendi olarak işaretle"""
-        self.status = 'paid'
-        self.payment_date = payment_date or timezone.now().date()
-        self.save()
+        if self.status in ['sent', 'issued']:
+            self.status = 'paid'
+            self.payment_date = timezone.now().date()
+            self.save()
+
+            # Transaction'ı güncelle
+            transaction = self.transactions.filter(status='pending').first()
+            if transaction:
+                transaction.status = 'completed'
+                transaction.payment_method = payment_method
+                transaction.description = f'Fatura ödendi: {self.invoice_number}'
+                transaction.reference_id = transaction_id or self.invoice_number
+                transaction.save()
+
+    def get_status_color(self):
+        """Duruma göre renk sınıfı döndür"""
+        status_colors = {
+            'draft': 'secondary',
+            'issued': 'warning',
+            'sent': 'info',
+            'paid': 'success',
+            'overdue': 'danger',
+            'cancelled': 'secondary',
+            'refunded': 'dark'
+        }
+        return status_colors.get(self.status, 'secondary')
+
+    def is_overdue(self):
+        """Faturanın vadesi geçmiş mi kontrol et"""
+        if self.status in ['paid', 'cancelled', 'refunded']:
+            return False
+        return timezone.now().date() > self.due_date
     
     def mark_as_overdue(self):
         """Faturayı vadesi geçmiş olarak işaretle"""
