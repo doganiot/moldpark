@@ -295,6 +295,7 @@
                                     <li><a class="dropdown-item" href="{% url 'core:subscription_dashboard' %}"><i class="fas fa-credit-card me-2"></i>{% trans "Abonelik" %}</a></li>
                                 {% elif user.is_staff %}
                                     <li><a class="dropdown-item" href="{% url 'center:admin_dashboard' %}"><i class="fas fa-tachometer-alt me-2"></i>{% trans "Admin Dashboard" %}</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'core:admin_financial_control_panel' %}"><i class="fas fa-chart-line me-2"></i>{% trans "Finansal Kontrol" %}</a></li>
                                     <li><a class="dropdown-item" href="{% url 'core:admin_dashboard' %}"><i class="fas fa-cog me-2"></i>{% trans "Sistem Yönetimi" %}</a></li>
                                 {% endif %}
                                 

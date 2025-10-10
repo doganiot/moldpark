@@ -672,14 +672,18 @@ class Transaction(models.Model):
         ('center_monthly_fee', 'İşitme Merkezi - Aylık Sistem Ücreti'),
         ('center_physical_mold', 'İşitme Merkezi - Fiziksel Kalıp'),
         ('center_digital_scan', 'İşitme Merkezi - Dijital Tarama'),
+        ('center_invoice_payment', 'İşitme Merkezi - Fatura Ödemesi'),
 
         # Producer işlemleri
         ('producer_payment', 'Üretici - Ödeme Alımı'),
         ('producer_commission', 'Üretici - Komisyon Kesintisi'),
+        ('producer_invoice_payment', 'Üretici - Fatura Ödemesi'),
 
         # MoldPark işlemleri
         ('moldpark_commission', 'MoldPark - Sistem Komisyonu'),
         ('moldpark_credit_card_fee', 'MoldPark - KK Komisyonu'),
+        ('moldpark_collection', 'MoldPark - Tahsilat'),
+        ('moldpark_payment', 'MoldPark - Ödeme'),
     ]
 
     STATUS_CHOICES = [
@@ -705,6 +709,18 @@ class Transaction(models.Model):
     reference_id = models.CharField('Referans ID', max_length=100, blank=True, help_text='Sipariş ID, kalıp ID vb.')
     payment_method = models.CharField('Ödeme Yöntemi', max_length=50, blank=True)
 
+    # Kaynak ve Hizmet Takibi (Yeni Sistem)
+    service_provider = models.CharField('Hizmet Veren', max_length=100, blank=True, help_text='Hangi kurum/kişi hizmeti verdi')
+    service_type = models.CharField('Hizmet Türü', max_length=100, blank=True, help_text='Hizmet kategorisi')
+    amount_source = models.CharField('Tutar Kaynağı', max_length=200, blank=True, help_text='Bu tutarın nereden geldiği')
+    amount_destination = models.CharField('Tutar Hedefi', max_length=200, blank=True, help_text='Bu tutarın nereye gideceği')
+    moldpark_fee_amount = models.DecimalField('MoldPark Ücreti', max_digits=10, decimal_places=2, default=0, help_text='Bu işlemden MoldPark\'ın aldığı ücret')
+    credit_card_fee_amount = models.DecimalField('KK Komisyonu', max_digits=10, decimal_places=2, default=0, help_text='Bu işlemden kesilen KK komisyonu')
+
+    # İlişkili Nesneler
+    ear_mold = models.ForeignKey('mold.EarMold', on_delete=models.SET_NULL, null=True, blank=True, related_name='transactions', verbose_name='İlgili Kalıp')
+    center = models.ForeignKey('center.Center', on_delete=models.SET_NULL, null=True, blank=True, related_name='transactions', verbose_name='İlgili Merkez')
+
     # Tarihler
     transaction_date = models.DateTimeField('İşlem Tarihi', default=timezone.now)
     created_at = models.DateTimeField('Kayıt Tarihi', auto_now_add=True)
@@ -725,11 +741,12 @@ class Transaction(models.Model):
 
 
 class Invoice(models.Model):
-    """Gelişmiş Fatura Modeli - Center ve Producer için"""
+    """Merkezileştirilmiş Fatura Modeli - İşitme Merkezi ve Üretici için"""
 
     INVOICE_TYPE_CHOICES = [
-        ('center_monthly', 'İşitme Merkezi - Aylık Fatura'),
-        ('center_pay_per_use', 'İşitme Merkezi - Kullandıkça Öde'),
+        ('center_admin_invoice', 'İşitme Merkezi - Kalıp Gönderim Faturası'),
+        ('producer_invoice', 'Üretici - Hizmet Bedeli Faturası'),
+        ('center_monthly', 'İşitme Merkezi - Aylık Sistem Faturası'),
         ('producer_monthly', 'Üretici - Aylık Kazanç Faturası'),
         ('producer_payment', 'Üretici - Ödeme Faturası'),
     ]
@@ -753,6 +770,10 @@ class Invoice(models.Model):
     producer = models.ForeignKey('producer.Producer', on_delete=models.CASCADE, null=True, blank=True, related_name='invoices', verbose_name='Üretici')
     issued_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='issued_invoices', verbose_name='Faturayı Kesén')
 
+    # Yetkilendirme ve Rol Bilgileri
+    issued_by_center = models.ForeignKey('center.Center', on_delete=models.SET_NULL, null=True, blank=True, related_name='issued_invoices', verbose_name='Faturayı Kesén Merkez')
+    issued_by_producer = models.ForeignKey('producer.Producer', on_delete=models.SET_NULL, null=True, blank=True, related_name='issued_invoices', verbose_name='Faturayı Kesén Üretici')
+
     # Tarih Bilgileri
     issue_date = models.DateField('Kesim Tarihi', default=timezone.now)
     due_date = models.DateField('Vade Tarihi')
@@ -765,9 +786,16 @@ class Invoice(models.Model):
     # İşitme Merkezi için
     monthly_fee = models.DecimalField('Aylık Sistem Ücreti', max_digits=10, decimal_places=2, default=0)
     physical_mold_count = models.IntegerField('Fiziksel Kalıp Sayısı', default=0)
+    physical_mold_unit_price = models.DecimalField('Fiziksel Kalıp Birim Fiyat', max_digits=10, decimal_places=2, default=450.00)
     physical_mold_cost = models.DecimalField('Fiziksel Kalıp Maliyeti', max_digits=10, decimal_places=2, default=0)
     digital_scan_count = models.IntegerField('Digital Tarama Sayısı', default=0)
     digital_scan_cost = models.DecimalField('Digital Tarama Maliyeti', max_digits=10, decimal_places=2, default=0)
+
+    # Yeni Hesaplama Alanları (Merkezileştirilmiş Sistem)
+    moldpark_service_fee_rate = models.DecimalField('MoldPark Hizmet Bedeli Oranı (%)', max_digits=5, decimal_places=2, default=6.50)
+    credit_card_fee_rate = models.DecimalField('Kredi Kartı Komisyonu Oranı (%)', max_digits=5, decimal_places=2, default=3.00)
+    moldpark_service_fee = models.DecimalField('MoldPark Hizmet Bedeli', max_digits=10, decimal_places=2, default=0)
+    credit_card_fee = models.DecimalField('Kredi Kartı Komisyonu', max_digits=10, decimal_places=2, default=0)
     
     # Geriye dönük uyumluluk için eski alanlar
     mold_count = models.IntegerField('Kalıp Sayısı (Eski)', default=0)
@@ -911,7 +939,155 @@ class Invoice(models.Model):
 
         return self.total_amount
 
-    def calculate_producer_invoice(self, producer, period_start=None, period_end=None):
+    def calculate_center_admin_invoice(self, ear_mold, issued_by_center):
+        """İşitme merkezi admin faturası hesapla - Kalıp gönderimi için
+
+        Args:
+            ear_mold: Kalıp nesnesi
+            issued_by_center: Faturayı kesen merkez
+
+        Returns:
+            float: Toplam fatura tutarı
+        """
+        from decimal import Decimal
+
+        self.invoice_type = 'center_admin_invoice'
+        self.issued_by_center = issued_by_center
+        self.physical_mold_count = 1  # Her fatura bir kalıp için
+        self.physical_mold_unit_price = Decimal('450.00')  # Sabit fiyat
+        self.physical_mold_cost = self.physical_mold_unit_price
+
+        # Ara toplam (sadece kalıp maliyeti)
+        self.subtotal = self.physical_mold_cost
+
+        # MoldPark hizmet bedeli (%6.5)
+        self.moldpark_service_fee = self.subtotal * (self.moldpark_service_fee_rate / Decimal('100'))
+
+        # Kredi kartı komisyonu (%3)
+        self.credit_card_fee = self.subtotal * (self.credit_card_fee_rate / Decimal('100'))
+
+        # Toplam kesintiler
+        self.total_deductions = self.moldpark_service_fee + self.credit_card_fee
+
+        # Net tutar (müşterinin ödeyeceği tutar)
+        self.net_amount = self.subtotal + self.total_deductions
+
+        # Toplam fatura tutarı
+        self.total_amount = self.net_amount
+
+        # İşlem kırılımlarını kaydet
+        self.breakdown_data = {
+            'service_type': 'physical_mold_shipment',
+            'description': 'Fiziksel kalıp gönderimi ve üretimi',
+            'mold_details': {
+                'mold_id': ear_mold.id,
+                'patient_name': ear_mold.patient_name,
+                'mold_type': ear_mold.get_mold_type_display(),
+                'unit_price': float(self.physical_mold_unit_price),
+                'quantity': 1,
+                'total_cost': float(self.physical_mold_cost)
+            },
+            'fees': {
+                'moldpark_service_fee': {
+                    'rate': float(self.moldpark_service_fee_rate),
+                    'amount': float(self.moldpark_service_fee),
+                    'description': 'MoldPark platform ve üretim koordinasyon ücreti'
+                },
+                'credit_card_fee': {
+                    'rate': float(self.credit_card_fee_rate),
+                    'amount': float(self.credit_card_fee),
+                    'description': 'Kredi kartı işlem komisyonu'
+                }
+            },
+            'summary': {
+                'subtotal': float(self.subtotal),
+                'total_fees': float(self.total_deductions),
+                'total_amount': float(self.total_amount),
+                'producer_receives': float(self.subtotal - self.total_deductions),
+                'moldpark_receives': float(self.total_deductions)
+            },
+            'issued_by': {
+                'center_name': issued_by_center.name,
+                'center_id': issued_by_center.id
+            }
+        }
+
+        return self.total_amount
+
+    def calculate_producer_invoice(self, ear_mold, issued_by_producer):
+        """Üretici faturası hesapla - Hizmet bedeli için
+
+        Args:
+            ear_mold: Kalıp nesnesi
+            issued_by_producer: Faturayı kesen üretici
+
+        Returns:
+            float: Üreticinin alacağı tutar
+        """
+        from decimal import Decimal
+
+        self.invoice_type = 'producer_invoice'
+        self.issued_by_producer = issued_by_producer
+        self.physical_mold_count = 1
+        self.physical_mold_unit_price = Decimal('450.00')
+        self.physical_mold_cost = self.physical_mold_unit_price
+
+        # Ara toplam (üreticinin kazandığı tutar)
+        self.subtotal = self.physical_mold_cost
+
+        # MoldPark hizmet bedeli kesintisi (%6.5)
+        self.moldpark_service_fee = self.subtotal * (self.moldpark_service_fee_rate / Decimal('100'))
+
+        # Kredi kartı komisyonu kesintisi (%3)
+        self.credit_card_fee = self.subtotal * (self.credit_card_fee_rate / Decimal('100'))
+
+        # Toplam kesintiler
+        self.total_deductions = self.moldpark_service_fee + self.credit_card_fee
+
+        # Net tutar (üreticinin alacağı tutar)
+        self.net_amount = self.subtotal - self.total_deductions
+
+        # Toplam fatura tutarı (ödenecek tutar)
+        self.total_amount = self.net_amount
+
+        # İşlem kırılımlarını kaydet
+        self.breakdown_data = {
+            'service_type': 'physical_mold_production',
+            'description': 'Fiziksel kalıp üretimi ve teslimatı',
+            'mold_details': {
+                'mold_id': ear_mold.id,
+                'patient_name': ear_mold.patient_name,
+                'mold_type': ear_mold.get_mold_type_display(),
+                'service_fee': float(self.physical_mold_cost),
+                'center_name': ear_mold.center.name if ear_mold.center else 'N/A'
+            },
+            'deductions': {
+                'moldpark_service_fee': {
+                    'rate': float(self.moldpark_service_fee_rate),
+                    'amount': float(self.moldpark_service_fee),
+                    'description': 'MoldPark platform ve koordinasyon ücreti'
+                },
+                'credit_card_fee': {
+                    'rate': float(self.credit_card_fee_rate),
+                    'amount': float(self.credit_card_fee),
+                    'description': 'Kredi kartı işlem komisyonu'
+                }
+            },
+            'summary': {
+                'gross_amount': float(self.subtotal),
+                'total_deductions': float(self.total_deductions),
+                'net_amount': float(self.net_amount),
+                'moldpark_receives': float(self.total_deductions)
+            },
+            'issued_by': {
+                'producer_name': issued_by_producer.name,
+                'producer_id': issued_by_producer.id
+            }
+        }
+
+        return self.net_amount
+
+    def calculate_producer_invoice_old(self, producer, period_start=None, period_end=None):
         """Üretici kazanç faturası hesapla
 
         Args:
@@ -995,25 +1171,72 @@ class Invoice(models.Model):
             }
         }
     
-    def mark_as_sent(self, admin_user):
+    def mark_as_sent(self, issued_by_user):
         """Faturayı gönderildi olarak işaretle"""
-        if self.status in ['issued']:
+        if self.status in ['issued', 'draft']:
             self.status = 'sent'
             self.sent_date = timezone.now()
-            self.issued_by = admin_user
+            self.issued_by = issued_by_user
+
+            # Faturayı kesen kişinin rolüne göre ilişkili alanları doldur
+            if hasattr(issued_by_user, 'center'):
+                self.issued_by_center = issued_by_user.center
+            elif hasattr(issued_by_user, 'producer'):
+                self.issued_by_producer = issued_by_user.producer
+
             self.save()
 
-            # Transaction oluştur
-            Transaction.objects.create(
-                user=self.user,
-                producer=self.producer,
-                invoice=self,
-                transaction_type='center_monthly_fee' if 'center' in self.invoice_type else 'producer_payment',
-                amount=self.total_amount,
-                description=f'Fatura gönderildi: {self.invoice_number}',
-                reference_id=self.invoice_number,
-                status='pending'
-            )
+            # Transaction oluştur (yeni sistem)
+            if self.invoice_type == 'center_admin_invoice':
+                # İşitme merkezi faturası - müşteri ödemesi bekleniyor
+                Transaction.objects.create(
+                    user=self.user,
+                    center=self.issued_by_center,
+                    invoice=self,
+                    ear_mold=self.user.molds.filter(id=self.breakdown_data.get('mold_details', {}).get('mold_id')).first(),
+                    transaction_type='center_invoice_payment',
+                    amount=self.total_amount,
+                    description=f'Kalıp gönderimi faturası: {self.invoice_number}',
+                    reference_id=self.invoice_number,
+                    service_provider=self.issued_by_center.name if self.issued_by_center else 'İşitme Merkezi',
+                    service_type='Fiziksel Kalıp Üretimi',
+                    amount_source=f'Müşteri: {self.user.get_full_name()}',
+                    amount_destination=f'MoldPark (Tahsilat) + Üretici ({self.breakdown_data.get("summary", {}).get("producer_receives", 0)} TL)',
+                    moldpark_fee_amount=self.moldpark_service_fee,
+                    credit_card_fee_amount=self.credit_card_fee,
+                    status='pending'
+                )
+            elif self.invoice_type == 'producer_invoice':
+                # Üretici faturası - MoldPark ödemesi yapacak
+                Transaction.objects.create(
+                    user=self.user,
+                    producer=self.issued_by_producer,
+                    invoice=self,
+                    ear_mold=self.user.molds.filter(id=self.breakdown_data.get('mold_details', {}).get('mold_id')).first(),
+                    transaction_type='producer_invoice_payment',
+                    amount=self.net_amount,
+                    description=f'Hizmet bedeli ödemesi: {self.invoice_number}',
+                    reference_id=self.invoice_number,
+                    service_provider=self.issued_by_producer.name if self.issued_by_producer else 'Üretici',
+                    service_type='Kalıp Üretimi',
+                    amount_source='MoldPark Tahsilatı',
+                    amount_destination=f'Üretici: {self.issued_by_producer.name if self.issued_by_producer else "Üretici"}',
+                    moldpark_fee_amount=self.moldpark_service_fee,
+                    credit_card_fee_amount=self.credit_card_fee,
+                    status='pending'
+                )
+            else:
+                # Eski sistem faturaları için
+                Transaction.objects.create(
+                    user=self.user,
+                    producer=self.producer,
+                    invoice=self,
+                    transaction_type='center_monthly_fee' if 'center' in self.invoice_type else 'producer_payment',
+                    amount=self.total_amount,
+                    description=f'Fatura gönderildi: {self.invoice_number}',
+                    reference_id=self.invoice_number,
+                    status='pending'
+                )
 
     def mark_as_paid(self, payment_method='', transaction_id=''):
         """Faturayı ödendi olarak işaretle"""
@@ -1027,8 +1250,51 @@ class Invoice(models.Model):
             if transaction:
                 transaction.status = 'completed'
                 transaction.payment_method = payment_method
-                transaction.description = f'Fatura ödendi: {self.invoice_number}'
                 transaction.reference_id = transaction_id or self.invoice_number
+
+                if self.invoice_type == 'center_admin_invoice':
+                    transaction.description = f'Kalıp gönderimi faturası ödendi: {self.invoice_number}'
+                    # MoldPark tahsilat transaction'ı oluştur
+                    Transaction.objects.create(
+                        user=self.user,
+                        center=self.issued_by_center,
+                        invoice=self,
+                        ear_mold=transaction.ear_mold,
+                        transaction_type='moldpark_collection',
+                        amount=self.total_amount,
+                        description=f'MoldPark tahsilatı - Kalıp gönderimi: {self.invoice_number}',
+                        reference_id=self.invoice_number,
+                        service_provider='MoldPark',
+                        service_type='Tahsilat',
+                        amount_source=f'Müşteri: {self.user.get_full_name()}',
+                        amount_destination='MoldPark Hesabı',
+                        moldpark_fee_amount=self.moldpark_service_fee,
+                        credit_card_fee_amount=self.credit_card_fee,
+                        status='completed'
+                    )
+                    # Üreticiye ödeme transaction'ı oluştur
+                    producer_amount = self.breakdown_data.get('summary', {}).get('producer_receives', 0)
+                    if producer_amount > 0:
+                        Transaction.objects.create(
+                            user=self.user,
+                            center=self.issued_by_center,
+                            invoice=self,
+                            ear_mold=transaction.ear_mold,
+                            transaction_type='moldpark_payment',
+                            amount=producer_amount,
+                            description=f'Üreticiye ödeme - Kalıp üretimi: {self.invoice_number}',
+                            reference_id=self.invoice_number,
+                            service_provider='MoldPark',
+                            service_type='Ödeme',
+                            amount_source='MoldPark Tahsilatı',
+                            amount_destination=f'Üretici ({producer_amount} TL)',
+                            status='pending'  # Üreticiye ödenene kadar pending
+                        )
+                elif self.invoice_type == 'producer_invoice':
+                    transaction.description = f'Hizmet bedeli ödendi: {self.invoice_number}'
+                else:
+                    transaction.description = f'Fatura ödendi: {self.invoice_number}'
+
                 transaction.save()
 
     def get_status_color(self):
@@ -1061,21 +1327,29 @@ class Invoice(models.Model):
     @staticmethod
     def generate_invoice_number(invoice_type):
         """Fatura numarası oluştur"""
-        prefix = 'CTR' if invoice_type == 'center' else 'PRD'
+        if invoice_type == 'center_admin':
+            prefix = 'CAD'  # Center Admin Invoice
+        elif invoice_type == 'producer':
+            prefix = 'PRD'  # Producer Invoice
+        elif invoice_type == 'center':
+            prefix = 'CTR'  # Center Invoice (eski)
+        else:
+            prefix = 'INV'  # General Invoice
+
         date_part = timezone.now().strftime('%Y%m')
-        
+
         # Bu ay için son fatura numarasını bul
         last_invoice = Invoice.objects.filter(
             invoice_number__startswith=f'{prefix}{date_part}'
         ).order_by('-invoice_number').first()
-        
+
         if last_invoice:
             # Son numarayı al ve 1 artır
             last_num = int(last_invoice.invoice_number[-4:])
             new_num = last_num + 1
         else:
             new_num = 1
-        
+
         return f'{prefix}{date_part}{new_num:04d}'
 
 

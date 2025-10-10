@@ -13,7 +13,7 @@ from django.db import models
 from datetime import datetime, timedelta
 from mold.models import EarMold
 from producer.models import ProducerNetwork, Producer
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404
 from django.utils import timezone
 from django.core.paginator import Paginator
 from core.models import Invoice
@@ -38,6 +38,7 @@ def dashboard(request):
         'waiting': molds.filter(status='waiting').count(),
         'processing': molds.filter(status='processing').count(),
         'completed': molds.filter(status='completed').count(),
+        'delivered_pending_approval': molds.filter(status='delivered_pending_approval').count(),
         'delivered': molds.filter(status='delivered').count(),
         'revision': molds.filter(
             modeled_files__revision_requests__status__in=['pending', 'admin_review', 'approved', 'rejected', 'producer_review', 'accepted', 'in_progress', 'quality_check', 'ready_for_delivery']
@@ -719,6 +720,56 @@ def admin_delete_model(request, model_id):
     return redirect('center:admin_mold_detail', pk=mold_id)
 
 @login_required
+@center_required
+def mold_detail(request, pk):
+    """Center için kendi kalıp detayları"""
+    mold = get_object_or_404(EarMold, pk=pk, center=request.user.center)
+
+    # Kalıp modelleri
+    modeled_files = mold.modeled_files.all().order_by('-created_at')
+
+    # Revizyon talepleri
+    revision_requests = mold.revision_requests.all().order_by('-created_at')
+
+    # Producer bilgisi
+    producer_order = mold.producer_orders.filter(status__in=['in_progress', 'completed', 'delivered']).first()
+
+    context = {
+        'mold': mold,
+        'modeled_files': modeled_files,
+        'revision_requests': revision_requests,
+        'producer_order': producer_order,
+    }
+
+    return render(request, 'center/mold_detail.html', context)
+
+
+@login_required
+@center_required
+def approve_delivery(request, mold_id):
+    """Teslimatı onayla"""
+    mold = get_object_or_404(EarMold, pk=mold_id, center=request.user.center)
+
+    if request.method == 'POST':
+        notes = request.POST.get('notes', '')
+
+        if mold.status == 'delivered_pending_approval':
+            if mold.approve_delivery(request.user.center, notes):
+                messages.success(request, 'Teslimat başarıyla onaylandı.')
+            else:
+                messages.error(request, 'Teslimat onayı sırasında bir hata oluştu.')
+        else:
+            messages.warning(request, 'Bu kalıp teslimat onayı için uygun durumda değil.')
+
+        return redirect('center:mold_detail', pk=mold_id)
+
+    # GET request için onay formu göster
+    context = {
+        'mold': mold,
+    }
+    return render(request, 'center/approve_delivery.html', context)
+
+@login_required
 def change_avatar(request):
     center = request.user.center
     if request.method == 'POST' and 'avatar' in request.FILES:
@@ -1181,10 +1232,10 @@ def billing_invoices(request):
         'estimated_total': 100.00 + (physical_molds_count * 450.00) + (digital_scans_count * 50.00),
     }
 
-    # Kullanıcının faturaları
+    # Kullanıcının faturaları (eski ve yeni sistem)
     invoices = Invoice.objects.filter(
-        user=request.user,
-        invoice_type='center'
+        Q(user=request.user, invoice_type='center') |  # Eski sistem
+        Q(issued_by_center=center, invoice_type='center_admin_invoice')  # Yeni sistem
     ).order_by('-issue_date')
 
     # Aylık kullanım detayları (faturalardan)
@@ -1269,13 +1320,14 @@ def billing_invoice_detail(request, invoice_id):
     """Fatura detay sayfası"""
     center = request.user.center
 
-    # Sadece kendi faturasını görebilir
-    invoice = get_object_or_404(
-        Invoice,
-        id=invoice_id,
-        user=request.user,
-        invoice_type='center'
-    )
+    # Sadece kendi faturasını görebilir (eski ve yeni sistem)
+    invoice = Invoice.objects.filter(
+        Q(id=invoice_id, user=request.user, invoice_type='center') |  # Eski sistem
+        Q(id=invoice_id, issued_by_center=center, invoice_type='center_admin_invoice')  # Yeni sistem
+    ).first()
+    
+    if not invoice:
+        raise Http404("Fatura bulunamadı")
 
     # İlgili kalıpları bul (bu fatura döneminde oluşturulan)
     related_molds = []

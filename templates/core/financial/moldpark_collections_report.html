@@ -1,0 +1,316 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load moldpark_extras %}
+
+{% block title %}MoldPark Tahsilat ve Ödemeler Raporu{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-coins text-warning me-2"></i>
+                        MoldPark Tahsilat ve Ödemeler Raporu
+                    </h4>
+                    <div class="btn-group">
+                        <a href="?period=this_month" class="btn btn-sm btn-outline-primary {% if period == 'this_month' %}active{% endif %}">Bu Ay</a>
+                        <a href="?period=last_month" class="btn btn-sm btn-outline-primary {% if period == 'last_month' %}active{% endif %}">Geçen Ay</a>
+                        <a href="?period=this_year" class="btn btn-sm btn-outline-primary {% if period == 'this_year' %}active{% endif %}">Bu Yıl</a>
+                        <a href="?period=all_time" class="btn btn-sm btn-outline-primary {% if period == 'all_time' %}active{% endif %}">Tüm Zamanlar</a>
+                    </div>
+                </div>
+
+                <!-- Özet İstatistikler -->
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="card bg-success text-white">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title">Toplam Tahsilat</h5>
+                                    <h3 class="mb-0">₺{{ stats.total_collections|floatformat:2 }}</h3>
+                                    <small>MoldPark'a giren toplam tutar</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-info text-white">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title">Toplam Ödemeler</h5>
+                                    <h3 class="mb-0">₺{{ stats.total_payments|floatformat:2 }}</h3>
+                                    <small>Üreticilere yapılan ödemeler</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-warning text-white">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title">MoldPark Ücretleri</h5>
+                                    <h3 class="mb-0">₺{{ stats.total_moldpark_fees|floatformat:2 }}</h3>
+                                    <small>%6.5 hizmet bedeli toplamı</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-primary text-white">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title">Net Kazanç</h5>
+                                    <h3 class="mb-0">₺{{ stats.net_moldpark_profit|floatformat:2 }}</h3>
+                                    <small>Tahsilat - Ödemeler - Komisyonlar</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ödeme Durumu -->
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Ödeme Durumu</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Bekleyen Ödemeler:</span>
+                                        <span class="badge bg-warning">{{ stats.pending_payments }}</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <span>Tamamlanan Ödemeler:</span>
+                                        <span class="badge bg-success">{{ stats.completed_payments }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Komisyon Özeti</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Kredi Kartı Komisyonu (%3):</span>
+                                        <span>₺{{ stats.total_credit_card_fees|floatformat:2 }}</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <span>MoldPark Hizmet Bedeli (%6.5):</span>
+                                        <span>₺{{ stats.total_moldpark_fees|floatformat:2 }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kırılım Analizleri -->
+    <div class="row mt-4">
+        <!-- İşlem Türleri -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">İşlem Türleri Kırılımı</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>İşlem Türü</th>
+                                    <th class="text-center">Adet</th>
+                                    <th class="text-end">Toplam Tutar</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for type_name, data in transaction_breakdown.by_type.items %}
+                                <tr>
+                                    <td>{{ type_name }}</td>
+                                    <td class="text-center">{{ data.count }}</td>
+                                    <td class="text-end">₺{{ data.amount|floatformat:2 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hizmet Verenler -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Hizmet Veren Kırılımı</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Hizmet Veren</th>
+                                    <th class="text-center">Adet</th>
+                                    <th class="text-end">Toplam Tutar</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for provider, data in transaction_breakdown.by_service_provider.items %}
+                                <tr>
+                                    <td>{{ provider }}</td>
+                                    <td class="text-center">{{ data.count }}</td>
+                                    <td class="text-end">₺{{ data.amount|floatformat:2 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tutar Kaynakları ve Durumlar -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Tutar Kaynakları</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Kaynak</th>
+                                    <th class="text-center">Adet</th>
+                                    <th class="text-end">Toplam Tutar</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for source, data in transaction_breakdown.by_amount_source.items %}
+                                <tr>
+                                    <td>{{ source|truncatechars:30 }}</td>
+                                    <td class="text-center">{{ data.count }}</td>
+                                    <td class="text-end">₺{{ data.amount|floatformat:2 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">İşlem Durumları</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Durum</th>
+                                    <th class="text-center">Adet</th>
+                                    <th class="text-end">Toplam Tutar</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for status, data in transaction_breakdown.by_status.items %}
+                                <tr>
+                                    <td>{{ status }}</td>
+                                    <td class="text-center">{{ data.count }}</td>
+                                    <td class="text-end">₺{{ data.amount|floatformat:2 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Son İşlemler -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">Son İşlemler ({{ total_transactions }} toplam)</h6>
+                    <small class="text-muted">Son 100 işlem gösteriliyor</small>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Tarih</th>
+                                    <th>İşlem Türü</th>
+                                    <th>Hizmet Veren</th>
+                                    <th>Kullanıcı</th>
+                                    <th>Tutar</th>
+                                    <th>Durum</th>
+                                    <th>Kaynak</th>
+                                    <th>Hedef</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for transaction in transactions %}
+                                <tr>
+                                    <td>{{ transaction.transaction_date|date:"d.m.Y H:i" }}</td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ transaction.get_transaction_type_display }}</span>
+                                    </td>
+                                    <td>{{ transaction.service_provider|truncatechars:20|default:"-" }}</td>
+                                    <td>{{ transaction.user.get_full_name|truncatechars:20 }}</td>
+                                    <td class="text-end fw-bold">₺{{ transaction.amount|floatformat:2 }}</td>
+                                    <td>
+                                        {% if transaction.status == 'completed' %}
+                                            <span class="badge bg-success">Tamamlandı</span>
+                                        {% elif transaction.status == 'pending' %}
+                                            <span class="badge bg-warning">Bekliyor</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">{{ transaction.get_status_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td title="{{ transaction.amount_source }}">{{ transaction.amount_source|truncatechars:25|default:"-" }}</td>
+                                    <td title="{{ transaction.amount_destination }}">{{ transaction.amount_destination|truncatechars:25|default:"-" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {% if total_transactions > 100 %}
+                    <div class="text-center mt-3">
+                        <small class="text-muted">Toplam {{ total_transactions }} işlem var, son 100 tanesi gösteriliyor.</small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.table th {
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.table td {
+    font-size: 0.875rem;
+}
+
+.badge {
+    font-size: 0.75rem;
+}
+</style>
+{% endblock %}

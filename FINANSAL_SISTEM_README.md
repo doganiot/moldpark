@@ -16,6 +16,13 @@ MoldPark'a kapsamlı bir finansal yönetim sistemi eklendi. Sistem, kullandıkç
 - **Kredi Kartı Komisyonu:** %3 (tüm işlemlerden)
 - **MoldPark Komisyonu:** %6.5 (sadece üretici siparişlerinden)
 
+### Yeni Fatura Sistemi (Merkezileştirilmiş)
+- **İşitme Merkezi Admin:** Kalıp gönderimi için fatura keser (450 TL + %3 KK + %6.5 MoldPark)
+- **Üretici Merkez:** Hizmet bedeli için fatura keser (üreticiye ödeme bilgilendirmesi)
+- **Müşteri Ödemesi:** 450 TL + komisyonlar = 450 + 13.5 + 29.25 = 492.75 TL
+- **Üretici Ödemesi:** 450 - 13.5 - 29.25 = 407.25 TL
+- **MoldPark Kazancı:** 13.5 (KK) + 29.25 (hizmet) = 42.75 TL
+
 ## 🔧 Özellikler
 
 ### 1. Finansal Dashboard (`/financial/`)
@@ -54,18 +61,38 @@ MoldPark'a kapsamlı bir finansal yönetim sistemi eklendi. Sistem, kullandıkç
 - Ortalama değerler
 - Kar marjları
 
-### 5. Otomatik Fatura Oluşturma
-**Management Command:**
-```bash
-# Önizleme (test)
-python manage.py generate_monthly_invoices --dry-run
-
-# Gerçek fatura oluşturma
-python manage.py generate_monthly_invoices
-
-# Belirli bir ay için
-python manage.py generate_monthly_invoices --month 9 --year 2025
+### 5. Yeni Fatura Oluşturma Sistemi
+**Merkez Admin Fatura Oluşturma:**
+```javascript
+// AJAX ile kalıp gönderimi faturası oluşturma
+POST /invoices/create/center-admin/{mold_id}/
 ```
+
+**Üretici Fatura Oluşturma:**
+```javascript
+// AJAX ile hizmet bedeli faturası oluşturma
+POST /invoices/create/producer/{mold_id}/
+```
+
+**Özellikler:**
+- Sadece ilgili kullanıcılar fatura kesebilir
+- Otomatik komisyon hesaplaması
+- Detaylı işlem takibi
+- Kaynak ve hedef bilgilerinin loglanması
+
+### 6. MoldPark Tahsilat Raporu (`/financial/collections/`)
+**Erişim:** Sadece süper kullanıcılar
+
+**İçerik:**
+- Toplam tahsilat ve ödemeler
+- MoldPark kazanç analizi
+- Komisyon kırılımları
+- Hizmet veren bazlı analiz
+- Tutar kaynakları takibi
+- İşlem durumu raporlaması
+- Detaylı transaction geçmişi
+
+### 7. Otomatik Fatura Oluşturma (Eski Sistem)
 
 **İşlevler:**
 - Her ayın 28'inde otomatik çalışacak şekilde ayarlanabilir (cron/scheduler)
@@ -135,17 +162,65 @@ python manage.py generate_monthly_invoices --month 9 --year 2025
 - `total_net_revenue`: Toplam net gelir
 - İstatistikler: merkez, üretici, kalıp, digital tarama sayıları
 
+### Yeni Sistem Alanları (Invoice Modeli)
+
+**Yetkilendirme Alanları:**
+- `issued_by_center`: Faturayı kesen merkez
+- `issued_by_producer`: Faturayı kesen üretici
+
+**Yeni Fatura Türleri:**
+- `center_admin_invoice`: İşitme merkezi admin faturası
+- `producer_invoice`: Üretici hizmet bedeli faturası
+
+**Komisyon Alanları:**
+- `moldpark_service_fee_rate`: MoldPark hizmet bedeli oranı (%6.5)
+- `credit_card_fee_rate`: Kredi kartı komisyonu oranı (%3)
+- `moldpark_service_fee`: MoldPark hizmet bedeli tutarı
+- `credit_card_fee`: Kredi kartı komisyonu tutarı
+
+### Transaction Modeli Genişletmeleri
+
+**Kaynak Takip Alanları:**
+- `service_provider`: Hizmet veren kurum/kişi
+- `service_type`: Hizmet kategorisi
+- `amount_source`: Tutarın nereden geldiği
+- `amount_destination`: Tutarın nereye gideceği
+- `moldpark_fee_amount`: İşlemden MoldPark'ın aldığı ücret
+- `credit_card_fee_amount`: İşlemden kesilen KK komisyonu
+
+**İlişkili Nesneler:**
+- `ear_mold`: İlgili kalıp
+- `center`: İlgili merkez
+
+**Yeni İşlem Türleri:**
+- `center_invoice_payment`: Merkez fatura ödemesi
+- `producer_invoice_payment`: Üretici fatura ödemesi
+- `moldpark_collection`: MoldPark tahsilatı
+- `moldpark_payment`: MoldPark ödemesi
+
 ## 🔄 Kullanım Akışı
 
-### Kalıp Oluşturma
-1. İşitme merkezi yeni kalıp oluşturur
-2. Sistem otomatik olarak maliyeti hesaplar:
-   - Fiziksel kalıp: 450 TL
-   - Digital tarama: 50 TL (ileride eklenecek)
-3. Kullanıcıya anlık maliyet bildirimi gösterilir
-4. Aylık kullanım kaydedilir
+### Yeni Fatura Kullanım Akışı
 
-### Aylık Faturalandırma
+#### Fiziksel Kalıp İşlemi
+1. İşitme merkezi kalıp gönderir (450 TL)
+2. **Merkez Admin** fatura keser:
+   - Müşteri ödemesi: 450 + 13.50(KK) + 29.25(MoldPark) = 492.75 TL
+   - Sistem tahsilatı otomatik olarak kaydeder
+3. **Üretici** hizmet bedeli faturası keser:
+   - Üreticiye ödeme bilgilendirmesi: 450 - 13.50 - 29.25 = 407.25 TL
+   - MoldPark ödemeyi beklemeye alır
+4. Müşteri ödeme yaptığında:
+   - MoldPark tahsilat transaction'ı oluşturulur
+   - Üreticiye ödeme transaction'ı beklemeye alınır
+
+#### Ödeme Takibi
+1. MoldPark tüm tahsilatları takip eder
+2. Üreticilere ödemeler manuel olarak gerçekleştirilir
+3. Her ödeme transaction olarak kaydedilir
+4. Detaylı raporlar ile takip edilir
+
+### Eski Aylık Faturalandırma Sistemi
 1. Her ayın 28'inde `generate_monthly_invoices` komutu çalıştırılır
 2. Tüm aktif işitme merkezleri için faturalar oluşturulur:
    - 100 TL aylık ücret (her zaman)
@@ -167,7 +242,35 @@ python manage.py generate_monthly_invoices --month 9 --year 2025
 
 ## 🎯 Örnek Hesaplamalar
 
-### İşitme Merkezi (5 fiziksel + 2 3D modelleme)
+### Yeni Sistem - Fiziksel Kalıp İşlemi (450 TL)
+
+#### Müşteri Görüşü (Merkez Admin Faturası)
+```
+Kalıp Ücreti:               450.00 TL
+Kredi Kartı (%3):           13.50 TL
+MoldPark Hizmet (%6.5):     29.25 TL
+                           -----------
+TOPLAM ÖDEME:              492.75 TL
+```
+
+#### Üretici Görüşü (Üretici Faturası)
+```
+Brüt Gelir:                 450.00 TL
+MoldPark Hizmet Kesintisi:  -29.25 TL
+Kredi Kartı Kesintisi:      -13.50 TL
+                           -----------
+NET ÖDEME (Üreticiye):      407.25 TL
+```
+
+#### MoldPark Kazancı (Bu işlemden)
+```
+MoldPark Hizmet Bedeli:     29.25 TL
+Kredi Kartı Komisyonu:      13.50 TL
+                           -----------
+TOPLAM KAZANÇ:             42.75 TL
+```
+
+### Eski Sistem - İşitme Merkezi (5 fiziksel + 2 3D modelleme)
 ```
 Aylık Sistem Kullanımı:      100.00 TL
 Fiziksel Kalıp (5x450):     2,250.00 TL
@@ -179,7 +282,7 @@ Kredi Kartı (%3):           73.50 TL
 TOPLAM:                     2,523.50 TL
 ```
 
-### Üretici Merkez (10,000 TL brüt gelir)
+### Eski Sistem - Üretici Merkez (10,000 TL brüt gelir)
 ```
 Brüt Gelir:                 10,000.00 TL
 MoldPark Komisyon (%6.5):   -650.00 TL
@@ -188,15 +291,18 @@ Kredi Kartı (%3):           -300.00 TL
 NET ÖDEME:                  9,050.00 TL
 ```
 
-### MoldPark Kazancı
+### Sistem Karşılaştırması
 ```
-İşitme Merkezlerinden:      2,523.50 TL (net)
-Üretici Komisyonu:          650.00 TL
-                           -----------
-Toplam Kazanç:              3,173.50 TL
-Kredi Kartı Ücreti:         -373.50 TL
-                           -----------
-NET KAR:                    2,800.00 TL
+YENİ SİSTEM (Merkezileştirilmiş):
+- Her kalıp için MoldPark kazancı: 42.75 TL
+- Şeffaf tahsilat takibi
+- Otomatik komisyon hesaplaması
+- Detaylı kaynak takibi
+
+ESKİ SİSTEM (Aylık Toplu):
+- MoldPark toplam kazanç: Değişken
+- Manuel takip gereksinimi
+- Komisyon hesaplaması karmaşık
 ```
 
 ## 🚀 Kurulum ve Ayarlar

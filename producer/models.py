@@ -189,41 +189,52 @@ class Producer(models.Model):
         else:
             end_date = date(year, month + 1, 1)
 
-        # Tamamlanan siparişleri al
+        # Tamamlanan ve işlem gören siparişleri al
+        # Fiziksel kalıplar: Üretici aldığı anda (received) hizmet başlamıştır
+        # Dijital kalıplar: Teslim edildiğinde (delivered) hizmet tamamlanmıştır
         completed_orders = self.orders.filter(
-            status='delivered',
-            actual_delivery__gte=start_date,
-            actual_delivery__lt=end_date
-        )
+            Q(status='delivered', actual_delivery__gte=start_date, actual_delivery__lt=end_date) |
+            Q(status__in=['received', 'designing', 'production', 'quality_check', 'packaging', 'shipping'],
+              ear_mold__is_physical_shipment=True, created_at__gte=start_date, created_at__lt=end_date)
+        ).select_related('ear_mold')
 
         total_revenue = Decimal('0.00')
         for order in completed_orders:
             # Sipariş türüne göre fiyat belirle
             if order.ear_mold.is_physical_shipment:
-                total_revenue += Decimal('350.00')  # Fiziksel kalıp
+                total_revenue += Decimal('450.00')  # Fiziksel kalıp (güncel fiyat)
             else:
-                total_revenue += Decimal('150.00')  # Dijital tarama
+                total_revenue += Decimal('50.00')  # 3D Modelleme hizmeti (güncel fiyat)
 
         return total_revenue
 
     def get_total_earnings(self):
         """Toplam kazançları hesapla"""
+        from django.db.models import Q
         from decimal import Decimal
 
         total_gross = Decimal('0.00')
         total_completed_orders = 0
 
-        # Tüm tamamlanan siparişler için
-        for order in self.orders.filter(status='delivered'):
+        # Tamamlanan ve işlem gören siparişler
+        # Fiziksel kalıplar: Üretici aldığı anda hizmet başlar
+        # Dijital kalıplar: Teslim edildiğinde hizmet tamamlanır
+        completed_orders = self.orders.filter(
+            Q(status='delivered') |
+            Q(status__in=['received', 'designing', 'production', 'quality_check', 'packaging', 'shipping'],
+              ear_mold__is_physical_shipment=True)
+        ).select_related('ear_mold')
+
+        for order in completed_orders:
             if order.ear_mold.is_physical_shipment:
-                total_gross += Decimal('350.00')
+                total_gross += Decimal('450.00')  # Fiziksel kalıp (güncel fiyat)
             else:
-                total_gross += Decimal('150.00')
+                total_gross += Decimal('50.00')  # 3D Modelleme hizmeti (güncel fiyat)
             total_completed_orders += 1
 
         # Kesintiler
         moldpark_fee = total_gross * Decimal('0.065')  # %6.5
-        credit_card_fee = total_gross * Decimal('0.026')  # %2.6
+        credit_card_fee = total_gross * Decimal('0.03')  # %3 (güncel oran)
         total_deductions = moldpark_fee + credit_card_fee
 
         net_earnings = total_gross - total_deductions
@@ -255,6 +266,7 @@ class Producer(models.Model):
         """Son X ay için aylık kazançları döndür"""
         from datetime import date, timedelta
         from calendar import monthrange
+        from decimal import Decimal
 
         earnings = []
         current_date = date.today()
@@ -266,9 +278,9 @@ class Producer(models.Model):
 
             monthly_revenue = self.get_monthly_revenue(year, month)
 
-            # Kesintiler
-            moldpark_fee = monthly_revenue * Decimal('0.065')
-            credit_card_fee = monthly_revenue * Decimal('0.026')
+            # Kesintiler (güncel oranlar)
+            moldpark_fee = monthly_revenue * Decimal('0.065')  # %6.5
+            credit_card_fee = monthly_revenue * Decimal('0.03')  # %3 (güncel oran)
             net_earnings = monthly_revenue - moldpark_fee - credit_card_fee
 
             earnings.append({

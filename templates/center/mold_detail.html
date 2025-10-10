@@ -1,0 +1,270 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ mold.patient_name }} {{ mold.patient_surname }} - Kalıp Detayı{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-cube me-2"></i>
+                        {{ mold.patient_name }} {{ mold.patient_surname }} - Kalıp Detayı
+                    </h4>
+                    <a href="{% url 'center:dashboard' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>Dashboard
+                    </a>
+                </div>
+
+                <div class="card-body">
+                    <!-- Kalıp Bilgileri -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h5 class="mb-3">Hasta Bilgileri</h5>
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td class="fw-bold" style="width: 120px;">Hasta:</td>
+                                    <td>{{ mold.patient_name }} {{ mold.patient_surname }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Yaş:</td>
+                                    <td>{{ mold.patient_age }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Cinsiyet:</td>
+                                    <td>{{ mold.get_patient_gender_display }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Kulak:</td>
+                                    <td>{{ mold.get_ear_side_display }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 class="mb-3">Kalıp Bilgileri</h5>
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td class="fw-bold" style="width: 120px;">Kalıp Tipi:</td>
+                                    <td>{{ mold.get_mold_type_display }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Vent Çapı:</td>
+                                    <td>{{ mold.vent_diameter }} mm</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Oluşturulma:</td>
+                                    <td>{{ mold.created_at|date:"d.m.Y H:i" }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Durum:</td>
+                                    <td>
+                                        {% if mold.status == 'waiting' %}
+                                            <span class="badge bg-warning">Bekliyor</span>
+                                        {% elif mold.status == 'processing' %}
+                                            <span class="badge bg-info">İşleniyor</span>
+                                        {% elif mold.status == 'completed' %}
+                                            <span class="badge bg-success">Tamamlandı</span>
+                                        {% elif mold.status == 'delivered_pending_approval' %}
+                                            <span class="badge bg-orange text-white">Teslimat Onayı Bekleniyor</span>
+                                        {% elif mold.status == 'delivered' %}
+                                            <span class="badge bg-primary">Teslim Edildi</span>
+                                        {% elif mold.status == 'revision' %}
+                                            <span class="badge bg-warning">Revizyon</span>
+                                        {% elif mold.status == 'rejected' %}
+                                            <span class="badge bg-danger">Reddedildi</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ mold.get_status_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Teslimat Onay Butonu -->
+                    {% if mold.status == 'delivered_pending_approval' %}
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Kalıp teslim edildi!</strong>
+                                Kalıbınızı aldığınızı onaylamak için aşağıdaki butona tıklayınız.
+                                <div class="mt-2">
+                                    <a href="{% url 'center:approve_delivery' mold.id %}" class="btn btn-success btn-sm">
+                                        <i class="fas fa-check-circle me-1"></i>Teslimatı Onayla
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Üretici Bilgileri -->
+                    {% if producer_order %}
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h5 class="mb-3">Üretici Bilgileri</h5>
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <strong>Üretici:</strong><br>
+                                            {{ producer_order.producer.name }}
+                                        </div>
+                                        <div class="col-md-4">
+                                            <strong>Sipariş Tarihi:</strong><br>
+                                            {{ producer_order.created_at|date:"d.m.Y H:i" }}
+                                        </div>
+                                        <div class="col-md-4">
+                                            <strong>Sipariş Durumu:</strong><br>
+                                            {% if producer_order.status == 'completed' %}
+                                                <span class="badge bg-success">Tamamlandı</span>
+                                            {% elif producer_order.status == 'in_progress' %}
+                                                <span class="badge bg-info">İşleniyor</span>
+                                            {% elif producer_order.status == 'delivered' %}
+                                                <span class="badge bg-primary">Teslim Edildi</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">{{ producer_order.get_status_display }}</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    {% if producer_order.completed_at %}
+                                    <div class="row mt-2">
+                                        <div class="col-12">
+                                            <strong>Tamamlama Tarihi:</strong><br>
+                                            {{ producer_order.completed_at|date:"d.m.Y H:i" }}
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- İşlenmiş Modeller -->
+                    {% if modeled_files %}
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h5 class="mb-3">İşlenmiş Modeller</h5>
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Dosya Adı</th>
+                                            <th>Yüklenme Tarihi</th>
+                                            <th>Boyut</th>
+                                            <th>Durum</th>
+                                            <th>İndir</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for model in modeled_files %}
+                                        <tr>
+                                            <td>{{ model.file.name|basename }}</td>
+                                            <td>{{ model.created_at|date:"d.m.Y H:i" }}</td>
+                                            <td>{{ model.file.size|filesizeformat }}</td>
+                                            <td>
+                                                {% if model.status == 'approved' %}
+                                                    <span class="badge bg-success">Onaylandı</span>
+                                                {% elif model.status == 'pending' %}
+                                                    <span class="badge bg-warning">Bekliyor</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">{{ model.get_status_display }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if model.file %}
+                                                <a href="{{ model.file.url }}" class="btn btn-sm btn-outline-primary" download>
+                                                    <i class="fas fa-download me-1"></i>İndir
+                                                </a>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Revizyon Talepleri -->
+                    {% if revision_requests %}
+                    <div class="row">
+                        <div class="col-12">
+                            <h5 class="mb-3">Revizyon Talepleri</h5>
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Talep Tarihi</th>
+                                            <th>Konu</th>
+                                            <th>Durum</th>
+                                            <th>Son Güncelleme</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for revision in revision_requests %}
+                                        <tr>
+                                            <td>{{ revision.created_at|date:"d.m.Y H:i" }}</td>
+                                            <td>{{ revision.subject|truncatechars:50 }}</td>
+                                            <td>
+                                                {% if revision.status == 'completed' %}
+                                                    <span class="badge bg-success">Tamamlandı</span>
+                                                {% elif revision.status == 'in_progress' %}
+                                                    <span class="badge bg-info">İşleniyor</span>
+                                                {% elif revision.status == 'pending' %}
+                                                    <span class="badge bg-warning">Bekliyor</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">{{ revision.get_status_display }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ revision.updated_at|date:"d.m.Y H:i" }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.table-borderless td {
+    border: none;
+    padding: 0.25rem 0;
+}
+
+.alert-warning {
+    border-left: 4px solid #ffc107;
+}
+
+.btn-success {
+    background-color: #198754;
+    border-color: #198754;
+}
+
+.btn-success:hover {
+    background-color: #157347;
+    border-color: #146c43;
+}
+
+.badge {
+    font-size: 0.75rem;
+}
+</style>
+{% endblock %}

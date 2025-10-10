@@ -73,10 +73,20 @@ urlpatterns = [
     path('financial/invoices/<int:invoice_id>/mark-paid/', views_financial.invoice_mark_paid, name='invoice_mark_paid'),
     path('financial/generate-summary/', views_financial.generate_monthly_summary, name='generate_monthly_summary'),
     path('financial/reports/', views_financial.financial_reports, name='financial_reports'),
+    path('financial/collections/', views_financial.moldpark_collections_report, name='moldpark_collections_report'),
 
     # Yeni Admin Finans Dashboard
     path('admin/financial/', views.admin_financial_dashboard, name='admin_financial_dashboard'),
     path('admin/invoices/', views.admin_invoice_management, name='admin_invoice_management'),
     path('admin/invoices/<int:invoice_id>/', views.admin_invoice_detail, name='admin_invoice_detail'),
     path('admin/generate-invoices/', views.admin_generate_invoices, name='admin_generate_invoices'),
+
+    # Yeni Fatura Oluşturma Sistemi
+    path('invoices/create/center-admin/<int:mold_id>/', views_financial.create_center_admin_invoice, name='create_center_admin_invoice'),
+    path('invoices/create/producer/<int:mold_id>/', views_financial.create_producer_invoice, name='create_producer_invoice'),
+    
+    # Admin Finansal Kontrol Paneli
+    path('admin/financial-control/', views_financial.admin_financial_control_panel, name='admin_financial_control_panel'),
+    path('admin/financial-control/bulk-create-center-invoices/', views_financial.bulk_create_center_invoices, name='bulk_create_center_invoices'),
+    path('admin/financial-control/bulk-create-producer-invoices/', views_financial.bulk_create_producer_invoices, name='bulk_create_producer_invoices'),
 ] 

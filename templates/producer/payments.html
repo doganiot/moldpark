@@ -100,6 +100,210 @@
         </div>
     </div>
 
+    <!-- Merkez Bazlı Detaylı Ödeme Takibi -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-building me-2"></i>
+                            Merkez Bazlı Ödeme Takibi
+                        </h5>
+                        <span class="badge bg-light text-dark">{{ total_centers }} Aktif Merkez</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Genel Özet -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h6 class="text-muted small mb-1">Toplam Fiziksel Kalıp</h6>
+                                <h4 class="text-primary mb-0">{{ total_physical_molds }}</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h6 class="text-muted small mb-1">Toplam Dijital İş</h6>
+                                <h4 class="text-info mb-0">{{ total_digital_molds }}</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h6 class="text-muted small mb-1">Toplam Brüt</h6>
+                                <h4 class="text-success mb-0">₺{{ total_gross_from_centers|floatformat:0 }}</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h6 class="text-muted small mb-1">Toplam Net</h6>
+                                <h4 class="text-success mb-0">₺{{ total_net_from_centers|floatformat:0 }}</h4>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Merkez Detayları -->
+                    {% if center_payment_details %}
+                        <div class="accordion" id="centerPaymentAccordion">
+                            {% for detail in center_payment_details %}
+                            <div class="accordion-item border mb-3 rounded">
+                                <h2 class="accordion-header" id="heading{{ forloop.counter }}">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ forloop.counter }}" aria-expanded="false" aria-controls="collapse{{ forloop.counter }}">
+                                        <div class="w-100 d-flex justify-content-between align-items-center pe-3">
+                                            <div>
+                                                <i class="fas fa-building text-primary me-2"></i>
+                                                <strong>{{ detail.center.name }}</strong>
+                                                <span class="badge bg-secondary ms-2">{{ detail.total_orders }} Sipariş</span>
+                                            </div>
+                                            <div class="text-end">
+                                                <span class="text-success me-3">
+                                                    <small>Net:</small> <strong>₺{{ detail.net_earnings|floatformat:0 }}</strong>
+                                                </span>
+                                                {% if detail.pending_amount > 0 %}
+                                                    <span class="badge bg-warning">₺{{ detail.pending_amount|floatformat:0 }} Bekliyor</span>
+                                                {% else %}
+                                                    <span class="badge bg-success">Ödendi</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </button>
+                                </h2>
+                                <div id="collapse{{ forloop.counter }}" class="accordion-collapse collapse" aria-labelledby="heading{{ forloop.counter }}" data-bs-parent="#centerPaymentAccordion">
+                                    <div class="accordion-body">
+                                        <!-- İş Kalemleri Detayı -->
+                                        <div class="row mb-3">
+                                            <div class="col-md-6">
+                                                <h6 class="fw-bold mb-3">
+                                                    <i class="fas fa-list-check me-2 text-primary"></i>İş Kalemleri
+                                                </h6>
+                                                <table class="table table-sm table-bordered">
+                                                    <thead class="table-light">
+                                                        <tr>
+                                                            <th>Hizmet</th>
+                                                            <th class="text-center">Adet</th>
+                                                            <th class="text-end">Birim Fiyat</th>
+                                                            <th class="text-end">Toplam</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {% for item in detail.work_items %}
+                                                        <tr>
+                                                            <td>
+                                                                {% if item.type == 'physical' %}
+                                                                    <i class="fas fa-cube text-primary me-1"></i>
+                                                                {% else %}
+                                                                    <i class="fas fa-3d-rotation text-info me-1"></i>
+                                                                {% endif %}
+                                                                {{ item.name }}
+                                                            </td>
+                                                            <td class="text-center">{{ item.quantity }}</td>
+                                                            <td class="text-end">₺{{ item.unit_price|floatformat:2 }}</td>
+                                                            <td class="text-end"><strong>₺{{ item.total|floatformat:2 }}</strong></td>
+                                                        </tr>
+                                                        {% endfor %}
+                                                        <tr class="table-light">
+                                                            <td colspan="3" class="text-end"><strong>Brüt Toplam:</strong></td>
+                                                            <td class="text-end"><strong>₺{{ detail.gross_revenue|floatformat:2 }}</strong></td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+
+                                            <!-- Kesintiler ve Net Kazanç -->
+                                            <div class="col-md-6">
+                                                <h6 class="fw-bold mb-3">
+                                                    <i class="fas fa-calculator me-2 text-danger"></i>Kesintiler ve Net Kazanç
+                                                </h6>
+                                                <table class="table table-sm table-bordered">
+                                                    <tbody>
+                                                        <tr>
+                                                            <td>Brüt Kazanç</td>
+                                                            <td class="text-end"><strong>₺{{ detail.gross_revenue|floatformat:2 }}</strong></td>
+                                                        </tr>
+                                                        <tr class="table-danger">
+                                                            <td>
+                                                                <i class="fas fa-minus-circle me-1"></i>
+                                                                MoldPark Hizmet Bedeli (%6.5)
+                                                            </td>
+                                                            <td class="text-end text-danger">-₺{{ detail.moldpark_fee|floatformat:2 }}</td>
+                                                        </tr>
+                                                        <tr class="table-danger">
+                                                            <td>
+                                                                <i class="fas fa-minus-circle me-1"></i>
+                                                                Kredi Kartı Komisyonu (%3)
+                                                            </td>
+                                                            <td class="text-end text-danger">-₺{{ detail.credit_card_fee|floatformat:2 }}</td>
+                                                        </tr>
+                                                        <tr class="table-success">
+                                                            <td><strong>Net Kazanç</strong></td>
+                                                            <td class="text-end"><strong class="text-success">₺{{ detail.net_earnings|floatformat:2 }}</strong></td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+
+                                                <!-- Ödeme Durumu -->
+                                                <div class="alert alert-info mt-3 mb-0">
+                                                    <div class="d-flex justify-content-between">
+                                                        <div>
+                                                            <strong>Ödeme Durumu:</strong><br>
+                                                            <small>Ödendi: ₺{{ detail.paid_amount|floatformat:2 }}</small><br>
+                                                            <small>Bekliyor: ₺{{ detail.pending_amount|floatformat:2 }}</small>
+                                                        </div>
+                                                        <div class="text-end">
+                                                            {% if detail.latest_payment_date %}
+                                                                <small class="text-muted">
+                                                                    Son Ödeme:<br>
+                                                                    {{ detail.latest_payment_date|date:"d.m.Y" }}
+                                                                </small>
+                                                            {% else %}
+                                                                <small class="text-muted">Henüz ödeme yok</small>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Merkez Bilgileri -->
+                                        <div class="row mt-3">
+                                            <div class="col-12">
+                                                <div class="bg-light p-3 rounded">
+                                                    <div class="row">
+                                                        <div class="col-md-4">
+                                                            <small class="text-muted">İletişim</small><br>
+                                                            <i class="fas fa-phone me-1"></i>{{ detail.center.phone }}<br>
+                                                            <i class="fas fa-map-marker-alt me-1"></i>{{ detail.center.address|truncatewords:8 }}
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <small class="text-muted">Ağ Durumu</small><br>
+                                                            <span class="badge bg-success">{{ detail.network.get_status_display }}</span><br>
+                                                            <small>Katılım: {{ detail.network.joined_at|date:"d.m.Y" }}</small>
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <small class="text-muted">Fatura Bilgileri</small><br>
+                                                            <strong>{{ detail.invoices_count }}</strong> fatura kesildi
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-building fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">Henüz aktif merkez yok</h5>
+                            <p class="text-muted">Merkezler ağınıza katıldığında burada görüntülenecektir.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Aylık Kazanç Trendi -->
     <div class="row mb-4">
         <div class="col-12">
@@ -152,10 +356,76 @@
         <div class="col-12">
             <div class="card shadow">
                 <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-history me-2"></i>
-                        Ödeme Geçmişi
-                    </h5>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-history me-2"></i>
+                            Ödeme Geçmişi
+                        </h5>
+                        <!-- Filtre Butonları -->
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
+                                <i class="fas fa-filter me-1"></i>Filtrele
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Filtre Formu -->
+                    <div class="collapse mt-3" id="filterCollapse">
+                        <form method="get" class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label small">Merkez</label>
+                                <select name="center" class="form-select form-select-sm">
+                                    <option value="">Tüm Merkezler</option>
+                                    {% for center_network in active_centers %}
+                                        <option value="{{ center_network.center.id }}" {% if center_filter == center_network.center.id|stringformat:"s" %}selected{% endif %}>
+                                            {{ center_network.center.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small">Durum</label>
+                                <select name="status" class="form-select form-select-sm">
+                                    <option value="">Tüm Durumlar</option>
+                                    {% for value, label in status_choices %}
+                                        <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label small">Yıl</label>
+                                <select name="year" class="form-select form-select-sm">
+                                    <option value="">Tüm Yıllar</option>
+                                    {% for year in years %}
+                                        <option value="{{ year.year }}" {% if year_filter == year.year|stringformat:"s" %}selected{% endif %}>{{ year.year }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label small">Ay</label>
+                                <select name="month" class="form-select form-select-sm">
+                                    <option value="">Tüm Aylar</option>
+                                    <option value="1" {% if month_filter == "1" %}selected{% endif %}>Ocak</option>
+                                    <option value="2" {% if month_filter == "2" %}selected{% endif %}>Şubat</option>
+                                    <option value="3" {% if month_filter == "3" %}selected{% endif %}>Mart</option>
+                                    <option value="4" {% if month_filter == "4" %}selected{% endif %}>Nisan</option>
+                                    <option value="5" {% if month_filter == "5" %}selected{% endif %}>Mayıs</option>
+                                    <option value="6" {% if month_filter == "6" %}selected{% endif %}>Haziran</option>
+                                    <option value="7" {% if month_filter == "7" %}selected{% endif %}>Temmuz</option>
+                                    <option value="8" {% if month_filter == "8" %}selected{% endif %}>Ağustos</option>
+                                    <option value="9" {% if month_filter == "9" %}selected{% endif %}>Eylül</option>
+                                    <option value="10" {% if month_filter == "10" %}selected{% endif %}>Ekim</option>
+                                    <option value="11" {% if month_filter == "11" %}selected{% endif %}>Kasım</option>
+                                    <option value="12" {% if month_filter == "12" %}selected{% endif %}>Aralık</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary btn-sm w-100">
+                                    <i class="fas fa-search me-1"></i>Filtrele
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
                 <div class="card-body">
                     {% if page_obj %}
@@ -164,6 +434,7 @@
                                 <thead class="table-light">
                                     <tr>
                                         <th>Fatura No</th>
+                                        <th>Merkez</th>
                                         <th>Dönem</th>
                                         <th>Brüt Tutar</th>
                                         <th>Kesintiler</th>
@@ -177,6 +448,14 @@
                                     <tr>
                                         <td>
                                             <strong>{{ invoice.invoice_number }}</strong>
+                                        </td>
+                                        <td>
+                                            {% if invoice.issued_by_center %}
+                                                <i class="fas fa-building text-primary me-1"></i>
+                                                {{ invoice.issued_by_center.name }}
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
                                         </td>
                                         <td>{{ invoice.issue_date|date:"F Y" }}</td>
                                         <td>₺{{ invoice.producer_gross_revenue|floatformat:2 }}</td>

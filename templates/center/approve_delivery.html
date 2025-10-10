@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Teslimat Onayı - {{ mold.patient_name }} {{ mold.patient_surname }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        Teslimat Onayı
+                    </h4>
+                    <a href="{% url 'center:mold_detail' mold.id %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>Geri Dön
+                    </a>
+                </div>
+
+                <div class="card-body">
+                    <!-- Kalıp Bilgileri -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h5 class="mb-3">Hasta Bilgileri</h5>
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td class="fw-bold" style="width: 120px;">Hasta:</td>
+                                    <td>{{ mold.patient_name }} {{ mold.patient_surname }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Yaş:</td>
+                                    <td>{{ mold.patient_age }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Cinsiyet:</td>
+                                    <td>{{ mold.get_patient_gender_display }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Kulak:</td>
+                                    <td>{{ mold.get_ear_side_display }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 class="mb-3">Kalıp Bilgileri</h5>
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td class="fw-bold" style="width: 120px;">Kalıp Tipi:</td>
+                                    <td>{{ mold.get_mold_type_display }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Vent Çapı:</td>
+                                    <td>{{ mold.vent_diameter }} mm</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Oluşturulma:</td>
+                                    <td>{{ mold.created_at|date:"d.m.Y H:i" }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Durum:</td>
+                                    <td>
+                                        <span class="badge bg-warning">Teslimat Onayı Bekleniyor</span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Kargo Bilgileri -->
+                    {% if mold.tracking_number %}
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h5 class="mb-3">Kargo Bilgileri</h5>
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            <strong>Kargo Firması:</strong><br>
+                                            {{ mold.get_carrier_company_display }}
+                                        </div>
+                                        <div class="col-md-3">
+                                            <strong>Takip Numarası:</strong><br>
+                                            <code>{{ mold.tracking_number }}</code>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <strong>Gönderim Tarihi:</strong><br>
+                                            {{ mold.shipment_date|date:"d.m.Y H:i" }}
+                                        </div>
+                                        <div class="col-md-3">
+                                            <strong>Tahmini Teslimat:</strong><br>
+                                            {{ mold.estimated_delivery|date:"d.m.Y" }}
+                                        </div>
+                                    </div>
+                                    {% if mold.shipment_notes %}
+                                    <div class="row mt-2">
+                                        <div class="col-12">
+                                            <strong>Kargo Notları:</strong><br>
+                                            <em>{{ mold.shipment_notes }}</em>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Uyarı Mesajı -->
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Önemli:</strong> Kalıbı aldığınızı onayladıktan sonra, hizmet tamamlanmış kabul edilecektir.
+                        Bu işlem geri alınamaz. Lütfen kalıbı kontrol ettikten sonra onaylayınız.
+                    </div>
+
+                    <!-- Onay Formu -->
+                    <div class="row">
+                        <div class="col-md-8 mx-auto">
+                            <form method="post">
+                                {% csrf_token %}
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Teslimat Onayı</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <label for="notes" class="form-label">
+                                                Notlar (İsteğe bağlı)
+                                            </label>
+                                            <textarea
+                                                class="form-control"
+                                                id="notes"
+                                                name="notes"
+                                                rows="3"
+                                                placeholder="Teslimat hakkında notlarınızı ekleyebilirsiniz..."
+                                            ></textarea>
+                                            <div class="form-text">
+                                                Kalıp kalitesi, teslimat durumu vb. hakkında notlar ekleyebilirsiniz.
+                                            </div>
+                                        </div>
+
+                                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                            <a href="{% url 'center:mold_detail' mold.id %}" class="btn btn-outline-secondary me-md-2">
+                                                <i class="fas fa-times me-1"></i>İptal
+                                            </a>
+                                            <button type="submit" class="btn btn-success">
+                                                <i class="fas fa-check-circle me-1"></i>
+                                                Teslimatı Onayla
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.table-borderless td {
+    border: none;
+    padding: 0.25rem 0;
+}
+
+.alert-info {
+    border-left: 4px solid #0dcaf0;
+}
+
+.btn-success {
+    background-color: #198754;
+    border-color: #198754;
+}
+
+.btn-success:hover {
+    background-color: #157347;
+    border-color: #146c43;
+}
+</style>
+{% endblock %}

@@ -38,6 +38,12 @@ urlpatterns = [
     path('admin/molds/<int:pk>/update-status/', views.admin_mold_update_status, name='admin_mold_update_status'),
     path('admin/molds/<int:mold_id>/upload-model/', views.admin_upload_model, name='admin_upload_model'),
     path('admin/models/<int:model_id>/delete/', views.admin_delete_model, name='admin_delete_model'),
+
+    # Mold Detail
+    path('molds/<int:pk>/', views.mold_detail, name='mold_detail'),
+
+    # Delivery Approval
+    path('molds/<int:mold_id>/approve-delivery/', views.approve_delivery, name='approve_delivery'),
     
     # Admin revizyon yönetimi
     path('admin/revisions/', views.admin_revision_list, name='admin_revision_list'),

@@ -1,0 +1,547 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Finansal Kontrol Paneli - MoldPark Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="card-body p-4 text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h3 class="mb-1 fw-bold">
+                                <i class="fas fa-chart-line me-2"></i>
+                                Finansal Kontrol Paneli
+                            </h3>
+                            <p class="mb-0 opacity-75">Tüm para akışı, tahsilatlar ve ödemeler</p>
+                        </div>
+                        <div class="text-end">
+                            <h4 class="mb-0">{{ period_name }}</h4>
+                            <small class="opacity-75">{{ start_date|date:"d.m.Y" }} - {{ end_date|date:"d.m.Y" }}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Period Filter -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="btn-group" role="group">
+                        <a href="?period=this_month" class="btn {% if period == 'this_month' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                            Bu Ay
+                        </a>
+                        <a href="?period=last_month" class="btn {% if period == 'last_month' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                            Geçen Ay
+                        </a>
+                        <a href="?period=this_year" class="btn {% if period == 'this_year' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                            Bu Yıl
+                        </a>
+                        <a href="?period=all_time" class="btn {% if period == 'all_time' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                            Tüm Zamanlar
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Para Akışı Özeti -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid #10b981 !important;">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="bg-success bg-opacity-10 rounded-circle p-3">
+                                <i class="fas fa-arrow-down text-success fa-2x"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="text-muted small">İşitme Merkezlerinden</div>
+                            <h4 class="mb-0 fw-bold text-success">₺{{ cash_flow.total_incoming|floatformat:2 }}</h4>
+                            <small class="text-muted">Toplam Tahsilat</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid #ef4444 !important;">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="bg-danger bg-opacity-10 rounded-circle p-3">
+                                <i class="fas fa-arrow-up text-danger fa-2x"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="text-muted small">Üreticilere</div>
+                            <h4 class="mb-0 fw-bold text-danger">₺{{ cash_flow.total_outgoing|floatformat:2 }}</h4>
+                            <small class="text-muted">Toplam Ödeme</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid #f59e0b !important;">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="bg-warning bg-opacity-10 rounded-circle p-3">
+                                <i class="fas fa-percentage text-warning fa-2x"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="text-muted small">Hizmet Bedeli (%6.5)</div>
+                            <h4 class="mb-0 fw-bold text-warning">₺{{ cash_flow.moldpark_service_income|floatformat:2 }}</h4>
+                            <small class="text-muted">MoldPark Geliri</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid #8b5cf6 !important;">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="bg-primary bg-opacity-10 rounded-circle p-3">
+                                <i class="fas fa-coins text-primary fa-2x"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="text-muted small">Net Kar</div>
+                            <h4 class="mb-0 fw-bold text-primary">₺{{ cash_flow.moldpark_net_profit|floatformat:2 }}</h4>
+                            <small class="text-muted">MoldPark Net</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detaylı Para Akışı -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="fas fa-exchange-alt me-2 text-info"></i>
+                        Para Akışı Detayı
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-borderless">
+                            <tbody>
+                                <tr class="border-bottom">
+                                    <td class="py-3">
+                                        <i class="fas fa-arrow-down text-success me-2"></i>
+                                        <strong>İşitme Merkezlerinden Tahsilat</strong>
+                                    </td>
+                                    <td class="text-end py-3">
+                                        <span class="badge bg-success px-3 py-2">
+                                            +₺{{ cash_flow.total_incoming|floatformat:2 }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr class="border-bottom">
+                                    <td class="py-3 ps-4">
+                                        <i class="fas fa-minus-circle text-warning me-2"></i>
+                                        MoldPark Hizmet Bedeli (%6.5)
+                                    </td>
+                                    <td class="text-end py-3">
+                                        <span class="text-warning">-₺{{ cash_flow.moldpark_service_income|floatformat:2 }}</span>
+                                    </td>
+                                </tr>
+                                <tr class="border-bottom">
+                                    <td class="py-3 ps-4">
+                                        <i class="fas fa-credit-card text-info me-2"></i>
+                                        Kredi Kartı Komisyonu (%3)
+                                    </td>
+                                    <td class="text-end py-3">
+                                        <span class="text-info">-₺{{ cash_flow.credit_card_fees|floatformat:2 }}</span>
+                                    </td>
+                                </tr>
+                                <tr class="border-bottom">
+                                    <td class="py-3">
+                                        <i class="fas fa-arrow-up text-danger me-2"></i>
+                                        <strong>Üreticilere Ödeme</strong>
+                                    </td>
+                                    <td class="text-end py-3">
+                                        <span class="badge bg-danger px-3 py-2">
+                                            -₺{{ cash_flow.total_outgoing|floatformat:2 }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr class="table-light">
+                                    <td class="py-3">
+                                        <i class="fas fa-equals text-primary me-2"></i>
+                                        <strong>MoldPark Net Kar</strong>
+                                    </td>
+                                    <td class="text-end py-3">
+                                        <h4 class="mb-0 text-primary">
+                                            ₺{{ cash_flow.moldpark_net_profit|floatformat:2 }}
+                                        </h4>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- İşitme Merkezlerinden Tahsilatlar -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-hospital me-2"></i>
+                        İşitme Merkezlerinden Tahsilatlar
+                        <span class="badge bg-light text-dark ms-2">{{ centers_with_physical_molds|length }}</span>
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if centers_with_physical_molds %}
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Merkez</th>
+                                        <th class="text-center">Kalıp Sayısı</th>
+                                        <th class="text-end">Brüt Tutar</th>
+                                        <th class="text-end">MoldPark</th>
+                                        <th class="text-end">KK Kom.</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in centers_with_physical_molds %}
+                                    <tr>
+                                        <td>
+                                            <i class="fas fa-building text-primary me-2"></i>
+                                            <strong>{{ item.center.name }}</strong>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-primary">{{ item.physical_count }}</span>
+                                        </td>
+                                        <td class="text-end">₺{{ item.gross_amount|floatformat:2 }}</td>
+                                        <td class="text-end text-warning">₺{{ item.moldpark_fee|floatformat:2 }}</td>
+                                        <td class="text-end text-info">₺{{ item.cc_fee|floatformat:2 }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot class="table-light">
+                                    <tr>
+                                        <td colspan="2"><strong>TOPLAM</strong></td>
+                                        <td class="text-end"><strong>₺{{ total_collections_from_centers|floatformat:2 }}</strong></td>
+                                        <td class="text-end"><strong>₺{{ total_moldpark_service_fee|floatformat:2 }}</strong></td>
+                                        <td class="text-end"><strong>₺{{ total_credit_card_commission|floatformat:2 }}</strong></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                        {% if centers_with_physical_molds %}
+                        <div class="card-footer bg-white border-0">
+                            <button type="button" class="btn btn-success" onclick="bulkCreateCenterInvoices()">
+                                <i class="fas fa-file-invoice-dollar me-2"></i>
+                                Tüm Merkezlere Fatura Kes ve Gönder
+                            </button>
+                        </div>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">Bu dönemde fiziksel kalıp gönderimi yok</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Üreticilere Ödemeler -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-industry me-2"></i>
+                        Üreticilere Yapılacak Ödemeler
+                        <span class="badge bg-light text-dark ms-2">{{ producers_payment_summary|length }}</span>
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if producers_payment_summary %}
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Üretici</th>
+                                        <th class="text-center">İşlem</th>
+                                        <th class="text-end">Brüt</th>
+                                        <th class="text-end">Net Ödeme</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in producers_payment_summary %}
+                                    <tr>
+                                        <td>
+                                            <i class="fas fa-industry text-danger me-2"></i>
+                                            <strong>{{ item.producer.company_name }}</strong>
+                                        </td>
+                                        <td class="text-center">
+                                            <small>
+                                                {% if item.physical_count > 0 %}
+                                                    <span class="badge bg-primary">{{ item.physical_count }} Fiziksel</span>
+                                                {% endif %}
+                                                {% if item.digital_count > 0 %}
+                                                    <span class="badge bg-info">{{ item.digital_count }} Dijital</span>
+                                                {% endif %}
+                                            </small>
+                                        </td>
+                                        <td class="text-end">₺{{ item.gross_revenue|floatformat:2 }}</td>
+                                        <td class="text-end text-success">
+                                            <strong>₺{{ item.net_payment|floatformat:2 }}</strong>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot class="table-light">
+                                    <tr>
+                                        <td colspan="3"><strong>TOPLAM</strong></td>
+                                        <td class="text-end"><strong>₺{{ total_payments_to_producers|floatformat:2 }}</strong></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                        {% if producers_payment_summary %}
+                        <div class="card-footer bg-white border-0">
+                            <button type="button" class="btn btn-danger" onclick="bulkCreateProducerInvoices()">
+                                <i class="fas fa-file-invoice me-2"></i>
+                                Tüm Üreticilere Fatura Kes ve Gönder
+                            </button>
+                        </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">Bu dönemde ödeme yapılacak üretici yok</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fatura Durumları -->
+    <div class="row mt-4">
+        <div class="col-md-6 mb-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0">
+                    <h6 class="mb-0 fw-bold">
+                        <i class="fas fa-file-invoice me-2 text-success"></i>
+                        İşitme Merkezi Faturaları
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h5 class="mb-1">{{ center_invoice_stats.total }}</h5>
+                                <small class="text-muted">Toplam</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center p-3 bg-success bg-opacity-10 rounded">
+                                <h5 class="mb-1 text-success">{{ center_invoice_stats.paid }}</h5>
+                                <small class="text-muted">Ödendi</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center p-3 bg-warning bg-opacity-10 rounded">
+                                <h5 class="mb-1 text-warning">{{ center_invoice_stats.pending }}</h5>
+                                <small class="text-muted">Bekliyor</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center p-3 bg-primary bg-opacity-10 rounded">
+                                <h5 class="mb-1 text-primary">₺{{ center_invoice_stats.total_amount|floatformat:0 }}</h5>
+                                <small class="text-muted">Toplam Tutar</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0">
+                    <h6 class="mb-0 fw-bold">
+                        <i class="fas fa-file-invoice me-2 text-danger"></i>
+                        Üretici Faturaları
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h5 class="mb-1">{{ producer_invoice_stats.total }}</h5>
+                                <small class="text-muted">Toplam</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center p-3 bg-success bg-opacity-10 rounded">
+                                <h5 class="mb-1 text-success">{{ producer_invoice_stats.paid }}</h5>
+                                <small class="text-muted">Ödendi</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center p-3 bg-warning bg-opacity-10 rounded">
+                                <h5 class="mb-1 text-warning">{{ producer_invoice_stats.pending }}</h5>
+                                <small class="text-muted">Bekliyor</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center p-3 bg-primary bg-opacity-10 rounded">
+                                <h5 class="mb-1 text-primary">₺{{ producer_invoice_stats.total_amount|floatformat:0 }}</h5>
+                                <small class="text-muted">Toplam Tutar</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h6 class="mb-3 fw-bold">
+                        <i class="fas fa-bolt me-2 text-warning"></i>
+                        Hızlı İşlemler
+                    </h6>
+                    <div class="btn-group" role="group">
+                        <a href="{% url 'core:invoice_list' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-list me-1"></i>Tüm Faturalar
+                        </a>
+                        <a href="{% url 'core:moldpark_collections_report' %}" class="btn btn-outline-info">
+                            <i class="fas fa-chart-bar me-1"></i>Detaylı Rapor
+                        </a>
+                        <a href="{% url 'core:financial_dashboard' %}" class="btn btn-outline-success">
+                            <i class="fas fa-tachometer-alt me-1"></i>Finansal Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// İşitme merkezlerine toplu fatura kesme
+function bulkCreateCenterInvoices() {
+    if (!confirm('Tüm işitme merkezlerine fatura kesilecek ve e-posta gönderilecek. Onaylıyor musunuz?')) {
+        return;
+    }
+    
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Faturalar kesiliyor...';
+    
+    fetch('{% url "core:bulk_create_center_invoices" %}?period={{ period }}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Başarılı!\n\n${data.created_count} adet fatura kesildi ve gönderildi.\nToplam tutar: ₺${data.total_amount}`);
+            window.location.reload();
+        } else {
+            alert('Hata: ' + (data.error || 'Bilinmeyen bir hata oluştu'));
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Faturalar kesilirken bir hata oluştu: ' + error);
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    });
+}
+
+// Üreticilere toplu fatura kesme
+function bulkCreateProducerInvoices() {
+    if (!confirm('Tüm üreticilere fatura kesilecek ve e-posta gönderilecek. Onaylıyor musunuz?')) {
+        return;
+    }
+    
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Faturalar kesiliyor...';
+    
+    fetch('{% url "core:bulk_create_producer_invoices" %}?period={{ period }}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Başarılı!\n\n${data.created_count} adet fatura kesildi ve gönderildi.\nToplam net ödeme: ₺${data.total_amount}`);
+            window.location.reload();
+        } else {
+            alert('Hata: ' + (data.error || 'Bilinmeyen bir hata oluştu'));
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Faturalar kesilirken bir hata oluştu: ' + error);
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    });
+}
+</script>
+{% endblock %}
+

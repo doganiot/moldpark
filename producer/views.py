@@ -1,3 +1,7 @@
+import logging
+
+logger = logging.getLogger(__name__)
+
 from django.shortcuts import render, redirect, get_object_or_404
 
 from django.contrib.auth.decorators import login_required
@@ -1073,10 +1077,7 @@ def network_remove(request, center_id):
             return JsonResponse({'success': False, 'message': 'Merkez ağınızda bulunamadı.'})
 
         except Exception as e:
-
-            import logging
-
-            logging.error(f'Network remove error: {str(e)}')
+            logger.error(f'Network remove error: {str(e)}')
 
             return JsonResponse({'success': False, 'message': 'Bir hata oluştu.'})
 
@@ -4195,8 +4196,11 @@ def producer_payment_detail(request, invoice_id):
 
 @producer_required
 def producer_payments(request):
-    """Üretici Kazançları ve Ödemeleri - Güncellenmiş finansal takip sistemi"""
+    """Üretici Kazançları ve Ödemeleri - Detaylı Merkez Bazlı Takip Sistemi"""
     producer = request.user.producer
+    from decimal import Decimal
+    from django.db.models import Sum, Count, Q
+    from datetime import datetime, date
 
     # Kazanç verilerini al
     earnings_this_month = producer.get_monthly_revenue()
@@ -4204,20 +4208,122 @@ def producer_payments(request):
     monthly_earnings = producer.get_earnings_by_month(limit=6)
     pending_payments = producer.get_pending_payments()
 
-    # Bu ay detayları
-    from decimal import Decimal
+    # Bu ay detayları (güncel oranlarla)
     earnings_this_month = {
         'gross_revenue': earnings_this_month,
-        'moldpark_fee': earnings_this_month * Decimal('0.065'),
-        'credit_card_fee': earnings_this_month * Decimal('0.026'),
-        'net_earnings': earnings_this_month - (earnings_this_month * Decimal('0.065')) - (earnings_this_month * Decimal('0.026'))
+        'moldpark_fee': earnings_this_month * Decimal('0.065'),  # %6.5
+        'credit_card_fee': earnings_this_month * Decimal('0.03'),  # %3 (güncel oran)
+        'net_earnings': earnings_this_month - (earnings_this_month * Decimal('0.065')) - (earnings_this_month * Decimal('0.03'))
     }
 
+    # ============================================
+    # MERKEZ BAZLI DETAYLI ÖDEME TAKİBİ
+    # ============================================
+    
+    # Tüm aktif merkezler
+    active_centers = producer.network_centers.filter(status='active').select_related('center')
+    
+    # Her merkez için detaylı ödeme bilgisi
+    center_payment_details = []
+    
+    for network in active_centers:
+        center = network.center
+        
+        # Bu merkeze ait siparişler
+        center_orders = producer.orders.filter(center=center).select_related('ear_mold')
+        
+        # Tamamlanan ve işlem gören siparişler
+        # Fiziksel kalıplar: Üretici aldığı anda (received) hizmet başlamıştır
+        # Dijital kalıplar: Teslim edildiğinde (delivered) hizmet tamamlanmıştır
+        completed_orders = center_orders.filter(
+            Q(status='delivered') |  # Dijital kalıplar için teslim edilmiş
+            Q(status__in=['received', 'designing', 'production', 'quality_check', 'packaging', 'shipping'], 
+              ear_mold__is_physical_shipment=True)  # Fiziksel kalıplar için işlemde olanlar
+        )
+        
+        # Fiziksel ve dijital kalıp sayıları
+        physical_molds = completed_orders.filter(ear_mold__is_physical_shipment=True).count()
+        digital_molds = completed_orders.filter(ear_mold__is_physical_shipment=False).count()
+        
+        # Toplam kazanç hesaplama
+        total_gross = Decimal('0.00')
+        for order in completed_orders:
+            if order.ear_mold.is_physical_shipment:
+                total_gross += Decimal('450.00')  # Fiziksel kalıp modelleme hizmeti
+            else:
+                total_gross += Decimal('50.00')   # 3D modelleme hizmeti
+        
+        # Kesintiler
+        moldpark_fee = total_gross * Decimal('0.065')  # %6.5 MoldPark hizmet bedeli
+        credit_card_fee = total_gross * Decimal('0.03')  # %3 kredi kartı komisyonu
+        net_earnings = total_gross - moldpark_fee - credit_card_fee
+        
+        # Bu merkeze ait faturalar
+        center_invoices = Invoice.objects.filter(
+            Q(issued_by_center=center) | Q(user=center.user),
+            invoice_type='producer_invoice'
+        ).order_by('-issue_date')
+        
+        # Ödeme durumu
+        paid_amount = sum(inv.net_amount for inv in center_invoices.filter(status='paid') if inv.net_amount)
+        pending_amount = sum(inv.net_amount for inv in center_invoices.filter(status__in=['issued', 'sent']) if inv.net_amount)
+        
+        # İş kalemleri detayı
+        work_items = []
+        
+        # Fiziksel kalıplar
+        if physical_molds > 0:
+            work_items.append({
+                'name': 'Fiziksel Kalıp Üretimi',
+                'quantity': physical_molds,
+                'unit_price': Decimal('450.00'),
+                'total': physical_molds * Decimal('450.00'),
+                'type': 'physical'
+            })
+        
+        # Dijital 3D modelleme
+        if digital_molds > 0:
+            work_items.append({
+                'name': '3D Modelleme Hizmeti',
+                'quantity': digital_molds,
+                'unit_price': Decimal('50.00'),
+                'total': digital_molds * Decimal('50.00'),
+                'type': 'digital'
+            })
+        
+        center_payment_details.append({
+            'center': center,
+            'network': network,
+            'total_orders': completed_orders.count(),
+            'physical_molds': physical_molds,
+            'digital_molds': digital_molds,
+            'work_items': work_items,
+            'gross_revenue': total_gross,
+            'moldpark_fee': moldpark_fee,
+            'credit_card_fee': credit_card_fee,
+            'net_earnings': net_earnings,
+            'paid_amount': paid_amount,
+            'pending_amount': pending_amount,
+            'invoices_count': center_invoices.count(),
+            'latest_payment_date': center_invoices.filter(status='paid').first().payment_date if center_invoices.filter(status='paid').exists() else None
+        })
+    
+    # Toplam istatistikler
+    total_centers = active_centers.count()
+    total_physical_molds = sum(detail['physical_molds'] for detail in center_payment_details)
+    total_digital_molds = sum(detail['digital_molds'] for detail in center_payment_details)
+    total_gross_from_centers = sum(detail['gross_revenue'] for detail in center_payment_details)
+    total_net_from_centers = sum(detail['net_earnings'] for detail in center_payment_details)
+
+    # ============================================
+    # FATURA LİSTESİ VE FİLTRELEME
+    # ============================================
+    
     # Kullanıcının faturaları (MoldPark'tan üreticiye yapılan ödemeler)
     invoices = Invoice.objects.filter(
         producer=producer,
         invoice_type__startswith='producer'
-    ).order_by('-issue_date')
+    ).select_related('issued_by_center').order_by('-issue_date')
 
     # İstatistikler
     total_invoices = invoices.count()
@@ -4230,6 +4336,7 @@ def producer_payments(request):
     status_filter = request.GET.get('status', '')
     year_filter = request.GET.get('year', '')
     month_filter = request.GET.get('month', '')
+    center_filter = request.GET.get('center', '')  # Yeni: Merkez filtresi
 
     filtered_invoices = invoices
     if status_filter:
@@ -4238,9 +4345,11 @@ def producer_payments(request):
         filtered_invoices = filtered_invoices.filter(issue_date__year=year_filter)
     if month_filter:
         filtered_invoices = filtered_invoices.filter(issue_date__month=month_filter)
+    if center_filter:
+        filtered_invoices = filtered_invoices.filter(issued_by_center_id=center_filter)
 
     # Sayfalama
-    paginator = Paginator(filtered_invoices, 10)  # Sayfa başına 10 fatura
+    paginator = Paginator(filtered_invoices, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
@@ -4264,8 +4373,17 @@ def producer_payments(request):
         'status_filter': status_filter,
         'year_filter': year_filter,
         'month_filter': month_filter,
+        'center_filter': center_filter,
         'years': years,
         'status_choices': Invoice.STATUS_CHOICES,
+        # Merkez bazlı detaylar
+        'center_payment_details': center_payment_details,
+        'total_centers': total_centers,
+        'total_physical_molds': total_physical_molds,
+        'total_digital_molds': total_digital_molds,
+        'total_gross_from_centers': total_gross_from_centers,
+        'total_net_from_centers': total_net_from_centers,
+        'active_centers': active_centers,
     }
 
     return render(request, 'producer/payments.html', context)
@@ -4304,12 +4422,10 @@ def receive_physical_shipment(request, pk):
 
             # Log ekle
             ProducerProductionLog.objects.create(
-                producer=request.user.producer,
-                ear_mold=mold,
-                action='received_shipment',
+                order=order,
+                stage='production_start',
                 description='Fiziksel kalıp kargo teslim alındı',
-                old_status=old_status,
-                new_status=mold.status
+                operator=request.user.get_full_name()
             )
 
             # Bildirimler
@@ -4367,12 +4483,10 @@ def start_physical_production(request, pk):
         if request.method == 'POST':
             # Durumu koru (processing'de kalacak) ama log ekle
             ProducerProductionLog.objects.create(
-                producer=request.user.producer,
-                ear_mold=mold,
-                action='started_production',
+                order=order,
+                stage='production_start',
                 description='Fiziksel kalıp üretimi başlatıldı',
-                old_status=mold.status,
-                new_status=mold.status
+                operator=request.user.get_full_name()
             )
 
             messages.success(request,
@@ -4425,12 +4539,10 @@ def complete_physical_production(request, pk):
 
             # Log ekle
             ProducerProductionLog.objects.create(
-                producer=request.user.producer,
-                ear_mold=mold,
-                action='completed_production',
+                order=order,
+                stage='production_complete',
                 description='Fiziksel kalıp üretimi tamamlandı',
-                old_status=old_status,
-                new_status=mold.status
+                operator=request.user.get_full_name()
             )
 
             # Bildirimler
@@ -4504,12 +4616,10 @@ def ship_to_center(request, pk):
 
             # Log ekle
             ProducerProductionLog.objects.create(
-                producer=request.user.producer,
-                ear_mold=mold,
-                action='shipped_to_center',
+                order=order,
+                stage='shipped',
                 description=f'Kalıp merkeze gönderildi - {carrier} {tracking_number}',
-                old_status=old_status,
-                new_status=mold.status
+                operator=request.user.get_full_name()
             )
 
             # Bildirimler
@@ -4567,20 +4677,18 @@ def mark_delivered(request, pk):
             return redirect('producer:mold_detail', pk=pk)
 
         if request.method == 'POST':
-            # Durumu güncelle
+            # Durumu güncelle - Center'ın onayı bekleniyor
             old_status = mold.status
-            mold.status = 'delivered'  # Teslim edildi
+            mold.status = 'delivered_pending_approval'  # Teslimat onayı bekleniyor
             mold.shipment_status = 'delivered_to_producer'  # Bu aslında center'a teslim edildi
             mold.save()
 
             # Log ekle
             ProducerProductionLog.objects.create(
-                producer=request.user.producer,
-                ear_mold=mold,
-                action='delivered_to_center',
-                description='Kalıp merkeze teslim edildi',
-                old_status=old_status,
-                new_status=mold.status
+                order=order,
+                stage='delivered',
+                description='Kalıp merkeze teslim edildi, onay bekleniyor',
+                operator=request.user.get_full_name()
             )
 
             # Siparişi tamamla

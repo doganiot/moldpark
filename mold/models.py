@@ -30,7 +30,8 @@ class EarMold(models.Model):
         ('revision', 'Revizyon'),
         ('rejected', 'Reddedildi'),
         ('shipped_to_center', 'Merkeze Gönderildi'),
-        ('delivered', 'Teslim Edildi'),
+        ('delivered_pending_approval', 'Teslimat Onayı Bekleniyor'),
+        ('delivered', 'Teslim Edildi ve Onaylandı'),
     )
     
     GENDER_CHOICES = (
@@ -90,7 +91,7 @@ class EarMold(models.Model):
     )
     
     notes = models.TextField('Notlar', blank=True)
-    status = models.CharField('Durum', max_length=20, choices=STATUS_CHOICES, default='waiting')
+    status = models.CharField('Durum', max_length=30, choices=STATUS_CHOICES, default='waiting')
     quality_score = models.IntegerField('Kalite Puanı', validators=[MinValueValidator(0), MaxValueValidator(100)], null=True, blank=True)
     created_at = models.DateTimeField('Oluşturulma Tarihi', auto_now_add=True)
     updated_at = models.DateTimeField('Güncellenme Tarihi', auto_now=True)
@@ -98,6 +99,11 @@ class EarMold(models.Model):
     # Fiziksel kalıp gönderimi alanları
     is_physical_shipment = models.BooleanField('Fiziksel Kalıp Gönderimi', default=False, help_text='Dijital dosya yerine fiziksel kalıp gönderilecek')
     tracking_number = models.CharField('Kargo Takip Numarası', max_length=100, blank=True, null=True)
+
+    # Teslimat onay sistemi
+    delivery_approved_at = models.DateTimeField('Teslimat Onay Tarihi', null=True, blank=True)
+    delivery_approved_by = models.ForeignKey('center.Center', on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_deliveries', verbose_name='Teslimatı Onaylayan')
+    delivery_notes = models.TextField('Teslimat Notları', blank=True, help_text='Teslimat onayı sırasında eklenen notlar')
     shipment_date = models.DateTimeField('Kargo Gönderim Tarihi', blank=True, null=True)
     shipment_status = models.CharField('Kargo Durumu', max_length=30, choices=SHIPMENT_STATUS_CHOICES, default='not_shipped')
     carrier_company = models.CharField('Kargo Firması', max_length=20, choices=CARRIER_CHOICES, blank=True, null=True)
@@ -139,6 +145,34 @@ class EarMold(models.Model):
         verbose_name = 'Kulak Kalıbı'
         verbose_name_plural = 'Kulak Kalıpları'
         ordering = ['-created_at']
+
+    def approve_delivery(self, center, notes=''):
+        """Teslimatı onayla"""
+        if self.status == 'delivered_pending_approval' and self.center == center:
+            self.status = 'delivered'
+            self.delivery_approved_at = timezone.now()
+            self.delivery_approved_by = center
+            if notes:
+                self.delivery_notes = notes
+            self.save()
+
+            # Bildirim gönder
+            from notifications.signals import notify
+            from django.contrib.auth.models import User
+
+            # Admin'e bildirim
+            admin_users = User.objects.filter(is_superuser=True)
+            for admin in admin_users:
+                notify.send(
+                    sender=self,
+                    recipient=admin,
+                    verb='teslimatı onayladı',
+                    action_object=self,
+                    description=f'{self.center.name} - {self.patient_name} {self.patient_surname} kalıp teslimatını onayladı.'
+                )
+
+            return True
+        return False
 
     def __str__(self):
         return f'{self.patient_name} {self.patient_surname} - {self.get_mold_type_display()}'

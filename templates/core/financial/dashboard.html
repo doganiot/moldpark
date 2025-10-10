@@ -85,6 +85,9 @@
                     Tüm Zamanlar
                 </a>
             </div>
+            <a href="{% url 'core:admin_financial_control_panel' %}" class="btn btn-sm btn-primary ms-2">
+                <i class="fas fa-chart-pie me-1"></i>Detaylı Kontrol Paneli
+            </a>
             <a href="{% url 'core:financial_reports' %}" class="btn btn-sm btn-success ms-2">
                 <i class="fas fa-file-pdf me-1"></i>Raporlar
             </a>
@@ -119,6 +122,39 @@
                 <div class="stat-label">Kart Komisyonları</div>
                 <div class="stat-value">₺{{ total_stats.total_credit_card_fees|floatformat:2|intcomma }}</div>
                 <small><i class="fas fa-credit-card me-1"></i>%2.6 kart ücreti</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detaylı Kontrol Paneli Erişim Kartı -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-lg" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px;">
+                <div class="card-body p-4 text-white">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h4 class="mb-2">
+                                <i class="fas fa-chart-pie me-2"></i>
+                                Detaylı Finansal Kontrol Paneli
+                            </h4>
+                            <p class="mb-3 opacity-90">
+                                Tüm para akışını, tahsilatları ve ödemeleri merkez ve üretici bazında detaylı olarak inceleyin.
+                            </p>
+                            <ul class="list-unstyled mb-0">
+                                <li class="mb-1"><i class="fas fa-check-circle me-2"></i>İşitme merkezlerinden tahsilatlar (merkez bazlı)</li>
+                                <li class="mb-1"><i class="fas fa-check-circle me-2"></i>Üreticilere yapılacak ödemeler (üretici bazlı)</li>
+                                <li class="mb-1"><i class="fas fa-check-circle me-2"></i>MoldPark hizmet bedeli ve net kar analizi</li>
+                                <li class="mb-1"><i class="fas fa-check-circle me-2"></i>Gerçek zamanlı hesaplama (fatura beklenmez)</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4 text-center text-md-end">
+                            <a href="{% url 'core:admin_financial_control_panel' %}" class="btn btn-light btn-lg shadow">
+                                <i class="fas fa-arrow-right me-2"></i>
+                                Kontrol Paneline Git
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

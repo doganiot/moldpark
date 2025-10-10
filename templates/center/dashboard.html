@@ -613,8 +613,12 @@
                         <div class="stat-label">{% trans "Tamamlanan" %}</div>
                     </div>
                     <div class="stat-item">
+                        <div class="stat-number text-orange">{{ status_stats.delivered_pending_approval }}</div>
+                        <div class="stat-label">{% trans "Onay Bekleyen" %}</div>
+                    </div>
+                    <div class="stat-item">
                         <div class="stat-number text-primary">{{ status_stats.delivered }}</div>
-                        <div class="stat-label">{% trans "Teslim" %}</div>
+                        <div class="stat-label">{% trans "Teslim Edildi" %}</div>
                     </div>
                 </div>
             </div>
