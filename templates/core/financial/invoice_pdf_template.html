@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Fatura - {{ invoice.invoice_number }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            font-size: 12pt;
+            line-height: 1.6;
+            color: #333;
+        }
+        
+        .invoice-header {
+            text-align: center;
+            border-bottom: 3px solid #2563eb;
+            padding-bottom: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .invoice-header h1 {
+            color: #2563eb;
+            font-size: 32pt;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        
+        .invoice-header h2 {
+            font-size: 24pt;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .invoice-info {
+            margin-bottom: 40px;
+        }
+        
+        .invoice-info-row {
+            margin-bottom: 15px;
+            font-size: 13pt;
+        }
+        
+        .invoice-info-label {
+            font-weight: bold;
+            color: #555;
+            display: inline-block;
+            width: 150px;
+        }
+        
+        .invoice-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 40px 0;
+        }
+        
+        .invoice-table thead th {
+            border-bottom: 2px solid #2563eb;
+            padding: 15px 10px;
+            font-weight: bold;
+        }
+        
+        .invoice-table tbody tr {
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .invoice-table td,
+        .invoice-table th {
+            padding: 15px 10px;
+            font-size: 11pt;
+            vertical-align: top;
+        }
+        
+        .invoice-table td:first-child {
+            text-align: left;
+            color: #333;
+        }
+        
+        .invoice-table td:last-child {
+            text-align: right;
+        }
+        
+        .invoice-separator {
+            border-top: 2px solid #000;
+            margin: 10px 0;
+        }
+        
+        .invoice-total-row {
+            background-color: #2563eb;
+            color: white;
+        }
+        
+        .invoice-total-row td {
+            padding: 25px 10px !important;
+            font-size: 16pt !important;
+            font-weight: bold !important;
+        }
+        
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 10pt;
+            color: #888;
+            padding: 20px;
+            border-top: 1px solid #ddd;
+        }
+        
+        .price-note {
+            font-size: 10pt;
+            color: #666;
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #f5f5f5;
+            border-left: 4px solid #2563eb;
+        }
+        
+        .price-note strong {
+            display: block;
+            margin-bottom: 8px;
+            color: #2563eb;
+        }
+    </style>
+</head>
+<body>
+    <!-- Fatura Başlığı -->
+    <div class="invoice-header">
+        <h1>MOLDPARK</h1>
+        <h2>FATURA</h2>
+    </div>
+
+    <!-- Fatura Bilgileri -->
+    <div class="invoice-info">
+        <div class="invoice-info-row">
+            <span class="invoice-info-label">Müşteri:</span>
+            <span>{{ center_name }}</span>
+        </div>
+        
+        <div class="invoice-info-row">
+            <span class="invoice-info-label">Fatura No:</span>
+            <span>{{ invoice.invoice_number }}</span>
+        </div>
+        
+        <div class="invoice-info-row">
+            <span class="invoice-info-label">Tarih:</span>
+            <span>{{ invoice.issue_date|date:"d.m.Y" }}</span>
+        </div>
+        
+        {% if invoice.due_date %}
+        <div class="invoice-info-row">
+            <span class="invoice-info-label">Vade Tarihi:</span>
+            <span>{{ invoice.due_date|date:"d.m.Y" }}</span>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Fatura Detayları -->
+    <table class="invoice-table">
+        <thead>
+            <tr style="background-color: #f5f5f5; border-bottom: 2px solid #2563eb;">
+                <th style="text-align: left; padding: 15px 10px; font-size: 12pt;">Hizmet Açıklaması</th>
+                <th style="text-align: center; padding: 15px 10px; font-size: 12pt; width: 10%;">Adet</th>
+                <th style="text-align: right; padding: 15px 10px; font-size: 12pt; width: 15%;">Birim Fiyat</th>
+                <th style="text-align: right; padding: 15px 10px; font-size: 12pt; width: 15%;">Tutar</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if invoice.monthly_fee and invoice.monthly_fee > 0 %}
+            <tr>
+                <td>
+                    <strong>Aylık Sistem Kullanımı</strong><br>
+                    <span style="font-size: 10pt; color: #666;">MoldPark Platform Erişimi</span>
+                </td>
+                <td style="text-align: center;">1</td>
+                <td style="text-align: right;">{{ invoice.monthly_fee|floatformat:0 }} ₺</td>
+                <td style="text-align: right;"><strong>{{ invoice.monthly_fee|floatformat:0 }} ₺</strong></td>
+            </tr>
+            {% endif %}
+            
+            {% if invoice.physical_mold_count and invoice.physical_mold_count > 0 %}
+            <tr>
+                <td>
+                    <strong>Fiziksel Kulak Kalıbı Üretimi</strong><br>
+                    <span style="font-size: 10pt; color: #666;">3D Baskı + Kalıp İmalatı (KDV Dahil: 375₺ + 75₺ KDV)</span>
+                </td>
+                <td style="text-align: center;">{{ invoice.physical_mold_count }}</td>
+                <td style="text-align: right;">450 ₺</td>
+                <td style="text-align: right;"><strong>{{ invoice.physical_mold_cost|floatformat:0 }} ₺</strong></td>
+            </tr>
+            {% endif %}
+            
+            {% if invoice.digital_scan_count and invoice.digital_scan_count > 0 %}
+            <tr>
+                <td>
+                    <strong>3D Kalıp Modelleme Hizmeti</strong><br>
+                    <span style="font-size: 10pt; color: #666;">Dijital Model Oluşturma (KDV Dahil: 41.67₺ + 8.33₺ KDV)</span>
+                </td>
+                <td style="text-align: center;">{{ invoice.digital_scan_count }}</td>
+                <td style="text-align: right;">50 ₺</td>
+                <td style="text-align: right;"><strong>{{ invoice.digital_scan_cost|floatformat:0 }} ₺</strong></td>
+            </tr>
+            {% endif %}
+            
+            <tr>
+                <td colspan="4"><div class="invoice-separator"></div></td>
+            </tr>
+            
+            {% if subtotal_without_vat %}
+            <tr style="background-color: #f9f9f9;">
+                <td colspan="3" style="text-align: right; font-weight: bold;">Ara Toplam (KDV Hariç):</td>
+                <td style="text-align: right;"><strong>{{ subtotal_without_vat|floatformat:0 }} ₺</strong></td>
+            </tr>
+            <tr style="background-color: #f9f9f9;">
+                <td colspan="3" style="text-align: right; font-weight: bold;">KDV (%20):</td>
+                <td style="text-align: right;"><strong>{{ vat_amount|floatformat:0 }} ₺</strong></td>
+            </tr>
+            {% endif %}
+            
+            <tr class="invoice-total-row">
+                <td colspan="3" style="text-align: right;">GENEL TOPLAM (KDV DAHİL)</td>
+                <td style="text-align: right;">{{ total_with_vat|floatformat:0 }} ₺</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- Fiyat Notu -->
+    <div class="price-note">
+        <strong>Fiyatlandırma Bilgisi:</strong>
+        • Fiziksel Kalıp: 450₺ (375₺ + 75₺ KDV)<br>
+        • 3D Modelleme: 50₺ (41.67₺ + 8.33₺ KDV)<br>
+        • Aylık Sistem Ücreti: 100₺ (83.33₺ + 16.67₺ KDV)<br>
+        • Tüm fiyatlar KDV dahildir.
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        MoldPark - Kulak Kalıbı Üretim Yönetim Sistemi<br>
+        www.moldpark.com | destek@moldpark.com
+    </div>
+</body>
+</html>
+

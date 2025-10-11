@@ -144,9 +144,13 @@ def producer_login(request):
 
             try:
 
-                # Email ile kullanıcı bul
+                # Email ile kullanıcı bul (birden fazla varsa ilkini al)
 
-                user = User.objects.get(email=email)
+                user = User.objects.filter(email=email).first()
+                
+                if not user:
+                    messages.error(request, 'E-posta adresi veya şifre hatalı.')
+                    return render(request, 'producer/login.html')
 
                 
 

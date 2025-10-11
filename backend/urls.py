@@ -25,6 +25,7 @@ from django.http import HttpResponseForbidden, HttpResponse
 from django.shortcuts import redirect
 from django.contrib import messages
 from django.views.static import serve
+from accounts.views import center_login
 import os
 
 def admin_access_check(user):
@@ -85,6 +86,8 @@ urlpatterns = [
     path('django-admin/', admin.site.urls),  # Gerçek admin panel
     
     # API ve Sistem URL'leri
+    # Custom login pages (allauth'dan önce tanımlanmalı)
+    path('account/center-login/', center_login, name='account_center_login'),
     path('accounts/', include('allauth.urls')),  # allauth URL'leri
     # Django-notifications-hq paketini spesifik path'e taşı
     path('django-notifications/', include('notifications.urls', namespace='notifications')),

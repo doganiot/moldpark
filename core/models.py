@@ -817,6 +817,16 @@ class Invoice(models.Model):
     total_amount = models.DecimalField('Toplam Tutar', max_digits=10, decimal_places=2, default=0)
     total_deductions = models.DecimalField('Toplam Kesintiler', max_digits=10, decimal_places=2, default=0)
     net_amount = models.DecimalField('Net Ödenecek Tutar', max_digits=10, decimal_places=2, default=0)
+    
+    # KDV Bilgileri
+    subtotal_without_vat = models.DecimalField('KDV Hariç Tutar', max_digits=10, decimal_places=2, default=0,
+        help_text='KDV hesaplanmadan önceki tutar')
+    vat_rate = models.DecimalField('KDV Oranı (%)', max_digits=5, decimal_places=2, default=20.00,
+        help_text='Uygulanan KDV oranı (varsayılan %20)')
+    vat_amount = models.DecimalField('KDV Tutarı', max_digits=10, decimal_places=2, default=0,
+        help_text='Hesaplanan KDV tutarı')
+    total_with_vat = models.DecimalField('KDV Dahil Toplam', max_digits=10, decimal_places=2, default=0,
+        help_text='KDV dahil toplam tutar')
 
     # Detaylı işlem kırılımları
     breakdown_data = models.JSONField('İşlem Kırılımları', default=dict, blank=True,
@@ -953,58 +963,84 @@ class Invoice(models.Model):
 
         self.invoice_type = 'center_admin_invoice'
         self.issued_by_center = issued_by_center
+        
+        # Fiziksel kalıp
         self.physical_mold_count = 1  # Her fatura bir kalıp için
-        self.physical_mold_unit_price = Decimal('450.00')  # Sabit fiyat
+        self.physical_mold_unit_price = Decimal('450.00')  # KDV dahil fiyat (375 + 75 KDV)
         self.physical_mold_cost = self.physical_mold_unit_price
+        
+        # 3D Modelleme hizmeti kontrolü
+        # Eğer bu kalıp için ModeledMold kaydı varsa, 3D modelleme yapılmış demektir
+        has_digital_modeling = ear_mold.modeled_files.exists()
+        self.digital_scan_count = 1 if has_digital_modeling else 0
+        self.digital_scan_cost = Decimal('50.00') if has_digital_modeling else Decimal('0.00')
+        
+        # Aylık sistem ücreti
+        self.monthly_fee = Decimal('100.00')  # KDV dahil
 
-        # Ara toplam (sadece kalıp maliyeti)
-        self.subtotal = self.physical_mold_cost
+        # Toplam tutar hesapla (KDV dahil)
+        self.total_amount = self.monthly_fee + self.physical_mold_cost + self.digital_scan_cost
+        
+        # KDV'siz tutar hesapla (Toplam / 1.20)
+        self.subtotal_without_vat = (self.total_amount / Decimal('1.20')).quantize(Decimal('0.01'))
+        
+        # KDV tutarı
+        self.vat_amount = (self.total_amount - self.subtotal_without_vat).quantize(Decimal('0.01'))
+        
+        # Ara toplam (KDV dahil) - geriye dönük uyumluluk için
+        self.subtotal = self.total_amount
 
-        # MoldPark hizmet bedeli (%6.5)
-        self.moldpark_service_fee = self.subtotal * (self.moldpark_service_fee_rate / Decimal('100'))
-
-        # Kredi kartı komisyonu (%3)
-        self.credit_card_fee = self.subtotal * (self.credit_card_fee_rate / Decimal('100'))
-
-        # Toplam kesintiler
-        self.total_deductions = self.moldpark_service_fee + self.credit_card_fee
-
-        # Net tutar (müşterinin ödeyeceği tutar)
-        self.net_amount = self.subtotal + self.total_deductions
-
-        # Toplam fatura tutarı
-        self.total_amount = self.net_amount
+        # İşitme merkezlerinden komisyon alınmıyor
+        self.moldpark_service_fee = Decimal('0.00')
+        self.credit_card_fee = Decimal('0.00')
+        self.total_deductions = Decimal('0.00')
+        
+        # Net tutar (KDV dahil toplam)
+        self.net_amount = self.total_amount
 
         # İşlem kırılımlarını kaydet
         self.breakdown_data = {
-            'service_type': 'physical_mold_shipment',
-            'description': 'Fiziksel kalıp gönderimi ve üretimi',
+            'service_type': 'physical_mold_shipment_with_digital_modeling',
+            'description': 'Fiziksel kalıp gönderimi, üretimi ve 3D modelleme hizmeti',
             'mold_details': {
                 'mold_id': ear_mold.id,
                 'patient_name': ear_mold.patient_name,
                 'mold_type': ear_mold.get_mold_type_display(),
-                'unit_price': float(self.physical_mold_unit_price),
-                'quantity': 1,
-                'total_cost': float(self.physical_mold_cost)
+                'physical_unit_price': float(self.physical_mold_unit_price),
+                'physical_quantity': 1,
+                'physical_cost': float(self.physical_mold_cost),
+                'digital_modeling': has_digital_modeling,
+                'digital_unit_price': 50.00,
+                'digital_quantity': self.digital_scan_count,
+                'digital_cost': float(self.digital_scan_cost)
             },
             'fees': {
+                'monthly_fee': {
+                    'amount': float(self.monthly_fee),
+                    'description': 'Aylık sistem kullanım ücreti'
+                },
                 'moldpark_service_fee': {
                     'rate': float(self.moldpark_service_fee_rate),
                     'amount': float(self.moldpark_service_fee),
-                    'description': 'MoldPark platform ve üretim koordinasyon ücreti'
+                    'description': 'MoldPark platform hizmet bedeli (işitme merkezlerinden alınmaz)'
                 },
                 'credit_card_fee': {
                     'rate': float(self.credit_card_fee_rate),
                     'amount': float(self.credit_card_fee),
-                    'description': 'Kredi kartı işlem komisyonu'
+                    'description': 'Kredi kartı komisyonu (işitme merkezlerinden alınmaz)'
                 }
+            },
+            'vat_details': {
+                'subtotal_without_vat': float(self.subtotal_without_vat),
+                'vat_rate': 20.0,
+                'vat_amount': float(self.vat_amount),
+                'total_with_vat': float(self.total_amount)
             },
             'summary': {
                 'subtotal': float(self.subtotal),
                 'total_fees': float(self.total_deductions),
                 'total_amount': float(self.total_amount),
-                'producer_receives': float(self.subtotal - self.total_deductions),
-                'moldpark_receives': float(self.total_deductions)
+                'net_amount': float(self.net_amount)
             },
             'issued_by': {
                 'center_name': issued_by_center.name,

@@ -71,6 +71,7 @@ urlpatterns = [
     path('financial/invoices/', views_financial.invoice_list, name='invoice_list'),
     path('financial/invoices/<int:invoice_id>/', views_financial.invoice_detail, name='invoice_detail'),
     path('financial/invoices/<int:invoice_id>/mark-paid/', views_financial.invoice_mark_paid, name='invoice_mark_paid'),
+    path('financial/invoices/<int:invoice_id>/delete/', views_financial.invoice_delete, name='invoice_delete'),
     path('financial/generate-summary/', views_financial.generate_monthly_summary, name='generate_monthly_summary'),
     path('financial/reports/', views_financial.financial_reports, name='financial_reports'),
     path('financial/collections/', views_financial.moldpark_collections_report, name='moldpark_collections_report'),
@@ -89,4 +90,9 @@ urlpatterns = [
     path('admin/financial-control/', views_financial.admin_financial_control_panel, name='admin_financial_control_panel'),
     path('admin/financial-control/bulk-create-center-invoices/', views_financial.bulk_create_center_invoices, name='bulk_create_center_invoices'),
     path('admin/financial-control/bulk-create-producer-invoices/', views_financial.bulk_create_producer_invoices, name='bulk_create_producer_invoices'),
+    
+    # PDF Fatura İşlemleri
+    path('invoice/<int:invoice_id>/pdf/', views_financial.download_invoice_pdf, name='download_invoice_pdf'),
+    path('invoice/<int:invoice_id>/send-email/', views_financial.send_invoice_email, name='send_invoice_email'),
+    path('invoices/generate-monthly/', views_financial.generate_monthly_invoices, name='generate_monthly_invoices'),
 ] 

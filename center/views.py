@@ -1218,18 +1218,23 @@ def billing_invoices(request):
         created_at__lt=current_month_end
     )
 
-    # Bu ay kullanım özeti - Düzeltilmiş fiyatlandırma mantığı
+    # Bu ay kullanım özeti - Fiyatlar KDV Dahil
     physical_molds_count = current_month_molds.filter(is_physical_shipment=True).count()
     digital_scans_count = current_month_molds.filter(is_physical_shipment=False).count()
 
+    # Fiyatlar KDV dahil
+    MONTHLY_FEE = 100.00  # KDV dahil
+    PHYSICAL_PRICE = 450.00  # KDV dahil (375 + 75 KDV)
+    DIGITAL_PRICE = 50.00  # KDV dahil (41.67 + 8.33 KDV)
+
     current_month_stats = {
         'total_molds': current_month_molds.count(),
-        'physical_molds': physical_molds_count,  # Fiziksel gönderim seçilen kalıplar
-        'modeling_services': digital_scans_count,  # Dijital tarama seçilen kalıplar (3D Modelleme Hizmeti)
-        'monthly_fee': 100.00,  # Aylık sistem ücreti
-        'physical_cost': physical_molds_count * 450.00,  # Fiziksel gönderim ücreti
-        'modeling_cost': digital_scans_count * 50.00,  # Dijital tarama ücreti (3D Modelleme)
-        'estimated_total': 100.00 + (physical_molds_count * 450.00) + (digital_scans_count * 50.00),
+        'physical_molds': physical_molds_count,
+        'modeling_services': digital_scans_count,
+        'monthly_fee': MONTHLY_FEE,
+        'physical_cost': physical_molds_count * PHYSICAL_PRICE,
+        'modeling_cost': digital_scans_count * DIGITAL_PRICE,
+        'estimated_total': MONTHLY_FEE + (physical_molds_count * PHYSICAL_PRICE) + (digital_scans_count * DIGITAL_PRICE),
     }
 
     # Kullanıcının faturaları (eski ve yeni sistem)
@@ -1239,6 +1244,7 @@ def billing_invoices(request):
     ).order_by('-issue_date')
 
     # Aylık kullanım detayları (faturalardan)
+    from decimal import Decimal
     monthly_usage = []
     for invoice in invoices:
         if invoice.issue_date:
@@ -1252,14 +1258,14 @@ def billing_invoices(request):
                     5: 'Mayıs', 6: 'Haziran', 7: 'Temmuz', 8: 'Ağustos',
                     9: 'Eylül', 10: 'Ekim', 11: 'Kasım', 12: 'Aralık'
                 }.get(month, ''),
-                'monthly_fee': invoice.monthly_fee,
-                'physical_molds': invoice.physical_mold_count,
-                'physical_cost': invoice.physical_mold_cost,
-                'modeling_services': invoice.digital_scan_count,
-                'modeling_cost': invoice.digital_scan_cost,
-                'subtotal': invoice.subtotal,
-                'credit_card_fee': invoice.credit_card_fee,
-                'total': invoice.total_amount,
+                'monthly_fee': invoice.monthly_fee or Decimal('0.00'),
+                'physical_molds': invoice.physical_mold_count or 0,
+                'physical_cost': invoice.physical_mold_cost or Decimal('0.00'),
+                'modeling_services': invoice.digital_scan_count or 0,
+                'modeling_cost': invoice.digital_scan_cost or Decimal('0.00'),
+                'subtotal': invoice.subtotal or Decimal('0.00'),
+                'credit_card_fee': invoice.credit_card_fee or Decimal('0.00'),
+                'total': invoice.total_amount or Decimal('0.00'),
                 'status': invoice.status,
                 'invoice_id': invoice.id,
             })
@@ -1356,3 +1362,109 @@ def billing_invoice_detail(request, invoice_id):
     }
 
     return render(request, 'center/billing_invoice_detail.html', context)
+
+
+@center_required
+def center_invoice_list(request):
+    """İşitme merkezi fatura listesi - Sadece kendi faturaları"""
+    from decimal import Decimal
+    
+    center = request.user.center
+    
+    # Merkezin faturaları (kendisine kesilen faturalar)
+    invoices = Invoice.objects.filter(
+        Q(user=request.user) |  # Kullanıcıya kesilen
+        Q(issued_by_center=center)  # Merkez tarafından kesilen
+    )
+    
+    # Filtreler
+    invoice_type = request.GET.get('type', 'all')
+    status = request.GET.get('status', 'all')
+    
+    if invoice_type != 'all':
+        invoices = invoices.filter(invoice_type=invoice_type)
+    
+    if status != 'all':
+        invoices = invoices.filter(status=status)
+    
+    invoices = invoices.order_by('-issue_date', '-created_at')
+    
+    # İstatistikler
+    summary = {
+        'total_count': invoices.count(),
+        'total_amount': sum(inv.total_amount for inv in invoices),
+        'paid_amount': sum(inv.total_amount for inv in invoices.filter(status='paid')),
+        'pending_amount': sum(inv.total_amount for inv in invoices.filter(status='issued')),
+    }
+    
+    # Aylık kullanım geçmişi (faturalardan)
+    monthly_usage = []
+    for invoice in invoices:
+        if invoice.issue_date:
+            year = invoice.issue_date.year
+            month = invoice.issue_date.month
+            monthly_usage.append({
+                'year': year,
+                'month': month,
+                'month_name': {
+                    1: 'Ocak', 2: 'Şubat', 3: 'Mart', 4: 'Nisan',
+                    5: 'Mayıs', 6: 'Haziran', 7: 'Temmuz', 8: 'Ağustos',
+                    9: 'Eylül', 10: 'Ekim', 11: 'Kasım', 12: 'Aralık'
+                }.get(month, ''),
+                'monthly_fee': invoice.monthly_fee or Decimal('0.00'),
+                'physical_molds': invoice.physical_mold_count or 0,
+                'physical_cost': invoice.physical_mold_cost or Decimal('0.00'),
+                'modeling_services': invoice.digital_scan_count or 0,
+                'modeling_cost': invoice.digital_scan_cost or Decimal('0.00'),
+                'subtotal': invoice.subtotal or Decimal('0.00'),
+                'credit_card_fee': invoice.credit_card_fee or Decimal('0.00'),
+                'total': invoice.total_amount or Decimal('0.00'),
+                'status': invoice.status,
+                'invoice_id': invoice.id,
+            })
+    
+    context = {
+        'invoices': invoices,
+        'invoice_type': invoice_type,
+        'status': status,
+        'summary': summary,
+        'monthly_usage': monthly_usage,
+    }
+    
+    return render(request, 'center/invoice_list.html', context)
+
+
+@center_required
+def center_invoice_detail(request, invoice_id):
+    """İşitme merkezi fatura detayı - Basit ve temiz görünüm"""
+    from decimal import Decimal
+    
+    center = request.user.center
+    invoice = get_object_or_404(Invoice, id=invoice_id)
+    
+    # Yetkilendirme kontrolü - sadece kendi faturası
+    can_view = (
+        invoice.user == request.user or
+        invoice.issued_by_center == center
+    )
+    
+    if not can_view:
+        raise Http404("Bu faturayı görüntüleme yetkiniz yok")
+    
+    # Merkez adı
+    center_name = center.name
+    
+    # Hesaplamalar
+    total_with_vat = invoice.total_amount or Decimal('0.00')
+    subtotal_without_vat = total_with_vat / Decimal('1.20')
+    vat_amount = total_with_vat - subtotal_without_vat
+    
+    context = {
+        'invoice': invoice,
+        'center_name': center_name,
+        'subtotal_without_vat': subtotal_without_vat,
+        'vat_amount': vat_amount,
+        'total_with_vat': total_with_vat,
+    }
+    
+    return render(request, 'center/invoice_detail.html', context)

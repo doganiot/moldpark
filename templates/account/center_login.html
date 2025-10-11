@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}İşitme Merkezi Girişi - MoldPark{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <!-- Güvenlik Bilgisi -->
+            <div class="alert alert-info border-0 shadow-sm mt-3">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-hospital-user fa-2x text-info me-3"></i>
+                    <div>
+                        <h6 class="mb-1">İşitme Merkezi Paneli</h6>
+                        <small class="mb-0">İşitme merkezi hesabınızla giriş yaparak kalıp siparişlerinizi yönetin.</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card shadow-lg border-0 mt-3">
+                <div class="card-header bg-primary text-white text-center py-4">
+                    <div class="mb-3">
+                        <i class="fas fa-hospital-user fa-3x"></i>
+                    </div>
+                    <h3 class="mb-0">İşitme Merkezi Girişi</h3>
+                    <p class="mb-0">İşitme merkezi hesabınızla giriş yapın</p>
+                </div>
+                <div class="card-body p-5">
+                    {% if form.errors %}
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            E-posta adresi veya şifre hatalı.
+                        </div>
+                    {% endif %}
+
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        {{ form|crispy }}
+                        
+                        <div class="d-grid mb-4">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-sign-in-alt me-2"></i>Giriş Yap
+                            </button>
+                        </div>
+                        
+                        <div class="text-center">
+                            <hr class="my-4">
+                            <p class="text-muted mb-3">Henüz hesabınız yok mu?</p>
+                            <a href="{% url 'account_signup' %}" class="btn btn-outline-primary">
+                                <i class="fas fa-user-plus me-2"></i>Kayıt Ol
+                            </a>
+                        </div>
+                        
+                        <div class="text-center mt-4">
+                            <small class="text-muted">
+                                Üretici merkezi misiniz? 
+                                <a href="{% url 'producer:login' %}" class="text-success">Buradan giriş yapın</a>
+                            </small>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Bilgilendirme Kartı -->
+            <div class="card border-0 shadow-sm mt-4">
+                <div class="card-body">
+                    <h6 class="card-title text-primary">
+                        <i class="fas fa-info-circle me-2"></i>İşitme Merkezi Özellikleri
+                    </h6>
+                    <ul class="list-unstyled mb-0 small text-muted">
+                        <li><i class="fas fa-check text-success me-2"></i>Kulak kalıbı sipariş yönetimi</li>
+                        <li><i class="fas fa-check text-success me-2"></i>3D tarama dosyası yükleme</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Sipariş takibi ve durum kontrolü</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Revizyon talep sistemi</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Kargo takibi</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Üretici merkez ile mesajlaşma</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Fatura ve kullanım detayları</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Hasta bilgileri yönetimi</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Geri Dön Butonu -->
+            <div class="text-center mt-4">
+                <a href="{% url 'account_login' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Giriş Sayfasına Dön
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    border-radius: 15px;
+}
+
+.card-header {
+    border-radius: 15px 15px 0 0 !important;
+}
+
+.form-control:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.btn-primary {
+    background: linear-gradient(45deg, #0d6efd, #0a58ca);
+    border: none;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(45deg, #0a58ca, #084298);
+    transform: translateY(-1px);
+}
+
+.list-unstyled li {
+    padding: 2px 0;
+}
+
+.alert {
+    border-radius: 10px;
+}
+
+body {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+}
+</style>
+{% endblock %}
+

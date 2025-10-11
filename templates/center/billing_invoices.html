@@ -2,8 +2,9 @@
 {% load i18n %}
 {% load crispy_forms_tags %}
 {% load static %}
+{% load humanize %}
 
-{% block title %}Kullanım Detaylarım - MoldPark{% endblock %}
+{% block title %}Faturalarım - MoldPark{% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4">
@@ -18,11 +19,12 @@
                                 <i class="fas fa-file-invoice me-2"></i>
                                 Faturalarım
                             </h4>
-                            <small class="text-white-50">Maliyetlerinizi, faturalarınızı ve ödeme geçmişinizi takip edin</small>
+                            <small class="text-white-50">Aylık kullanım özetiniz ve faturalarınız</small>
                         </div>
-                        <div class="text-end">
-                            <div class="h5 mb-0">{{ total_amount|floatformat:2 }} ₺</div>
-                            <small class="text-white-50">Toplam Maliyet</small>
+                        <div>
+                            <a href="{% url 'center:dashboard' %}" class="btn btn-light btn-sm">
+                                <i class="fas fa-arrow-left me-1"></i>Dashboard
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -30,7 +32,7 @@
         </div>
     </div>
 
-    <!-- Current Month Usage Summary -->
+    <!-- Bu Ay Kullanım Özeti -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card border-info">
@@ -39,235 +41,68 @@
                         <i class="fas fa-calendar-alt me-2 text-info"></i>
                         Bu Ay Kullanım Özeti
                     </h5>
+                    <small class="text-muted">Tüm fiyatlar KDV dahildir</small>
                 </div>
                 <div class="card-body">
-                    <div class="row text-center">
-                        <div class="col-md-1">
-                            <div class="border rounded p-2">
-                                <div class="h5 text-primary mb-1">{{ current_month_stats.total_molds }}</div>
+                    <div class="row text-center g-3">
+                        <div class="col-md-2">
+                            <div class="border rounded p-3 h-100">
+                                <div class="h4 text-primary mb-1">{{ current_month_stats.total_molds }}</div>
                                 <small class="text-muted">Toplam Kalıp</small>
                             </div>
                         </div>
-                        <div class="col-md-1">
-                            <div class="border rounded p-2">
-                                <div class="h5 text-success mb-1">{{ current_month_stats.physical_molds }}</div>
+                        <div class="col-md-2">
+                            <div class="border rounded p-3 h-100">
+                                <div class="h4 text-success mb-1">{{ current_month_stats.physical_molds }}</div>
                                 <small class="text-muted">Fiziksel Kalıp</small>
                             </div>
                         </div>
-                        <div class="col-md-1">
-                            <div class="border rounded p-2">
-                                <div class="h5 text-warning mb-1">{{ current_month_stats.modeling_services }}</div>
+                        <div class="col-md-2">
+                            <div class="border rounded p-3 h-100">
+                                <div class="h4 text-warning mb-1">{{ current_month_stats.modeling_services }}</div>
                                 <small class="text-muted">3D Modelleme</small>
                             </div>
                         </div>
-                        <div class="col-md-1">
-                            <div class="border rounded p-2">
+                        <div class="col-md-2">
+                            <div class="border rounded p-3 h-100">
                                 <div class="h5 text-info mb-1">{{ current_month_stats.monthly_fee|floatformat:0 }} ₺</div>
                                 <small class="text-muted">Aylık Ücret</small>
                             </div>
                         </div>
                         <div class="col-md-2">
-                            <div class="border rounded p-2">
+                            <div class="border rounded p-3 h-100">
                                 <div class="h5 text-danger mb-1">{{ current_month_stats.physical_cost|floatformat:0 }} ₺</div>
-                                <small class="text-muted">Fiziksel Kalıp Maliyeti</small>
+                                <small class="text-muted">Fiziksel Maliyet</small>
                             </div>
                         </div>
                         <div class="col-md-2">
-                            <div class="border rounded p-2">
-                                <div class="h5 text-warning mb-1">{{ current_month_stats.modeling_cost|floatformat:0 }} ₺</div>
-                                <small class="text-muted">3D Modelleme Maliyeti</small>
-                            </div>
-                        </div>
-                        <div class="col-md-2">
-                            <div class="border rounded p-2">
-                                <div class="h5 text-primary mb-1">{{ current_month_stats.estimated_total|floatformat:0 }} ₺</div>
-                                <small class="text-muted">Tahmini Toplam</small>
+                            <div class="border rounded p-3 h-100 bg-primary bg-opacity-10">
+                                <div class="h4 text-primary mb-1 fw-bold">{{ current_month_stats.estimated_total|floatformat:0 }} ₺</div>
+                                <small class="text-muted fw-bold">Tahmini Toplam</small>
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Monthly Usage History -->
-    {% if monthly_usage %}
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-history me-2"></i>
-                        Aylık Kullanım Geçmişi
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Dönem</th>
-                                    <th>Aylık Ücret</th>
-                                    <th>Fiziksel Kalıp</th>
-                                    <th>3D Modelleme</th>
-                                    <th>Ara Toplam</th>
-                                    <th>KK Komisyonu</th>
-                                    <th>Toplam</th>
-                                    <th>Durum</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for usage in monthly_usage %}
-                                <tr>
-                                    <td>
-                                        <strong>{{ usage.month_name }} {{ usage.year }}</strong>
-                                    </td>
-                                    <td>{{ usage.monthly_fee|floatformat:0 }} ₺</td>
-                                    <td>
-                                        {{ usage.physical_molds }} adet<br>
-                                        <small class="text-muted">{{ usage.physical_cost|floatformat:0 }} ₺</small>
-                                    </td>
-                                    <td>
-                                        {{ usage.modeling_services }} adet<br>
-                                        <small class="text-muted">{{ usage.modeling_cost|floatformat:0 }} ₺</small>
-                                    </td>
-                                    <td>{{ usage.subtotal|floatformat:0 }} ₺</td>
-                                    <td>{{ usage.credit_card_fee|floatformat:0 }} ₺</td>
-                                    <td>
-                                        <strong class="text-primary">{{ usage.total|floatformat:0 }} ₺</strong>
-                                    </td>
-                                    <td>
-                                        {% if usage.status == 'paid' %}
-                                            <span class="badge bg-success">Ödendi</span>
-                                        {% elif usage.status == 'overdue' %}
-                                            <span class="badge bg-danger">Vadesi Geçmiş</span>
-                                        {% elif usage.status == 'issued' %}
-                                            <span class="badge bg-warning">Bekliyor</span>
-                                        {% else %}
-                                            <span class="badge bg-secondary">{{ usage.status|title }}</span>
-                                        {% endif %}
-                                        {% if usage.invoice_id %}
-                                        <br><small><a href="{% url 'center:usage_invoice_detail' usage.invoice_id %}" class="text-decoration-none">Detay →</a></small>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                    
+                    <!-- Fiyat Bilgisi -->
+                    <div class="alert alert-info mt-3 mb-0">
+                        <small>
+                            <strong>Fiyatlandırma:</strong> 
+                            Fiziksel Kalıp: 450₺ (375₺+75₺ KDV) | 
+                            3D Modelleme: 50₺ (41.67₺+8.33₺ KDV) | 
+                            Aylık Ücret: 100₺ (83.33₺+16.67₺ KDV)
+                        </small>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    {% endif %}
 
-    <!-- Statistics Cards -->
-    <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="card border-primary">
-                <div class="card-body text-center">
-                    <div class="display-6 text-primary mb-2">
-                        <i class="fas fa-file-invoice"></i>
-                    </div>
-                    <h3 class="text-primary">{{ total_invoices }}</h3>
-                    <p class="text-muted mb-0">Toplam Fatura</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card border-success">
-                <div class="card-body text-center">
-                    <div class="display-6 text-success mb-2">
-                        <i class="fas fa-check-circle"></i>
-                    </div>
-                    <h3 class="text-success">{{ paid_invoices }}</h3>
-                    <p class="text-muted mb-0">Ödenmiş Fatura</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card border-warning">
-                <div class="card-body text-center">
-                    <div class="display-6 text-warning mb-2">
-                        <i class="fas fa-clock"></i>
-                    </div>
-                    <h3 class="text-warning">{{ pending_invoices }}</h3>
-                    <p class="text-muted mb-0">Bekleyen Fatura</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Filters -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0">
-                <i class="fas fa-filter me-2"></i>
-                Filtreler
-            </h5>
-        </div>
-        <div class="card-body">
-            <form method="GET" class="row g-3">
-                <div class="col-md-3">
-                    <label class="form-label">Durum</label>
-                    <select name="status" class="form-select">
-                        <option value="">Tümü</option>
-                        {% for status_value, status_label in status_choices %}
-                        <option value="{{ status_value }}" {% if status_filter == status_value %}selected{% endif %}>
-                            {{ status_label }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Yıl</label>
-                    <select name="year" class="form-select">
-                        <option value="">Tümü</option>
-                        {% for year_date in years %}
-                        <option value="{{ year_date.year }}" {% if year_filter == year_date.year|stringformat:"s" %}selected{% endif %}>
-                            {{ year_date.year }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Ay</label>
-                    <select name="month" class="form-select">
-                        <option value="">Tümü</option>
-                        <option value="1" {% if month_filter == '1' %}selected{% endif %}>Ocak</option>
-                        <option value="2" {% if month_filter == '2' %}selected{% endif %}>Şubat</option>
-                        <option value="3" {% if month_filter == '3' %}selected{% endif %}>Mart</option>
-                        <option value="4" {% if month_filter == '4' %}selected{% endif %}>Nisan</option>
-                        <option value="5" {% if month_filter == '5' %}selected{% endif %}>Mayıs</option>
-                        <option value="6" {% if month_filter == '6' %}selected{% endif %}>Haziran</option>
-                        <option value="7" {% if month_filter == '7' %}selected{% endif %}>Temmuz</option>
-                        <option value="8" {% if month_filter == '8' %}selected{% endif %}>Ağustos</option>
-                        <option value="9" {% if month_filter == '9' %}selected{% endif %}>Eylül</option>
-                        <option value="10" {% if month_filter == '10' %}selected{% endif %}>Ekim</option>
-                        <option value="11" {% if month_filter == '11' %}selected{% endif %}>Kasım</option>
-                        <option value="12" {% if month_filter == '12' %}selected{% endif %}>Aralık</option>
-                    </select>
-                </div>
-                <div class="col-md-3 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary me-2">
-                        <i class="fas fa-search me-1"></i>
-                        Filtrele
-                    </button>
-                    <a href="{% url 'center:usage_details' %}" class="btn btn-outline-secondary">
-                        <i class="fas fa-times me-1"></i>
-                        Temizle
-                    </a>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Detailed Invoice History -->
+    <!-- Fatura Listesi -->
     <div class="card">
-        <div class="card-header">
+        <div class="card-header bg-primary text-white">
             <h5 class="mb-0">
                 <i class="fas fa-list me-2"></i>
-                Detaylı Fatura Geçmişi
+                Faturalarım
             </h5>
         </div>
         <div class="card-body">
@@ -279,7 +114,7 @@
                                 <th>Fatura No</th>
                                 <th>Kesim Tarihi</th>
                                 <th>Vade Tarihi</th>
-                                <th>Tutar</th>
+                                <th>Tutar (KDV Dahil)</th>
                                 <th>Durum</th>
                                 <th>İşlemler</th>
                             </tr>
@@ -313,10 +148,19 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <a href="{% url 'center:usage_invoice_detail' invoice.id %}"
-                                       class="btn btn-sm btn-outline-primary">
-                                        <i class="fas fa-eye me-1"></i>Detay
-                                    </a>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <a href="{% url 'center:usage_invoice_detail' invoice.id %}"
+                                           class="btn btn-outline-primary"
+                                           title="Fatura Detayı">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{% url 'core:download_invoice_pdf' invoice.id %}"
+                                           class="btn btn-outline-danger"
+                                           title="PDF İndir"
+                                           target="_blank">
+                                            <i class="fas fa-file-pdf"></i>
+                                        </a>
+                                    </div>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -330,7 +174,7 @@
                     <ul class="pagination justify-content-center">
                         {% if page_obj.has_previous %}
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if year_filter %}&year={{ year_filter }}{% endif %}{% if month_filter %}&month={{ month_filter }}{% endif %}">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">
                                 <i class="fas fa-chevron-left"></i>
                             </a>
                         </li>
@@ -347,14 +191,14 @@
                         </li>
                         {% elif page_num > page_obj.number|add:'-3' and page_num < page_obj.number|add:'3' %}
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ page_num }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if year_filter %}&year={{ year_filter }}{% endif %}{% if month_filter %}&month={{ month_filter }}{% endif %}">{{ page_num }}</a>
+                            <a class="page-link" href="?page={{ page_num }}">{{ page_num }}</a>
                         </li>
                         {% endif %}
                         {% endfor %}
 
                         {% if page_obj.has_next %}
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if year_filter %}&year={{ year_filter }}{% endif %}{% if month_filter %}&month={{ month_filter }}{% endif %}">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}">
                                 <i class="fas fa-chevron-right"></i>
                             </a>
                         </li>
@@ -368,9 +212,9 @@
                 {% endif %}
             {% else %}
                 <div class="text-center py-5">
-                    <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
-                    <h5 class="text-muted">Henüz kullanım verisi bulunmuyor</h5>
-                    <p class="text-muted">İlk faturanız ayın 28'inde oluşturulacaktır.</p>
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">Henüz fatura bulunmuyor</h5>
+                    <p class="text-muted">İlk faturanız oluşturulduğunda burada görünecektir.</p>
                 </div>
             {% endif %}
         </div>
@@ -378,26 +222,23 @@
 </div>
 
 <style>
-.table th {
-    border-top: none;
-    font-weight: 600;
-    font-size: 0.875rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
 .card-header {
     border-bottom: 2px solid #e9ecef;
 }
 
 .badge {
     font-size: 0.75rem;
+    padding: 0.35em 0.65em;
 }
 
 .btn-sm {
     padding: 0.25rem 0.5rem;
     font-size: 0.875rem;
 }
+
+.border-info {
+    border-color: #0dcaf0 !important;
+    border-width: 2px;
+}
 </style>
 {% endblock %}
-

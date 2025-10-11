@@ -121,9 +121,17 @@
                             </div>
                         </div>
                         <div class="flex-grow-1 ms-3">
-                            <div class="text-muted small">Net Kar</div>
+                            <div class="text-muted small">
+                                Net Kar 
+                                <i class="fas fa-info-circle ms-1" 
+                                   data-bs-toggle="tooltip" 
+                                   title="Sadece hizmet bedeli (%6.5). K.K. komisyonu işitme merkezinden kesilir, MoldPark karından düşülmez."></i>
+                            </div>
                             <h4 class="mb-0 fw-bold text-primary">₺{{ cash_flow.moldpark_net_profit|floatformat:2 }}</h4>
-                            <small class="text-muted">MoldPark Net</small>
+                            <small class="text-success">
+                                <i class="fas fa-check-circle me-1"></i>
+                                Hizmet Bedeli
+                            </small>
                         </div>
                     </div>
                 </div>
@@ -169,9 +177,16 @@
                                     <td class="py-3 ps-4">
                                         <i class="fas fa-credit-card text-info me-2"></i>
                                         Kredi Kartı Komisyonu (%3)
+                                        <br>
+                                        <small class="text-muted fst-italic">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            İşitme merkezinden kesilen komisyon (MoldPark karından düşülmez)
+                                        </small>
                                     </td>
                                     <td class="text-end py-3">
-                                        <span class="text-info">-₺{{ cash_flow.credit_card_fees|floatformat:2 }}</span>
+                                        <span class="text-info">₺{{ cash_flow.credit_card_fees|floatformat:2 }}</span>
+                                        <br>
+                                        <small class="text-muted">(Bilgi amaçlı)</small>
                                     </td>
                                 </tr>
                                 <tr class="border-bottom">
@@ -189,11 +204,17 @@
                                     <td class="py-3">
                                         <i class="fas fa-equals text-primary me-2"></i>
                                         <strong>MoldPark Net Kar</strong>
+                                        <br>
+                                        <small class="text-success fst-italic">
+                                            <i class="fas fa-check-circle me-1"></i>
+                                            Sadece hizmet bedeli (%6.5) - K.K. komisyonu dahil değil
+                                        </small>
                                     </td>
                                     <td class="text-end py-3">
                                         <h4 class="mb-0 text-primary">
                                             ₺{{ cash_flow.moldpark_net_profit|floatformat:2 }}
                                         </h4>
+                                        <small class="text-muted">Net kazanç</small>
                                     </td>
                                 </tr>
                             </tbody>
@@ -222,10 +243,14 @@
                                 <thead class="table-light">
                                     <tr>
                                         <th>Merkez</th>
-                                        <th class="text-center">Kalıp Sayısı</th>
-                                        <th class="text-end">Brüt Tutar</th>
+                                        <th class="text-center">
+                                            Hizmetler
+                                            <br><small class="text-muted" style="font-weight: normal;">Fiziksel / Dijital</small>
+                                        </th>
+                                        <th class="text-end">KDV Hariç</th>
+                                        <th class="text-end">KDV (%20)</th>
+                                        <th class="text-end">Toplam</th>
                                         <th class="text-end">MoldPark</th>
-                                        <th class="text-end">KK Kom.</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -236,20 +261,29 @@
                                             <strong>{{ item.center.name }}</strong>
                                         </td>
                                         <td class="text-center">
-                                            <span class="badge bg-primary">{{ item.physical_count }}</span>
+                                            {% if item.physical_count > 0 %}
+                                                <span class="badge bg-primary" title="Fiziksel Kalıp (450 TL)">
+                                                    <i class="fas fa-box me-1"></i>{{ item.physical_count }}
+                                                </span>
+                                            {% endif %}
+                                            {% if item.digital_count > 0 %}
+                                                <span class="badge bg-info" title="3D Modelleme (50 TL)">
+                                                    <i class="fas fa-cube me-1"></i>{{ item.digital_count }}
+                                                </span>
+                                            {% endif %}
                                         </td>
-                                        <td class="text-end">₺{{ item.gross_amount|floatformat:2 }}</td>
+                                        <td class="text-end">₺{{ item.gross_amount_without_vat|floatformat:2 }}</td>
+                                        <td class="text-end text-info">₺{{ item.vat_amount|floatformat:2 }}</td>
+                                        <td class="text-end"><strong>₺{{ item.gross_amount|floatformat:2 }}</strong></td>
                                         <td class="text-end text-warning">₺{{ item.moldpark_fee|floatformat:2 }}</td>
-                                        <td class="text-end text-info">₺{{ item.cc_fee|floatformat:2 }}</td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>
                                 <tfoot class="table-light">
                                     <tr>
-                                        <td colspan="2"><strong>TOPLAM</strong></td>
+                                        <td colspan="4"><strong>TOPLAM</strong></td>
                                         <td class="text-end"><strong>₺{{ total_collections_from_centers|floatformat:2 }}</strong></td>
-                                        <td class="text-end"><strong>₺{{ total_moldpark_service_fee|floatformat:2 }}</strong></td>
-                                        <td class="text-end"><strong>₺{{ total_credit_card_commission|floatformat:2 }}</strong></td>
+                                        <td class="text-end text-warning"><strong>₺{{ total_moldpark_service_fee|floatformat:2 }}</strong></td>
                                     </tr>
                                 </tfoot>
                             </table>
@@ -542,6 +576,14 @@ function bulkCreateProducerInvoices() {
         btn.innerHTML = originalText;
     });
 }
+
+// Tooltip'leri aktif hale getir
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
 </script>
 {% endblock %}
 

@@ -639,6 +639,20 @@ class MoldParkApp {
     }
 
     registerServiceWorker() {
+        // Service Worker GEÇİCİ OLARAK DEVRE DIŞI
+        // Network hatalarını önlemek için development sırasında kapatıldı
+        if ('serviceWorker' in navigator) {
+            // Mevcut service worker'ları kaldır
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+                registrations.forEach(registration => {
+                    registration.unregister();
+                    console.log('✅ Service Worker kaldırıldı (development mode)');
+                });
+            });
+        }
+        
+        // Service Worker kaydı devre dışı (production'da açılacak)
+        /*
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js')
                 .then(registration => {
@@ -648,6 +662,7 @@ class MoldParkApp {
                     console.log('SW registration failed:', error);
                 });
         }
+        */
     }
 
     // ========================================

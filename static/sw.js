@@ -1,7 +1,7 @@
 // MoldPark Service Worker
-// Version 1.0.0
+// Version 1.0.1 - Network Error Fix
 
-const CACHE_NAME = 'moldpark-cache-v1';
+const CACHE_NAME = 'moldpark-cache-v2';
 const STATIC_CACHE_URLS = [
     '/',
     '/static/js/custom.js',
@@ -59,9 +59,16 @@ self.addEventListener('fetch', event => {
     if (event.request.url.startsWith('chrome-extension://')) {
         return;
     }
+    
+    // Skip Chrome DevTools requests
+    if (event.request.url.includes('/.well-known/')) {
+        return;
+    }
 
-    // Skip requests with query parameters (dynamic content)
-    if (event.request.url.includes('?')) {
+    // Skip API and dynamic requests
+    if (event.request.url.includes('/api/') || 
+        event.request.url.includes('/django-admin/') ||
+        event.request.url.includes('?')) {
         return;
     }
 
@@ -98,7 +105,8 @@ self.addEventListener('fetch', event => {
             })
             .catch(() => {
                 // If both cache and network fail, return offline page for HTML requests
-                if (event.request.headers.get('accept').includes('text/html')) {
+                const acceptHeader = event.request.headers.get('accept');
+                if (acceptHeader && acceptHeader.includes('text/html')) {
                     return new Response(
                         `<!DOCTYPE html>
                         <html>

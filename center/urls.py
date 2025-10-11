@@ -16,6 +16,10 @@ urlpatterns = [
     # Usage Details
     path('usage/', views.billing_invoices, name='usage_details'),
     path('usage/<int:invoice_id>/', views.billing_invoice_detail, name='usage_invoice_detail'),
+    
+    # Fatura Yönetimi
+    path('invoices/', views.center_invoice_list, name='invoice_list'),
+    path('invoices/<int:invoice_id>/', views.center_invoice_detail, name='invoice_detail'),
 
     # Notifications
     path('notifications/', views.notification_list, name='notification_list'),
