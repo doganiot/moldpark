@@ -87,6 +87,9 @@
             </a>
         </div>
         <div class="col-md-6 text-end">
+            <a href="{% url 'download_invoice_pdf' invoice.id %}" class="btn btn-success me-2" target="_blank">
+                <i class="fas fa-file-pdf me-2"></i>PDF İndir
+            </a>
             <button onclick="window.print()" class="btn btn-primary">
                 <i class="fas fa-print me-2"></i>Yazdır
             </button>
@@ -117,26 +120,81 @@
             <span>{{ invoice.issue_date|date:"d.m.Y" }}</span>
         </div>
 
-        <!-- Fatura Tablosu -->
+        <!-- Hizmet Detayları -->
         <table class="invoice-table table table-borderless">
+            <thead>
+                <tr style="border-bottom: 2px solid #2563eb;">
+                    <th style="text-align: left; padding: 15px 10px;">Hizmet Açıklaması</th>
+                    <th style="text-align: center; padding: 15px 10px; width: 10%;">Adet</th>
+                    <th style="text-align: right; padding: 15px 10px; width: 15%;">Birim Fiyat</th>
+                    <th style="text-align: right; padding: 15px 10px; width: 15%;">Tutar</th>
+                </tr>
+            </thead>
             <tbody>
+                {% if invoice.monthly_fee and invoice.monthly_fee > 0 %}
                 <tr>
-                    <td>KDV Hariç:</td>
-                    <td>₺{{ subtotal_without_vat|floatformat:2|intcomma }}</td>
+                    <td>
+                        <strong>Aylık Sistem Kullanımı</strong><br>
+                        <small style="color: #666;">MoldPark Platform Erişimi</small>
+                    </td>
+                    <td style="text-align: center;">1</td>
+                    <td style="text-align: right;">₺{{ invoice.monthly_fee|floatformat:0 }}</td>
+                    <td style="text-align: right;"><strong>₺{{ invoice.monthly_fee|floatformat:0 }}</strong></td>
                 </tr>
+                {% endif %}
+                
+                {% if invoice.physical_mold_count and invoice.physical_mold_count > 0 %}
                 <tr>
-                    <td>KDV (%20):</td>
-                    <td>₺{{ vat_amount|floatformat:2|intcomma }}</td>
+                    <td>
+                        <strong>Fiziksel Kulak Kalıbı Üretimi</strong><br>
+                        <small style="color: #666;">3D Baskı + Kalıp İmalatı</small>
+                    </td>
+                    <td style="text-align: center;">{{ invoice.physical_mold_count }}</td>
+                    <td style="text-align: right;">₺450</td>
+                    <td style="text-align: right;"><strong>₺{{ invoice.physical_mold_cost|floatformat:0 }}</strong></td>
                 </tr>
+                {% endif %}
+                
+                {% if invoice.digital_scan_count and invoice.digital_scan_count > 0 %}
                 <tr>
-                    <td colspan="2"><div class="invoice-separator"></div></td>
+                    <td>
+                        <strong>3D Kalıp Modelleme Hizmeti</strong><br>
+                        <small style="color: #666;">Dijital Model Oluşturma</small>
+                    </td>
+                    <td style="text-align: center;">{{ invoice.digital_scan_count }}</td>
+                    <td style="text-align: right;">₺50</td>
+                    <td style="text-align: right;"><strong>₺{{ invoice.digital_scan_cost|floatformat:0 }}</strong></td>
                 </tr>
+                {% endif %}
+                
+                <tr>
+                    <td colspan="4"><div class="invoice-separator"></div></td>
+                </tr>
+                
+                <tr style="background: #f9f9f9;">
+                    <td colspan="3" style="text-align: right;"><strong>Ara Toplam (KDV Hariç):</strong></td>
+                    <td style="text-align: right;"><strong>₺{{ subtotal_without_vat|floatformat:0 }}</strong></td>
+                </tr>
+                <tr style="background: #f9f9f9;">
+                    <td colspan="3" style="text-align: right;"><strong>KDV (%20):</strong></td>
+                    <td style="text-align: right;"><strong>₺{{ vat_amount|floatformat:0 }}</strong></td>
+                </tr>
+                
                 <tr class="invoice-total-row">
-                    <td>TOPLAM:</td>
-                    <td>₺{{ total_with_vat|floatformat:2|intcomma }}</td>
+                    <td colspan="3" style="text-align: right;">GENEL TOPLAM (KDV DAHİL)</td>
+                    <td style="text-align: right;">₺{{ total_with_vat|floatformat:0 }}</td>
                 </tr>
             </tbody>
         </table>
+        
+        <!-- Fiyatlandırma Bilgisi -->
+        <div style="margin-top: 30px; padding: 15px; background: #f5f5f5; border-left: 4px solid #2563eb; font-size: 0.9rem;">
+            <strong style="display: block; margin-bottom: 8px; color: #2563eb;">Fiyatlandırma Bilgisi:</strong>
+            • Fiziksel Kalıp: 450 TL (375 TL + 75 TL KDV)<br>
+            • 3D Modelleme: 50 TL (41.67 TL + 8.33 TL KDV)<br>
+            • Aylık Sistem Ücreti: 100 TL (83.33 TL + 16.67 TL KDV)<br>
+            • Tüm fiyatlar KDV dahildir.
+        </div>
     </div>
 </div>
 {% endblock %}

@@ -154,12 +154,20 @@
                                        target="_blank">
                                         <i class="fas fa-file-pdf"></i>
                                     </a>
+                                    {% if user.is_superuser %}
                                     <button type="button" 
                                             class="btn btn-outline-info" 
                                             onclick="sendInvoiceEmail({{ invoice.id }})" 
                                             title="Email Gönder">
                                         <i class="fas fa-envelope"></i>
                                     </button>
+                                    <button type="button" 
+                                            class="btn btn-outline-danger" 
+                                            onclick="deleteInvoice({{ invoice.id }}, '{{ invoice.invoice_number }}')" 
+                                            title="Sil">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                    {% endif %}
                                 </div>
                             </td>
                         </tr>
@@ -178,7 +186,7 @@
     </div>
 </div>
 
-<!-- Email Gönderme JavaScript -->
+<!-- JavaScript İşlemleri -->
 <script>
 function sendInvoiceEmail(invoiceId) {
     if (!confirm('Bu faturayı email ile göndermek istediğinize emin misiniz?')) {
@@ -186,6 +194,37 @@ function sendInvoiceEmail(invoiceId) {
     }
     
     fetch(`/invoice/${invoiceId}/send-email/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✓ ' + data.message);
+            location.reload();
+        } else {
+            alert('✗ Hata: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('✗ Bir hata oluştu: ' + error);
+    });
+}
+
+function deleteInvoice(invoiceId, invoiceNumber) {
+    if (!confirm(`"${invoiceNumber}" numaralı faturayı silmek istediğinize emin misiniz?\n\nBu işlem geri alınamaz!`)) {
+        return;
+    }
+    
+    // İkinci onay
+    if (!confirm('Bu işlem GERİ ALINAMAZ! Devam etmek istediğinize emin misiniz?')) {
+        return;
+    }
+    
+    fetch(`/financial/invoices/${invoiceId}/delete/`, {
         method: 'POST',
         headers: {
             'X-CSRFToken': '{{ csrf_token }}',

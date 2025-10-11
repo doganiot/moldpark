@@ -4,13 +4,14 @@ Admin paneli için finansal dashboard ve fatura yönetimi
 """
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import user_passes_test, login_required
+from django.views.decorators.http import require_http_methods
 from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
 from django.db.models import Sum, Count, Q, Avg
 from datetime import datetime, timedelta
 from decimal import Decimal
 
-from .models import Invoice, FinancialSummary, UserSubscription, PricingPlan
+from .models import Invoice, FinancialSummary, UserSubscription, PricingPlan, PricingConfiguration
 from center.models import Center
 from producer.models import Producer, ProducerOrder
 from mold.models import EarMold
@@ -117,8 +118,8 @@ def financial_dashboard(request):
         'moldpark_earnings': center_stats['moldpark_earnings'] + producer_stats['moldpark_commission'],
         'total_credit_card_fees': center_stats['credit_card_fees'] + producer_stats['credit_card_fees'],
     }
-    # NOT: K.K. komisyonu zaten işitme merkezinden kesildiği için MoldPark'ın karından düşülmez
-    total_stats['net_profit'] = total_stats['moldpark_earnings']
+    # K.K. komisyonu MoldPark'ın hizmet bedelinden düşülerek net kar bulunur
+    total_stats['net_profit'] = total_stats['moldpark_earnings'] - total_stats['total_credit_card_fees']
     
     # İstatistikler
     stats = {
@@ -578,6 +579,9 @@ def admin_financial_control_panel(request):
     """
     from django.db.models import Q
     
+    # Aktif fiyatlandırmayı al
+    pricing = PricingConfiguration.get_active()
+    
     # Zaman aralığı filtresi
     period = request.GET.get('period', 'this_month')
     now = timezone.now()
@@ -611,6 +615,7 @@ def admin_financial_control_panel(request):
     total_collections_from_centers = Decimal('0.00')
     total_moldpark_service_fee = Decimal('0.00')
     total_credit_card_commission = Decimal('0.00')
+    total_monthly_system_fees = Decimal('0.00')  # Aylık sistem ücretleri toplamı
     
     for center in all_centers:
         # Bu merkezden gönderilen fiziksel kalıplar
@@ -632,25 +637,30 @@ def admin_financial_control_panel(request):
         physical_count = physical_molds.count()
         digital_count = digital_only_molds.count()
         
-        if physical_count > 0 or digital_count > 0:
-            # Fiziksel kalıp: 450 TL (KDV dahil)
-            physical_amount_with_vat = physical_count * Decimal('450.00')
+        # Her aktif merkez için aylık sistem ücreti hesapla
+        monthly_fee = pricing.monthly_system_fee
+        total_monthly_system_fees += monthly_fee
+        
+        if physical_count > 0 or digital_count > 0 or monthly_fee > 0:
+            # Fiziksel kalıp: Dinamik fiyat (KDV dahil)
+            physical_amount_with_vat = physical_count * pricing.physical_mold_price
             
-            # 3D Modelleme: 50 TL (KDV dahil)
-            digital_amount_with_vat = digital_count * Decimal('50.00')
+            # 3D Modelleme: Dinamik fiyat (KDV dahil)
+            digital_amount_with_vat = digital_count * pricing.digital_modeling_price
             
-            # Toplam tutar (KDV dahil)
-            gross_amount_with_vat = physical_amount_with_vat + digital_amount_with_vat
+            # Toplam tutar (KDV dahil) - Aylık ücret de dahil
+            gross_amount_with_vat = physical_amount_with_vat + digital_amount_with_vat + monthly_fee
             
             # KDV hesaplamaları
-            gross_amount_without_vat = gross_amount_with_vat / Decimal('1.20')
+            vat_multiplier = Decimal('1') + (pricing.vat_rate / Decimal('100'))
+            gross_amount_without_vat = gross_amount_with_vat / vat_multiplier
             vat_amount = gross_amount_with_vat - gross_amount_without_vat
             
             # MoldPark hizmet bedeli KDV hariç tutar üzerinden
-            moldpark_fee = gross_amount_without_vat * Decimal('0.065')  # %6.5
+            moldpark_fee = pricing.calculate_moldpark_fee(gross_amount_without_vat)
             
             # K.K. komisyonu KDV dahil tutar üzerinden ama işitme merkezinden kesilir
-            cc_fee = gross_amount_with_vat * Decimal('0.03')  # %3
+            cc_fee = pricing.calculate_credit_card_fee(gross_amount_with_vat)
             
             # Üreticiye giden KDV hariç tutar
             net_to_producer = gross_amount_without_vat - moldpark_fee
@@ -665,6 +675,7 @@ def admin_financial_control_panel(request):
                 'digital_count': digital_count,
                 'physical_amount': physical_amount_with_vat,
                 'digital_amount': digital_amount_with_vat,
+                'monthly_system_fee': monthly_fee,
                 'gross_amount': gross_amount_with_vat,
                 'gross_amount_without_vat': gross_amount_without_vat,
                 'vat_amount': vat_amount,
@@ -703,26 +714,46 @@ def admin_financial_control_panel(request):
             
             for order in completed_orders:
                 if order.ear_mold.is_physical_shipment:
-                    # 450 TL (KDV dahil) = 375 TL (KDV hariç) + 75 TL KDV
-                    gross_revenue_with_vat += Decimal('450.00')
-                    gross_revenue_without_vat += Decimal('375.00')
-                    vat_amount += Decimal('75.00')
+                    # Fiziksel kalıp - dinamik fiyat
+                    with_vat = pricing.physical_mold_price
+                    without_vat = pricing.get_physical_price_without_vat()
+                    vat = pricing.calculate_vat(without_vat)
+                    
+                    gross_revenue_with_vat += with_vat
+                    gross_revenue_without_vat += without_vat
+                    vat_amount += vat
                 else:
-                    # 50 TL (KDV dahil) = 41.67 TL (KDV hariç) + 8.33 TL KDV
-                    gross_revenue_with_vat += Decimal('50.00')
-                    gross_revenue_without_vat += Decimal('41.67')
-                    vat_amount += Decimal('8.33')
+                    # 3D Modelleme - dinamik fiyat
+                    with_vat = pricing.digital_modeling_price
+                    without_vat = pricing.get_digital_price_without_vat()
+                    vat = pricing.calculate_vat(without_vat)
+                    
+                    gross_revenue_with_vat += with_vat
+                    gross_revenue_without_vat += without_vat
+                    vat_amount += vat
             
-            # MoldPark komisyonu KDV hariç tutar üzerinden
-            moldpark_cut = gross_revenue_without_vat * Decimal('0.065')
+            # MoldPark komisyonu BRÜT (KDV dahil) tutar üzerinden
+            moldpark_cut = pricing.calculate_moldpark_fee(gross_revenue_with_vat)
             
             # K.K. komisyonu KDV dahil tutar üzerinden (işitme merkezinden kesilmiş)
-            cc_cut = gross_revenue_with_vat * Decimal('0.03')
+            cc_cut = pricing.calculate_credit_card_fee(gross_revenue_with_vat)
             
-            # Üreticiye net ödeme (KDV hariç tutar - MoldPark komisyonu)
-            net_payment = gross_revenue_without_vat - moldpark_cut
+            # Üreticiye net ödeme (Brüt tutar - MoldPark komisyonu)
+            net_payment = gross_revenue_with_vat - moldpark_cut
             
             total_payments_to_producers += net_payment
+            
+            # Ödeme durumunu kontrol et (bu dönem için)
+            # SimpleNotification'dan son ödeme kaydını bul
+            from core.models import SimpleNotification
+            last_payment = SimpleNotification.objects.filter(
+                user=producer.user,
+                title='✅ Ödeme Onaylandı',
+                created_at__gte=start_date,
+                created_at__lte=end_date
+            ).order_by('-created_at').first()
+            
+            is_paid = last_payment is not None
             
             producers_payment_summary.append({
                 'producer': producer,
@@ -735,6 +766,7 @@ def admin_financial_control_panel(request):
                 'moldpark_cut': moldpark_cut,
                 'cc_cut': cc_cut,
                 'net_payment': net_payment,
+                'is_paid': is_paid,  # Ödeme durumu
             })
     
     # ==========================================
@@ -744,11 +776,11 @@ def admin_financial_control_panel(request):
     # MoldPark'ın toplam geliri = Hizmet bedeli (%6.5)
     moldpark_total_income = total_moldpark_service_fee
     
-    # NOT: Kredi kartı komisyonu zaten işitme merkezinden kesildiği için
-    # MoldPark'ın karından tekrar düşülmez. K.K. komisyonu işitme merkezinin ödediği tutardır.
+    # Kredi kartı komisyonu MoldPark'ın hizmet bedelinden düşülür
+    # Çünkü bu maliyet MoldPark'a aittir
     
-    # MoldPark'ın net kazancı = Sadece hizmet bedeli (K.K. komisyonu düşülmez!)
-    moldpark_net_profit = moldpark_total_income
+    # MoldPark'ın net kazancı = Hizmet bedeli - Kredi kartı komisyonu
+    moldpark_net_profit = moldpark_total_income - total_credit_card_commission
     
     # ==========================================
     # 4. PARA AKIŞI ÖZETİ
@@ -757,10 +789,11 @@ def admin_financial_control_panel(request):
     cash_flow = {
         'total_incoming': total_collections_from_centers,  # İşitme merkezlerinden gelen
         'total_outgoing': total_payments_to_producers,  # Üreticilere giden
-        'moldpark_service_income': total_moldpark_service_fee,  # MoldPark hizmet bedeli
-        'credit_card_fees': total_credit_card_commission,  # Kredi kartı komisyonları (İşitme merkezinden kesilir)
-        'moldpark_net_profit': moldpark_net_profit,  # MoldPark net kar
-        'balance': total_collections_from_centers - total_payments_to_producers,  # Kalan bakiye (K.K. komisyonu zaten tahsilatta yok)
+        'moldpark_service_income': total_moldpark_service_fee,  # MoldPark hizmet bedeli (brüt)
+        'monthly_system_fees': total_monthly_system_fees,  # Aylık sistem kullanım ücretleri
+        'credit_card_fees': total_credit_card_commission,  # Kredi kartı komisyonları (MoldPark'ın maliyeti)
+        'moldpark_net_profit': moldpark_net_profit,  # MoldPark net kar (hizmet bedeli - KK komisyonu)
+        'balance': total_collections_from_centers - total_payments_to_producers - total_credit_card_commission,  # Gerçek kalan bakiye
     }
     
     # ==========================================
@@ -820,9 +853,173 @@ def admin_financial_control_panel(request):
         # Fatura durumları
         'center_invoice_stats': center_invoice_stats,
         'producer_invoice_stats': producer_invoice_stats,
+        
+        # Ek Bilgiler
+        'total_centers': all_centers.count(),  # Aktif merkez sayısı
+        'pricing': pricing,  # Fiyatlandırma bilgisi
     }
     
     return render(request, 'core/financial/admin_control_panel.html', context)
+
+
+@user_passes_test(lambda u: u.is_superuser)
+@require_http_methods(["POST"])
+def create_single_center_invoice(request, center_id):
+    """Tek bir işitme merkezine fatura kesme"""
+    try:
+        from django.core.mail import send_mail
+        from django.conf import settings
+        
+        # Merkezi al
+        center = get_object_or_404(Center, id=center_id, is_active=True)
+        
+        # Aktif fiyatlandırmayı al
+        pricing = PricingConfiguration.get_active()
+        
+        # Dönem bilgisi
+        period = request.POST.get('period', 'this_month')
+        now = timezone.now()
+        
+        # Dönem hesaplama
+        if period == 'this_month':
+            start_date = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            end_date = now
+        elif period == 'last_month':
+            last_month = now.replace(day=1) - timedelta(days=1)
+            start_date = last_month.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            end_date = last_month.replace(day=28, hour=23, minute=59, second=59)
+        elif period == 'this_year':
+            start_date = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+            end_date = now
+        else:  # all_time
+            start_date = datetime(2020, 1, 1)
+            end_date = now
+        
+        # Bu dönemde zaten fatura kesilmiş mi kontrol et
+        existing_invoice = Invoice.objects.filter(
+            issued_by_center=center,
+            invoice_type='center_admin_invoice',
+            issue_date__gte=start_date.date(),
+            issue_date__lte=end_date.date()
+        ).first()
+        
+        if existing_invoice:
+            return JsonResponse({
+                'success': False,
+                'error': f'Bu merkez için bu dönemde zaten fatura kesilmiş: {existing_invoice.invoice_number}'
+            })
+        
+        # Bu merkezden gönderilen fiziksel kalıplar
+        physical_molds = EarMold.objects.filter(
+            center=center,
+            is_physical_shipment=True,
+            created_at__gte=start_date,
+            created_at__lte=end_date
+        )
+        
+        # Sadece 3D modelleme hizmeti
+        digital_only_molds = EarMold.objects.filter(
+            center=center,
+            is_physical_shipment=False,
+            created_at__gte=start_date,
+            created_at__lte=end_date
+        )
+        
+        physical_count = physical_molds.count()
+        digital_count = digital_only_molds.count()
+        
+        # Fatura oluştur
+        invoice = Invoice()
+        invoice.invoice_type = 'center_admin_invoice'
+        invoice.issued_by_center = center
+        invoice.user = center.user
+        invoice.physical_mold_count = physical_count
+        invoice.modeling_count = digital_count
+        invoice.physical_mold_unit_price = pricing.physical_mold_price
+        invoice.monthly_fee = pricing.monthly_system_fee
+        
+        # Hesaplamalar
+        physical_amount = physical_count * pricing.physical_mold_price
+        digital_amount = digital_count * pricing.digital_modeling_price
+        monthly_fee_amount = pricing.monthly_system_fee
+        gross_amount = physical_amount + digital_amount + monthly_fee_amount
+        
+        # KDV hariç tutar
+        vat_multiplier = Decimal('1') + (pricing.vat_rate / Decimal('100'))
+        gross_without_vat = gross_amount / vat_multiplier
+        
+        # Komisyonlar
+        moldpark_fee = pricing.calculate_moldpark_fee(gross_without_vat)
+        cc_fee = pricing.calculate_credit_card_fee(gross_amount)
+        
+        # Fatura detayları
+        invoice.physical_mold_cost = physical_amount
+        invoice.digital_scan_count = digital_count
+        invoice.digital_scan_cost = digital_amount
+        invoice.total_amount = gross_amount
+        invoice.moldpark_service_fee = moldpark_fee
+        invoice.credit_card_fee = cc_fee
+        invoice.moldpark_service_fee_rate = pricing.moldpark_commission_rate
+        invoice.credit_card_fee_rate = pricing.credit_card_commission_rate
+        invoice.issue_date = now.date()
+        invoice.due_date = (now + timedelta(days=30)).date()
+        invoice.status = 'issued'
+        invoice.invoice_number = Invoice.generate_invoice_number('center_admin_invoice')
+        
+        invoice.save()
+        
+        # E-posta gönder
+        try:
+            services_text = []
+            services_text.append(f"Aylık Sistem Kullanımı: {monthly_fee_amount} TL")
+            if physical_count > 0:
+                services_text.append(f"{physical_count} adet fiziksel kalıp ({physical_amount} TL)")
+            if digital_count > 0:
+                services_text.append(f"{digital_count} adet 3D modelleme ({digital_amount} TL)")
+            
+            subject = f'MoldPark Fatura - {invoice.invoice_number}'
+            message = f"""
+Sayın {center.name},
+
+Aşağıdaki hizmetler için faturanız oluşturulmuştur:
+
+{chr(10).join('- ' + s for s in services_text)}
+
+Fatura No: {invoice.invoice_number}
+Toplam Tutar: {gross_amount} TL
+Vade Tarihi: {invoice.due_date.strftime('%d.%m.%Y')}
+
+Detaylar için MoldPark paneline giriş yapabilirsiniz.
+
+İyi günler dileriz,
+MoldPark Ekibi
+            """
+            send_mail(
+                subject,
+                message,
+                settings.DEFAULT_FROM_EMAIL,
+                [center.user.email],
+                fail_silently=True,
+            )
+        except Exception as e:
+            print(f"E-posta gönderme hatası: {e}")
+        
+        return JsonResponse({
+            'success': True,
+            'invoice_id': invoice.id,
+            'invoice_number': invoice.invoice_number,
+            'center_name': center.name,
+            'total_amount': f'{gross_amount:,.2f}',
+            'physical_count': physical_count,
+            'digital_count': digital_count,
+            'monthly_fee': f'{monthly_fee_amount:,.2f}',
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
 
 
 @user_passes_test(lambda u: u.is_superuser)
@@ -834,6 +1031,9 @@ def bulk_create_center_invoices(request):
     try:
         from django.core.mail import send_mail
         from django.conf import settings
+        
+        # Aktif fiyatlandırmayı al
+        pricing = PricingConfiguration.get_active()
         
         period = request.GET.get('period', 'this_month')
         now = timezone.now()
@@ -879,52 +1079,64 @@ def bulk_create_center_invoices(request):
             physical_count = physical_molds.count()
             digital_count = digital_only_molds.count()
             
-            if physical_count > 0 or digital_count > 0:
-                # Fatura oluştur
-                invoice = Invoice()
-                invoice.invoice_type = 'center_admin_invoice'
-                invoice.issued_by_center = center
-                invoice.user = center.user
-                invoice.physical_mold_count = physical_count
-                invoice.modeling_count = digital_count
-                invoice.physical_mold_unit_price = Decimal('450.00')
+            # Her aktif merkez için fatura oluştur (aylık ücret + kullanım bedelleri)
+            # Fatura oluştur
+            invoice = Invoice()
+            invoice.invoice_type = 'center_admin_invoice'
+            invoice.issued_by_center = center
+            invoice.user = center.user
+            invoice.physical_mold_count = physical_count
+            invoice.modeling_count = digital_count
+            invoice.physical_mold_unit_price = pricing.physical_mold_price
+            invoice.monthly_fee = pricing.monthly_system_fee  # Aylık sistem kullanım ücreti
+            
+            # Hesaplamalar - dinamik fiyat
+            physical_amount = physical_count * pricing.physical_mold_price
+            digital_amount = digital_count * pricing.digital_modeling_price
+            monthly_fee_amount = pricing.monthly_system_fee
+            gross_amount = physical_amount + digital_amount + monthly_fee_amount  # Aylık ücret dahil
+            
+            # KDV hariç tutar
+            vat_multiplier = Decimal('1') + (pricing.vat_rate / Decimal('100'))
+            gross_without_vat = gross_amount / vat_multiplier
+            
+            # Komisyonlar
+            moldpark_fee = pricing.calculate_moldpark_fee(gross_without_vat)
+            cc_fee = pricing.calculate_credit_card_fee(gross_amount)
+            
+            # Fatura detaylarını set et
+            invoice.physical_mold_cost = physical_amount
+            invoice.digital_scan_count = digital_count
+            invoice.digital_scan_cost = digital_amount
+            invoice.total_amount = gross_amount
+            invoice.moldpark_service_fee = moldpark_fee
+            invoice.credit_card_fee = cc_fee
+            invoice.moldpark_service_fee_rate = pricing.moldpark_commission_rate
+            invoice.credit_card_fee_rate = pricing.credit_card_commission_rate
+            
+            invoice.issue_date = now.date()
+            invoice.due_date = (now + timedelta(days=30)).date()
+            invoice.status = 'issued'
+            
+            # Fatura numarası oluştur
+            invoice.invoice_number = Invoice.generate_invoice_number('center_admin_invoice')
+            
+            invoice.save()
+            created_invoices.append(invoice)
+            total_amount += gross_amount
+            
+            # E-posta gönder
+            try:
+                # Hizmet detayları
+                services_text = []
+                services_text.append(f"Aylık Sistem Kullanımı: {monthly_fee_amount} TL")
+                if physical_count > 0:
+                    services_text.append(f"{physical_count} adet fiziksel kalıp ({physical_amount} TL)")
+                if digital_count > 0:
+                    services_text.append(f"{digital_count} adet 3D modelleme ({digital_amount} TL)")
                 
-                # Hesaplamalar
-                physical_amount = physical_count * Decimal('450.00')
-                digital_amount = digital_count * Decimal('50.00')
-                gross_amount = physical_amount + digital_amount
-                
-                moldpark_fee = gross_amount * Decimal('0.065')
-                cc_fee = gross_amount * Decimal('0.03')
-                
-                invoice.total_amount = gross_amount
-                invoice.moldpark_service_fee = moldpark_fee
-                invoice.credit_card_fee = cc_fee
-                invoice.moldpark_service_fee_rate = Decimal('0.065')
-                invoice.credit_card_fee_rate = Decimal('0.03')
-                
-                invoice.issue_date = now.date()
-                invoice.due_date = (now + timedelta(days=30)).date()
-                invoice.status = 'issued'
-                
-                # Fatura numarası oluştur
-                invoice.invoice_number = Invoice.generate_invoice_number('center_admin_invoice')
-                
-                invoice.save()
-                created_invoices.append(invoice)
-                total_amount += gross_amount
-                
-                # E-posta gönder
-                try:
-                    # Hizmet detayları
-                    services_text = []
-                    if physical_count > 0:
-                        services_text.append(f"{physical_count} adet fiziksel kalıp (₺{physical_amount})")
-                    if digital_count > 0:
-                        services_text.append(f"{digital_count} adet 3D modelleme (₺{digital_amount})")
-                    
-                    subject = f'MoldPark Fatura - {invoice.invoice_number}'
-                    message = f"""
+                subject = f'MoldPark Fatura - {invoice.invoice_number}'
+                message = f"""
 Sayın {center.name},
 
 Aşağıdaki hizmetler için faturanız oluşturulmuştur:
@@ -932,23 +1144,23 @@ Aşağıdaki hizmetler için faturanız oluşturulmuştur:
 {chr(10).join('- ' + s for s in services_text)}
 
 Fatura No: {invoice.invoice_number}
-Toplam Tutar: ₺{gross_amount}
+Toplam Tutar: {gross_amount} TL
 Vade Tarihi: {invoice.due_date.strftime('%d.%m.%Y')}
 
 Detaylar için MoldPark paneline giriş yapabilirsiniz.
 
 İyi günler dileriz,
 MoldPark Ekibi
-                    """
-                    send_mail(
-                        subject,
-                        message,
-                        settings.DEFAULT_FROM_EMAIL,
-                        [center.user.email],
-                        fail_silently=True,
-                    )
-                except Exception as e:
-                    print(f"E-posta gönderme hatası: {e}")
+                """
+                send_mail(
+                    subject,
+                    message,
+                    settings.DEFAULT_FROM_EMAIL,
+                    [center.user.email],
+                    fail_silently=True,
+                )
+            except Exception as e:
+                print(f"E-posta gönderme hatası: {e}")
         
         return JsonResponse({
             'success': True,
@@ -969,6 +1181,9 @@ def bulk_create_producer_invoices(request):
     try:
         from django.core.mail import send_mail
         from django.conf import settings
+        
+        # Aktif fiyatlandırmayı al
+        pricing = PricingConfiguration.get_active()
         
         period = request.GET.get('period', 'this_month')
         now = timezone.now()
@@ -1012,10 +1227,10 @@ def bulk_create_producer_invoices(request):
                 
                 for order in completed_orders:
                     if order.ear_mold.is_physical_shipment:
-                        gross_revenue += Decimal('450.00')
+                        gross_revenue += pricing.physical_mold_price
                         physical_count += 1
                     else:
-                        gross_revenue += Decimal('50.00')
+                        gross_revenue += pricing.digital_modeling_price
                         digital_count += 1
                 
                 # Fatura oluştur
@@ -1029,10 +1244,14 @@ def bulk_create_producer_invoices(request):
                 invoice.physical_mold_count = physical_count
                 invoice.modeling_count = digital_count
                 
-                # Kesintiler
-                moldpark_cut = gross_revenue * Decimal('0.065')
-                cc_cut = gross_revenue * Decimal('0.03')
-                net_payment = gross_revenue - moldpark_cut - cc_cut
+                # KDV hariç tutar
+                vat_multiplier = Decimal('1') + (pricing.vat_rate / Decimal('100'))
+                gross_without_vat = gross_revenue / vat_multiplier
+                
+                # Kesintiler - dinamik komisyon
+                moldpark_cut = pricing.calculate_moldpark_fee(gross_without_vat)
+                cc_cut = pricing.calculate_credit_card_fee(gross_revenue)
+                net_payment = gross_without_vat - moldpark_cut
                 
                 invoice.moldpark_service_fee = moldpark_cut
                 invoice.credit_card_fee = cc_cut
@@ -1204,9 +1423,15 @@ def send_invoice_email(request, invoice_id):
         
         html_string = render_to_string('core/financial/invoice_pdf_template.html', context)
         
-        # PDF oluştur
+        # PDF oluştur (Türkçe karakter desteği ile)
+        from core.pdf_utils import link_callback
         result = io.BytesIO()
-        pdf = pisa.pisaDocument(io.BytesIO(html_string.encode("UTF-8")), result)
+        pdf = pisa.pisaDocument(
+            src=io.BytesIO(html_string.encode("utf-8")),
+            dest=result,
+            encoding='utf-8',
+            link_callback=link_callback
+        )
         
         if pdf.err:
             return JsonResponse({
@@ -1224,7 +1449,7 @@ Sayın {center.name},
 {invoice.issue_date.strftime('%d.%m.%Y')} tarihli {invoice.invoice_number} numaralı faturanız ektedir.
 
 Fatura Özeti:
-- Toplam Tutar: {total_with_vat} ₺ (KDV Dahil)
+- Toplam Tutar: {total_with_vat} TL (KDV Dahil)
 - Vade Tarihi: {invoice.due_date.strftime('%d.%m.%Y') if invoice.due_date else '-'}
 
 Ekteki PDF faturanızı inceleyebilirsiniz.
@@ -1299,4 +1524,157 @@ def generate_monthly_invoices(request):
             'success': False,
             'error': f'Faturalar oluşturulurken hata: {str(e)}'
         })
+
+
+@user_passes_test(lambda u: u.is_superuser)
+def pricing_management(request):
+    """
+    Fiyatlandırma Yönetimi Sayfası
+    Süperuser'ların sistem fiyatlarını görüntülemesi ve yönetmesi için
+    """
+    from core.models import PricingConfiguration
+    
+    # Aktif fiyatlandırma
+    active_pricing = PricingConfiguration.get_active()
+    
+    # Tüm fiyatlandırmalar
+    all_pricings = PricingConfiguration.objects.all().order_by('-effective_date', '-created_at')
+    
+    # Aktif fiyatlandırmanın özeti
+    pricing_summary = active_pricing.get_pricing_summary() if active_pricing else None
+    
+    context = {
+        'active_pricing': active_pricing,
+        'all_pricings': all_pricings,
+        'pricing_summary': pricing_summary,
+    }
+    
+    return render(request, 'core/financial/pricing_management.html', context)
+
+
+@user_passes_test(lambda u: u.is_superuser)
+@require_http_methods(["POST"])
+def send_producer_payment_notification(request):
+    """
+    Üreticiye ödeme bilgilendirme mesajı gönder
+    """
+    import json
+    from producer.models import Producer
+    from core.models import SimpleNotification
+    from datetime import datetime
+    
+    try:
+        data = json.loads(request.body)
+        producer_id = data.get('producer_id')
+        payment_amount = data.get('payment_amount')
+        payment_date = data.get('payment_date')
+        payment_method = data.get('payment_method')
+        notes = data.get('notes', '')
+        
+        producer = Producer.objects.get(id=producer_id)
+        
+        # Ödeme yöntemi açıklaması
+        payment_methods = {
+            'bank_transfer': 'Banka Havalesi',
+            'eft': 'EFT',
+            'check': 'Çek',
+            'cash': 'Nakit'
+        }
+        method_text = payment_methods.get(payment_method, payment_method)
+        
+        # Bildirim oluştur
+        notification_message = f"""
+🎉 Ödeme Bildirimi
+
+Sayın {producer.company_name},
+
+{payment_date} tarihinde {payment_amount} TL tutarında ödeme yapılmıştır.
+
+Ödeme Yöntemi: {method_text}
+{f'Not: {notes}' if notes else ''}
+
+Ödemenizin hesabınıza geçmesi banka işlem süresine bağlı olarak değişebilir.
+
+Sorularınız için bizimle iletişime geçebilirsiniz.
+
+İyi çalışmalar dileriz.
+MoldPark Ekibi
+        """.strip()
+        
+        SimpleNotification.objects.create(
+            user=producer.user,
+            title='💰 Ödeme Yapıldı',
+            message=notification_message,
+            notification_type='success',
+            related_url='/producer/payments/'
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Ödeme bilgilendirme mesajı gönderildi'
+        })
+        
+    except Producer.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Üretici bulunamadı'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@user_passes_test(lambda u: u.is_superuser)
+@require_http_methods(["POST"])
+def mark_producer_as_paid(request):
+    """
+    Üreticiyi ödendi olarak işaretle
+    """
+    import json
+    from producer.models import Producer
+    from core.models import SimpleNotification
+    from datetime import datetime
+    
+    try:
+        data = json.loads(request.body)
+        producer_id = data.get('producer_id')
+        payment_amount = data.get('payment_amount')
+        
+        producer = Producer.objects.get(id=producer_id)
+        
+        # Bildirim oluştur
+        SimpleNotification.objects.create(
+            user=producer.user,
+            title='✅ Ödeme Onaylandı',
+            message=f"""
+Sayın {producer.company_name},
+
+{payment_amount} TL tutarındaki ödemeniz onaylanmıştır.
+
+Ödeme detaylarını "Ödemelerim" sayfasından görüntüleyebilirsiniz.
+
+İyi çalışmalar dileriz.
+MoldPark Ekibi
+            """.strip(),
+            notification_type='success',
+            related_url='/producer/payments/'
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Ödeme onayı kaydedildi'
+        })
+        
+    except Producer.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Üretici bulunamadı'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
 

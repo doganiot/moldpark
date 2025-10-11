@@ -6,11 +6,31 @@ from django.http import HttpResponse
 from xhtml2pdf import pisa
 from decimal import Decimal
 import io
+import os
+from django.conf import settings
+
+
+def link_callback(uri, rel):
+    """
+    xhtml2pdf için statik dosyaları ve fontları yüklemek için callback fonksiyonu
+    """
+    # Statik dosyalar için
+    if uri.startswith(settings.STATIC_URL):
+        path = os.path.join(settings.STATIC_ROOT or settings.STATICFILES_DIRS[0], 
+                          uri.replace(settings.STATIC_URL, ""))
+    else:
+        path = os.path.join(settings.MEDIA_ROOT, uri.replace(settings.MEDIA_URL, ""))
+    
+    # Dosya kontrolü
+    if not os.path.isfile(path):
+        return uri
+    
+    return path
 
 
 def generate_invoice_pdf(invoice, center):
     """
-    Fatura için PDF oluşturur
+    Fatura için PDF oluşturur (Türkçe karakter desteği ile)
     
     Args:
         invoice: Invoice model instance
@@ -36,9 +56,16 @@ def generate_invoice_pdf(invoice, center):
     # HTML render et
     html_string = render_to_string('core/financial/invoice_pdf_template.html', context)
     
-    # PDF'e dönüştür
+    # PDF'e dönüştür (Türkçe karakter desteği için UTF-8 encoding)
     result = io.BytesIO()
-    pdf = pisa.pisaDocument(io.BytesIO(html_string.encode("UTF-8")), result)
+    
+    # xhtml2pdf için özel konfigürasyon
+    pdf = pisa.pisaDocument(
+        src=io.BytesIO(html_string.encode("utf-8")),
+        dest=result,
+        encoding='utf-8',
+        link_callback=link_callback
+    )
     
     if pdf.err:
         return HttpResponse('PDF oluşturulurken hata oluştu', status=500)
@@ -62,12 +89,15 @@ def generate_monthly_invoices_batch(centers, year, month):
     Returns:
         list: Oluşturulan fatura listesi
     """
-    from core.models import Invoice
+    from core.models import Invoice, PricingConfiguration
     from mold.models import EarMold
     from datetime import date, timedelta
     from decimal import Decimal
     
     created_invoices = []
+    
+    # Aktif fiyatlandırmayı al
+    pricing = PricingConfiguration.get_active()
     
     # Ay başı ve sonu
     month_start = date(year, month, 1)
@@ -88,15 +118,6 @@ def generate_monthly_invoices_batch(centers, year, month):
         physical_count = molds.filter(is_physical_shipment=True).count()
         digital_count = molds.filter(is_physical_shipment=False).count()
         
-        # Eğer hiç kalıp yoksa ve sadece aylık ücret varsa
-        if physical_count == 0 and digital_count == 0:
-            # Aylık ücret için fatura oluştur
-            total_molds = molds.count()
-            if total_molds > 0:  # Eğer kalıp varsa aylık ücret al
-                pass
-            else:
-                continue  # Hiç kalıp yoksa fatura kesme
-        
         # Fatura zaten var mı kontrol et
         existing = Invoice.objects.filter(
             user=center.user,
@@ -108,17 +129,13 @@ def generate_monthly_invoices_batch(centers, year, month):
         if existing:
             continue
         
-        # Yeni fatura oluştur
+        # Yeni fatura oluştur - Her aktif merkez için aylık ücret + kullanım bedelleri
         invoice_number = Invoice.generate_invoice_number('center_monthly')
         
-        # Fiyat hesapla (KDV dahil)
-        MONTHLY_FEE = Decimal('100.00')
-        PHYSICAL_PRICE = Decimal('450.00')
-        DIGITAL_PRICE = Decimal('50.00')
-        
-        monthly_fee = MONTHLY_FEE
-        physical_cost = physical_count * PHYSICAL_PRICE
-        digital_cost = digital_count * DIGITAL_PRICE
+        # Dinamik fiyatlandırma ile hesapla (KDV dahil)
+        monthly_fee = pricing.monthly_system_fee
+        physical_cost = physical_count * pricing.physical_mold_price
+        digital_cost = digital_count * pricing.digital_modeling_price
         total_amount = monthly_fee + physical_cost + digital_cost
         
         # KDV'siz tutar

@@ -4213,11 +4213,12 @@ def producer_payments(request):
     pending_payments = producer.get_pending_payments()
 
     # Bu ay detayları (güncel oranlarla)
+    moldpark_fee_this_month = earnings_this_month * Decimal('0.065')  # Sadece %6.5 MoldPark hizmet bedeli
+    
     earnings_this_month = {
         'gross_revenue': earnings_this_month,
-        'moldpark_fee': earnings_this_month * Decimal('0.065'),  # %6.5
-        'credit_card_fee': earnings_this_month * Decimal('0.03'),  # %3 (güncel oran)
-        'net_earnings': earnings_this_month - (earnings_this_month * Decimal('0.065')) - (earnings_this_month * Decimal('0.03'))
+        'moldpark_fee': moldpark_fee_this_month,  # %6.5
+        'net_earnings': earnings_this_month - moldpark_fee_this_month  # Üreticinin net kazancı
     }
 
     # ============================================
@@ -4249,18 +4250,18 @@ def producer_payments(request):
         physical_molds = completed_orders.filter(ear_mold__is_physical_shipment=True).count()
         digital_molds = completed_orders.filter(ear_mold__is_physical_shipment=False).count()
         
-        # Toplam kazanç hesaplama
+        # Toplam kazanç hesaplama - Brüt tutarlar (KDV dahil)
         total_gross = Decimal('0.00')
+        
         for order in completed_orders:
             if order.ear_mold.is_physical_shipment:
-                total_gross += Decimal('450.00')  # Fiziksel kalıp modelleme hizmeti
+                total_gross += Decimal('450.00')  # Fiziksel kalıp (KDV dahil)
             else:
-                total_gross += Decimal('50.00')   # 3D modelleme hizmeti
+                total_gross += Decimal('50.00')  # 3D modelleme (KDV dahil)
         
-        # Kesintiler
+        # Kesintiler - BRÜT tutar (KDV dahil) üzerinden MoldPark hizmet bedeli
         moldpark_fee = total_gross * Decimal('0.065')  # %6.5 MoldPark hizmet bedeli
-        credit_card_fee = total_gross * Decimal('0.03')  # %3 kredi kartı komisyonu
-        net_earnings = total_gross - moldpark_fee - credit_card_fee
+        net_earnings = total_gross - moldpark_fee  # Üreticinin net kazancı
         
         # Bu merkeze ait faturalar
         center_invoices = Invoice.objects.filter(
@@ -4302,9 +4303,8 @@ def producer_payments(request):
             'physical_molds': physical_molds,
             'digital_molds': digital_molds,
             'work_items': work_items,
-            'gross_revenue': total_gross,
+            'gross_revenue': total_gross,  # Brüt tutar (KDV dahil)
             'moldpark_fee': moldpark_fee,
-            'credit_card_fee': credit_card_fee,
             'net_earnings': net_earnings,
             'paid_amount': paid_amount,
             'pending_amount': pending_amount,

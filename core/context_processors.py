@@ -1,5 +1,5 @@
 from django.db.models import Q
-from .models import Message, MessageRecipient, SimpleNotification
+from .models import Message, MessageRecipient, SimpleNotification, PricingConfiguration
 from mold.models import RevisionRequest
 
 
@@ -53,4 +53,23 @@ def unread_messages(request):
             'unread_message_count': 0,
             'pending_revision_requests': 0,
             'unread_notifications': 0,
+        }
+
+
+def pricing_config(request):
+    """
+    Aktif fiyatlandırma yapılandırmasını tüm template'lere ekler
+    Kullanım: {{ pricing.physical_mold_price }}
+    """
+    try:
+        pricing = PricingConfiguration.get_active()
+        return {
+            'pricing': pricing,
+            'pricing_summary': pricing.get_pricing_summary() if pricing else None,
+        }
+    except Exception as e:
+        # Hata durumunda boş döndür
+        return {
+            'pricing': None,
+            'pricing_summary': None,
         } 

@@ -87,9 +87,19 @@
             </a>
         </div>
         <div class="col-md-6 text-end">
-            <button onclick="window.print()" class="btn btn-primary">
-                <i class="fas fa-print me-2"></i>Yazdır
-            </button>
+            <div class="btn-group">
+                <button onclick="window.print()" class="btn btn-primary">
+                    <i class="fas fa-print me-2"></i>Yazdır
+                </button>
+                <a href="{% url 'core:download_invoice_pdf' invoice.id %}" class="btn btn-success" target="_blank">
+                    <i class="fas fa-file-pdf me-2"></i>PDF İndir
+                </a>
+                {% if user.is_superuser %}
+                <button onclick="deleteInvoice({{ invoice.id }}, '{{ invoice.invoice_number }}')" class="btn btn-danger">
+                    <i class="fas fa-trash me-2"></i>Sil
+                </button>
+                {% endif %}
+            </div>
         </div>
     </div>
 
@@ -139,4 +149,38 @@
         </table>
     </div>
 </div>
+
+<!-- Silme İşlemi JavaScript -->
+<script>
+function deleteInvoice(invoiceId, invoiceNumber) {
+    if (!confirm(`"${invoiceNumber}" numaralı faturayı silmek istediğinize emin misiniz?\n\nBu işlem geri alınamaz!`)) {
+        return;
+    }
+    
+    // İkinci onay
+    if (!confirm('Bu işlem GERİ ALINAMAZ! Devam etmek istediğinize emin misiniz?')) {
+        return;
+    }
+    
+    fetch(`/financial/invoices/${invoiceId}/delete/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✓ ' + data.message);
+            window.location.href = '{% url "core:invoice_list" %}';
+        } else {
+            alert('✗ Hata: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('✗ Bir hata oluştu: ' + error);
+    });
+}
+</script>
 {% endblock %}

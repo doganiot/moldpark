@@ -1,0 +1,260 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Fiyatlandırma Yönetimi - MoldPark{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-gradient-primary text-white py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="mb-0">
+                                <i class="fas fa-tags me-2"></i>
+                                Fiyatlandırma Yönetimi
+                            </h4>
+                            <small class="text-white-50">Sistem genelinde kullanılan fiyat ve komisyon oranlarını yönetin</small>
+                        </div>
+                        <a href="#createPricingModal" data-bs-toggle="modal" class="btn btn-light">
+                            <i class="fas fa-plus me-2"></i>
+                            Yeni Fiyatlandırma
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Aktif Fiyatlandırma Özeti -->
+    {% if active_pricing %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-success shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-check-circle me-2"></i>
+                        Aktif Fiyatlandırma
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><strong>{{ active_pricing.name }}</strong></h6>
+                            <p class="text-muted mb-3">{{ active_pricing.description|linebreaks }}</p>
+                            <p><strong>Geçerlilik Tarihi:</strong> {{ active_pricing.effective_date|date:"d.m.Y" }}</p>
+                            <p><strong>Son Güncelleme:</strong> {{ active_pricing.updated_at|date:"d.m.Y H:i" }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="row text-center">
+                                <div class="col-6 mb-3">
+                                    <div class="border rounded p-3 bg-light">
+                                        <h5 class="text-primary mb-1">{{ active_pricing.physical_mold_price }} ₺</h5>
+                                        <small class="text-muted">Fiziksel Kalıp</small>
+                                    </div>
+                                </div>
+                                <div class="col-6 mb-3">
+                                    <div class="border rounded p-3 bg-light">
+                                        <h5 class="text-info mb-1">{{ active_pricing.digital_modeling_price }} ₺</h5>
+                                        <small class="text-muted">3D Modelleme</small>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="border rounded p-3 bg-light">
+                                        <h5 class="text-warning mb-1">%{{ active_pricing.moldpark_commission_rate }}</h5>
+                                        <small class="text-muted">MoldPark Komisyonu</small>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="border rounded p-3 bg-light">
+                                        <h5 class="text-danger mb-1">%{{ active_pricing.credit_card_commission_rate }}</h5>
+                                        <small class="text-muted">Kredi Kartı Kom.</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Detaylı Hesaplamalar -->
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="mb-3"><i class="fas fa-cube text-primary me-2"></i>Fiziksel Kalıp Hesaplaması</h6>
+                            <table class="table table-sm table-bordered">
+                                <tbody>
+                                    <tr>
+                                        <td>KDV Dahil Fiyat</td>
+                                        <td class="text-end"><strong>{{ pricing_summary.physical.with_vat|floatformat:2 }} ₺</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td>KDV Hariç Tutar</td>
+                                        <td class="text-end">{{ pricing_summary.physical.without_vat|floatformat:2 }} ₺</td>
+                                    </tr>
+                                    <tr>
+                                        <td>KDV (%{{ active_pricing.vat_rate }})</td>
+                                        <td class="text-end">{{ pricing_summary.physical.vat_amount|floatformat:2 }} ₺</td>
+                                    </tr>
+                                    <tr class="table-warning">
+                                        <td>MoldPark Hizmet Bedeli</td>
+                                        <td class="text-end text-danger">-{{ pricing_summary.physical.moldpark_fee|floatformat:2 }} ₺</td>
+                                    </tr>
+                                    <tr class="table-success">
+                                        <td><strong>Üreticiye Net Ödeme</strong></td>
+                                        <td class="text-end"><strong class="text-success">{{ pricing_summary.physical.net_to_producer|floatformat:2 }} ₺</strong></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="mb-3"><i class="fas fa-cubes text-info me-2"></i>3D Modelleme Hesaplaması</h6>
+                            <table class="table table-sm table-bordered">
+                                <tbody>
+                                    <tr>
+                                        <td>KDV Dahil Fiyat</td>
+                                        <td class="text-end"><strong>{{ pricing_summary.digital.with_vat|floatformat:2 }} ₺</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td>KDV Hariç Tutar</td>
+                                        <td class="text-end">{{ pricing_summary.digital.without_vat|floatformat:2 }} ₺</td>
+                                    </tr>
+                                    <tr>
+                                        <td>KDV (%{{ active_pricing.vat_rate }})</td>
+                                        <td class="text-end">{{ pricing_summary.digital.vat_amount|floatformat:2 }} ₺</td>
+                                    </tr>
+                                    <tr class="table-warning">
+                                        <td>MoldPark Hizmet Bedeli</td>
+                                        <td class="text-end text-danger">-{{ pricing_summary.digital.moldpark_fee|floatformat:2 }} ₺</td>
+                                    </tr>
+                                    <tr class="table-success">
+                                        <td><strong>Üreticiye Net Ödeme</strong></td>
+                                        <td class="text-end"><strong class="text-success">{{ pricing_summary.digital.net_to_producer|floatformat:2 }} ₺</strong></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="text-end mt-3">
+                        <a href="{% url 'admin:core_pricingconfiguration_change' active_pricing.id %}" class="btn btn-primary">
+                            <i class="fas fa-edit me-2"></i>
+                            Düzenle
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Tüm Fiyatlandırmalar -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>
+                        Tüm Fiyatlandırmalar
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Durum</th>
+                                    <th>Fiyatlandırma Adı</th>
+                                    <th>Geçerlilik Tarihi</th>
+                                    <th>Fiziksel Kalıp</th>
+                                    <th>3D Modelleme</th>
+                                    <th>MoldPark Kom.</th>
+                                    <th>KK Kom.</th>
+                                    <th>İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for pricing in all_pricings %}
+                                <tr {% if pricing.is_active %}class="table-success"{% endif %}>
+                                    <td>
+                                        {% if pricing.is_active %}
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check me-1"></i>AKTİF
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Pasif</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <strong>{{ pricing.name }}</strong>
+                                        {% if pricing.description %}
+                                        <br><small class="text-muted">{{ pricing.description|truncatewords:10 }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ pricing.effective_date|date:"d.m.Y" }}</td>
+                                    <td>{{ pricing.physical_mold_price }} ₺</td>
+                                    <td>{{ pricing.digital_modeling_price }} ₺</td>
+                                    <td>%{{ pricing.moldpark_commission_rate }}</td>
+                                    <td>%{{ pricing.credit_card_commission_rate }}</td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'admin:core_pricingconfiguration_change' pricing.id %}" class="btn btn-outline-primary" title="Düzenle">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            {% if not pricing.is_active %}
+                                            <button class="btn btn-outline-success" onclick="activatePricing({{ pricing.id }})" title="Aktif Yap">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="8" class="text-center py-5">
+                                        <i class="fas fa-tags fa-3x text-muted mb-3"></i>
+                                        <p class="text-muted">Henüz fiyatlandırma tanımlanmamış</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bilgilendirme -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <h6><i class="fas fa-info-circle me-2"></i>Fiyatlandırma Sistemi Hakkında</h6>
+                <ul class="mb-0">
+                    <li><strong>Aktif Fiyatlandırma:</strong> Sistemde aynı anda sadece bir fiyatlandırma aktif olabilir</li>
+                    <li><strong>Otomatik Güncelleme:</strong> Fiyatlandırma değiştiğinde tüm sistem otomatik güncellenir</li>
+                    <li><strong>KDV Dahil:</strong> Tüm fiyatlar KDV dahil olarak girilmelidir</li>
+                    <li><strong>Komisyon Oranları:</strong> Yüzde (%) olarak girilir. Örn: 6.50 = %6.5</li>
+                    <li><strong>Admin Paneli:</strong> Daha detaylı ayarlar için Django admin panelini kullanabilirsiniz</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function activatePricing(pricingId) {
+    if (confirm('Bu fiyatlandırmayı aktif yapmak istediğinize emin misiniz? Mevcut aktif fiyatlandırma pasif hale gelecektir.')) {
+        // Django admin'den action ile aktif yapma
+        window.location.href = '/admin/core/pricingconfiguration/' + pricingId + '/change/';
+    }
+}
+</script>
+
+<style>
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+</style>
+{% endblock %}
+

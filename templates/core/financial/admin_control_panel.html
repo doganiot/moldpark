@@ -112,6 +112,28 @@
         </div>
 
         <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid #ec4899 !important;">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="bg-danger bg-opacity-10 rounded-circle p-3">
+                                <i class="fas fa-credit-card text-danger fa-2x"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="text-muted small">Kredi Kartı Komisyonu (%3)</div>
+                            <h4 class="mb-0 fw-bold text-danger">₺{{ cash_flow.credit_card_fees|floatformat:2 }}</h4>
+                            <small class="text-muted">MoldPark Maliyeti</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- İkinci Satır Kartlar -->
+    <div class="row mb-4">
+        <div class="col-lg-6 col-md-6 mb-3">
             <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid #8b5cf6 !important;">
                 <div class="card-body">
                     <div class="d-flex align-items-center">
@@ -121,17 +143,82 @@
                             </div>
                         </div>
                         <div class="flex-grow-1 ms-3">
-                            <div class="text-muted small">
-                                Net Kar 
-                                <i class="fas fa-info-circle ms-1" 
-                                   data-bs-toggle="tooltip" 
-                                   title="Sadece hizmet bedeli (%6.5). K.K. komisyonu işitme merkezinden kesilir, MoldPark karından düşülmez."></i>
-                            </div>
+                            <div class="text-muted small">MoldPark Net Kar</div>
                             <h4 class="mb-0 fw-bold text-primary">₺{{ cash_flow.moldpark_net_profit|floatformat:2 }}</h4>
-                            <small class="text-success">
+                            <small class="text-muted">Hizmet Bedeli - KK Kom.</small>
+                        </div>
+                    </div>
+                    <hr class="my-3">
+                    <div class="row text-center">
+                        <div class="col-6 border-end">
+                            <small class="text-muted d-block">Hizmet Bedeli</small>
+                            <strong class="text-success">+₺{{ cash_flow.moldpark_service_income|floatformat:2 }}</strong>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted d-block">KK Komisyonu</small>
+                            <strong class="text-danger">-₺{{ cash_flow.credit_card_fees|floatformat:2 }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid #06b6d4 !important;">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="bg-info bg-opacity-10 rounded-circle p-3">
+                                <i class="fas fa-balance-scale text-info fa-2x"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="text-muted small">Gerçek Bakiye</div>
+                            <h4 class="mb-0 fw-bold text-info">₺{{ cash_flow.balance|floatformat:2 }}</h4>
+                            <small class="text-muted">Tahsilat - Ödeme - KK Kom.</small>
+                        </div>
+                    </div>
+                    <hr class="my-3">
+                    <div class="row text-center small">
+                        <div class="col-4 border-end">
+                            <small class="text-muted d-block">Tahsilat</small>
+                            <strong class="text-success">+₺{{ cash_flow.total_incoming|floatformat:0 }}</strong>
+                        </div>
+                        <div class="col-4 border-end">
+                            <small class="text-muted d-block">Ödeme</small>
+                            <strong class="text-danger">-₺{{ cash_flow.total_outgoing|floatformat:0 }}</strong>
+                        </div>
+                        <div class="col-4">
+                            <small class="text-muted d-block">KK Kom.</small>
+                            <strong class="text-danger">-₺{{ cash_flow.credit_card_fees|floatformat:0 }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Aylık Sistem Ücretleri Kartı -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm" style="border-left: 4px solid #10b981 !important;">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="bg-success bg-opacity-10 rounded-circle p-3">
+                                <i class="fas fa-calendar-check text-success fa-2x"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="text-muted small">Aylık Sistem Kullanım Ücretleri</div>
+                            <h4 class="mb-0 fw-bold text-success">₺{{ cash_flow.monthly_system_fees|floatformat:2 }}</h4>
+                            <small class="text-muted">{{ total_centers }} Aktif Merkez × ₺{{ pricing.monthly_system_fee|floatformat:0 }}</small>
+                        </div>
+                        <div class="flex-shrink-0 text-end">
+                            <div class="badge bg-success fs-6 px-3 py-2">
                                 <i class="fas fa-check-circle me-1"></i>
-                                Hizmet Bedeli
-                            </small>
+                                MoldPark Geliri
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -247,10 +334,15 @@
                                             Hizmetler
                                             <br><small class="text-muted" style="font-weight: normal;">Fiziksel / Dijital</small>
                                         </th>
+                                        <th class="text-end">
+                                            Aylık Ücret
+                                            <br><small class="text-muted" style="font-weight: normal;">Sistem Kullanımı</small>
+                                        </th>
                                         <th class="text-end">KDV Hariç</th>
                                         <th class="text-end">KDV (%20)</th>
                                         <th class="text-end">Toplam</th>
                                         <th class="text-end">MoldPark</th>
+                                        <th class="text-center">İşlemler</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -272,18 +364,32 @@
                                                 </span>
                                             {% endif %}
                                         </td>
+                                        <td class="text-end">
+                                            <span class="badge bg-success" title="Aylık Sistem Kullanım Ücreti">
+                                                <i class="fas fa-calendar-check me-1"></i>₺{{ item.monthly_system_fee|floatformat:0 }}
+                                            </span>
+                                        </td>
                                         <td class="text-end">₺{{ item.gross_amount_without_vat|floatformat:2 }}</td>
                                         <td class="text-end text-info">₺{{ item.vat_amount|floatformat:2 }}</td>
                                         <td class="text-end"><strong>₺{{ item.gross_amount|floatformat:2 }}</strong></td>
                                         <td class="text-end text-warning">₺{{ item.moldpark_fee|floatformat:2 }}</td>
+                                        <td class="text-center">
+                                            <button type="button" 
+                                                    class="btn btn-sm btn-success" 
+                                                    onclick="createSingleCenterInvoice({{ item.center.id }}, '{{ item.center.name }}')"
+                                                    title="Bu merkeze fatura kes">
+                                                <i class="fas fa-file-invoice me-1"></i>Fatura Kes
+                                            </button>
+                                        </td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>
                                 <tfoot class="table-light">
                                     <tr>
-                                        <td colspan="4"><strong>TOPLAM</strong></td>
+                                        <td colspan="5"><strong>TOPLAM</strong></td>
                                         <td class="text-end"><strong>₺{{ total_collections_from_centers|floatformat:2 }}</strong></td>
                                         <td class="text-end text-warning"><strong>₺{{ total_moldpark_service_fee|floatformat:2 }}</strong></td>
+                                        <td></td>
                                     </tr>
                                 </tfoot>
                             </table>
@@ -323,9 +429,20 @@
                                 <thead class="table-light">
                                     <tr>
                                         <th>Üretici</th>
-                                        <th class="text-center">İşlem</th>
-                                        <th class="text-end">Brüt</th>
-                                        <th class="text-end">Net Ödeme</th>
+                                        <th class="text-center">
+                                            Hizmetler
+                                            <br><small class="text-muted" style="font-weight: normal;">Fiziksel / Dijital</small>
+                                        </th>
+                                        <th class="text-end">
+                                            Brüt
+                                        </th>
+                                        <th class="text-end">
+                                            MoldPark (%6.5)
+                                        </th>
+                                        <th class="text-end">
+                                            Net Ödeme
+                                        </th>
+                                        <th class="text-center">İşlemler</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -336,38 +453,55 @@
                                             <strong>{{ item.producer.company_name }}</strong>
                                         </td>
                                         <td class="text-center">
-                                            <small>
-                                                {% if item.physical_count > 0 %}
-                                                    <span class="badge bg-primary">{{ item.physical_count }} Fiziksel</span>
-                                                {% endif %}
-                                                {% if item.digital_count > 0 %}
-                                                    <span class="badge bg-info">{{ item.digital_count }} Dijital</span>
-                                                {% endif %}
-                                            </small>
+                                            {% if item.physical_count > 0 %}
+                                                <span class="badge bg-primary" title="Fiziksel Kalıp Üretimi">
+                                                    <i class="fas fa-box me-1"></i>{{ item.physical_count }}
+                                                </span>
+                                            {% endif %}
+                                            {% if item.digital_count > 0 %}
+                                                <span class="badge bg-info" title="3D Modelleme Hizmeti">
+                                                    <i class="fas fa-cube me-1"></i>{{ item.digital_count }}
+                                                </span>
+                                            {% endif %}
                                         </td>
                                         <td class="text-end">₺{{ item.gross_revenue|floatformat:2 }}</td>
+                                        <td class="text-end text-warning">-₺{{ item.moldpark_cut|floatformat:2 }}</td>
                                         <td class="text-end text-success">
                                             <strong>₺{{ item.net_payment|floatformat:2 }}</strong>
+                                        </td>
+                                        <td class="text-center">
+                                            {% if item.is_paid %}
+                                                <!-- Ödeme yapılmış -->
+                                                <span class="badge bg-success fs-6 px-3 py-2">
+                                                    <i class="fas fa-check-circle me-1"></i>Ödendi
+                                                </span>
+                                            {% else %}
+                                                <!-- Ödeme yapılmamış -->
+                                                <button type="button" 
+                                                        class="btn btn-sm btn-primary me-1" 
+                                                        onclick="showPaymentNotificationModal({{ item.producer.id }}, '{{ item.producer.company_name }}', {{ item.net_payment }})"
+                                                        title="Ödeme Bilgilendir">
+                                                    <i class="fas fa-paper-plane me-1"></i>Bilgilendir
+                                                </button>
+                                                <button type="button" 
+                                                        class="btn btn-sm btn-danger" 
+                                                        onclick="markProducerAsPaid({{ item.producer.id }}, '{{ item.producer.company_name }}', {{ item.net_payment }})"
+                                                        title="Öde">
+                                                    <i class="fas fa-money-bill-wave me-1"></i>Öde
+                                                </button>
+                                            {% endif %}
                                         </td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>
                                 <tfoot class="table-light">
                                     <tr>
-                                        <td colspan="3"><strong>TOPLAM</strong></td>
-                                        <td class="text-end"><strong>₺{{ total_payments_to_producers|floatformat:2 }}</strong></td>
+                                        <td colspan="5" class="text-end"><strong>TOPLAM NET ÖDEME</strong></td>
+                                        <td class="text-end"><strong class="text-success">₺{{ total_payments_to_producers|floatformat:2 }}</strong></td>
                                     </tr>
                                 </tfoot>
                             </table>
                         </div>
-                        {% if producers_payment_summary %}
-                        <div class="card-footer bg-white border-0">
-                            <button type="button" class="btn btn-danger" onclick="bulkCreateProducerInvoices()">
-                                <i class="fas fa-file-invoice me-2"></i>
-                                Tüm Üreticilere Fatura Kes ve Gönder
-                            </button>
-                        </div>
-                        {% endif %}
                     {% else %}
                         <div class="text-center py-5">
                             <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
@@ -486,6 +620,65 @@
     </div>
 </div>
 
+<!-- Ödeme Bilgilendirme Modal -->
+<div class="modal fade" id="paymentNotificationModal" tabindex="-1" aria-labelledby="paymentNotificationModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="paymentNotificationModalLabel">
+                    <i class="fas fa-paper-plane me-2"></i>Ödeme Bilgilendirme
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Üretici merkeze ödeme bilgilendirme mesajı gönderilecektir.
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Üretici:</label>
+                    <p class="text-muted" id="modalProducerName"></p>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Ödenecek Tutar:</label>
+                    <p class="text-success fs-5" id="modalPaymentAmount"></p>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="paymentDate" class="form-label fw-bold">Ödeme Tarihi:</label>
+                    <input type="date" class="form-control" id="paymentDate" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="paymentMethod" class="form-label fw-bold">Ödeme Yöntemi:</label>
+                    <select class="form-select" id="paymentMethod" required>
+                        <option value="">Seçiniz...</option>
+                        <option value="bank_transfer">Banka Havalesi</option>
+                        <option value="eft">EFT</option>
+                        <option value="check">Çek</option>
+                        <option value="cash">Nakit</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="paymentNotes" class="form-label fw-bold">Not:</label>
+                    <textarea class="form-control" id="paymentNotes" rows="3" placeholder="Ek açıklama..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>İptal
+                </button>
+                <button type="button" class="btn btn-primary" onclick="sendPaymentNotification()">
+                    <i class="fas fa-paper-plane me-1"></i>Bilgilendirme Gönder
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 // CSRF token
 function getCookie(name) {
@@ -504,6 +697,48 @@ function getCookie(name) {
 }
 
 // İşitme merkezlerine toplu fatura kesme
+function createSingleCenterInvoice(centerId, centerName) {
+    if (!confirm(`"${centerName}" merkezine fatura kesilecek ve e-posta gönderilecek. Onaylıyor musunuz?`)) {
+        return;
+    }
+    
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Kesiliyor...';
+    
+    fetch(`/admin/financial-control/create-center-invoice/${centerId}/?period={{ period }}`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Başarılı!\n\nFatura Kesildi:\n` +
+                  `Merkez: ${data.center_name}\n` +
+                  `Fatura No: ${data.invoice_number}\n` +
+                  `Fiziksel Kalıp: ${data.physical_count} adet\n` +
+                  `3D Modelleme: ${data.digital_count} adet\n` +
+                  `Aylık Ücret: ₺${data.monthly_fee}\n` +
+                  `Toplam: ₺${data.total_amount}`);
+            window.location.reload();
+        } else {
+            alert('Hata: ' + (data.error || 'Bilinmeyen bir hata oluştu'));
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Fatura kesilirken bir hata oluştu: ' + error);
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    });
+}
+
 function bulkCreateCenterInvoices() {
     if (!confirm('Tüm işitme merkezlerine fatura kesilecek ve e-posta gönderilecek. Onaylıyor musunuz?')) {
         return;
@@ -572,6 +807,118 @@ function bulkCreateProducerInvoices() {
     .catch(error => {
         console.error('Error:', error);
         alert('Faturalar kesilirken bir hata oluştu: ' + error);
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    });
+}
+
+// Ödeme bilgilendirme modal'ını göster
+let selectedProducerId = null;
+let selectedProducerAmount = null;
+
+function showPaymentNotificationModal(producerId, producerName, paymentAmount) {
+    selectedProducerId = producerId;
+    selectedProducerAmount = paymentAmount;
+    
+    document.getElementById('modalProducerName').textContent = producerName;
+    document.getElementById('modalPaymentAmount').textContent = '₺' + parseFloat(paymentAmount).toFixed(2);
+    
+    // Bugünün tarihini varsayılan olarak ayarla
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('paymentDate').value = today;
+    
+    const modal = new bootstrap.Modal(document.getElementById('paymentNotificationModal'));
+    modal.show();
+}
+
+// Ödeme bilgilendirme gönder
+function sendPaymentNotification() {
+    const paymentDate = document.getElementById('paymentDate').value;
+    const paymentMethod = document.getElementById('paymentMethod').value;
+    const paymentNotes = document.getElementById('paymentNotes').value;
+    
+    if (!paymentDate || !paymentMethod) {
+        alert('Lütfen tüm zorunlu alanları doldurun!');
+        return;
+    }
+    
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Gönderiliyor...';
+    
+    fetch('/admin/financial-control/send-payment-notification/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            producer_id: selectedProducerId,
+            payment_amount: selectedProducerAmount,
+            payment_date: paymentDate,
+            payment_method: paymentMethod,
+            notes: paymentNotes
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✓ Ödeme bilgilendirme mesajı başarıyla gönderildi!');
+            bootstrap.Modal.getInstance(document.getElementById('paymentNotificationModal')).hide();
+            // Form'u temizle
+            document.getElementById('paymentNotes').value = '';
+            document.getElementById('paymentMethod').value = '';
+        } else {
+            alert('✗ Hata: ' + (data.error || 'Bilinmeyen bir hata oluştu'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('✗ Mesaj gönderilirken bir hata oluştu: ' + error);
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    });
+}
+
+// Üreticiyi ödendi olarak işaretle
+function markProducerAsPaid(producerId, producerName, paymentAmount) {
+    if (!confirm(`"${producerName}" üreticisine ${parseFloat(paymentAmount).toFixed(2)} TL ödeme yapıldı olarak işaretlenecek. Onaylıyor musunuz?`)) {
+        return;
+    }
+    
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>İşleniyor...';
+    
+    fetch('/admin/financial-control/mark-producer-paid/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            producer_id: producerId,
+            payment_amount: paymentAmount
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✓ Ödeme başarıyla kaydedildi!');
+            window.location.reload();
+        } else {
+            alert('✗ Hata: ' + (data.error || 'Bilinmeyen bir hata oluştu'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('✗ İşlem sırasında bir hata oluştu: ' + error);
+    })
+    .finally(() => {
         btn.disabled = false;
         btn.innerHTML = originalText;
     });

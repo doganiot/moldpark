@@ -964,19 +964,22 @@ class Invoice(models.Model):
         self.invoice_type = 'center_admin_invoice'
         self.issued_by_center = issued_by_center
         
+        # Aktif fiyatlandırmayı al
+        pricing = PricingConfiguration.get_active()
+        
         # Fiziksel kalıp
         self.physical_mold_count = 1  # Her fatura bir kalıp için
-        self.physical_mold_unit_price = Decimal('450.00')  # KDV dahil fiyat (375 + 75 KDV)
+        self.physical_mold_unit_price = pricing.physical_mold_price  # Dinamik fiyat
         self.physical_mold_cost = self.physical_mold_unit_price
         
         # 3D Modelleme hizmeti kontrolü
         # Eğer bu kalıp için ModeledMold kaydı varsa, 3D modelleme yapılmış demektir
         has_digital_modeling = ear_mold.modeled_files.exists()
         self.digital_scan_count = 1 if has_digital_modeling else 0
-        self.digital_scan_cost = Decimal('50.00') if has_digital_modeling else Decimal('0.00')
+        self.digital_scan_cost = pricing.digital_modeling_price if has_digital_modeling else Decimal('0.00')
         
-        # Aylık sistem ücreti
-        self.monthly_fee = Decimal('100.00')  # KDV dahil
+        # Aylık sistem ücreti (dinamik)
+        self.monthly_fee = pricing.monthly_system_fee
 
         # Toplam tutar hesapla (KDV dahil)
         self.total_amount = self.monthly_fee + self.physical_mold_cost + self.digital_scan_cost
@@ -1499,3 +1502,193 @@ class FinancialSummary(models.Model):
         
         summary.save()
         return summary
+
+
+class PricingConfiguration(models.Model):
+    """
+    Merkezileştirilmiş Fiyatlandırma Yapısı
+    Tüm fiyat ve komisyon oranları burada tanımlanır
+    """
+    # Temel Bilgiler
+    name = models.CharField('Fiyatlandırma Adı', max_length=100, help_text='Örn: 2025 Standart Fiyatlandırma')
+    description = models.TextField('Açıklama', blank=True, null=True)
+    
+    # Fiyatlar (KDV Dahil)
+    physical_mold_price = models.DecimalField(
+        'Fiziksel Kalıp Fiyatı (₺)',
+        max_digits=10,
+        decimal_places=2,
+        default=450.00,
+        help_text='KDV dahil fiziksel kalıp üretim fiyatı'
+    )
+    
+    digital_modeling_price = models.DecimalField(
+        '3D Modelleme Fiyatı (₺)',
+        max_digits=10,
+        decimal_places=2,
+        default=50.00,
+        help_text='KDV dahil 3D modelleme hizmet fiyatı'
+    )
+    
+    monthly_system_fee = models.DecimalField(
+        'Aylık Sistem Kullanım Ücreti (₺)',
+        max_digits=10,
+        decimal_places=2,
+        default=100.00,
+        help_text='İşitme merkezleri için aylık sabit ücret'
+    )
+    
+    # Komisyon Oranları (Yüzde)
+    moldpark_commission_rate = models.DecimalField(
+        'MoldPark Hizmet Bedeli Oranı (%)',
+        max_digits=5,
+        decimal_places=2,
+        default=6.50,
+        help_text='MoldPark komisyon oranı (örn: 6.50 = %6.5)'
+    )
+    
+    credit_card_commission_rate = models.DecimalField(
+        'Kredi Kartı Komisyon Oranı (%)',
+        max_digits=5,
+        decimal_places=2,
+        default=3.00,
+        help_text='Kredi kartı işlem komisyonu (örn: 3.00 = %3)'
+    )
+    
+    # KDV Oranı
+    vat_rate = models.DecimalField(
+        'KDV Oranı (%)',
+        max_digits=5,
+        decimal_places=2,
+        default=20.00,
+        help_text='Katma Değer Vergisi oranı (örn: 20.00 = %20)'
+    )
+    
+    # Durum Bilgileri
+    is_active = models.BooleanField(
+        'Aktif',
+        default=False,
+        help_text='Sistemde aktif kullanılan fiyatlandırma (sadece bir tane aktif olabilir)'
+    )
+    
+    effective_date = models.DateField(
+        'Geçerlilik Başlangıç Tarihi',
+        default=timezone.now,
+        help_text='Bu fiyatların geçerli olduğu tarih'
+    )
+    
+    # Tarihler
+    created_at = models.DateTimeField('Oluşturulma Tarihi', auto_now_add=True)
+    updated_at = models.DateTimeField('Güncellenme Tarihi', auto_now=True)
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_pricings',
+        verbose_name='Oluşturan'
+    )
+    
+    class Meta:
+        verbose_name = 'Fiyatlandırma Yapılandırması'
+        verbose_name_plural = 'Fiyatlandırma Yapılandırmaları'
+        ordering = ['-effective_date', '-created_at']
+        indexes = [
+            models.Index(fields=['is_active', 'effective_date']),
+        ]
+    
+    def __str__(self):
+        status = " [AKTİF]" if self.is_active else ""
+        return f"{self.name}{status} - {self.effective_date.strftime('%d.%m.%Y')}"
+    
+    def save(self, *args, **kwargs):
+        """Aktif yapıldığında diğer tüm fiyatlandırmaları pasif yap"""
+        if self.is_active:
+            PricingConfiguration.objects.filter(is_active=True).exclude(pk=self.pk).update(is_active=False)
+        super().save(*args, **kwargs)
+    
+    @classmethod
+    def get_active(cls):
+        """Aktif fiyatlandırmayı getir, yoksa default değerlerle yeni bir tane oluştur"""
+        active = cls.objects.filter(is_active=True).first()
+        if not active:
+            # Default fiyatlandırma oluştur
+            active = cls.objects.create(
+                name='Varsayılan Fiyatlandırma',
+                description='Sistem tarafından otomatik oluşturulan varsayılan fiyatlandırma',
+                is_active=True,
+                physical_mold_price=450.00,
+                digital_modeling_price=50.00,
+                moldpark_commission_rate=6.50,
+                credit_card_commission_rate=3.00,
+                vat_rate=20.00,
+                monthly_system_fee=0.00
+            )
+        return active
+    
+    def get_physical_price_without_vat(self):
+        """Fiziksel kalıp fiyatını KDV hariç döndür"""
+        return self.physical_mold_price / (1 + self.vat_rate / 100)
+    
+    def get_digital_price_without_vat(self):
+        """3D modelleme fiyatını KDV hariç döndür"""
+        return self.digital_modeling_price / (1 + self.vat_rate / 100)
+    
+    def calculate_moldpark_fee(self, amount):
+        """Verilen tutar üzerinden MoldPark komisyonunu hesapla"""
+        return amount * (self.moldpark_commission_rate / 100)
+    
+    def calculate_credit_card_fee(self, amount):
+        """Verilen tutar üzerinden kredi kartı komisyonunu hesapla"""
+        return amount * (self.credit_card_commission_rate / 100)
+    
+    def calculate_vat(self, amount_without_vat):
+        """KDV hariç tutar üzerinden KDV'yi hesapla"""
+        return amount_without_vat * (self.vat_rate / 100)
+    
+    def get_net_to_producer_physical(self):
+        """
+        Fiziksel kalıp için üreticiye gidecek net tutarı hesapla
+        Brüt - MoldPark komisyonu
+        """
+        gross_without_vat = self.get_physical_price_without_vat()
+        moldpark_fee = self.calculate_moldpark_fee(gross_without_vat)
+        return gross_without_vat - moldpark_fee
+    
+    def get_net_to_producer_digital(self):
+        """
+        3D modelleme için üreticiye gidecek net tutarı hesapla
+        Brüt - MoldPark komisyonu
+        """
+        gross_without_vat = self.get_digital_price_without_vat()
+        moldpark_fee = self.calculate_moldpark_fee(gross_without_vat)
+        return gross_without_vat - moldpark_fee
+    
+    def get_pricing_summary(self):
+        """Fiyatlandırma özetini döndür"""
+        physical_without_vat = self.get_physical_price_without_vat()
+        digital_without_vat = self.get_digital_price_without_vat()
+        
+        return {
+            'physical': {
+                'with_vat': self.physical_mold_price,
+                'without_vat': physical_without_vat,
+                'vat_amount': self.calculate_vat(physical_without_vat),
+                'moldpark_fee': self.calculate_moldpark_fee(physical_without_vat),
+                'credit_card_fee': self.calculate_credit_card_fee(self.physical_mold_price),
+                'net_to_producer': self.get_net_to_producer_physical(),
+            },
+            'digital': {
+                'with_vat': self.digital_modeling_price,
+                'without_vat': digital_without_vat,
+                'vat_amount': self.calculate_vat(digital_without_vat),
+                'moldpark_fee': self.calculate_moldpark_fee(digital_without_vat),
+                'credit_card_fee': self.calculate_credit_card_fee(self.digital_modeling_price),
+                'net_to_producer': self.get_net_to_producer_digital(),
+            },
+            'rates': {
+                'moldpark_commission': self.moldpark_commission_rate,
+                'credit_card_commission': self.credit_card_commission_rate,
+                'vat_rate': self.vat_rate,
+            }
+        }

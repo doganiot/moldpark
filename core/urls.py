@@ -89,10 +89,18 @@ urlpatterns = [
     # Admin Finansal Kontrol Paneli
     path('admin/financial-control/', views_financial.admin_financial_control_panel, name='admin_financial_control_panel'),
     path('admin/financial-control/bulk-create-center-invoices/', views_financial.bulk_create_center_invoices, name='bulk_create_center_invoices'),
+    path('admin/financial-control/create-center-invoice/<int:center_id>/', views_financial.create_single_center_invoice, name='create_single_center_invoice'),
     path('admin/financial-control/bulk-create-producer-invoices/', views_financial.bulk_create_producer_invoices, name='bulk_create_producer_invoices'),
     
     # PDF Fatura İşlemleri
     path('invoice/<int:invoice_id>/pdf/', views_financial.download_invoice_pdf, name='download_invoice_pdf'),
     path('invoice/<int:invoice_id>/send-email/', views_financial.send_invoice_email, name='send_invoice_email'),
     path('invoices/generate-monthly/', views_financial.generate_monthly_invoices, name='generate_monthly_invoices'),
+    
+    # Fiyatlandırma Yönetimi
+    path('admin/pricing/', views_financial.pricing_management, name='pricing_management'),
+    
+    # Üretici Ödeme İşlemleri
+    path('admin/financial-control/send-payment-notification/', views_financial.send_producer_payment_notification, name='send_producer_payment_notification'),
+    path('admin/financial-control/mark-producer-paid/', views_financial.mark_producer_as_paid, name='mark_producer_as_paid'),
 ] 
