@@ -6,6 +6,7 @@ app_name = 'center'
 urlpatterns = [
     # Center Dashboard
     path('', views.dashboard, name='dashboard'),
+    path('subscription-request/', views.subscription_request, name='subscription_request'),
     path('profile/', views.profile, name='profile'),
     path('change-avatar/', views.change_avatar, name='change_avatar'),
     path('delete-account/', views.delete_account, name='delete_account'),

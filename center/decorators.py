@@ -8,7 +8,7 @@ from django.urls import reverse
 
 def center_required(view_func):
     """
-    Decorator to ensure user has a center
+    Decorator to ensure user has a center and active subscription
     """
     @wraps(view_func)
     def _wrapped_view(request, *args, **kwargs):
@@ -21,6 +21,25 @@ def center_required(view_func):
         if not hasattr(request.user, 'center'):
             messages.error(request, 'Bu sayfaya erişmek için bir işitme merkezi hesabına sahip olmanız gerekiyor.')
             return redirect('account_login')
+        
+        # Abonelik kontrolü (sadece dashboard ve subscription sayfaları hariç)
+        from core.models import UserSubscription
+        from django.urls import resolve
+        
+        # Abonelik kontrolünden muaf sayfalar
+        exempt_views = ['dashboard', 'subscription_request', 'profile', 'change_avatar']
+        current_view = resolve(request.path_info).url_name
+        
+        if current_view not in exempt_views:
+            try:
+                subscription = UserSubscription.objects.get(user=request.user)
+                if subscription.status != 'active':
+                    messages.warning(request, '⚠️ Aboneliğiniz aktif değil. Lütfen abonelik durumunuzu kontrol edin.')
+                    return redirect('center:dashboard')
+            except UserSubscription.DoesNotExist:
+                messages.warning(request, '⚠️ Henüz aboneliğiniz bulunmuyor. Lütfen admin onayı bekleyin.')
+                return redirect('center:dashboard')
+        
         return view_func(request, *args, **kwargs)
     return _wrapped_view
 

@@ -433,6 +433,66 @@
 
 {% block content %}
 <div class="container-fluid py-4">
+    
+    <!-- Abonelik Durum Uyarısı -->
+    {% if request.user.subscription %}
+        {% if request.user.subscription.status == 'pending' %}
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <i class="fas fa-clock me-2"></i>
+            <strong>Abonelik Onay Bekliyor</strong>
+            <p class="mb-0 mt-2">
+                Kaydınız başarıyla tamamlandı. Aboneliğiniz admin onayı bekliyor. 
+                Onaylandıktan sonra sistemi sınırsız kullanabileceksiniz.
+            </p>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% elif request.user.subscription.status == 'rejected' %}
+        <div class="alert alert-danger" role="alert">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="fas fa-times-circle me-2"></i>
+                    <strong>Abonelik Talebi Reddedildi</strong>
+                    <p class="mb-0 mt-2">
+                        Maalesef abonelik talebiniz reddedildi. Yeni bir talep gönderebilir veya destek ile iletişime geçebilirsiniz.
+                    </p>
+                </div>
+                <a href="{% url 'center:subscription_request' %}" class="btn btn-primary">
+                    <i class="fas fa-redo me-1"></i>Yeni Talep Gönder
+                </a>
+            </div>
+        </div>
+        {% elif request.user.subscription.status != 'active' %}
+        <div class="alert alert-danger" role="alert">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Abonelik Aktif Değil</strong>
+                    <p class="mb-0 mt-2">
+                        Aboneliğiniz şu anda aktif değil. Sistemi kullanmak için abonelik talebi göndermeniz gerekiyor.
+                    </p>
+                </div>
+                <a href="{% url 'center:subscription_request' %}" class="btn btn-primary">
+                    <i class="fas fa-paper-plane me-1"></i>Abonelik Talep Et
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    {% else %}
+        <div class="alert alert-info" role="alert">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Abonelik Gerekli</strong>
+                    <p class="mb-0 mt-2">
+                        Sistemi kullanmak için abonelik gereklidir. Hemen abonelik talebinde bulunabilirsiniz!
+                    </p>
+                </div>
+                <a href="{% url 'center:subscription_request' %}" class="btn btn-primary">
+                    <i class="fas fa-rocket me-1"></i>Abonelik Talep Et
+                </a>
+            </div>
+        </div>
+    {% endif %}
 
 
     <!-- Hero Section -->

@@ -592,6 +592,126 @@ def producer_profile(request):
 
 
 
+@login_required
+def create_physical_mold_order(request):
+    """Fiziksel Kalıp Kaydı Oluştur - İşitme Merkezi Sisteme Kayıt Açmadan Gönderdiğinde"""
+    from mold.models import EarMold
+    from core.models import SimpleNotification
+    import json
+    
+    # Üretici kontrolü (JSON response ile)
+    if not hasattr(request.user, 'producer'):
+        return JsonResponse({
+            'success': False,
+            'error': 'Bu işlem için üretici hesabı gereklidir.'
+        }, status=403)
+    
+    producer = request.user.producer
+    
+    # Üretici aktif ve doğrulanmış mı?
+    if not producer.is_active or not producer.is_verified:
+        return JsonResponse({
+            'success': False,
+            'error': 'Üretici hesabınız aktif değil veya doğrulanmamış.'
+        }, status=403)
+    
+    if request.method == 'POST':
+        try:
+            # JSON verisini al
+            data = json.loads(request.body)
+            
+            # İşitme merkezini al
+            center = Center.objects.get(id=data['center'])
+            
+            # Üreticinin bu merkez ile aktif ağı var mı kontrol et
+            if not producer.network_centers.filter(center=center, status='active', can_receive_orders=True).exists():
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Bu merkez ile aktif bir ağ bağlantınız bulunmuyor.'
+                }, status=403)
+            
+            # EarMold oluştur
+            ear_mold = EarMold.objects.create(
+                center=center,
+                patient_name=data['patient_name'],
+                patient_surname=data['patient_surname'],
+                patient_age=int(data['patient_age']),
+                patient_gender=data['patient_gender'],
+                ear_side=data['ear_side'],
+                mold_type=data['mold_type'],
+                vent_diameter=float(data['vent_diameter']),
+                notes=data.get('notes', ''),
+                is_physical_shipment=True,
+                status='shipped_to_producer',
+                shipment_status='delivered_to_producer',
+                carrier_company=data.get('carrier', ''),
+                tracking_number=data.get('tracking_number', ''),
+                shipment_date=timezone.now(),
+                priority=data.get('priority', 'normal'),
+            )
+            
+            # ProducerOrder oluştur
+            order = ProducerOrder.objects.create(
+                producer=producer,
+                center=center,
+                ear_mold=ear_mold,
+                priority=data.get('priority', 'normal'),
+                status='received',
+                producer_notes=data.get('producer_notes', ''),
+            )
+            
+            # İşitme merkezine bildirim gönder
+            SimpleNotification.objects.create(
+                user=center.user,
+                title='📦 Fiziksel Kalıp Kaydı Oluşturuldu',
+                message=f"""
+Sayın {center.name},
+
+{producer.company_name} tarafından sisteme fiziksel kalıp kaydı oluşturuldu.
+
+Hasta: {ear_mold.patient_name} {ear_mold.patient_surname}
+Kalıp Türü: {ear_mold.get_mold_type_display()}
+Sipariş No: {order.order_number}
+Durum: Alındı (Üretim Sürecinde)
+
+Kalıbınız üreticiye ulaştı ve işlem süreci başlatıldı. Detaylar için sipariş sayfasını inceleyebilirsiniz.
+
+İyi günler dileriz.
+                """.strip(),
+                notification_type='info',
+                related_url=f'/mold/{ear_mold.id}/'
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Fiziksel kalıp kaydı başarıyla oluşturuldu.',
+                'order_number': order.order_number,
+                'ear_mold_id': ear_mold.id,
+                'order_id': order.id
+            })
+            
+        except Center.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'Seçilen işitme merkezi bulunamadı.'
+            }, status=404)
+        except KeyError as e:
+            return JsonResponse({
+                'success': False,
+                'error': f'Eksik alan: {str(e)}'
+            }, status=400)
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': f'Kayıt oluşturulurken hata: {str(e)}'
+            }, status=500)
+    
+    return JsonResponse({
+        'success': False,
+        'error': 'Geçersiz istek'
+    }, status=405)
+
+
 @producer_required
 
 def order_list(request):

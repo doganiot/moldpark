@@ -88,10 +88,29 @@
     <!-- Fatura Listesi -->
     <div class="card">
         <div class="card-body">
+            {% if user.is_superuser %}
+            <div class="mb-3 d-flex justify-content-between align-items-center">
+                <div>
+                    <button type="button" class="btn btn-danger" id="bulkDeleteBtn" onclick="bulkDeleteInvoices()" disabled>
+                        <i class="fas fa-trash-alt me-2"></i>Seçilenleri Sil (<span id="selectedCount">0</span>)
+                    </button>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="toggleAllCheckboxes()">
+                        <i class="fas fa-check-square me-1"></i>Tümünü Seç/Kaldır
+                    </button>
+                </div>
+            </div>
+            {% endif %}
             <div class="table-responsive">
                 <table class="table table-hover">
                     <thead>
                         <tr>
+                            {% if user.is_superuser %}
+                            <th style="width: 50px;">
+                                <input type="checkbox" class="form-check-input" id="selectAll" onchange="toggleAllCheckboxes()">
+                            </th>
+                            {% endif %}
                             <th>Fatura No</th>
                             <th>Tür</th>
                             <th>Kullanıcı/Merkez</th>
@@ -104,6 +123,12 @@
                     <tbody>
                         {% for invoice in invoices %}
                         <tr>
+                            {% if user.is_superuser %}
+                            <td>
+                                <input type="checkbox" class="form-check-input invoice-checkbox" 
+                                       value="{{ invoice.id }}" onchange="updateBulkDeleteButton()">
+                            </td>
+                            {% endif %}
                             <td>
                                 <a href="{% url 'core:invoice_detail' invoice.id %}" class="fw-bold">
                                     {{ invoice.invoice_number }}
@@ -173,7 +198,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="7" class="text-center text-muted py-4">
+                            <td colspan="{% if user.is_superuser %}8{% else %}7{% endif %}" class="text-center text-muted py-4">
                                 <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
                                 Henüz fatura bulunmuyor
                             </td>
@@ -244,5 +269,85 @@ function deleteInvoice(invoiceId, invoiceNumber) {
         alert('✗ Bir hata oluştu: ' + error);
     });
 }
+
+// Tüm checkbox'ları seç/kaldır
+function toggleAllCheckboxes() {
+    const selectAll = document.getElementById('selectAll');
+    const checkboxes = document.querySelectorAll('.invoice-checkbox');
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = selectAll.checked;
+    });
+    
+    updateBulkDeleteButton();
+}
+
+// Toplu silme butonunu güncelle
+function updateBulkDeleteButton() {
+    const checkboxes = document.querySelectorAll('.invoice-checkbox:checked');
+    const count = checkboxes.length;
+    const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+    const selectedCount = document.getElementById('selectedCount');
+    
+    selectedCount.textContent = count;
+    bulkDeleteBtn.disabled = count === 0;
+    
+    // Tüm seçim checkbox'unu güncelle
+    const allCheckboxes = document.querySelectorAll('.invoice-checkbox');
+    const selectAll = document.getElementById('selectAll');
+    if (selectAll) {
+        selectAll.checked = allCheckboxes.length > 0 && count === allCheckboxes.length;
+    }
+}
+
+// Toplu silme işlemi
+function bulkDeleteInvoices() {
+    const checkboxes = document.querySelectorAll('.invoice-checkbox:checked');
+    const invoiceIds = Array.from(checkboxes).map(cb => cb.value);
+    
+    if (invoiceIds.length === 0) {
+        alert('Lütfen silinecek faturaları seçin');
+        return;
+    }
+    
+    // Onay mesajı
+    if (!confirm(`${invoiceIds.length} adet faturayı silmek istediğinize emin misiniz?\n\nBu işlem geri alınamaz!`)) {
+        return;
+    }
+    
+    // İkinci onay
+    if (!confirm(`DİKKAT: ${invoiceIds.length} adet fatura kalıcı olarak silinecek!\n\nBu işlem GERİ ALINAMAZ! Devam etmek istediğinize emin misiniz?`)) {
+        return;
+    }
+    
+    // Silme işlemi
+    fetch('/financial/invoices/bulk-delete/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            invoice_ids: invoiceIds
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✓ ' + data.message + '\n\nSilinen faturalar:\n' + data.invoice_numbers.join('\n'));
+            location.reload();
+        } else {
+            alert('✗ Hata: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('✗ Bir hata oluştu: ' + error);
+    });
+}
+
+// Sayfa yüklendiğinde buton durumunu kontrol et
+document.addEventListener('DOMContentLoaded', function() {
+    updateBulkDeleteButton();
+});
 </script>
 {% endblock %}

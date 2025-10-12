@@ -1022,6 +1022,142 @@ def subscribe_to_plan(request, plan_id):
     messages.success(request, f'{plan.name} planına başarıyla abone oldunuz!')
     return redirect('core:pricing')
 
+@user_passes_test(lambda u: u.is_superuser)
+def subscription_requests(request):
+    """Admin: Abonelik Talepleri Listesi"""
+    from core.models import SubscriptionRequest
+    
+    # Filtreleme
+    status_filter = request.GET.get('status', 'all')
+    
+    requests = SubscriptionRequest.objects.select_related('user', 'plan', 'processed_by').order_by('-created_at')
+    
+    if status_filter != 'all':
+        requests = requests.filter(status=status_filter)
+    
+    # İstatistikler
+    all_requests = SubscriptionRequest.objects.all()
+    pending_count = all_requests.filter(status='pending').count()
+    approved_count = all_requests.filter(status='approved').count()
+    rejected_count = all_requests.filter(status='rejected').count()
+    total_count = all_requests.count()
+    
+    context = {
+        'requests': requests,
+        'status_filter': status_filter,
+        'pending_count': pending_count,
+        'approved_count': approved_count,
+        'rejected_count': rejected_count,
+        'total_count': total_count,
+    }
+    
+    return render(request, 'core/subscription_requests.html', context)
+
+
+@user_passes_test(lambda u: u.is_superuser)
+def approve_subscription_request(request, request_id):
+    """Admin: Abonelik Talebini Onayla"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Geçersiz istek'}, status=405)
+    
+    try:
+        from core.models import SubscriptionRequest, UserSubscription, SimpleNotification
+        
+        subscription_request = get_object_or_404(SubscriptionRequest, id=request_id)
+        
+        if subscription_request.status != 'pending':
+            return JsonResponse({
+                'success': False,
+                'error': 'Bu talep zaten işlenmiş'
+            })
+        
+        # Abonelik talebini onayla
+        subscription_request.status = 'approved'
+        subscription_request.processed_at = timezone.now()
+        subscription_request.processed_by = request.user
+        subscription_request.save()
+        
+        # Kullanıcının aboneliğini aktif yap
+        subscription = UserSubscription.objects.filter(user=subscription_request.user).first()
+        if subscription:
+            subscription.status = 'active'
+            subscription.start_date = timezone.now()
+            subscription.end_date = None  # Sınırsız
+            subscription.save()
+        
+        # Kullanıcıya bildirim gönder
+        center_name = subscription_request.user.center.name if hasattr(subscription_request.user, 'center') else subscription_request.user.username
+        SimpleNotification.objects.create(
+            user=subscription_request.user,
+            title='🎉 Aboneliğiniz Onaylandı!',
+            message=f'Tebrikler! Abonelik talebiniz onaylandı. Artık sistemi sınırsız kullanabilirsiniz. İyi çalışmalar dileriz!',
+            notification_type='success',
+            related_url='/center/dashboard/'
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'{center_name} adlı merkezin aboneliği başarıyla onaylandı.'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@user_passes_test(lambda u: u.is_superuser)
+def reject_subscription_request(request, request_id):
+    """Admin: Abonelik Talebini Reddet"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Geçersiz istek'}, status=405)
+    
+    try:
+        import json
+        from core.models import SubscriptionRequest, SimpleNotification
+        
+        subscription_request = get_object_or_404(SubscriptionRequest, id=request_id)
+        
+        if subscription_request.status != 'pending':
+            return JsonResponse({
+                'success': False,
+                'error': 'Bu talep zaten işlenmiş'
+            })
+        
+        # JSON verisini al
+        data = json.loads(request.body)
+        reason = data.get('reason', 'Belirtilmedi')
+        
+        # Abonelik talebini reddet
+        subscription_request.status = 'rejected'
+        subscription_request.processed_at = timezone.now()
+        subscription_request.processed_by = request.user
+        subscription_request.admin_notes = reason
+        subscription_request.save()
+        
+        # Kullanıcıya bildirim gönder
+        center_name = subscription_request.user.center.name if hasattr(subscription_request.user, 'center') else subscription_request.user.username
+        SimpleNotification.objects.create(
+            user=subscription_request.user,
+            title='❌ Abonelik Talebi Reddedildi',
+            message=f'Üzgünüz, abonelik talebiniz reddedildi.\n\nRed Sebebi: {reason}\n\nDetaylı bilgi için lütfen bizimle iletişime geçin.',
+            notification_type='error',
+            related_url='/contact/'
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'{center_name} adlı merkezin aboneliği reddedildi.'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
 @login_required
 def subscription_dashboard(request):
     """Abonelik yönetim paneli"""

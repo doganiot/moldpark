@@ -13,6 +13,7 @@ urlpatterns = [
 
     # Sipariş Yönetimi
     path('orders/', views.order_list, name='order_list'),
+    path('orders/create-physical/', views.create_physical_mold_order, name='create_physical_mold_order'),
     path('orders/<int:pk>/', views.order_detail, name='order_detail'),
     path('orders/<int:pk>/update/', views.order_update, name='order_update'),
 

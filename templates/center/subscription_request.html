@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Abonelik Talebi - MoldPark{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-primary text-white text-center py-4">
+                    <h3 class="mb-0">
+                        <i class="fas fa-rocket me-2"></i>
+                        Abonelik Talebi Gönder
+                    </h3>
+                </div>
+                <div class="card-body p-4">
+                    
+                    {% if has_pending_request %}
+                    <!-- Bekleyen Talep Var -->
+                    <div class="alert alert-info">
+                        <i class="fas fa-clock me-2"></i>
+                        <strong>Talebiniz Zaten Gönderilmiş</strong>
+                        <p class="mb-0 mt-2">
+                            Daha önce gönderdiğiniz abonelik talebi admin onayı bekliyor. 
+                            Lütfen sabırlı olun, en kısa sürede değerlendirilecektir.
+                        </p>
+                    </div>
+                    <div class="text-center mt-4">
+                        <a href="{% url 'center:dashboard' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Dashboard'a Dön
+                        </a>
+                    </div>
+                    
+                    {% elif has_active_subscription %}
+                    <!-- Aktif Abonelik Var -->
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong>Aboneliğiniz Aktif</strong>
+                        <p class="mb-0 mt-2">
+                            Zaten aktif bir aboneliğiniz bulunuyor. Sistemi sınırsız kullanabilirsiniz!
+                        </p>
+                    </div>
+                    <div class="text-center mt-4">
+                        <a href="{% url 'center:dashboard' %}" class="btn btn-primary">
+                            <i class="fas fa-arrow-left me-1"></i>Dashboard'a Dön
+                        </a>
+                    </div>
+                    
+                    {% else %}
+                    <!-- Talep Formu -->
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Abonelik Hakkında</strong>
+                        <p class="mb-0 mt-2">
+                            MoldPark sistemini kullanmak için abonelik gereklidir. 
+                            Talebiniz admin tarafından değerlendirildikten sonra sistemi sınırsız kullanabileceksiniz.
+                        </p>
+                    </div>
+
+                    <form method="post" id="subscriptionRequestForm">
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Merkez Adı</label>
+                            <input type="text" class="form-control" value="{{ center.name }}" readonly>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">İletişim Email</label>
+                            <input type="email" class="form-control" value="{{ request.user.email }}" readonly>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Abonelik Paketi</label>
+                            {% if available_plans|length == 1 %}
+                                <!-- Tek plan var, otomatik seçili -->
+                                <input type="hidden" name="plan" value="{{ available_plans.0.id }}">
+                                <div class="card border-primary">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h5 class="card-title mb-1">{{ available_plans.0.name }}</h5>
+                                                <p class="card-text text-muted mb-0">{{ available_plans.0.description }}</p>
+                                            </div>
+                                            <div class="text-end">
+                                                <h3 class="text-primary mb-0">{{ available_plans.0.monthly_fee_try }} TL</h3>
+                                                <small class="text-muted">/ ay</small>
+                                            </div>
+                                        </div>
+                                        <hr class="my-3">
+                                        <div class="d-flex gap-3">
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-infinity me-1"></i>Sınırsız Kullanım
+                                            </span>
+                                            <span class="badge bg-info">
+                                                <i class="fas fa-check me-1"></i>Tüm Özellikler
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <!-- Birden fazla plan var -->
+                                <select name="plan" id="plan" class="form-select" required>
+                                    <option value="">Plan Seçiniz</option>
+                                    {% for plan in available_plans %}
+                                    <option value="{{ plan.id }}">
+                                        {{ plan.name }} ({{ plan.monthly_fee_try }} TL/ay)
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <small class="text-muted">Hangi plana abone olmak istediğinizi seçin</small>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="notes" class="form-label fw-bold">Notlarınız (Opsiyonel)</label>
+                            <textarea name="notes" id="notes" class="form-control" rows="4" 
+                                      placeholder="Talep ile ilgili eklemek istediğiniz notlar..."></textarea>
+                            <small class="text-muted">Talebiniz ile ilgili özel bir durumu belirtebilirsiniz</small>
+                        </div>
+                        
+                        <div class="form-check mb-4">
+                            <input class="form-check-input" type="checkbox" id="agree" required>
+                            <label class="form-check-label" for="agree">
+                                Kullanım koşullarını okudum ve kabul ediyorum *
+                            </label>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-paper-plane me-2"></i>
+                                Abonelik Talebi Gönder
+                            </button>
+                            <a href="{% url 'center:dashboard' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-1"></i>İptal
+                            </a>
+                        </div>
+                    </form>
+                    {% endif %}
+                    
+                </div>
+            </div>
+            
+            <!-- Bilgilendirme Kartları -->
+            {% if not has_pending_request and not has_active_subscription %}
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body text-center">
+                            <i class="fas fa-clock fa-2x text-primary mb-2"></i>
+                            <h6 class="fw-bold">Hızlı Onay</h6>
+                            <small class="text-muted">Talebiniz genellikle 24 saat içinde değerlendirilir</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body text-center">
+                            <i class="fas fa-infinity fa-2x text-success mb-2"></i>
+                            <h6 class="fw-bold">Sınırsız Kullanım</h6>
+                            <small class="text-muted">Onaylandıktan sonra sistemi sınırsız kullanabilirsiniz</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('subscriptionRequestForm')?.addEventListener('submit', function(e) {
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Gönderiliyor...';
+});
+</script>
+{% endblock %}
+

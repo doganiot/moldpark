@@ -90,6 +90,10 @@
                                 </div>
                             </div>
                             
+                            <button type="button" class="btn btn-success btn-lg w-100 hover-lift mb-2" data-bs-toggle="modal" data-bs-target="#physicalMoldModal">
+                                <i class="fas fa-plus-circle me-2"></i>
+                                Fiziksel Kalıp Kaydı Oluştur
+                            </button>
                             <a href="{% url 'producer:order_list' %}" class="btn btn-light btn-lg w-100 hover-lift">
                                 <i class="fas fa-list me-2"></i>
                                 Tüm Siparişler
@@ -475,6 +479,149 @@
     </div>
 </div>
 
+<!-- Fiziksel Kalıp Kaydı Modal -->
+<div class="modal fade" id="physicalMoldModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-box-open me-2"></i>Fiziksel Kalıp Kaydı Oluştur
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Bu form, işitme merkezlerinden doğrudan size gönderilen fiziksel kalıplar için kayıt oluşturmanıza olanak sağlar.
+                </div>
+                <form id="physicalMoldForm">
+                    {% csrf_token %}
+                    
+                    <!-- İşitme Merkezi Seçimi -->
+                    <div class="mb-3">
+                        <label for="center" class="form-label fw-bold">İşitme Merkezi *</label>
+                        <select name="center" id="center" class="form-select" required>
+                            <option value="">Merkez Seçiniz</option>
+                            {% for network in network_centers_list %}
+                                <option value="{{ network.center.id }}">{{ network.center.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">Kalıbı gönderen işitme merkezi</small>
+                    </div>
+                    
+                    <hr>
+                    <h6 class="text-primary"><i class="fas fa-user me-2"></i>Hasta Bilgileri</h6>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="patient_name" class="form-label">Hasta Adı *</label>
+                            <input type="text" name="patient_name" id="patient_name" class="form-control" placeholder="Ahmet" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="patient_surname" class="form-label">Hasta Soyadı *</label>
+                            <input type="text" name="patient_surname" id="patient_surname" class="form-control" placeholder="Yılmaz" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="patient_age" class="form-label">Hasta Yaşı *</label>
+                            <input type="number" name="patient_age" id="patient_age" class="form-control" placeholder="45" min="0" max="150" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="patient_gender" class="form-label">Cinsiyet *</label>
+                            <select name="patient_gender" id="patient_gender" class="form-select" required>
+                                <option value="">Seçiniz</option>
+                                <option value="M">Erkek</option>
+                                <option value="F">Kadın</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    <h6 class="text-primary"><i class="fas fa-ear-listen me-2"></i>Kalıp Detayları</h6>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="ear_side" class="form-label">Kulak Yönü *</label>
+                            <select name="ear_side" id="ear_side" class="form-select" required>
+                                <option value="">Seçiniz</option>
+                                <option value="right">Sağ</option>
+                                <option value="left">Sol</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="mold_type" class="form-label">Kalıp Tipi *</label>
+                            <select name="mold_type" id="mold_type" class="form-select" required>
+                                <option value="">Seçiniz</option>
+                                <option value="full">Tam Konka</option>
+                                <option value="half">Yarım Konka</option>
+                                <option value="skeleton">İskelet</option>
+                                <option value="probe">Probe</option>
+                                <option value="cic">CIC</option>
+                                <option value="ite">ITE</option>
+                                <option value="itc">ITC</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="vent_diameter" class="form-label">Vent Çapı (mm) *</label>
+                            <input type="number" name="vent_diameter" id="vent_diameter" class="form-control" placeholder="2.0" step="0.1" min="0" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="carrier" class="form-label">Kargo Firması</label>
+                            <select name="carrier" id="carrier" class="form-select">
+                                <option value="">Seçiniz</option>
+                                <option value="aras">Aras Kargo</option>
+                                <option value="yurtici">Yurtiçi Kargo</option>
+                                <option value="mng">MNG Kargo</option>
+                                <option value="ptt">PTT Kargo</option>
+                                <option value="ups">UPS</option>
+                                <option value="dhl">DHL</option>
+                                <option value="fedex">FedEx</option>
+                                <option value="other">Diğer</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="tracking_number" class="form-label">Takip Numarası</label>
+                            <input type="text" name="tracking_number" id="tracking_number" class="form-control" placeholder="Kargo takip numarası">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="priority" class="form-label">Öncelik *</label>
+                        <select name="priority" id="priority" class="form-select" required>
+                            <option value="normal" selected>Normal</option>
+                            <option value="high">Yüksek</option>
+                            <option value="urgent">Acil</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Kalıp Notları</label>
+                        <textarea name="notes" id="notes" class="form-control" rows="2" placeholder="Kalıp hakkında notlar..."></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="producer_notes" class="form-label">Üretici Notları</label>
+                        <textarea name="producer_notes" id="producer_notes" class="form-control" rows="2" placeholder="Sipariş hakkında notlar..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>İptal
+                </button>
+                <button type="button" class="btn btn-success" onclick="submitPhysicalMold()">
+                    <i class="fas fa-save me-1"></i>Kayıt Oluştur
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
 .action-card {
     transition: all 0.3s ease;
@@ -506,4 +653,65 @@
     border-left: 4px solid var(--info-500) !important;
 }
 </style>
+
+<script>
+function submitPhysicalMold() {
+    const form = document.getElementById('physicalMoldForm');
+    const formData = new FormData(form);
+    
+    // Form validasyonu
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    // Form verilerini JSON'a çevir
+    const data = {};
+    formData.forEach((value, key) => {
+        data[key] = value;
+    });
+    
+    // Loading göster
+    const submitBtn = event.target;
+    const originalText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Kaydediliyor...';
+    
+    fetch('{% url "producer:create_physical_mold_order" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(async response => {
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const text = await response.text();
+            throw new Error('Server HTML döndü (JSON değil). Konsola bakın: ' + text.substring(0, 200));
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            alert('✓ Fiziksel kalıp kaydı başarıyla oluşturuldu!\n\nSipariş No: ' + data.order_number);
+            location.reload();
+        } else {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+            alert('✗ Hata: ' + data.error);
+            if (data.errors) {
+                console.error('Form hataları:', data.errors);
+            }
+        }
+    })
+    .catch(error => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+        console.error('Detaylı hata:', error);
+        alert('✗ Bir hata oluştu: ' + error.message);
+    });
+}
+</script>
 {% endblock %} 

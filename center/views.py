@@ -11,6 +11,7 @@ from django.contrib.auth import logout
 from django.db.models import Count, Q
 from django.db import models
 from datetime import datetime, timedelta
+from decimal import Decimal
 from mold.models import EarMold
 from producer.models import ProducerNetwork, Producer
 from django.http import JsonResponse, Http404
@@ -19,6 +20,143 @@ from django.core.paginator import Paginator
 from core.models import Invoice
 
 # Create your views here.
+
+@login_required
+def subscription_request(request):
+    """İşitme Merkezi Abonelik Talebi"""
+    from core.models import PricingPlan, UserSubscription, SubscriptionRequest, SimpleNotification
+    
+    # Center kontrolü
+    if not hasattr(request.user, 'center'):
+        messages.error(request, 'Bu sayfaya erişmek için işitme merkezi hesabına sahip olmalısınız.')
+        return redirect('account_login')
+    
+    center = request.user.center
+    
+    # Mevcut abonelik kontrolü
+    try:
+        subscription = UserSubscription.objects.get(user=request.user)
+        has_active_subscription = subscription.status == 'active'
+    except UserSubscription.DoesNotExist:
+        subscription = None
+        has_active_subscription = False
+    
+    # Bekleyen talep kontrolü
+    has_pending_request = SubscriptionRequest.objects.filter(
+        user=request.user,
+        status='pending'
+    ).exists()
+    
+    if request.method == 'POST':
+        # Zaten aktif abonelik varsa
+        if has_active_subscription:
+            messages.info(request, 'Zaten aktif bir aboneliğiniz bulunuyor.')
+            return redirect('center:dashboard')
+        
+        # Zaten bekleyen talep varsa
+        if has_pending_request:
+            messages.warning(request, 'Zaten bekleyen bir abonelik talebiniz var.')
+            return redirect('center:dashboard')
+        
+        plan_id = request.POST.get('plan')
+        notes = request.POST.get('notes', '')
+        
+        # Eğer plan ID yok ama tek plan varsa, onu otomatik seç
+        if not plan_id:
+            single_plan = PricingPlan.objects.filter(is_active=True).first()
+            if single_plan:
+                plan_id = single_plan.id
+            else:
+                messages.error(request, 'Lütfen bir plan seçin.')
+                return redirect('center:subscription_request')
+        
+        try:
+            plan = PricingPlan.objects.get(id=plan_id, is_active=True)
+            
+            # Abonelik talebi oluştur
+            subscription_request_obj = SubscriptionRequest.objects.create(
+                user=request.user,
+                plan=plan,
+                status='pending',
+                user_notes=notes
+            )
+            
+            # Pending durumda abonelik oluştur veya güncelle
+            if subscription:
+                subscription.plan = plan
+                subscription.status = 'pending'
+                subscription.save()
+            else:
+                subscription = UserSubscription.objects.create(
+                    user=request.user,
+                    plan=plan,
+                    status='pending',
+                    models_used_this_month=0,
+                    amount_paid=0,
+                    currency='TRY'
+                )
+            
+            # Kullanıcıya bildirim
+            SimpleNotification.objects.create(
+                user=request.user,
+                title='✅ Abonelik Talebi Gönderildi',
+                message=f'Abonelik talebiniz başarıyla gönderildi. Admin onayı sonrası sistemi sınırsız kullanabileceksiniz.',
+                notification_type='success',
+                related_url='/center/dashboard/'
+            )
+            
+            # Admin'lere bildirim
+            from django.contrib.auth.models import User as AdminUser
+            admin_users = AdminUser.objects.filter(is_superuser=True)
+            for admin in admin_users:
+                SimpleNotification.objects.create(
+                    user=admin,
+                    title='📥 Yeni Abonelik Talebi',
+                    message=f'{center.name} ({request.user.username}) adlı işitme merkezi abonelik talebi gönderdi.',
+                    notification_type='info',
+                    related_url='/admin/subscription-requests/'
+                )
+            
+            messages.success(request, '✅ Abonelik talebiniz başarıyla gönderildi! Admin onayı sonrası bilgilendirileceksiniz.')
+            return redirect('center:dashboard')
+            
+        except PricingPlan.DoesNotExist:
+            messages.error(request, 'Seçilen plan bulunamadı.')
+            return redirect('center:subscription_request')
+        except Exception as e:
+            messages.error(request, f'Talep gönderilirken hata oluştu: {str(e)}')
+            return redirect('center:subscription_request')
+    
+    # GET request
+    available_plans = PricingPlan.objects.filter(is_active=True, plan_type='standard').order_by('monthly_fee_try')
+    
+    # Eğer plan yoksa oluştur
+    if not available_plans.exists():
+        default_plan = PricingPlan.objects.create(
+            name='Standart Abonelik',
+            plan_type='standard',
+            description='MoldPark sistemi sınırsız kullanım - Aylık 100 TL',
+            monthly_fee_try=Decimal('100.00'),
+            per_mold_price_try=Decimal('0.00'),
+            modeling_service_fee_try=Decimal('0.00'),
+            monthly_model_limit=999999,
+            is_monthly=True,
+            is_active=True,
+            price_try=Decimal('100.00'),
+            price_usd=Decimal('0.00'),
+        )
+        available_plans = [default_plan]
+    
+    context = {
+        'center': center,
+        'subscription': subscription,
+        'has_active_subscription': has_active_subscription,
+        'has_pending_request': has_pending_request,
+        'available_plans': available_plans,
+    }
+    
+    return render(request, 'center/subscription_request.html', context)
+
 
 @login_required
 def dashboard(request):

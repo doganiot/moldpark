@@ -66,12 +66,18 @@ urlpatterns = [
     path('notifications/<int:notification_id>/delete/', views.delete_notification, name='delete_notification'),
     path('documentation/', views.documentation, name='documentation'),
     
+    # Abonelik Yönetimi (Admin)
+    path('admin/subscription-requests/', views.subscription_requests, name='subscription_requests'),
+    path('admin/subscription-requests/<int:request_id>/approve/', views.approve_subscription_request, name='approve_subscription_request'),
+    path('admin/subscription-requests/<int:request_id>/reject/', views.reject_subscription_request, name='reject_subscription_request'),
+    
     # Finansal Yönetim (Admin)
     path('financial/', views_financial.financial_dashboard, name='financial_dashboard'),
     path('financial/invoices/', views_financial.invoice_list, name='invoice_list'),
     path('financial/invoices/<int:invoice_id>/', views_financial.invoice_detail, name='invoice_detail'),
     path('financial/invoices/<int:invoice_id>/mark-paid/', views_financial.invoice_mark_paid, name='invoice_mark_paid'),
     path('financial/invoices/<int:invoice_id>/delete/', views_financial.invoice_delete, name='invoice_delete'),
+    path('financial/invoices/bulk-delete/', views_financial.bulk_delete_invoices, name='bulk_delete_invoices'),
     path('financial/generate-summary/', views_financial.generate_monthly_summary, name='generate_monthly_summary'),
     path('financial/reports/', views_financial.financial_reports, name='financial_reports'),
     path('financial/collections/', views_financial.moldpark_collections_report, name='moldpark_collections_report'),

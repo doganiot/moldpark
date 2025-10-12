@@ -133,56 +133,85 @@ class CustomSignupForm(SignupForm):
                 notification_preferences=self.cleaned_data.get('notification_preferences', ['system'])
             )
             
-            # 6 AYLIK ÜCRETSİZ KAMPANYA ABONELİĞİ
-            from core.models import PricingPlan, UserSubscription, SimpleNotification
+            # ABONELİK TALEBİ OLUŞTUR (Onay Bekliyor)
+            from core.models import PricingPlan, UserSubscription, SimpleNotification, SubscriptionRequest
             from datetime import timedelta
             from django.utils import timezone
             
             try:
-                # 6 Aylık ücretsiz kampanya planını al
-                trial_plan = PricingPlan.objects.filter(
-                    plan_type='trial', 
-                    is_active=True,
-                    trial_days__gte=180  # 6 aylık plan
+                # Aktif Standard planı al (100 TL'lik tek paket)
+                standard_plan = PricingPlan.objects.filter(
+                    plan_type='standard', 
+                    is_active=True
                 ).first()
                 
-                if not trial_plan:
-                    # Eğer 6 aylık plan yoksa normal deneme paketini al
-                    trial_plan = PricingPlan.objects.filter(plan_type='trial', is_active=True).first()
+                if not standard_plan:
+                    # Plan yoksa oluştur
+                    standard_plan = PricingPlan.objects.create(
+                        name='Standart Abonelik',
+                        plan_type='standard',
+                        description='MoldPark sistemi sınırsız kullanım - Aylık 100 TL',
+                        monthly_fee_try=Decimal('100.00'),
+                        per_mold_price_try=Decimal('0.00'),
+                        modeling_service_fee_try=Decimal('0.00'),
+                        monthly_model_limit=999999,
+                        is_monthly=True,
+                        is_active=True,
+                        price_try=Decimal('100.00'),
+                        price_usd=Decimal('0.00'),
+                    )
                 
-                if trial_plan:
-                    # 6 aylık ücretsiz abonelik oluştur
-                    end_date = timezone.now() + timedelta(days=180)  # 6 ay sonra
+                if standard_plan:
+                    # Abonelik talebi oluştur (ONAY BEKLİYOR)
+                    subscription_request = SubscriptionRequest.objects.create(
+                        user=user,
+                        plan=standard_plan,
+                        status='pending',
+                        user_notes='Yeni kayıt - otomatik talep'
+                    )
                     
+                    # Pending durumda abonelik oluştur
                     subscription = UserSubscription.objects.create(
                         user=user,
-                        plan=trial_plan,
-                        status='active',
+                        plan=standard_plan,
+                        status='pending',  # ONAY BEKLİYOR
                         start_date=timezone.now(),
-                        end_date=end_date,  # 6 ay sonrası
+                        end_date=None,  # Sınırsız
                         models_used_this_month=0,
                         amount_paid=0,
-                        currency='USD'
+                        currency='TRY'
                     )
                     
-                    # Hoşgeldin bildirimi gönder
+                    # Kullanıcıya bildirim gönder
                     SimpleNotification.objects.create(
                         user=user,
-                        title='🎉 6 Aylık Ücretsiz Kampanya!',
-                        message=f'Hoş geldiniz! Size özel 6 ay boyunca ücretsiz kullanım hakkı tanıdık. Aylık {trial_plan.monthly_model_limit} kalıp gönderme hakkınız bulunmaktadır. Hemen kullanmaya başlayın!',
-                        notification_type='success',
-                        related_url='/subscription/'
+                        title='👋 Hoş Geldiniz!',
+                        message=f'Kaydınız başarıyla tamamlandı. Abonelik talebiniz admin onayı bekliyor. Onaylandıktan sonra sistemi sınırsız kullanabileceksiniz.',
+                        notification_type='info',
+                        related_url='/center/subscription-status/'
                     )
+                    
+                    # Admin'lere bildirim gönder
+                    from django.contrib.auth.models import User as AdminUser
+                    admin_users = AdminUser.objects.filter(is_superuser=True)
+                    for admin in admin_users:
+                        SimpleNotification.objects.create(
+                            user=admin,
+                            title='📥 Yeni Abonelik Talebi',
+                            message=f'{center.name} ({user.username}) adlı yeni işitme merkezi abonelik onayı bekliyor.',
+                            notification_type='info',
+                            related_url='/admin/subscription-requests/'
+                        )
                 
-            except PricingPlan.DoesNotExist:
-                # Deneme paketi yoksa normal devam et ama admin'i bilgilendir
+            except Exception as e:
+                # Hata durumunda admin'i bilgilendir
                 from django.contrib.auth.models import User as AdminUser
                 admin_users = AdminUser.objects.filter(is_superuser=True)
                 for admin in admin_users:
                     SimpleNotification.objects.create(
                         user=admin,
-                        title='⚠️ Deneme Paketi Bulunamadı',
-                        message=f'Yeni kullanıcı {user.username} için deneme paketi atanamadı. Deneme paketi oluşturulmalı.',
+                        title='⚠️ Abonelik Talebi Hatası',
+                        message=f'Yeni kullanıcı {user.username} için abonelik talebi oluşturulamadı: {str(e)}',
                         notification_type='warning',
                         related_url='/admin/core/pricingplan/'
                     )

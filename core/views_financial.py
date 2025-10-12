@@ -1343,6 +1343,61 @@ def invoice_delete(request, invoice_id):
         }, status=500)
 
 
+@user_passes_test(lambda u: u.is_superuser)
+def bulk_delete_invoices(request):
+    """Toplu fatura silme işlemi - Sadece admin yetkisi ile"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Geçersiz istek metodu'}, status=405)
+    
+    try:
+        import json
+        
+        # JSON verisini al
+        data = json.loads(request.body)
+        invoice_ids = data.get('invoice_ids', [])
+        
+        if not invoice_ids:
+            return JsonResponse({
+                'success': False,
+                'error': 'Silinecek fatura seçilmedi'
+            })
+        
+        # Faturaları al ve bilgilerini topla
+        invoices = Invoice.objects.filter(id__in=invoice_ids)
+        count = invoices.count()
+        
+        if count == 0:
+            return JsonResponse({
+                'success': False,
+                'error': 'Seçilen faturalar bulunamadı'
+            })
+        
+        # Fatura numaralarını logla
+        invoice_numbers = [inv.invoice_number for inv in invoices]
+        
+        # Toplu silme işlemi
+        invoices.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'{count} adet fatura başarıyla silindi.',
+            'deleted_count': count,
+            'invoice_numbers': invoice_numbers
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Geçersiz JSON verisi'
+        }, status=400)
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Faturalar silinirken hata oluştu: {str(e)}'
+        }, status=500)
+
+
 @login_required
 def download_invoice_pdf(request, invoice_id):
     """Faturayı PDF olarak indir"""

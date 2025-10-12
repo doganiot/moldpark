@@ -224,3 +224,122 @@ class ProductionLogForm(forms.ModelForm):
 
 
 # NetworkInviteForm kaldırıldı - Ağ yönetimi artık sadece admin tarafından yapılacak
+
+
+class PhysicalMoldRegistrationForm(forms.Form):
+    """Fiziksel Kalıp Kaydı Formu - Üretici tarafından oluşturulur"""
+    
+    # Merkez seçimi
+    center = forms.ModelChoiceField(
+        queryset=None,
+        label='İşitme Merkezi',
+        help_text='Kalıbı gönderen işitme merkezi',
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    
+    # Hasta Bilgileri
+    patient_name = forms.CharField(
+        label='Hasta Adı',
+        max_length=100,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ahmet'})
+    )
+    patient_surname = forms.CharField(
+        label='Hasta Soyadı',
+        max_length=100,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Yılmaz'})
+    )
+    patient_age = forms.IntegerField(
+        label='Hasta Yaşı',
+        min_value=0,
+        max_value=150,
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '45'})
+    )
+    patient_gender = forms.ChoiceField(
+        label='Cinsiyet',
+        choices=[('M', 'Erkek'), ('F', 'Kadın')],
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    
+    # Kalıp Detayları
+    ear_side = forms.ChoiceField(
+        label='Kulak Yönü',
+        choices=[('right', 'Sağ'), ('left', 'Sol')],
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    mold_type = forms.ChoiceField(
+        label='Kalıp Tipi',
+        choices=[
+            ('full', 'Tam Konka'),
+            ('half', 'Yarım Konka'),
+            ('skeleton', 'İskelet'),
+            ('probe', 'Probe'),
+            ('cic', 'CIC'),
+            ('ite', 'ITE'),
+            ('itc', 'ITC'),
+        ],
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    vent_diameter = forms.FloatField(
+        label='Vent Çapı (mm)',
+        min_value=0.0,
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '2.0', 'step': '0.1'})
+    )
+    
+    # Kargo Bilgileri
+    carrier = forms.ChoiceField(
+        label='Kargo Firması',
+        required=False,
+        choices=[
+            ('', 'Seçiniz'),
+            ('aras', 'Aras Kargo'),
+            ('yurtici', 'Yurtiçi Kargo'),
+            ('mng', 'MNG Kargo'),
+            ('ptt', 'PTT Kargo'),
+            ('ups', 'UPS'),
+            ('dhl', 'DHL'),
+            ('fedex', 'FedEx'),
+            ('other', 'Diğer'),
+        ],
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    tracking_number = forms.CharField(
+        label='Takip Numarası',
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Kargo takip numarası'})
+    )
+    
+    # Notlar
+    notes = forms.CharField(
+        label='Notlar',
+        required=False,
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Kalıp hakkında notlar...'})
+    )
+    producer_notes = forms.CharField(
+        label='Üretici Notları',
+        required=False,
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Sipariş hakkında notlar...'})
+    )
+    
+    # Öncelik
+    priority = forms.ChoiceField(
+        label='Öncelik',
+        choices=[
+            ('normal', 'Normal'),
+            ('high', 'Yüksek'),
+            ('urgent', 'Acil'),
+        ],
+        initial='normal',
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+
+    def __init__(self, producer=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if producer:
+            # Sadece bu üreticinin ağındaki aktif merkezleri göster
+            from center.models import Center
+            active_networks = producer.network_centers.filter(
+                status='active',
+                can_receive_orders=True
+            ).values_list('center_id', flat=True)
+            self.fields['center'].queryset = Center.objects.filter(id__in=active_networks)
