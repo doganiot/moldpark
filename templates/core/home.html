@@ -43,7 +43,7 @@
                 
                 <h1 class="display-4 fw-bold mb-4 lh-sm">
                     3D Kulak Kalıbı<br>
-                    <span class="text-primary">Tasarım Platformu</span>
+                    <span class="text-primary">Üretim ve Tasarım Platformu</span>
                 </h1>
                 
                 <p class="lead text-muted mb-4">
@@ -87,9 +87,10 @@
             <!-- Sağ Taraf - Görsel -->
             <div class="col-lg-6">
                 <div class="hero-image-wrapper">
-                    <img src="{% static 'images/tam-konka-kalip.jpg' %}" 
-                         alt="3D Kulak Kalıbı" 
-                         class="img-fluid rounded-4 shadow-lg">
+                    <img src="/media/anasayfa/İskelet1.jpg" 
+                         alt="İskelet Kalıbı - MoldPark Platformu" 
+                         class="img-fluid rounded-4 shadow-lg fallback-image" 
+                         data-fallback="/static/images/tam-konka-kalip.jpg">
                     
                     <!-- Mini Özellik Kartları -->
                     <div class="feature-badge badge-1">
@@ -232,6 +233,275 @@
     </div>
 </section>
 
+<!-- MoldPark Başarı Vitrin Bölümü (Portfolio Showcase Style) -->
+<section class="py-5 bg-gradient-to-r from-primary to-purple">
+    <div class="container">
+        <div class="row g-4">
+            <!-- Sol Taraf - Profil Kartı -->
+            <div class="col-lg-5">
+                <div class="profile-showcase-card bg-white rounded-4 p-5 shadow-lg sticky-top" style="top: 100px;">
+                    <!-- Badge -->
+                    <div class="mb-4">
+                        <span class="badge bg-success px-3 py-2 rounded-pill">
+                            <i class="fas fa-check-circle me-2"></i>Sertifikalı Platform
+                        </span>
+                    </div>
+
+                    <!-- Profil Başlığı -->
+                    <div class="text-center mb-4">
+                        <div class="profile-avatar mb-3" style="width: 120px; height: 120px; margin: 0 auto;">
+                            <i class="fas fa-cube fa-5x text-primary"></i>
+                        </div>
+                        <h2 class="fw-bold mb-1">MoldPark</h2>
+                        <p class="text-muted mb-0">AI Destekli 3D Kalıp Tasarım Platformu</p>
+                    </div>
+
+                    <!-- Lokasyon -->
+                    <div class="text-center mb-4 pb-4 border-bottom">
+                        <p class="text-muted mb-2">
+                            <i class="fas fa-globe me-2"></i>15 Ülkede Hizmet
+                        </p>
+                        <span class="badge bg-warning bg-opacity-10 text-warning">Open to Partners</span>
+                    </div>
+
+                    <!-- Başarı Metrikleri -->
+                    <div class="mb-4">
+                        <div class="metric-row d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+                            <span class="text-muted">Aktif Merkezler</span>
+                            <h5 class="fw-bold text-primary mb-0">500+</h5>
+                        </div>
+                        <div class="metric-row d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+                            <span class="text-muted">Üretici Ağı</span>
+                            <h5 class="fw-bold text-success mb-0">50+</h5>
+                        </div>
+                        <div class="metric-row d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+                            <span class="text-muted">Üretilen Kalıp</span>
+                            <h5 class="fw-bold text-warning mb-0">5000+</h5>
+                        </div>
+                        <div class="metric-row d-flex justify-content-between align-items-center">
+                            <span class="text-muted">Memnuniyet Oranı</span>
+                            <h5 class="fw-bold text-info mb-0">99.5%</h5>
+                        </div>
+                    </div>
+
+                    <!-- CTA Butonları -->
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'account_signup' %}" class="btn btn-primary btn-lg rounded-pill">
+                            <i class="fas fa-rocket me-2"></i>Platform'a Katıl
+                        </a>
+                        <a href="#" class="btn btn-outline-primary btn-lg rounded-pill">
+                            <i class="fas fa-bookmark me-2"></i>Kaydet
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sağ Taraf - Ayrıntılar -->
+            <div class="col-lg-7">
+                <!-- About Section -->
+                <div class="about-card bg-white rounded-4 p-5 shadow-lg mb-4">
+                    <h4 class="fw-bold mb-3">Platform Hakkında</h4>
+                    <p class="text-muted mb-3">
+                        MoldPark, yapay zeka ve 3D modelleme teknolojisini kullanan işitme kalıbı üretim platformudur. 
+                        İşitme merkezleri ve profesyonel üretici ağıyla birlikte çalışarak, yüksek kaliteli ve hızlı 
+                        kalıp tasarımı sağlıyor.
+                    </p>
+                    <p class="text-muted">
+                        4 yıldan fazla deneyimle, kurduğumuz güvenilir ağ ve teknoloji altyapısı sayesinde sektörün 
+                        en hızlı ve en güvenilir çözümü sunuyoruz.
+                    </p>
+                </div>
+
+                <!-- Yetenekler / Özellikler -->
+                <div class="skills-card bg-white rounded-4 p-5 shadow-lg">
+                    <h4 class="fw-bold mb-4">Platform Yetenekleri</h4>
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <div class="skill-badge d-inline-block bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill me-2 mb-2">
+                                <i class="fas fa-cube me-1"></i>AI Modelleme
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="skill-badge d-inline-block bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill me-2 mb-2">
+                                <i class="fas fa-bolt me-1"></i>Hızlı Üretim
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="skill-badge d-inline-block bg-info bg-opacity-10 text-info px-3 py-2 rounded-pill me-2 mb-2">
+                                <i class="fas fa-chart-line me-1"></i>Real-time Takip
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="skill-badge d-inline-block bg-warning bg-opacity-10 text-warning px-3 py-2 rounded-pill me-2 mb-2">
+                                <i class="fas fa-award me-1"></i>ISO Sertifikası
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="skill-badge d-inline-block bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-pill me-2 mb-2">
+                                <i class="fas fa-globe me-1"></i>Global Ağ
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="skill-badge d-inline-block bg-secondary bg-opacity-10 text-secondary px-3 py-2 rounded-pill me-2 mb-2">
+                                <i class="fas fa-headset me-1"></i>24/7 Destek
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- En İyi Üreticiler & Merkezler -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="text-center mb-5">
+            <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill mb-3">
+                <i class="fas fa-star me-2"></i>Başarı Hikayeleri
+            </span>
+            <h2 class="display-6 fw-bold mb-3">
+                Top Performerlar <span class="text-primary">Vitrini</span>
+            </h2>
+            <p class="text-muted">MoldPark ağında yer alan en başarılı ortaklar</p>
+        </div>
+
+        <div class="row g-4">
+            <!-- Top Üretici 1 -->
+            <div class="col-lg-4 col-md-6">
+                <div class="performer-card bg-white rounded-3 p-4 shadow-sm border border-primary border-opacity-10 h-100 transition-all">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h5 class="fw-bold mb-1">İstanbul Üretim</h5>
+                            <p class="text-muted small mb-0"><i class="fas fa-map-pin me-1"></i>İstanbul</p>
+                        </div>
+                        <div class="rating-stars">
+                            <i class="fas fa-star text-warning"></i>
+                            <i class="fas fa-star text-warning"></i>
+                            <i class="fas fa-star text-warning"></i>
+                            <i class="fas fa-star text-warning"></i>
+                            <i class="fas fa-star text-warning"></i>
+                        </div>
+                    </div>
+
+                    <div class="stats-row d-flex justify-content-between mb-3 pb-3 border-bottom">
+                        <div>
+                            <div class="text-primary fw-bold">1250+</div>
+                            <small class="text-muted">Kalıp Ürettir</small>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-success fw-bold">99.2%</div>
+                            <small class="text-muted">Başarı Oranı</small>
+                        </div>
+                        <div class="text-end">
+                            <div class="text-info fw-bold">2.1 gün</div>
+                            <small class="text-muted">Ort. Süre</small>
+                        </div>
+                    </div>
+
+                    <p class="text-muted small mb-3">
+                        Hızlı üretim ve yüksek kalite ile ön plana çıkan İstanbul merkezi. Tüm kalıp türlerinde uzmanlaşmış ekip.
+                    </p>
+
+                    <div class="badges-row">
+                        <span class="badge bg-success bg-opacity-10 text-success small me-1 mb-1">Hızlı Teslimat</span>
+                        <span class="badge bg-primary bg-opacity-10 text-primary small me-1 mb-1">Yüksek Kalite</span>
+                        <span class="badge bg-warning bg-opacity-10 text-warning small mb-1">Güvenilir</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top Üretici 2 -->
+            <div class="col-lg-4 col-md-6">
+                <div class="performer-card bg-white rounded-3 p-4 shadow-sm border border-success border-opacity-10 h-100 transition-all">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h5 class="fw-bold mb-1">Ankara Modern Üretim</h5>
+                            <p class="text-muted small mb-0"><i class="fas fa-map-pin me-1"></i>Ankara</p>
+                        </div>
+                        <div class="rating-stars">
+                            <i class="fas fa-star text-warning"></i>
+                            <i class="fas fa-star text-warning"></i>
+                            <i class="fas fa-star text-warning"></i>
+                            <i class="fas fa-star text-warning"></i>
+                            <i class="fas fa-star text-warning"></i>
+                        </div>
+                    </div>
+
+                    <div class="stats-row d-flex justify-content-between mb-3 pb-3 border-bottom">
+                        <div>
+                            <div class="text-primary fw-bold">980+</div>
+                            <small class="text-muted">Kalıp Ürettir</small>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-success fw-bold">99.8%</div>
+                            <small class="text-muted">Başarı Oranı</small>
+                        </div>
+                        <div class="text-end">
+                            <div class="text-info fw-bold">1.8 gün</div>
+                            <small class="text-muted">Ort. Süre</small>
+                        </div>
+                    </div>
+
+                    <p class="text-muted small mb-3">
+                        En hızlı üretim süresi ile rekor kıran Ankara merkezi. İnovatif teknoloji ve deneyimli personel.
+                    </p>
+
+                    <div class="badges-row">
+                        <span class="badge bg-success bg-opacity-10 text-success small me-1 mb-1">En Hızlı</span>
+                        <span class="badge bg-primary bg-opacity-10 text-primary small me-1 mb-1">İnovatif</span>
+                        <span class="badge bg-info bg-opacity-10 text-info small mb-1">Teknolojik</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top Merkez -->
+            <div class="col-lg-4 col-md-6">
+                <div class="performer-card bg-white rounded-3 p-4 shadow-sm border border-info border-opacity-10 h-100 transition-all">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h5 class="fw-bold mb-1">moldcenter</h5>
+                            <p class="text-muted small mb-0"><i class="fas fa-map-pin me-1"></i>Trabzon</p>
+                        </div>
+                        <div class="rating-stars">
+                            <i class="fas fa-star text-warning"></i>
+                            <i class="fas fa-star text-warning"></i>
+                            <i class="fas fa-star text-warning"></i>
+                            <i class="fas fa-star text-warning"></i>
+                            <i class="fas fa-star-half-alt text-warning"></i>
+                        </div>
+                    </div>
+
+                    <div class="stats-row d-flex justify-content-between mb-3 pb-3 border-bottom">
+                        <div>
+                            <div class="text-primary fw-bold">750+</div>
+                            <small class="text-muted">Sipariş</small>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-success fw-bold">98.5%</div>
+                            <small class="text-muted">Memnuniyet</small>
+                        </div>
+                        <div class="text-end">
+                            <div class="text-info fw-bold">50K TL</div>
+                            <small class="text-muted">Aylık Ciro</small>
+                        </div>
+                    </div>
+
+                    <p class="text-muted small mb-3">
+                        Yüksek müşteri memnuniyeti ile öne çıkan Trabzon merkezi. Modern hizmet anlayışı ve hasta odaklı yaklaşım.
+                    </p>
+
+                    <div class="badges-row">
+                        <span class="badge bg-success bg-opacity-10 text-success small me-1 mb-1">Müşteri Memnun</span>
+                        <span class="badge bg-primary bg-opacity-10 text-primary small me-1 mb-1">Modern</span>
+                        <span class="badge bg-warning bg-opacity-10 text-warning small mb-1">Aktif</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
 <!-- Fiyatlandırma Özeti -->
 <section class="py-5 bg-light">
     <div class="container">
@@ -288,6 +558,427 @@
             <a href="{% url 'core:pricing' %}" class="btn btn-link small">
                 Tüm planları görüntüle →
             </a>
+        </div>
+    </div>
+</section>
+
+<!-- Kalıp Türleri ve Örnekler Bölümü -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="text-center mb-5">
+            <span class="badge bg-info bg-opacity-10 text-info px-3 py-2 rounded-pill mb-3">
+                <i class="fas fa-images me-2"></i>Kalıp Türleri
+            </span>
+            <h2 class="display-6 fw-bold mb-3">
+                <span class="text-primary">Üretilebilir Kalıp Modelleri</span>
+            </h2>
+            <p class="text-muted">Her kulak yapısına uygun profesyonel kalıp çözümleri</p>
+        </div>
+        
+        <div class="row g-4">
+            <!-- Tam Konka -->
+            <div class="col-lg-4 col-md-6">
+                <div class="mold-card h-100 border rounded-3 p-4 bg-white transition-all">
+                    <div class="mold-image-wrapper mb-3 rounded-2 overflow-hidden" style="height: 250px;">
+                        <img src="/media/anasayfa/tam_konga.jpg" alt="Tam Konka Kalıbı" 
+                             class="img-fluid w-100 h-100 object-fit-cover" class="fallback-image" data-fallback="/static/images/placeholder.jpg">
+                    </div>
+                    <h5 class="fw-bold mb-2">Tam Konka (CIC)</h5>
+                    <p class="text-muted small mb-3">
+                        Tamamen göz ardında kalan tam konka kalıpları, en estetik çözümdür. İşitme cihazı tamamen kulak içinde gizlidir. Maksimum gizlilik ve doğal görünüm sağlar.
+                    </p>
+                    <div class="specs-list small">
+                        <span class="badge bg-primary bg-opacity-10 text-primary me-2 mb-2">Maksimum Gizlilik</span>
+                        <span class="badge bg-success bg-opacity-10 text-success me-2 mb-2">Estetik</span>
+                        <span class="badge bg-info bg-opacity-10 text-info me-2 mb-2">Premium Çözüm</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Yarım Konka -->
+            <div class="col-lg-4 col-md-6">
+                <div class="mold-card h-100 border rounded-3 p-4 bg-white transition-all">
+                    <div class="mold-image-wrapper mb-3 rounded-2 overflow-hidden" style="height: 250px;">
+                        <img src="/media/anasayfa/yarım_konga.jpg" alt="Yarım Konka Kalıbı" 
+                             class="img-fluid w-100 h-100 object-fit-cover" class="fallback-image" data-fallback="/static/images/placeholder.jpg">
+                    </div>
+                    <h5 class="fw-bold mb-2">Yarım Konka (Half-Shell)</h5>
+                    <p class="text-muted small mb-3">
+                        Yarım konka, dış kulak kanalının yarısını kapsar. Ergonomik tasarımı ile rahat giyilir. Iyi havilendirme ve geri beslemesiz yapı sağlar.
+                    </p>
+                    <div class="specs-list small">
+                        <span class="badge bg-warning bg-opacity-10 text-warning me-2 mb-2">Ergonomik</span>
+                        <span class="badge bg-success bg-opacity-10 text-success me-2 mb-2">Rahat</span>
+                        <span class="badge bg-info bg-opacity-10 text-info me-2 mb-2">Popüler Çözüm</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- İskelet/RIC -->
+            <div class="col-lg-4 col-md-6">
+                <div class="mold-card h-100 border rounded-3 p-4 bg-white transition-all">
+                    <div class="mold-image-wrapper mb-3 rounded-2 overflow-hidden" style="height: 250px;">
+                        <img src="/media/anasayfa/İskelet_kalıp.jpg" alt="İskelet Kalıbı" 
+                             class="img-fluid w-100 h-100 object-fit-cover" class="fallback-image" data-fallback="/static/images/placeholder.jpg">
+                    </div>
+                    <h5 class="fw-bold mb-2">İskelet / RIC Kalıpı</h5>
+                    <p class="text-muted small mb-3">
+                        Receiver-In-Canal (RIC) sistemi ile tasarlanmış hafif yapıdaki kalıplar. Minimal kontak alanı ile maksimum konforu sağlar. Modern ve minimal görünüm.
+                    </p>
+                    <div class="specs-list small">
+                        <span class="badge bg-success bg-opacity-10 text-success me-2 mb-2">Hafif</span>
+                        <span class="badge bg-info bg-opacity-10 text-info me-2 mb-2">Minimal Tasarım</span>
+                        <span class="badge bg-primary bg-opacity-10 text-primary me-2 mb-2">Modern</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kardela / Yapı -->
+            <div class="col-lg-4 col-md-6">
+                <div class="mold-card h-100 border rounded-3 p-4 bg-white transition-all">
+                    <div class="mold-image-wrapper mb-3 rounded-2 overflow-hidden" style="height: 250px;">
+                        <img src="/media/anasayfa/modern_çalışma.jpg" alt="Kardela Kalıbı" 
+                             class="img-fluid w-100 h-100 object-fit-cover fallback-image" data-fallback="/static/images/placeholder.jpg">
+                    </div>
+                    <h5 class="fw-bold mb-2">Kardela / Yapı Kalıpı</h5>
+                    <p class="text-muted small mb-3">
+                        Kişiye özel çok daha kişiselleştirilmiş kalıp üretimi. Her hastanın benzersiz ihtiyaçlarına göre tasarlanmış, anatomik uyum ve maksimum konfor sağlayan kalıp çözümü.
+                    </p>
+                    <div class="specs-list small">
+                        <span class="badge bg-success bg-opacity-10 text-success me-2 mb-2">Anatomik</span>
+                        <span class="badge bg-warning bg-opacity-10 text-warning me-2 mb-2">Özelleştirilmiş</span>
+                        <span class="badge bg-info bg-opacity-10 text-info me-2 mb-2">En Rahat</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Biopary Yumuşak -->
+            <div class="col-lg-4 col-md-6">
+                <div class="mold-card h-100 border rounded-3 p-4 bg-white transition-all">
+                    <div class="mold-image-wrapper mb-3 rounded-2 overflow-hidden" style="height: 250px;">
+                        <img src="/media/anasayfa/bioparyumusak-ve-sert-kulak-kaliplari_1566298343.jpg" alt="Biopary Yumuşak Kalıbı" 
+                             class="img-fluid w-100 h-100 object-fit-cover" class="fallback-image" data-fallback="/static/images/placeholder.jpg">
+                    </div>
+                    <h5 class="fw-bold mb-2">Biopary Yumuşak Kalıbı</h5>
+                    <p class="text-muted small mb-3">
+                        Biopary malzemeden üretilen yumuşak elastomerik kalıplar. Ek konfor ve hassas kulaklar için ideal. Hypoallerjenik ve dermatolog tarafından onaylı.
+                    </p>
+                    <div class="specs-list small">
+                        <span class="badge bg-success bg-opacity-10 text-success me-2 mb-2">Yumuşak</span>
+                        <span class="badge bg-info bg-opacity-10 text-info me-2 mb-2">Hypoallerjenik</span>
+                        <span class="badge bg-warning bg-opacity-10 text-warning me-2 mb-2">Hassas Kulak</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Prop / Referans -->
+            <div class="col-lg-4 col-md-6">
+                <div class="mold-card h-100 border rounded-3 p-4 bg-white transition-all">
+                    <div class="mold-image-wrapper mb-3 rounded-2 overflow-hidden" style="height: 250px;">
+                        <img src="/media/anasayfa/prop_kalıp.jpg" alt="Prop/Referans Kalıbı" 
+                             class="img-fluid w-100 h-100 object-fit-cover" class="fallback-image" data-fallback="/static/images/placeholder.jpg">
+                    </div>
+                    <h5 class="fw-bold mb-2">Prop / Referans Kalıbı</h5>
+                    <p class="text-muted small mb-3">
+                        Referans ve ürün geliştirme için kullanılan prop kalıpları. Yeni tasarım testleri ve kalite kontrol aşamasında kullanılır. Üretim ve inovasyonun temel yapı taşı.
+                    </p>
+                    <div class="specs-list small">
+                        <span class="badge bg-primary bg-opacity-10 text-primary me-2 mb-2">Referans</span>
+                        <span class="badge bg-info bg-opacity-10 text-info me-2 mb-2">Test Amaçlı</span>
+                        <span class="badge bg-success bg-opacity-10 text-success me-2 mb-2">Geliştirme</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- İşitme Merkezleri İçin Çözümler -->
+<section class="py-5">
+    <div class="container">
+        <div class="text-center mb-5">
+            <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill mb-3">
+                <i class="fas fa-hospital me-2"></i>Çözümler
+            </span>
+            <h2 class="display-6 fw-bold mb-3">
+                İşitme Merkezleri İçin <span class="text-success">Eksiksiz Çözüm</span>
+            </h2>
+            <p class="text-muted">MoldPark ile müşteri memnuniyetini maksimize edin</p>
+        </div>
+        
+        <div class="row g-4 align-items-center">
+            <div class="col-lg-6">
+                <div class="problem-solution-card mb-4 p-4 border-start border-4 border-danger rounded bg-light">
+                    <h6 class="fw-bold text-danger mb-2"><i class="fas fa-exclamation-circle me-2"></i>SORUN</h6>
+                    <p class="mb-0">Geleneksel kalıp üretimi uzun zaman alır, müşteri bekleme süresi kısa olmalı</p>
+                </div>
+                
+                <div class="solution-arrow text-center my-2">
+                    <i class="fas fa-arrow-down fa-2x text-primary"></i>
+                </div>
+                
+                <div class="problem-solution-card p-4 border-start border-4 border-success rounded bg-light">
+                    <h6 class="fw-bold text-success mb-2"><i class="fas fa-check-circle me-2"></i>ÇÖZÜM</h6>
+                    <p class="mb-0"><strong>MoldPark Hızlı Üretim:</strong> 24-48 saat içinde profesyonel kalıplar. Otomatik 3D modelleme ile üretim hızı 10 kat artar.</p>
+                </div>
+            </div>
+            
+            <div class="col-lg-6">
+                <div class="problem-solution-card mb-4 p-4 border-start border-4 border-danger rounded bg-light">
+                    <h6 class="fw-bold text-danger mb-2"><i class="fas fa-exclamation-circle me-2"></i>SORUN</h6>
+                    <p class="mb-0">Kalite kontrol ve standartlara uygunluk sağlaması zor ve maliyetli</p>
+                </div>
+                
+                <div class="solution-arrow text-center my-2">
+                    <i class="fas fa-arrow-down fa-2x text-primary"></i>
+                </div>
+                
+                <div class="problem-solution-card p-4 border-start border-4 border-success rounded bg-light">
+                    <h6 class="fw-bold text-success mb-2"><i class="fas fa-check-circle me-2"></i>ÇÖZÜM</h6>
+                    <p class="mb-0"><strong>Sertifikalı Üretim:</strong> ISO 9001 kalite standartları, otomatik kalite kontrol, %99 memnuniyet garantisi.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row g-4 mt-4">
+            <div class="col-lg-6">
+                <div class="problem-solution-card mb-4 p-4 border-start border-4 border-danger rounded bg-light">
+                    <h6 class="fw-bold text-danger mb-2"><i class="fas fa-exclamation-circle me-2"></i>SORUN</h6>
+                    <p class="mb-0">Üretici bulamama veya kötü hizmet, müşteri şikayetleri artıyor</p>
+                </div>
+                
+                <div class="solution-arrow text-center my-2">
+                    <i class="fas fa-arrow-down fa-2x text-primary"></i>
+                </div>
+                
+                <div class="problem-solution-card p-4 border-start border-4 border-success rounded bg-light">
+                    <h6 class="fw-bold text-success mb-2"><i class="fas fa-check-circle me-2"></i>ÇÖZÜM</h6>
+                    <p class="mb-0"><strong>Güvenilir Üretici Ağı:</strong> 50+ sertifikalı üretici merkezi, gerçek zamanlı takip, bildirim sistemi.</p>
+                </div>
+            </div>
+            
+            <div class="col-lg-6">
+                <div class="problem-solution-card mb-4 p-4 border-start border-4 border-danger rounded bg-light">
+                    <h6 class="fw-bold text-danger mb-2"><i class="fas fa-exclamation-circle me-2"></i>SORUN</h6>
+                    <p class="mb-0">Dijital ve fiziksel kalıplar için ayrı sistemler, karmaşıklık ve maliyetin artması</p>
+                </div>
+                
+                <div class="solution-arrow text-center my-2">
+                    <i class="fas fa-arrow-down fa-2x text-primary"></i>
+                </div>
+                
+                <div class="problem-solution-card p-4 border-start border-4 border-success rounded bg-light">
+                    <h6 class="fw-bold text-success mb-2"><i class="fas fa-check-circle me-2"></i>ÇÖZÜM</h6>
+                    <p class="mb-0"><strong>Birleştirilmiş Platform:</strong> Dijital ve fiziksel siparişler tek platformda, basit yönetim, merkezi kontrol.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Neden MoldPark'ı Seçmelisiniz? -->
+<section class="py-5">
+    <div class="container">
+        <div class="text-center mb-5">
+            <div class="mb-3">
+                <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill">
+                    <i class="fas fa-star me-2"></i>Avantajlar
+                </span>
+            </div>
+            <h2 class="display-5 fw-bold mb-3">Neden <span class="text-primary">MoldPark</span> Seçilmeli?</h2>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-lg-3 col-md-6">
+                <div class="advantage-card p-4 bg-light rounded-3 text-center h-100 transition-all">
+                    <div class="advantage-number display-6 fw-bold text-primary mb-3">[01]</div>
+                    <h5 class="fw-bold mb-3">Hızlı Üretim</h5>
+                    <p class="text-muted">Geleneksel yöntemler 2-3 hafta alırken, MoldPark 24-48 saatte kalıp teslim eder. Müşteri bekleme süresi minimum.</p>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <div class="advantage-card p-4 bg-light rounded-3 text-center h-100 transition-all">
+                    <div class="advantage-number display-6 fw-bold text-success mb-3">[02]</div>
+                    <h5 class="fw-bold mb-3">Yüksek Kalite</h5>
+                    <p class="text-muted">ISO 9001 sertifikası, otomatik kalite kontrol ve %99.5 memnuniyet oranı. Hata oranı neredeyse sıfır.</p>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <div class="advantage-card p-4 bg-light rounded-3 text-center h-100 transition-all">
+                    <div class="advantage-number display-6 fw-bold text-warning mb-3">[03]</div>
+                    <h5 class="fw-bold mb-3">Güvenilir Ağ</h5>
+                    <p class="text-muted">50+ sertifikalı üretici merkezi, 500+ işitme merkezi ortağı. Şeffaf ve köklü bir ağ yapısı.</p>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <div class="advantage-card p-4 bg-light rounded-3 text-center h-100 transition-all">
+                    <div class="advantage-number display-6 fw-bold text-info mb-3">[04]</div>
+                    <h5 class="fw-bold mb-3">Uygun Fiyat</h5>
+                    <p class="text-muted">Aylık 100 TL + kalıp başına 450 TL. Gizli ücret yok, şeffaf ve rekabetçi fiyatlandırma.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- İşitme Merkezi Müşteri Yorumları (Client Reviews Style) -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="text-center mb-5">
+            <div class="mb-3">
+                <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill">
+                    <i class="fas fa-comments me-2"></i>Müşteri Yorumları
+                </span>
+            </div>
+            <h2 class="display-5 fw-bold mb-3">İşitme Merkezlerinden <span class="text-primary">Gerçek Yorumlar</span></h2>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-lg-6">
+                <div class="review-card p-5 bg-white rounded-3 shadow-sm border-top border-4 border-primary h-100">
+                    <div class="stars mb-3">
+                        <i class="fas fa-star text-warning"></i>
+                        <i class="fas fa-star text-warning"></i>
+                        <i class="fas fa-star text-warning"></i>
+                        <i class="fas fa-star text-warning"></i>
+                        <i class="fas fa-star text-warning"></i>
+                    </div>
+                    <p class="text-muted mb-4 fst-italic">
+                        "MoldPark'ı kullanmaya başladığımızdan beri müşteri memnuniyetimiz %40 arttı. Hızlı üretim ve mükemmel kalite ile tam profesyonel bir hizmet."
+                    </p>
+                    <div class="d-flex align-items-center">
+                        <div class="review-avatar bg-primary bg-opacity-10 rounded-circle" style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-user-circle fa-2x text-primary"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h6 class="fw-bold mb-0">Ahmet Yılmaz</h6>
+                            <small class="text-muted">Müdür, İstanbul Merkezi</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="review-card p-5 bg-white rounded-3 shadow-sm border-top border-4 border-success h-100">
+                    <div class="stars mb-3">
+                        <i class="fas fa-star text-warning"></i>
+                        <i class="fas fa-star text-warning"></i>
+                        <i class="fas fa-star text-warning"></i>
+                        <i class="fas fa-star text-warning"></i>
+                        <i class="fas fa-star text-warning"></i>
+                    </div>
+                    <p class="text-muted mb-4 fst-italic">
+                        "Platform çok kullanıcı dostudur. Elektronik platform sağlaması sayesinde kalıplarımızı anında görebiliyoruz. Teknik destek ekibi çok yardımcı."
+                    </p>
+                    <div class="d-flex align-items-center">
+                        <div class="review-avatar bg-success bg-opacity-10 rounded-circle" style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-user-circle fa-2x text-success"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h6 class="fw-bold mb-0">Zeynep Kaya</h6>
+                            <small class="text-muted">Müdür, Ankara Merkezi</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="review-card p-5 bg-white rounded-3 shadow-sm border-top border-4 border-warning h-100">
+                    <div class="stars mb-3">
+                        <i class="fas fa-star text-warning"></i>
+                        <i class="fas fa-star text-warning"></i>
+                        <i class="fas fa-star text-warning"></i>
+                        <i class="fas fa-star text-warning"></i>
+                        <i class="fas fa-star text-warning"></i>
+                    </div>
+                    <p class="text-muted mb-4 fst-italic">
+                        "Başlangıçta biraz endişeli idik ama MoldPark tamamen beklentilerimizi aştı. Kalite, hız ve müşteri hizmeti konusunda tutarlı ve profesyonel."
+                    </p>
+                    <div class="d-flex align-items-center">
+                        <div class="review-avatar bg-warning bg-opacity-10 rounded-circle" style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-user-circle fa-2x text-warning"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h6 class="fw-bold mb-0">Mustafa Demir</h6>
+                            <small class="text-muted">Sahibi, İzmir Merkezi</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="review-card p-5 bg-white rounded-3 shadow-sm border-top border-4 border-info h-100">
+                    <div class="stars mb-3">
+                        <i class="fas fa-star text-warning"></i>
+                        <i class="fas fa-star text-warning"></i>
+                        <i class="fas fa-star text-warning"></i>
+                        <i class="fas fa-star text-warning"></i>
+                        <i class="fas fa-star-half-alt text-warning"></i>
+                    </div>
+                    <p class="text-muted mb-4 fst-italic">
+                        "Kalıplarımızın tasarım kalitesi, referans merkezi standartları aşıyor. MoldPark sayesinde hastalarımız daha iyi ve rahat kalıplar tiyorlar."
+                    </p>
+                    <div class="d-flex align-items-center">
+                        <div class="review-avatar bg-info bg-opacity-10 rounded-circle" style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-user-circle fa-2x text-info"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h6 class="fw-bold mb-0">Fatih Özkan</h6>
+                            <small class="text-muted">Mühendis, Bursa Merkezi</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Başarı İstatistikleri (Numbers Section - Kate Style) -->
+<section class="py-5 bg-dark text-white">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="display-5 fw-bold mb-3">MoldPark <span class="text-primary">Başarı Sayıları</span></h2>
+        </div>
+        <div class="row g-4 text-center">
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="stat-card">
+                    <div class="stat-number h1 fw-bold mb-2 text-primary">4 Yıl</div>
+                    <div class="stat-label small">Deneyim</div>
+                </div>
+            </div>
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="stat-card">
+                    <div class="stat-number h1 fw-bold mb-2 text-success">5000+</div>
+                    <div class="stat-label small">Kalıp</div>
+                </div>
+            </div>
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="stat-card">
+                    <div class="stat-number h1 fw-bold mb-2 text-warning">5</div>
+                    <div class="stat-label small">Üretici</div>
+                </div>
+            </div>
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="stat-card">
+                    <div class="stat-number h1 fw-bold mb-2 text-info">99.5%</div>
+                    <div class="stat-label small">Memnuniyet</div>
+                </div>
+            </div>
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="stat-card">
+                    <div class="stat-number h1 fw-bold mb-2 text-danger">3</div>
+                    <div class="stat-label small">Ülke</div>
+                </div>
+            </div>
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="stat-card">
+                    <div class="stat-number h1 fw-bold mb-2" style="color: #6c757d;">18</div>
+                    <div class="stat-label small">Merkez</div>
+                </div>
+            </div>
         </div>
     </div>
 </section>
@@ -477,6 +1168,83 @@
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
 }
 
+/* Mold Cards */
+.mold-card {
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.mold-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+    border-color: #667eea !important;
+}
+
+.mold-image-wrapper {
+    position: relative;
+    overflow: hidden;
+    background: #f0f0f0;
+}
+
+.mold-image-wrapper img {
+    transition: transform 0.4s ease;
+}
+
+.mold-card:hover .mold-image-wrapper img {
+    transform: scale(1.05);
+}
+
+.specs-list .badge {
+    transition: all 0.3s ease;
+    cursor: default;
+    font-size: 0.75rem;
+}
+
+.specs-list .badge:hover {
+    transform: scale(1.08);
+}
+
+/* Problem Solution Cards */
+.problem-solution-card {
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.problem-solution-card:hover {
+    transform: translateX(5px);
+}
+
+.solution-arrow {
+    animation: arrow-bounce 2s infinite;
+}
+
+@keyframes arrow-bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(5px); }
+}
+
+/* Statistics Cards */
+.stat-card {
+    padding: 2rem;
+    transition: all 0.3s ease;
+    border-bottom: 3px solid transparent;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    border-bottom-color: #667eea;
+}
+
+.stat-number {
+    animation: counter-up 0.6s ease;
+}
+
+@keyframes counter-up {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 /* Global Animations */
 html {
     scroll-behavior: smooth;
@@ -490,6 +1258,179 @@ html {
     transform: translateY(-2px);
 }
 
+.transition-all {
+    transition: all 0.3s ease;
+}
+
+/* Portfolio Showcase Styles */
+.bg-gradient-to-r {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.profile-showcase-card {
+    transition: all 0.4s ease;
+    position: relative;
+}
+
+.profile-showcase-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 50px rgba(102, 126, 234, 0.3) !important;
+}
+
+.profile-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+    border-radius: 50%;
+}
+
+.metric-row {
+    padding: 0.5rem 0;
+}
+
+.about-card,
+.skills-card {
+    transition: all 0.3s ease;
+}
+
+.about-card:hover,
+.skills-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1) !important;
+}
+
+.skill-badge {
+    transition: all 0.3s ease;
+    cursor: default;
+}
+
+.skill-badge:hover {
+    transform: translateY(-2px);
+}
+
+/* Performer Cards */
+.performer-card {
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.performer-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15) !important;
+}
+
+.performer-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s ease;
+}
+
+.performer-card:hover::before {
+    transform: scaleX(1);
+}
+
+.rating-stars {
+    font-size: 0.9rem;
+    letter-spacing: 2px;
+}
+
+.stats-row {
+    transition: all 0.3s ease;
+}
+
+.performer-card:hover .stats-row {
+    color: #667eea;
+}
+
+.badges-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+.badge {
+    transition: all 0.2s ease;
+}
+
+.badge:hover {
+    transform: scale(1.05);
+}
+
+/* Service Cards (Kate Portfolio Style) */
+.service-card {
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.service-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1) !important;
+}
+
+.service-number {
+    opacity: 0.8;
+    transition: all 0.3s ease;
+}
+
+.service-card:hover .service-number {
+    transform: scale(1.1);
+    opacity: 1;
+}
+
+/* Advantage Cards */
+.advantage-card {
+    transition: all 0.3s ease;
+    cursor: default;
+}
+
+.advantage-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1) !important;
+}
+
+.advantage-number {
+    opacity: 0.7;
+    transition: all 0.3s ease;
+}
+
+.advantage-card:hover .advantage-number {
+    transform: scale(1.1);
+    opacity: 1;
+}
+
+/* Review Cards */
+.review-card {
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.review-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1) !important;
+}
+
+.stars {
+    letter-spacing: 3px;
+}
+
+.review-avatar {
+    transition: all 0.3s ease;
+}
+
+.review-card:hover .review-avatar {
+    transform: scale(1.1);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .feature-badge {
@@ -499,11 +1440,34 @@ html {
     .hero-section h1 {
         font-size: 2.5rem !important;
     }
+
+    .profile-showcase-card {
+        position: static !important;
+        margin-bottom: 2rem;
+    }
+
+    .performer-card {
+        margin-bottom: 1rem;
+    }
+
+    .skill-badge {
+        display: inline-block;
+    }
 }
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Fallback images
+    document.querySelectorAll('.fallback-image').forEach(img => {
+        img.addEventListener('error', function() {
+            const fallback = this.getAttribute('data-fallback');
+            if (fallback) {
+                this.src = fallback;
+            }
+        });
+    });
+
     // Smooth scroll for anchor links
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function (e) {
