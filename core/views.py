@@ -1338,65 +1338,61 @@ def subscription_dashboard(request):
                             primary_network = active_networks.first()
                             producer = primary_network.producer
                             
-                            # Bu üretici için paket faturası var mı kontrol et
-                            existing_producer_invoice = Invoice.objects.filter(
-                                producer=producer,
-                                invoice_type='producer_invoice',
-                                breakdown_data__package_invoice_number=invoice_number
-                            ).first()
+                            # Üretici faturası oluştur - Paket fiyatı üzerinden
+                            # Paket satın alındığında üretici merkez bu satın almayı karşılayacak olan taraftır
+                            # MoldPark Hizmet Bedeli (%6.5) KDV DAHİL brüt tutar üzerinden alınır
+                            producer_moldpark_fee = pricing.calculate_moldpark_fee(plan.price_try)
+                            producer_cc_fee = pricing.calculate_credit_card_fee(plan.price_try) if payment_method == 'credit_card' else Decimal('0.00')
                             
-                            if not existing_producer_invoice:
-                                # Üretici faturası oluştur - Paket fiyatı üzerinden
-                                vat_multiplier = Decimal('1') + (pricing.vat_rate / Decimal('100'))
-                                package_amount_without_vat = plan.price_try / vat_multiplier
-                                package_vat_amount = plan.price_try - package_amount_without_vat
-                                
-                                # MoldPark hizmet bedeli (KDV DAHİL brüt tutar üzerinden)
-                                producer_moldpark_fee = pricing.calculate_moldpark_fee(plan.price_try)
-                                producer_cc_fee = pricing.calculate_credit_card_fee(plan.price_try) if payment_method == 'credit_card' else Decimal('0.00')
-                                
-                                # Üretici net kazancı: KDV hariç tutar - MoldPark komisyonu
-                                producer_net_amount = package_amount_without_vat - producer_moldpark_fee
-                                
-                                producer_invoice = Invoice.objects.create(
-                                    invoice_number=Invoice.generate_invoice_number('producer_invoice'),
-                                    invoice_type='producer_invoice',
-                                    producer=producer,
-                                    user=producer.user,
-                                    issued_by=request.user,
-                                    issued_by_producer=producer,
-                                    issue_date=timezone.now().date(),
-                                    due_date=(timezone.now() + timedelta(days=30)).date(),
-                                    status='issued',
-                                    # Paket bilgileri
-                                    physical_mold_count=plan.monthly_model_limit,
-                                    producer_gross_revenue=plan.price_try,
-                                    producer_net_revenue=producer_net_amount,
-                                    moldpark_service_fee=producer_moldpark_fee,
-                                    credit_card_fee=producer_cc_fee,
-                                    moldpark_service_fee_rate=pricing.moldpark_commission_rate,
-                                    credit_card_fee_rate=pricing.credit_card_commission_rate,
-                                    total_amount=plan.price_try,
-                                    net_amount=producer_net_amount,
-                                    vat_rate=pricing.vat_rate,
-                                    subtotal_without_vat=package_amount_without_vat,
-                                    vat_amount=package_vat_amount,
-                                    breakdown_data={
-                                        'package_invoice_number': invoice_number,
-                                        'package_name': plan.name,
-                                        'package_id': plan.id,
-                                        'package_price': str(plan.price_try),
-                                        'mold_count': plan.monthly_model_limit,
-                                        'unit_price': str(plan.per_mold_price_try),
-                                        'center_id': center.id,
-                                        'center_name': center.name,
-                                        'payment_method': payment_method,
-                                        'note': f'{plan.name} paketi satın alındığında paket fiyatı üzerinden üretici faturası oluşturuldu. Kullanılan kalıp sayısına bakılmaksızın paket fiyatı üzerinden hesaplanmıştır.',
-                                    },
-                                    notes=f'{plan.name} paketi satın alındığında paket fiyatı üzerinden üretici faturası. Paket içeriği: {plan.monthly_model_limit} kalıp.',
-                                )
-                                
-                                logger.info(f"Paket satın alındığında üretici faturası oluşturuldu: {producer_invoice.invoice_number} - Üretici: {producer.company_name} - Tutar: {plan.price_try} TL")
+                            # Üreticiye ödeme: KDV DAHİL brüt tutar - MoldPark komisyonu
+                            producer_net_amount = plan.price_try - producer_moldpark_fee
+                            
+                            # KDV hesaplamaları (bilgi amaçlı)
+                            vat_multiplier = Decimal('1') + (pricing.vat_rate / Decimal('100'))
+                            package_amount_without_vat = plan.price_try / vat_multiplier
+                            package_vat_amount = plan.price_try - package_amount_without_vat
+                            
+                            producer_invoice = Invoice.objects.create(
+                                invoice_number=Invoice.generate_invoice_number('producer_invoice'),
+                                invoice_type='producer_invoice',
+                                producer=producer,
+                                user=producer.user,
+                                issued_by=request.user,
+                                issued_by_producer=producer,
+                                issue_date=timezone.now().date(),
+                                due_date=(timezone.now() + timedelta(days=30)).date(),
+                                status='issued',
+                                # Paket bilgileri
+                                physical_mold_count=plan.monthly_model_limit,
+                                # Paket fiyatı (KDV dahil brüt tutar) - Üretici merkez bu satın almayı karşılayacak olan taraftır
+                                producer_gross_revenue=plan.price_try,
+                                # Üreticiye ödeme: KDV DAHİL brüt tutar - MoldPark komisyonu
+                                producer_net_revenue=producer_net_amount,
+                                net_amount=producer_net_amount,
+                                moldpark_service_fee=producer_moldpark_fee,
+                                credit_card_fee=producer_cc_fee,
+                                moldpark_service_fee_rate=pricing.moldpark_commission_rate,
+                                credit_card_fee_rate=pricing.credit_card_commission_rate,
+                                total_amount=plan.price_try,
+                                vat_rate=pricing.vat_rate,
+                                subtotal_without_vat=package_amount_without_vat,
+                                vat_amount=package_vat_amount,
+                                breakdown_data={
+                                    'package_invoice_number': invoice_number,
+                                    'package_name': plan.name,
+                                    'package_id': plan.id,
+                                    'package_price': str(plan.price_try),
+                                    'mold_count': plan.monthly_model_limit,
+                                    'unit_price': str(plan.per_mold_price_try),
+                                    'center_id': center.id,
+                                    'center_name': center.name,
+                                    'payment_method': payment_method,
+                                    'note': f'{plan.name} paketi satın alındığında paket fiyatı üzerinden üretici faturası oluşturuldu. Kullanılan kalıp sayısına bakılmaksızın paket fiyatı üzerinden hesaplanmıştır.',
+                                },
+                                notes=f'{plan.name} paketi satın alındığında paket fiyatı üzerinden üretici faturası. Paket içeriği: {plan.monthly_model_limit} kalıp.',
+                            )
+                            
+                            logger.info(f"Paket satın alındığında üretici faturası oluşturuldu: {producer_invoice.invoice_number} - Üretici: {producer.company_name} - Tutar: {plan.price_try} TL")
                     except Exception as e:
                         logger.error(f"Paket satın alındığında üretici faturası oluşturulurken hata: {e}")
                         # Üretici faturası oluşturulamasa bile işleme devam et
