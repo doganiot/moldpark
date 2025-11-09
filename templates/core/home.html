@@ -16,7 +16,7 @@
                     <i class="fas fa-hand-holding-usd fa-2x me-3"></i>
                     <div>
                         <strong class="d-block">💰 Kullandıkça Öde Sistemi!</strong>
-                        <small class="opacity-75">Aylık 100 TL + Kalıp başına 450 TL - Sınırsız üretim</small>
+                        <small class="opacity-75">ÜCRETSİZ abonelik + Paketler veya Tek kalıp seçeneği</small>
                     </div>
                 </div>
             </div>
@@ -514,42 +514,56 @@
             <div class="col-lg-8">
                 <div class="price-card-simple text-center p-5 bg-white rounded-3 shadow-lg position-relative">
                     <div class="position-absolute top-0 start-50 translate-middle">
-                        <span class="badge bg-primary">Tek Paket</span>
+                        <span class="badge bg-success">ÜCRETSİZ Abonelik</span>
                     </div>
-                    <i class="fas fa-hand-holding-usd fa-3x text-primary mb-4"></i>
-                    <h4 class="fw-bold mb-4">MoldPark Standart Paket</h4>
+                    <i class="fas fa-gift fa-3x text-success mb-4"></i>
+                    <h4 class="fw-bold mb-4">MoldPark Paketler</h4>
                     
                     <div class="row mb-4">
                         <div class="col-md-4 mb-3">
                             <div class="border rounded p-4 bg-light">
-                                <div class="text-muted mb-2">Aylık Sistem Kullanımı</div>
-                                <div class="h2 fw-bold text-primary mb-0">₺100</div>
-                                <small class="text-muted">/ay</small>
+                                <div class="text-muted mb-2">Abonelik Ücreti</div>
+                                <div class="h2 fw-bold text-success mb-0">₺0</div>
+                                <small class="text-muted">ÜCRETSİZ</small>
                             </div>
                         </div>
                         <div class="col-md-4 mb-3">
                             <div class="border rounded p-4 bg-light">
-                                <div class="text-muted mb-2">Kalıp Başına Ücret</div>
-                                <div class="h2 fw-bold text-success mb-0">₺450</div>
-                                <small class="text-muted">/kalıp (kargo hariç)</small>
+                                <div class="text-muted mb-2">Tek Kalıp</div>
+                                <div class="h2 fw-bold text-primary mb-0">₺450</div>
+                                <small class="text-muted">/kalıp (KDV dahil)</small>
                             </div>
                         </div>
                         <div class="col-md-4 mb-3">
                             <div class="border rounded p-4 bg-light">
-                                <div class="text-muted mb-2">3D Kalıp Modelleme Hizmeti</div>
-                                <div class="h2 fw-bold text-warning mb-0">₺50</div>
-                                <small class="text-muted">/kalıp</small>
+                                <div class="text-muted mb-2">3D Modelleme</div>
+                                <div class="h2 fw-bold text-warning mb-0">₺19</div>
+                                <small class="text-muted">/kalıp (KDV dahil)</small>
                             </div>
                         </div>
                     </div>
                     
                     <div class="mb-4">
-                        <div class="badge bg-success bg-opacity-10 text-success px-3 py-2 mb-2">
-                            <i class="fas fa-infinity me-2"></i>Sınırsız Kalıp Üretimi
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <div class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 mb-2 d-block">
+                                    <i class="fas fa-box me-2"></i>Paket 1: 5 Kalıp - ₺2,100
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="badge bg-warning bg-opacity-10 text-warning px-3 py-2 mb-2 d-block">
+                                    <i class="fas fa-star me-2"></i>Paket 2: 10 Kalıp - ₺3,990
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="badge bg-success bg-opacity-10 text-success px-3 py-2 mb-2 d-block">
+                                    <i class="fas fa-boxes me-2"></i>Paket 3: 20 Kalıp - ₺7,580
+                                </div>
+                            </div>
                         </div>
                     </div>
                     
-                    <a href="{% url 'core:pricing' %}" class="btn btn-primary btn-lg px-5">Detaylı Bilgi</a>
+                    <a href="{% url 'core:pricing' %}" class="btn btn-primary btn-lg px-5">Paketleri Görüntüle</a>
                 </div>
             </div>
         </div>
@@ -817,7 +831,7 @@
                 <div class="advantage-card p-4 bg-light rounded-3 text-center h-100 transition-all">
                     <div class="advantage-number display-6 fw-bold text-info mb-3">[04]</div>
                     <h5 class="fw-bold mb-3">Uygun Fiyat</h5>
-                    <p class="text-muted">Aylık 100 TL + kalıp başına 450 TL. Gizli ücret yok, şeffaf ve rekabetçi fiyatlandırma.</p>
+                    <p class="text-muted">ÜCRETSİZ abonelik + Paketler veya tek kalıp seçeneği. Gizli ücret yok, şeffaf ve rekabetçi fiyatlandırma.</p>
                 </div>
             </div>
         </div>
@@ -1045,7 +1059,7 @@
 
 /* Campaign Banner */
 .campaign-banner {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #F5B427 0%, #D49A1F 100%);
     color: white;
 }
 
@@ -1132,7 +1146,7 @@
 .step-number-circle {
     width: 50px;
     height: 50px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #F5B427 0%, #D49A1F 100%);
     color: white;
     border-radius: 50%;
     display: inline-flex;
@@ -1178,7 +1192,7 @@
 .mold-card:hover {
     transform: translateY(-8px);
     box-shadow: 0 15px 35px rgba(0,0,0,0.15);
-    border-color: #667eea !important;
+    border-color: #F5B427 !important;
 }
 
 .mold-image-wrapper {
@@ -1233,7 +1247,7 @@
 
 .stat-card:hover {
     transform: translateY(-5px);
-    border-bottom-color: #667eea;
+    border-bottom-color: #F5B427;
 }
 
 .stat-number {
@@ -1264,7 +1278,7 @@ html {
 
 /* Portfolio Showcase Styles */
 .bg-gradient-to-r {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #F5B427 0%, #D49A1F 100%);
 }
 
 .profile-showcase-card {
@@ -1274,14 +1288,14 @@ html {
 
 .profile-showcase-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 20px 50px rgba(102, 126, 234, 0.3) !important;
+    box-shadow: 0 20px 50px rgba(245, 180, 39, 0.3) !important;
 }
 
 .profile-avatar {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+    background: linear-gradient(135deg, rgba(245, 180, 39, 0.08) 0%, rgba(212, 154, 31, 0.08) 100%);
     border-radius: 50%;
 }
 
@@ -1328,7 +1342,7 @@ html {
     left: 0;
     right: 0;
     height: 3px;
-    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(90deg, #F5B427 0%, #D49A1F 100%);
     transform: scaleX(0);
     transform-origin: left;
     transition: transform 0.3s ease;
@@ -1348,7 +1362,7 @@ html {
 }
 
 .performer-card:hover .stats-row {
-    color: #667eea;
+    color: #F5B427;
 }
 
 .badges-row {

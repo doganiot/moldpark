@@ -3,6 +3,35 @@
 
 {% block title %}Abonelik Yönetimi - MoldPark{% endblock %}
 
+{% block extra_css %}
+<style>
+.package-card {
+    transition: all 0.3s ease;
+}
+.package-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+.package-card.selected {
+    border-color: #FF855C !important;
+    border-width: 3px !important;
+    background-color: #fff5f0;
+}
+.payment-method-card {
+    transition: all 0.3s ease;
+}
+.payment-method-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+}
+.payment-method-card.selected {
+    border-color: #FF855C !important;
+    border-width: 3px !important;
+    background-color: #fff5f0;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container py-5">
     <div class="row">
@@ -24,37 +53,60 @@
                             <i class="fas fa-calculator me-2"></i>Bu Ay Toplam Maliyetiniz
                         </h5>
                         <div class="row text-center">
-                            <div class="col-4">
+                            {% if subscription.plan.plan_type == 'package' %}
+                            <div class="col-6">
                                 <div class="mb-2">
-                                    <small class="text-muted d-block">Sistem Kullanımı</small>
-                                    <strong class="h4">₺{{ subscription.plan.monthly_fee_try }}</strong>
+                                    <small class="text-muted d-block">Kalan Paket Hakkı</small>
+                                    <strong class="h4 text-success">{{ subscription.get_remaining_credits }}</strong>
+                                    <small class="text-muted d-block">({{ subscription.used_credits }}/{{ subscription.plan.monthly_model_limit }} kullanıldı)</small>
                                 </div>
                             </div>
-                            <div class="col-4">
+                            <div class="col-6">
                                 <div class="mb-2">
-                                    <small class="text-muted d-block">Kalıp Ücreti</small>
-                                    <strong class="h4">₺{{ subscription.total_mold_cost_this_month }}</strong>
+                                    <small class="text-muted d-block">Bu Ay Toplam Maliyet</small>
+                                    <strong class="h4 text-primary">₺{{ subscription.total_mold_cost_this_month }}</strong>
+                                    <small class="text-muted d-block">Paket hakkından kullanılanlar ücretsiz</small>
                                 </div>
                             </div>
-                            <div class="col-4">
+                            {% else %}
+                            <div class="col-6">
                                 <div class="mb-2">
-                                    <small class="text-muted d-block">Toplam</small>
-                                    <strong class="h4 text-primary">₺{{ subscription.get_current_month_total }}</strong>
+                                    <small class="text-muted d-block">Bu Ay Kullanılan Kalıp</small>
+                                    <strong class="h4">{{ subscription.models_used_this_month }}</strong>
                                 </div>
                             </div>
+                            <div class="col-6">
+                                <div class="mb-2">
+                                    <small class="text-muted d-block">Bu Ay Toplam Maliyet</small>
+                                    <strong class="h4 text-primary">₺{{ subscription.total_mold_cost_this_month }}</strong>
+                                </div>
+                            </div>
+                            {% endif %}
                         </div>
                         <small class="text-muted">
                             <i class="fas fa-cube me-1"></i>
-                            Bu ay {{ subscription.models_used_this_month }} kalıp ürettiniz ({{ subscription.models_used_this_month }} x ₺{{ subscription.plan.per_mold_price_try }})
+                            Bu ay {{ subscription.models_used_this_month }} kalıp ürettiniz
+                            {% if subscription.plan.plan_type != 'package' %}
+                            ({{ subscription.models_used_this_month }} x ₺{{ subscription.plan.per_mold_price_try }})
+                            {% endif %}
                         </small>
                     </div>
                     <div class="col-md-4 text-center">
+                        {% if subscription.plan.plan_type == 'package' %}
+                        <div class="badge bg-white text-success px-4 py-3">
+                            <div class="display-6 mb-2">📦</div>
+                            <strong>Paket Sistemi</strong>
+                            <br>
+                            <small>{{ subscription.get_remaining_credits }} hak kaldı</small>
+                        </div>
+                        {% else %}
                         <div class="badge bg-white text-info px-4 py-3">
                             <div class="display-6 mb-2">∞</div>
                             <strong>Sınırsız Kalıp</strong>
                             <br>
                             <small>Kullandıkça Öde</small>
                         </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -77,8 +129,33 @@
                             <p class="text-muted mb-3">{{ subscription.plan.description }}</p>
                             
                             <div class="row">
+                                {% if subscription.plan.plan_type == 'package' %}
                                 <div class="col-sm-6 mb-3">
-                                    <strong>Aylık Sistem Ücreti:</strong><br>
+                                    <strong>Paket İçeriği:</strong><br>
+                                    <span class="h5 text-success">
+                                        {{ subscription.plan.monthly_model_limit }} Kalıp Hakkı
+                                    </span>
+                                    <small class="text-muted d-block">(Satın alınan paket)</small>
+                                </div>
+                                <div class="col-sm-6 mb-3">
+                                    <strong>Kalan Hak:</strong><br>
+                                    <span class="h5 text-{% if subscription.get_remaining_credits == 0 %}danger{% elif subscription.get_remaining_credits <= 2 %}warning{% else %}success{% endif %}">
+                                        {{ subscription.get_remaining_credits }} Kalıp
+                                    </span>
+                                    <small class="text-muted d-block">({{ subscription.used_credits }} kullanıldı)</small>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-6 mb-3">
+                                    <strong>Tek Kalıp Ücreti:</strong><br>
+                                    <span class="h5 text-info">
+                                        ₺{{ subscription.plan.per_mold_price_try }}/kalıp
+                                    </span>
+                                    <small class="text-muted d-block">(Paket hakları bitince)</small>
+                                </div>
+                                {% else %}
+                                <div class="col-sm-6 mb-3">
+                                    <strong>Abonelik Ücreti:</strong><br>
                                     <span class="h5 text-success">
                                         ₺{{ subscription.plan.monthly_fee_try }}/ay
                                     </span>
@@ -89,6 +166,7 @@
                                         ₺{{ subscription.plan.per_mold_price_try }}/kalıp
                                     </span>
                                 </div>
+                                {% endif %}
                             </div>
 
                             <div class="row">
@@ -105,13 +183,57 @@
                                     </span>
                                 </div>
                                 <div class="col-sm-6 mb-3">
-                                    <strong>Toplam Üretim:</strong><br>
+                                    <strong>{% if subscription.plan.plan_type == 'package' %}Paket Kullanımı{% else %}Toplam Üretim{% endif %}:</strong><br>
                                     <span class="h5 text-primary">
-                                        {{ subscription.models_used_total }} kalıp
+                                        {% if subscription.plan.plan_type == 'package' %}
+                                            {{ subscription.used_credits }}/{{ subscription.plan.monthly_model_limit }} kalıp
+                                        {% else %}
+                                            {{ subscription.models_used_total }} kalıp
+                                        {% endif %}
                                     </span>
                                 </div>
                             </div>
 
+                            {% if subscription.plan.plan_type == 'package' %}
+                            <!-- Paket Kullanım Hakları -->
+                            <div class="mb-3">
+                                <strong>Paket Kullanım Hakları:</strong>
+                                <div class="mt-2 p-3 bg-light rounded">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <div>
+                                            <i class="fas fa-gift text-success me-2"></i>
+                                            <strong>Kalan Hak: {{ subscription.get_remaining_credits }}</strong>
+                                        </div>
+                                        <div class="text-end">
+                                            <small class="text-muted">{{ subscription.used_credits }}/{{ subscription.plan.monthly_model_limit }} kullanıldı</small>
+                                        </div>
+                                    </div>
+                                    <div class="progress" style="height: 25px;">
+                                        {% widthratio subscription.used_credits subscription.plan.monthly_model_limit 100 as usage_percent %}
+                                        <div class="progress-bar {% if subscription.get_remaining_credits == 0 %}bg-danger{% elif subscription.get_remaining_credits <= 2 %}bg-warning{% else %}bg-success{% endif %}" 
+                                             role="progressbar" 
+                                             style="width: {% widthratio subscription.used_credits subscription.plan.monthly_model_limit 100 %}%"
+                                             aria-valuenow="{{ subscription.used_credits }}" 
+                                             aria-valuemin="0" 
+                                             aria-valuemax="{{ subscription.plan.monthly_model_limit }}">
+                                            {% widthratio subscription.used_credits subscription.plan.monthly_model_limit 100 %}%
+                                        </div>
+                                    </div>
+                                    {% if subscription.get_remaining_credits == 0 %}
+                                    <div class="alert alert-warning mt-2 mb-0">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        Paket haklarınız bitti. Yeni paket satın alabilir veya tek kalıp ücreti ile devam edebilirsiniz.
+                                    </div>
+                                    {% elif subscription.get_remaining_credits <= 2 %}
+                                    <div class="alert alert-info mt-2 mb-0">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        Paket haklarınız azalıyor. Yeni paket satın almayı düşünebilirsiniz.
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endif %}
+                            
                             <div class="mb-3">
                                 <strong>Bu Ay Kullanım:</strong>
                                 <div class="mt-2 p-3 bg-light rounded">
@@ -123,13 +245,16 @@
                                         <div class="text-end">
                                             <strong class="text-success">₺{{ subscription.total_mold_cost_this_month }}</strong>
                                             <br>
-                                            <small class="text-muted">({{ subscription.models_used_this_month }} x ₺{{ subscription.plan.per_mold_price_try }})</small>
+                                            <small class="text-muted">
+                                                {% if subscription.plan.plan_type == 'package' %}
+                                                    Paket hakkından kullanılanlar ücretsiz, hak bitince tek kalıp ücreti alınır
+                                                {% else %}
+                                                    ({{ subscription.models_used_this_month }} x ₺{{ subscription.plan.per_mold_price_try }})
+                                                {% endif %}
+                                            </small>
                                         </div>
                                     </div>
                                 </div>
-                                <small class="text-muted mt-2 d-block">
-                                    <i class="fas fa-infinity me-1"></i>Sınırsız kalıp üretimi - kullandıkça öde sistemi
-                                </small>
                             </div>
 
                             <div class="row">
@@ -180,17 +305,105 @@
                 </div>
             </div>
             {% else %}
-            <!-- Abonelik Yok -->
+            <!-- Paket Satın Alma Bölümü -->
             <div class="card border-0 shadow-sm mb-4">
-                <div class="card-body text-center py-5">
-                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
-                    <h4>Aktif Aboneliğiniz Bulunmuyor</h4>
-                    <p class="text-muted mb-4">
-                        MoldPark hizmetlerinden faydalanmak için bir abonelik planı seçmeniz gerekmektedir.
-                    </p>
-                    <a href="{% url 'core:pricing' %}" class="btn btn-primary btn-lg">
-                        <i class="fas fa-rocket me-2"></i>Plan Seç
-                    </a>
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-shopping-cart me-2"></i>Paket Satın Al
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="packagePurchaseForm">
+                        {% csrf_token %}
+                        <input type="hidden" name="purchase_package" value="1">
+                        
+                        <!-- Paket Seçimi -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Paket Seçimi</label>
+                            <div class="row g-3">
+                                {% for package in packages %}
+                                <div class="col-md-4">
+                                    <div class="card h-100 border package-card" data-package-id="{{ package.id }}" style="cursor: pointer; transition: all 0.3s;">
+                                        <div class="card-body text-center">
+                                            {% if package.is_featured %}
+                                            <span class="badge bg-warning text-dark mb-2">EN POPÜLER</span>
+                                            {% endif %}
+                                            <h5 class="fw-bold">{{ package.name }}</h5>
+                                            <div class="h3 text-primary mb-2">₺{{ package.price_try|floatformat:2 }}</div>
+                                            <div class="text-muted small mb-2">{{ package.monthly_model_limit }} Kalıp</div>
+                                            <div class="text-muted small">Birim: ₺{{ package.per_mold_price_try|floatformat:2 }}/kalıp</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                                
+                                {% if single_plan %}
+                                <div class="col-md-4">
+                                    <div class="card h-100 border package-card" data-package-id="{{ single_plan.id }}" style="cursor: pointer; transition: all 0.3s;">
+                                        <div class="card-body text-center">
+                                            <h5 class="fw-bold">{{ single_plan.name }}</h5>
+                                            <div class="h3 text-primary mb-2">₺{{ single_plan.per_mold_price_try|floatformat:2 }}</div>
+                                            <div class="text-muted small">Kalıp Başına</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {{ purchase_form.plan }}
+                            <div class="text-danger small mt-1">{{ purchase_form.plan.errors }}</div>
+                        </div>
+                        
+                        <!-- Ödeme Yöntemi -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Ödeme Yöntemi</label>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="card border payment-method-card" data-method="credit_card" style="cursor: pointer;">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-credit-card fa-3x text-primary mb-3"></i>
+                                            <h6 class="fw-bold">Kredi Kartı</h6>
+                                            <small class="text-muted">Anında ödeme</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card border payment-method-card" data-method="bank_transfer" style="cursor: pointer;">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-university fa-3x text-success mb-3"></i>
+                                            <h6 class="fw-bold">Havale/EFT</h6>
+                                            <small class="text-muted">Manuel onay gerekir</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                {% for choice in purchase_form.payment_method %}
+                                <div class="form-check form-check-inline">
+                                    {{ choice.tag }}
+                                    <label class="form-check-label" for="{{ choice.id_for_label }}">
+                                        {{ choice.choice_label }}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <div class="text-danger small mt-1">{{ purchase_form.payment_method.errors }}</div>
+                        </div>
+                        
+                        <!-- Toplam Tutar -->
+                        <div class="alert alert-info mb-4">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <strong>Toplam Tutar:</strong>
+                                <span class="h4 mb-0" id="totalAmount">₺0,00</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Submit Button -->
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-shopping-cart me-2"></i>Paketi Satın Al
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
             {% endif %}
@@ -257,4 +470,91 @@
         </div>
     </div>
 </div>
-{% endblock %} 
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Paket seçimi
+    const packageCards = document.querySelectorAll('.package-card');
+    const planSelect = document.getElementById('package-select');
+    
+    packageCards.forEach(card => {
+        card.addEventListener('click', function() {
+            packageCards.forEach(c => c.classList.remove('selected'));
+            this.classList.add('selected');
+            const packageId = this.getAttribute('data-package-id');
+            planSelect.value = packageId;
+            updateTotalAmount();
+        });
+    });
+    
+    // Ödeme yöntemi seçimi
+    const paymentCards = document.querySelectorAll('.payment-method-card');
+    const paymentRadios = document.querySelectorAll('input[name="payment_method"]');
+    
+    paymentCards.forEach(card => {
+        card.addEventListener('click', function() {
+            paymentCards.forEach(c => c.classList.remove('selected'));
+            this.classList.add('selected');
+            const method = this.getAttribute('data-method');
+            document.querySelector(`input[value="${method}"]`).checked = true;
+        });
+    });
+    
+    paymentRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            paymentCards.forEach(c => c.classList.remove('selected'));
+            const card = document.querySelector(`[data-method="${this.value}"]`);
+            if (card) card.classList.add('selected');
+        });
+    });
+    
+    // Toplam tutar güncelleme
+    function updateTotalAmount() {
+        const selectedPlanId = planSelect.value;
+        if (!selectedPlanId) {
+            document.getElementById('totalAmount').textContent = '₺0,00';
+            return;
+        }
+        
+        // Paket fiyatını al (AJAX ile veya data attribute ile)
+        const selectedCard = document.querySelector(`[data-package-id="${selectedPlanId}"]`);
+        if (selectedCard) {
+            const priceText = selectedCard.querySelector('.text-primary, .h3').textContent;
+            const price = parseFloat(priceText.replace('₺', '').replace(',', '').trim());
+            document.getElementById('totalAmount').textContent = '₺' + price.toFixed(2).replace('.', ',');
+        }
+    }
+    
+    planSelect.addEventListener('change', updateTotalAmount);
+    
+    // İlk yüklemede varsayılan seçim
+    if (planSelect.value) {
+        const defaultCard = document.querySelector(`[data-package-id="${planSelect.value}"]`);
+        if (defaultCard) {
+            defaultCard.classList.add('selected');
+            updateTotalAmount();
+        }
+    }
+    
+    // Form gönderimi
+    document.getElementById('packagePurchaseForm').addEventListener('submit', function(e) {
+        if (!planSelect.value) {
+            e.preventDefault();
+            alert('Lütfen bir paket seçin.');
+            return false;
+        }
+        
+        const paymentMethod = document.querySelector('input[name="payment_method"]:checked');
+        if (!paymentMethod) {
+            e.preventDefault();
+            alert('Lütfen bir ödeme yöntemi seçin.');
+            return false;
+        }
+        
+        return confirm('Paketi satın almak istediğinizden emin misiniz?');
+    });
+});
+</script>
+{% endblock extra_js %}
+{% endblock content %} 

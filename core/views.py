@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.utils.translation import gettext as _
 from .models import ContactMessage, Message, MessageRecipient, PricingPlan, UserSubscription, PaymentHistory, SimpleNotification, SubscriptionRequest, Invoice, Transaction, Commission
-from .forms import ContactForm, MessageForm, AdminMessageForm, MessageReplyForm, SubscriptionRequestForm
+from .forms import ContactForm, MessageForm, AdminMessageForm, MessageReplyForm, SubscriptionRequestForm, PackagePurchaseForm
 from django.views.generic import TemplateView
 from django.contrib.auth.decorators import user_passes_test, login_required
 from django.contrib.admin.views.decorators import staff_member_required
@@ -18,6 +18,7 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from datetime import datetime, timedelta
+from decimal import Decimal
 import json
 import logging
 from .smart_notifications import SmartNotificationManager
@@ -27,8 +28,11 @@ from django.core.paginator import Paginator
 logger = logging.getLogger(__name__)
 
 def home(request):
-    # Fiyatlandırma planlarını al
-    plans = PricingPlan.objects.filter(is_active=True).order_by('price_usd')
+    # Paketleri al (package ve single tipindeki planlar)
+    packages = PricingPlan.objects.filter(
+        is_active=True, 
+        plan_type__in=['package', 'single']
+    ).order_by('order')[:3]  # İlk 3 paketi göster
     
     # En iyi puanlı üreticileri al
     top_producers = []
@@ -68,7 +72,7 @@ def home(request):
         return render(request, 'core/home.html', {
             'is_producer': is_producer,
             'top_producers': top_producers,
-            'plans': plans
+            'packages': packages
         })
     
     # Giriş yapmamış kullanıcılar için kayıt formu
@@ -98,7 +102,7 @@ def home(request):
     return render(request, 'core/home.html', {
         'signup_form': form,
         'top_producers': top_producers,
-        'plans': plans
+        'packages': packages
     })
 
 def contact(request):
@@ -433,35 +437,71 @@ def admin_dashboard(request):
 
 @user_passes_test(lambda u: u.is_superuser)
 def admin_approve_subscription_request(request, request_id):
-    """Admin tarafından abonelik talebi onaylama"""
-    if request.method == 'POST':
-        subscription_request = get_object_or_404(SubscriptionRequest, id=request_id, status='pending')
+    """Admin tarafından abonelik talebi onaylama - JSON response"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Geçersiz istek'}, status=405)
+    
+    try:
+        subscription_request = get_object_or_404(SubscriptionRequest, id=request_id)
+        
+        if subscription_request.status != 'pending':
+            return JsonResponse({
+                'success': False,
+                'error': 'Bu talep zaten işlenmiş'
+            })
         
         admin_notes = request.POST.get('admin_notes', '')
         success = subscription_request.approve(request.user, admin_notes)
         
         if success:
-            messages.success(request, f'{subscription_request.user.get_full_name()} kullanıcısının {subscription_request.plan.name} talebi onaylandı.')
+            return JsonResponse({
+                'success': True,
+                'message': f'{subscription_request.user.get_full_name()} kullanıcısının {subscription_request.plan.name} talebi onaylandı.'
+            })
         else:
-            messages.error(request, 'Talep onaylanırken bir hata oluştu.')
-    
-    return redirect('core:admin_dashboard')
+            return JsonResponse({
+                'success': False,
+                'error': 'Talep onaylanırken bir hata oluştu.'
+            })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
 
 @user_passes_test(lambda u: u.is_superuser)
 def admin_reject_subscription_request(request, request_id):
-    """Admin tarafından abonelik talebi reddetme"""
-    if request.method == 'POST':
-        subscription_request = get_object_or_404(SubscriptionRequest, id=request_id, status='pending')
+    """Admin tarafından abonelik talebi reddetme - JSON response"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Geçersiz istek'}, status=405)
+    
+    try:
+        subscription_request = get_object_or_404(SubscriptionRequest, id=request_id)
+        
+        if subscription_request.status != 'pending':
+            return JsonResponse({
+                'success': False,
+                'error': 'Bu talep zaten işlenmiş'
+            })
         
         admin_notes = request.POST.get('admin_notes', 'Talep reddedildi.')
         success = subscription_request.reject(request.user, admin_notes)
         
         if success:
-            messages.success(request, f'{subscription_request.user.get_full_name()} kullanıcısının {subscription_request.plan.name} talebi reddedildi.')
+            return JsonResponse({
+                'success': True,
+                'message': f'{subscription_request.user.get_full_name()} kullanıcısının {subscription_request.plan.name} talebi reddedildi.'
+            })
         else:
-            messages.error(request, 'Talep reddedilirken bir hata oluştu.')
-    
-    return redirect('core:admin_dashboard')
+            return JsonResponse({
+                'success': False,
+                'error': 'Talep reddedilirken bir hata oluştu.'
+            })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
 
 @login_required
 def message_list(request):
@@ -816,12 +856,23 @@ def privacy_policy(request):
     return render(request, 'core/privacy.html')
 
 def pricing(request):
-    """Fiyatlandırma sayfası - basitleştirilmiş tek paket sistemi"""
-    # Sadece aktif standard planı göster
-    plans = PricingPlan.objects.filter(is_active=True, plan_type='standard')
+    """Fiyatlandırma sayfası - Paket sistemi"""
+    # Aktif paketleri göster (package ve single tipindeki planlar)
+    packages = PricingPlan.objects.filter(
+        is_active=True, 
+        plan_type__in=['package', 'single']
+    ).order_by('order')
+    
+    # Tek kalıp seçeneği
+    single_plan = PricingPlan.objects.filter(
+        is_active=True, 
+        plan_type='single'
+    ).first()
     
     context = {
-        'plans': plans
+        'plans': packages,
+        'single_plan': single_plan,
+        'packages': packages.filter(plan_type='package'),
     }
     
     # Giriş yapmış kullanıcı için ek bilgiler (bu kod zaten çalışmayacak ama template'ler için bırakıyoruz)
@@ -1160,18 +1211,271 @@ def reject_subscription_request(request, request_id):
 
 @login_required
 def subscription_dashboard(request):
-    """Abonelik yönetim paneli"""
+    """Abonelik yönetim paneli - Paket satın alma ve ödeme"""
+    # Paket satın alma işlemi
+    if request.method == 'POST' and 'purchase_package' in request.POST:
+        form = PackagePurchaseForm(request.POST)
+        if form.is_valid():
+            plan = form.cleaned_data['plan']
+            payment_method = form.cleaned_data['payment_method']
+            
+            # Mevcut abonelik kontrolü
+            try:
+                current_subscription = UserSubscription.objects.get(user=request.user, status='active')
+                # Mevcut aboneliği iptal et
+                current_subscription.status = 'cancelled'
+                current_subscription.save()
+            except UserSubscription.DoesNotExist:
+                pass
+            except UserSubscription.MultipleObjectsReturned:
+                # Birden fazla aktif abonelik varsa hepsini iptal et
+                UserSubscription.objects.filter(user=request.user, status='active').update(status='cancelled')
+            
+            # Yeni abonelik oluştur (paket satın alma)
+            if plan.plan_type == 'package':
+                # Paket için abonelik oluştur
+                new_subscription = UserSubscription.objects.create(
+                    user=request.user,
+                    plan=plan,
+                    status='active',
+                    monthly_fee_paid=True,  # Paket satın alındığında ücret ödendi
+                    package_credits=plan.monthly_model_limit,  # Paket içindeki kalıp sayısı kadar hak ver
+                    used_credits=0,  # Henüz kullanılmadı
+                )
+                
+                # Ödeme kaydı oluştur
+                payment_history = PaymentHistory.objects.create(
+                    user=request.user,
+                    subscription=new_subscription,
+                    amount=plan.price_try,
+                    currency='TRY',
+                    payment_type='subscription',
+                    payment_method='Kredi Kartı' if payment_method == 'credit_card' else 'Havale/EFT',
+                    status='completed' if payment_method == 'credit_card' else 'pending',
+                    notes=f'{plan.name} paketi satın alındı - {payment_method}'
+                )
+                
+                # Fatura oluştur
+                try:
+                    from core.models import Invoice, PricingConfiguration
+                    
+                    pricing = PricingConfiguration.get_active()
+                    center = None
+                    if hasattr(request.user, 'center'):
+                        center = request.user.center
+                    
+                    # Fatura numarası oluştur
+                    invoice_number = f"PKG-{request.user.id}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+                    
+                    # Fatura oluştur
+                    invoice = Invoice.objects.create(
+                        invoice_number=invoice_number,
+                        invoice_type='center_admin_invoice',
+                        user=request.user,
+                        issued_by_center=center,
+                        issue_date=timezone.now().date(),
+                        due_date=(timezone.now() + timedelta(days=15)).date(),
+                        issued_by=request.user,
+                        # Paket bilgileri
+                        physical_mold_count=plan.monthly_model_limit,
+                        physical_mold_unit_price=plan.per_mold_price_try,
+                        physical_mold_cost=plan.price_try,
+                        # Toplam tutar
+                        total_amount=plan.price_try,
+                        subtotal=plan.price_try,
+                        # KDV hesaplama
+                        vat_rate=pricing.vat_rate,
+                        subtotal_without_vat=plan.price_try / (Decimal('1') + (pricing.vat_rate / Decimal('100'))),
+                        vat_amount=plan.price_try - (plan.price_try / (Decimal('1') + (pricing.vat_rate / Decimal('100')))),
+                        total_with_vat=plan.price_try,
+                        # Komisyonlar
+                        moldpark_service_fee_rate=pricing.moldpark_commission_rate,
+                        credit_card_fee_rate=pricing.credit_card_commission_rate,
+                        moldpark_service_fee=pricing.calculate_moldpark_fee(plan.price_try),
+                        credit_card_fee=pricing.calculate_credit_card_fee(plan.price_try) if payment_method == 'credit_card' else Decimal('0.00'),
+                        # Durum
+                        status='paid' if payment_method == 'credit_card' else 'issued',
+                        payment_date=timezone.now().date() if payment_method == 'credit_card' else None,
+                        # Notlar
+                        notes=f'{plan.name} paketi satın alma faturası. Paket içeriği: {plan.monthly_model_limit} kalıp.',
+                        breakdown_data={
+                            'package_name': plan.name,
+                            'package_id': plan.id,
+                            'mold_count': plan.monthly_model_limit,
+                            'unit_price': str(plan.per_mold_price_try),
+                            'total_price': str(plan.price_try),
+                            'payment_method': payment_method,
+                            'payment_history_id': payment_history.id,
+                        }
+                    )
+                    
+                    # Transaction oluştur
+                    from core.models import Transaction
+                    Transaction.objects.create(
+                        user=request.user,
+                        center=center,
+                        invoice=invoice,
+                        transaction_type='center_invoice_payment',
+                        amount=plan.price_try,
+                        description=f'{plan.name} paketi satın alma faturası: {invoice_number}',
+                        reference_id=invoice_number,
+                        payment_method='Kredi Kartı' if payment_method == 'credit_card' else 'Havale/EFT',
+                        status='completed' if payment_method == 'credit_card' else 'pending',
+                    )
+                    
+                    # Paket satın alındığında üretici faturası oluştur
+                    # Paket fiyatı üzerinden üretici faturası kesilir (kullanılan kalıp sayısına bakılmaksızın)
+                    try:
+                        from producer.models import ProducerNetwork
+                        # Bu merkezin bağlı olduğu üretici ağlarını bul
+                        active_networks = ProducerNetwork.objects.filter(
+                            center=center,
+                            status='active'
+                        ).select_related('producer')
+                        
+                        if active_networks.exists():
+                            # İlk aktif üretici ağını kullan (veya tüm üreticilere dağıtılabilir)
+                            primary_network = active_networks.first()
+                            producer = primary_network.producer
+                            
+                            # Bu üretici için paket faturası var mı kontrol et
+                            existing_producer_invoice = Invoice.objects.filter(
+                                producer=producer,
+                                invoice_type='producer_invoice',
+                                breakdown_data__package_invoice_number=invoice_number
+                            ).first()
+                            
+                            if not existing_producer_invoice:
+                                # Üretici faturası oluştur - Paket fiyatı üzerinden
+                                vat_multiplier = Decimal('1') + (pricing.vat_rate / Decimal('100'))
+                                package_amount_without_vat = plan.price_try / vat_multiplier
+                                package_vat_amount = plan.price_try - package_amount_without_vat
+                                
+                                # MoldPark hizmet bedeli (KDV DAHİL brüt tutar üzerinden)
+                                producer_moldpark_fee = pricing.calculate_moldpark_fee(plan.price_try)
+                                producer_cc_fee = pricing.calculate_credit_card_fee(plan.price_try) if payment_method == 'credit_card' else Decimal('0.00')
+                                
+                                # Üretici net kazancı: KDV hariç tutar - MoldPark komisyonu
+                                producer_net_amount = package_amount_without_vat - producer_moldpark_fee
+                                
+                                producer_invoice = Invoice.objects.create(
+                                    invoice_number=Invoice.generate_invoice_number('producer_invoice'),
+                                    invoice_type='producer_invoice',
+                                    producer=producer,
+                                    user=producer.user,
+                                    issued_by=request.user,
+                                    issued_by_producer=producer,
+                                    issue_date=timezone.now().date(),
+                                    due_date=(timezone.now() + timedelta(days=30)).date(),
+                                    status='issued',
+                                    # Paket bilgileri
+                                    physical_mold_count=plan.monthly_model_limit,
+                                    producer_gross_revenue=plan.price_try,
+                                    producer_net_revenue=producer_net_amount,
+                                    moldpark_service_fee=producer_moldpark_fee,
+                                    credit_card_fee=producer_cc_fee,
+                                    moldpark_service_fee_rate=pricing.moldpark_commission_rate,
+                                    credit_card_fee_rate=pricing.credit_card_commission_rate,
+                                    total_amount=plan.price_try,
+                                    net_amount=producer_net_amount,
+                                    vat_rate=pricing.vat_rate,
+                                    subtotal_without_vat=package_amount_without_vat,
+                                    vat_amount=package_vat_amount,
+                                    breakdown_data={
+                                        'package_invoice_number': invoice_number,
+                                        'package_name': plan.name,
+                                        'package_id': plan.id,
+                                        'package_price': str(plan.price_try),
+                                        'mold_count': plan.monthly_model_limit,
+                                        'unit_price': str(plan.per_mold_price_try),
+                                        'center_id': center.id,
+                                        'center_name': center.name,
+                                        'payment_method': payment_method,
+                                        'note': f'{plan.name} paketi satın alındığında paket fiyatı üzerinden üretici faturası oluşturuldu. Kullanılan kalıp sayısına bakılmaksızın paket fiyatı üzerinden hesaplanmıştır.',
+                                    },
+                                    notes=f'{plan.name} paketi satın alındığında paket fiyatı üzerinden üretici faturası. Paket içeriği: {plan.monthly_model_limit} kalıp.',
+                                )
+                                
+                                logger.info(f"Paket satın alındığında üretici faturası oluşturuldu: {producer_invoice.invoice_number} - Üretici: {producer.company_name} - Tutar: {plan.price_try} TL")
+                    except Exception as e:
+                        logger.error(f"Paket satın alındığında üretici faturası oluşturulurken hata: {e}")
+                        # Üretici faturası oluşturulamasa bile işleme devam et
+                    
+                except Exception as e:
+                    logger.error(f"Paket satın alma faturası oluşturulurken hata: {e}")
+                    # Fatura oluşturulamasa bile işleme devam et
+                
+                if payment_method == 'credit_card':
+                    messages.success(request, f'{plan.name} paketi başarıyla satın alındı! Paketiniz aktif. Faturanız oluşturuldu.')
+                else:
+                    messages.info(request, f'{plan.name} paketi için ödeme talebi oluşturuldu. Havale/EFT ile ödeme yaptıktan sonra paketiniz aktif olacak. Faturanız oluşturuldu.')
+                
+                return redirect('core:subscription_dashboard')
+            else:
+                # Tek kalıp için abonelik oluştur
+                new_subscription = UserSubscription.objects.create(
+                    user=request.user,
+                    plan=plan,
+                    status='active',
+                )
+                
+                messages.success(request, 'Tek kalıp seçeneği aktif edildi.')
+                return redirect('core:subscription_dashboard')
+        else:
+            messages.error(request, 'Form hataları var. Lütfen kontrol edin.')
+    
     try:
-        subscription = UserSubscription.objects.get(user=request.user, status='active')
+        subscription = UserSubscription.objects.filter(user=request.user, status='active').order_by('-created_at').first()
+        if subscription:
+            # Paket planıysa ve package_credits 0 ise, plan.monthly_model_limit'ten set et
+            if subscription.plan.plan_type == 'package':
+                if subscription.package_credits == 0:
+                    subscription.package_credits = subscription.plan.monthly_model_limit
+                    subscription.save()
+                
+                # Paket satın alma tarihinden sonra kullanılan kalıpları say ve used_credits'i güncelle
+                from mold.models import EarMold
+                package_start_date = subscription.start_date
+                used_molds_count = EarMold.objects.filter(
+                    center__user=request.user,
+                    is_physical_shipment=True,
+                    created_at__gte=package_start_date
+                ).count()
+                
+                # used_credits'i güncelle (paket haklarını aşmamalı)
+                if used_molds_count != subscription.used_credits:
+                    subscription.used_credits = min(used_molds_count, subscription.package_credits)
+                    subscription.save()
+            
+            # Subscription'ı refresh et
+            subscription.refresh_from_db()
     except UserSubscription.DoesNotExist:
         subscription = None
     
     # Ödeme geçmişi
     payments = PaymentHistory.objects.filter(user=request.user).order_by('-created_at')[:10]
     
+    # Aktif paketleri al (package ve single tipindeki planlar)
+    packages = PricingPlan.objects.filter(
+        is_active=True, 
+        plan_type__in=['package', 'single']
+    ).order_by('order')
+    
+    # Tek kalıp seçeneği
+    single_plan = PricingPlan.objects.filter(
+        is_active=True, 
+        plan_type='single'
+    ).first()
+    
+    # Paket satın alma formu
+    purchase_form = PackagePurchaseForm()
+    
     context = {
         'subscription': subscription,
         'payments': payments,
+        'packages': packages.filter(plan_type='package'),
+        'single_plan': single_plan,
+        'purchase_form': purchase_form,
     }
     
     return render(request, 'core/subscription_dashboard.html', context)

@@ -119,7 +119,7 @@ self.addEventListener('fetch', event => {
                                     font-family: Arial, sans-serif; 
                                     text-align: center; 
                                     padding: 50px; 
-                                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                                    background: linear-gradient(135deg, #F5B427 0%, #D49A1F 100%);
                                     color: white;
                                     margin: 0;
                                     min-height: 100vh;

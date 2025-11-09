@@ -1,6 +1,6 @@
 from django import forms
 from django.utils.translation import gettext_lazy as _
-from .models import ContactMessage, Message, User, SubscriptionRequest, PricingPlan
+from .models import ContactMessage, Message, User, SubscriptionRequest, PricingPlan, PaymentHistory
 
 class ContactForm(forms.ModelForm):
     class Meta:
@@ -271,4 +271,44 @@ class SubscriptionRequestForm(forms.ModelForm):
         if commit:
             instance.save()
             
-        return instance 
+        return instance
+
+
+class PackagePurchaseForm(forms.Form):
+    """Paket Satın Alma Formu"""
+    
+    PAYMENT_METHOD_CHOICES = [
+        ('credit_card', 'Kredi Kartı'),
+        ('bank_transfer', 'Havale/EFT'),
+    ]
+    
+    plan = forms.ModelChoiceField(
+        queryset=PricingPlan.objects.filter(is_active=True, plan_type__in=['package', 'single']),
+        label='Paket Seçimi',
+        widget=forms.Select(attrs={
+            'class': 'form-select',
+            'id': 'package-select'
+        })
+    )
+    
+    payment_method = forms.ChoiceField(
+        choices=PAYMENT_METHOD_CHOICES,
+        label='Ödeme Yöntemi',
+        widget=forms.RadioSelect(attrs={
+            'class': 'form-check-input'
+        })
+    )
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Paketleri sıralı göster
+        self.fields['plan'].queryset = PricingPlan.objects.filter(
+            is_active=True, 
+            plan_type__in=['package', 'single']
+        ).order_by('order')
+        
+    def clean_plan(self):
+        plan = self.cleaned_data.get('plan')
+        if not plan:
+            raise forms.ValidationError('Lütfen bir paket seçin.')
+        return plan

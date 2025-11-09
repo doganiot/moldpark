@@ -141,6 +141,10 @@ class EarMold(models.Model):
     polygon_count = models.IntegerField('Polygon Sayısı', blank=True, null=True)
     file_format = models.CharField('Dosya Formatı', max_length=10, blank=True, null=True)
     
+    # Fiyat Bilgileri (Dinamik - kalıp oluşturulduğunda kaydedilir)
+    unit_price = models.DecimalField('Birim Fiyat (TL)', max_digits=10, decimal_places=2, null=True, blank=True, help_text='Bu kalıp için kullanılan birim fiyat (paket hakkından kullanıldıysa 0)')
+    digital_modeling_price = models.DecimalField('3D Modelleme Fiyatı (TL)', max_digits=10, decimal_places=2, null=True, blank=True, help_text='Bu kalıp için kullanılan 3D modelleme fiyatı')
+    
     class Meta:
         verbose_name = 'Kulak Kalıbı'
         verbose_name_plural = 'Kulak Kalıpları'

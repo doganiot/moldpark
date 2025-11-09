@@ -618,37 +618,126 @@ def admin_financial_control_panel(request):
     total_monthly_system_fees = Decimal('0.00')  # Aylık sistem ücretleri toplamı
     
     for center in all_centers:
-        # Bu merkezden gönderilen fiziksel kalıplar
-        physical_molds = EarMold.objects.filter(
-            center=center,
-            is_physical_shipment=True,
-            created_at__gte=start_date,
-            created_at__lte=end_date
+        # Paket faturalarını kontrol et (PKG- prefix'li faturalar)
+        # Tarih filtresini kaldırdık çünkü paket faturaları her zaman gösterilmeli
+        package_invoices = Invoice.objects.filter(
+            user=center.user,
+            invoice_type='center_admin_invoice',
+            invoice_number__startswith='PKG-'
+        ).order_by('-issue_date')
+        
+        # Seçili tarih aralığındaki paket faturalarını kontrol et
+        package_invoices_in_period = package_invoices.filter(
+            issue_date__gte=start_date,
+            issue_date__lte=end_date
         )
         
-        # Sadece 3D modelleme hizmeti (fiziksel gönderim yok)
-        digital_only_molds = EarMold.objects.filter(
-            center=center,
-            is_physical_shipment=False,
-            created_at__gte=start_date,
-            created_at__lte=end_date
-        )
+        # Paket aboneliğini kontrol et (fatura yoksa bile paket aboneliği varsa göster)
+        from core.models import UserSubscription
+        package_subscription = UserSubscription.objects.filter(
+            user=center.user,
+            plan__plan_type='package',
+            status='active'
+        ).order_by('-created_at').first()
         
-        physical_count = physical_molds.count()
-        digital_count = digital_only_molds.count()
+        # Paket faturası varsa, paket fiyatını kullan
+        package_amount = Decimal('0.00')
+        package_info = None
+        package_invoice_numbers = []
+        
+        # Seçili tarih aralığındaki paket faturalarını kullan
+        if package_invoices_in_period.exists():
+            for invoice in package_invoices_in_period:
+                package_amount += invoice.total_amount
+                package_invoice_numbers.append(invoice.invoice_number)
+                # İlk paket bilgisini al
+                if not package_info and invoice.breakdown_data:
+                    package_info = invoice.breakdown_data.get('package_name', 'Paket')
+        # Eğer seçili tarih aralığında paket faturası yoksa ama genel olarak paket faturası varsa
+        elif package_invoices.exists():
+            # En son paket faturasını göster
+            latest_package_invoice = package_invoices.first()
+            package_amount = latest_package_invoice.total_amount
+            package_invoice_numbers.append(latest_package_invoice.invoice_number)
+            if latest_package_invoice.breakdown_data:
+                package_info = latest_package_invoice.breakdown_data.get('package_name', 'Paket')
+        # Paket faturası yoksa ama paket aboneliği varsa, abonelikten bilgi al
+        elif package_subscription:
+            package_amount = package_subscription.plan.price_try
+            package_info = package_subscription.plan.name
+            package_invoice_numbers = ['Fatura Oluşturulmamış']
+        
+        # Paket faturası yoksa, tek tek kalıpları hesapla
+        has_package_invoice = package_invoices.exists() or package_invoices_in_period.exists() or (package_subscription is not None)
+        if not has_package_invoice:
+            # Bu merkezden gönderilen fiziksel kalıplar
+            physical_molds = EarMold.objects.filter(
+                center=center,
+                is_physical_shipment=True,
+                created_at__gte=start_date,
+                created_at__lte=end_date
+            )
+            
+            # Sadece 3D modelleme hizmeti (fiziksel gönderim yok)
+            digital_only_molds = EarMold.objects.filter(
+                center=center,
+                is_physical_shipment=False,
+                created_at__gte=start_date,
+                created_at__lte=end_date
+            )
+            
+            physical_count = physical_molds.count()
+            digital_count = digital_only_molds.count()
+            
+            # Fiziksel kalıp: Her kalıp için dinamik fiyat (KDV dahil)
+            physical_amount_with_vat = Decimal('0.00')
+            for mold in physical_molds:
+                if mold.unit_price is not None:
+                    physical_amount_with_vat += mold.unit_price
+                else:
+                    # Eski kalıplar için varsayılan fiyat
+                    physical_amount_with_vat += pricing.physical_mold_price
+            
+            # 3D Modelleme: Her kalıp için dinamik fiyat (KDV dahil)
+            digital_amount_with_vat = Decimal('0.00')
+            for mold in digital_only_molds:
+                if mold.digital_modeling_price is not None:
+                    digital_amount_with_vat += mold.digital_modeling_price
+                else:
+                    # Eski kalıplar için varsayılan fiyat
+                    digital_amount_with_vat += pricing.digital_modeling_price
+        else:
+            # Paket faturası varsa, tek tek kalıp sayısını gösterme
+            physical_count = 0
+            digital_count = 0
+            physical_amount_with_vat = Decimal('0.00')
+            digital_amount_with_vat = Decimal('0.00')
         
         # Her aktif merkez için aylık sistem ücreti hesapla
         monthly_fee = pricing.monthly_system_fee
         total_monthly_system_fees += monthly_fee
         
-        if physical_count > 0 or digital_count > 0 or monthly_fee > 0:
-            # Fiziksel kalıp: Dinamik fiyat (KDV dahil)
-            physical_amount_with_vat = physical_count * pricing.physical_mold_price
+        # Toplam tutar: Paket faturası varsa paket fiyatı, yoksa tek tek kalıplar + aylık ücret
+        if has_package_invoice:
+            # Paket faturası zaten KDV dahil tutarı içerir
+            gross_amount_with_vat = package_amount + monthly_fee
+            physical_count = 0  # Paket faturası varsa kalıp sayısını gösterme
+            digital_count = 0
             
-            # 3D Modelleme: Dinamik fiyat (KDV dahil)
-            digital_amount_with_vat = digital_count * pricing.digital_modeling_price
+            # KDV hesaplamaları (paket faturası için)
+            vat_multiplier = Decimal('1') + (pricing.vat_rate / Decimal('100'))
+            gross_amount_without_vat = gross_amount_with_vat / vat_multiplier
+            vat_amount = gross_amount_with_vat - gross_amount_without_vat
             
-            # Toplam tutar (KDV dahil) - Aylık ücret de dahil
+            # MoldPark hizmet bedeli KDV DAHİL brüt tutar üzerinden hesaplanır
+            moldpark_fee = pricing.calculate_moldpark_fee(gross_amount_with_vat)
+            
+            # K.K. komisyonu KDV dahil tutar üzerinden
+            cc_fee = pricing.calculate_credit_card_fee(gross_amount_with_vat)
+            
+            # Üreticiye giden KDV hariç tutar
+            net_to_producer = gross_amount_without_vat - moldpark_fee
+        elif physical_count > 0 or digital_count > 0 or monthly_fee > 0:
             gross_amount_with_vat = physical_amount_with_vat + digital_amount_with_vat + monthly_fee
             
             # KDV hesaplamaları
@@ -656,18 +745,29 @@ def admin_financial_control_panel(request):
             gross_amount_without_vat = gross_amount_with_vat / vat_multiplier
             vat_amount = gross_amount_with_vat - gross_amount_without_vat
             
-            # MoldPark hizmet bedeli KDV hariç tutar üzerinden
-            moldpark_fee = pricing.calculate_moldpark_fee(gross_amount_without_vat)
+            # MoldPark hizmet bedeli KDV DAHİL brüt tutar üzerinden hesaplanır
+            moldpark_fee = pricing.calculate_moldpark_fee(gross_amount_with_vat)
             
-            # K.K. komisyonu KDV dahil tutar üzerinden ama işitme merkezinden kesilir
+            # K.K. komisyonu KDV dahil tutar üzerinden
             cc_fee = pricing.calculate_credit_card_fee(gross_amount_with_vat)
             
             # Üreticiye giden KDV hariç tutar
             net_to_producer = gross_amount_without_vat - moldpark_fee
-            
-            total_collections_from_centers += gross_amount_with_vat
-            total_moldpark_service_fee += moldpark_fee
-            total_credit_card_commission += cc_fee
+        else:
+            # Hiçbir şey yoksa sıfır değerler
+            gross_amount_with_vat = Decimal('0.00')
+            gross_amount_without_vat = Decimal('0.00')
+            vat_amount = Decimal('0.00')
+            moldpark_fee = Decimal('0.00')
+            cc_fee = Decimal('0.00')
+            net_to_producer = Decimal('0.00')
+        
+        # Toplamlara ekle - Paket faturası varsa veya tek tek kalıp varsa ekle
+        if gross_amount_with_vat > 0 or has_package_invoice:
+            if gross_amount_with_vat > 0:
+                total_collections_from_centers += gross_amount_with_vat
+                total_moldpark_service_fee += moldpark_fee
+                total_credit_card_commission += cc_fee
             
             centers_with_physical_molds.append({
                 'center': center,
@@ -675,6 +775,10 @@ def admin_financial_control_panel(request):
                 'digital_count': digital_count,
                 'physical_amount': physical_amount_with_vat,
                 'digital_amount': digital_amount_with_vat,
+                'package_amount': package_amount if has_package_invoice else Decimal('0.00'),
+                'package_info': package_info,
+                'package_invoice_numbers': package_invoice_numbers,
+                'has_package_invoice': has_package_invoice,
                 'monthly_system_fee': monthly_fee,
                 'gross_amount': gross_amount_with_vat,
                 'gross_amount_without_vat': gross_amount_without_vat,
@@ -909,6 +1013,21 @@ def create_single_center_invoice(request, center_id):
                 'error': f'Bu merkez için bu dönemde zaten fatura kesilmiş: {existing_invoice.invoice_number}'
             })
         
+        # Paket faturası kontrolü - Eğer paket faturası varsa tek tek kalıp faturası kesme
+        package_invoices = Invoice.objects.filter(
+            user=center.user,
+            invoice_type='center_admin_invoice',
+            invoice_number__startswith='PKG-',
+            issue_date__gte=start_date,
+            issue_date__lte=end_date
+        )
+        
+        if package_invoices.exists():
+            return JsonResponse({
+                'success': False,
+                'error': f'Bu merkez için paket faturası mevcut. Paket faturası: {package_invoices.first().invoice_number}'
+            })
+        
         # Bu merkezden gönderilen fiziksel kalıplar
         physical_molds = EarMold.objects.filter(
             center=center,
@@ -928,6 +1047,30 @@ def create_single_center_invoice(request, center_id):
         physical_count = physical_molds.count()
         digital_count = digital_only_molds.count()
         
+        # Dinamik fiyat hesaplamaları - Her kalıp için kendi fiyatı
+        physical_amount = Decimal('0.00')
+        for mold in physical_molds:
+            if mold.unit_price is not None:
+                physical_amount += mold.unit_price
+            else:
+                # Eski kalıplar için varsayılan fiyat
+                physical_amount += pricing.physical_mold_price
+        
+        digital_amount = Decimal('0.00')
+        for mold in digital_only_molds:
+            if mold.digital_modeling_price is not None:
+                digital_amount += mold.digital_modeling_price
+            else:
+                # Eski kalıplar için varsayılan fiyat
+                digital_amount += pricing.digital_modeling_price
+        
+        # Ortalama birim fiyat hesapla (fatura için)
+        avg_unit_price = (physical_amount / physical_count) if physical_count > 0 else pricing.physical_mold_price
+        avg_digital_price = (digital_amount / digital_count) if digital_count > 0 else pricing.digital_modeling_price
+        
+        monthly_fee_amount = pricing.monthly_system_fee
+        gross_amount = physical_amount + digital_amount + monthly_fee_amount
+        
         # Fatura oluştur
         invoice = Invoice()
         invoice.invoice_type = 'center_admin_invoice'
@@ -935,21 +1078,15 @@ def create_single_center_invoice(request, center_id):
         invoice.user = center.user
         invoice.physical_mold_count = physical_count
         invoice.modeling_count = digital_count
-        invoice.physical_mold_unit_price = pricing.physical_mold_price
+        invoice.physical_mold_unit_price = avg_unit_price  # Ortalama birim fiyat
         invoice.monthly_fee = pricing.monthly_system_fee
-        
-        # Hesaplamalar
-        physical_amount = physical_count * pricing.physical_mold_price
-        digital_amount = digital_count * pricing.digital_modeling_price
-        monthly_fee_amount = pricing.monthly_system_fee
-        gross_amount = physical_amount + digital_amount + monthly_fee_amount
         
         # KDV hariç tutar
         vat_multiplier = Decimal('1') + (pricing.vat_rate / Decimal('100'))
         gross_without_vat = gross_amount / vat_multiplier
         
-        # Komisyonlar
-        moldpark_fee = pricing.calculate_moldpark_fee(gross_without_vat)
+        # Komisyonlar (KDV DAHİL brüt tutar üzerinden hesaplanır)
+        moldpark_fee = pricing.calculate_moldpark_fee(gross_amount)
         cc_fee = pricing.calculate_credit_card_fee(gross_amount)
         
         # Fatura detayları
@@ -967,6 +1104,159 @@ def create_single_center_invoice(request, center_id):
         invoice.invoice_number = Invoice.generate_invoice_number('center_admin_invoice')
         
         invoice.save()
+        
+        # Paket faturası kontrolü: Eğer bu dönemde paket faturası varsa, üretici faturası oluşturma
+        # Çünkü paket satın alındığında zaten üretici faturası oluşturuldu
+        package_invoice_exists = Invoice.objects.filter(
+            user=center.user,
+            invoice_type='center_admin_invoice',
+            invoice_number__startswith='PKG-',
+            issue_date__gte=start_date.date(),
+            issue_date__lte=end_date.date()
+        ).exists()
+        
+        # Üretici faturalarını oluştur - Sadece paket faturası yoksa
+        producer_invoices_created = []
+        if not package_invoice_exists:
+            all_molds = list(physical_molds) + list(digital_only_molds)
+            
+            # Kalıpları üreticiye göre grupla
+            producer_molds = {}
+            for mold in all_molds:
+                # Bu kalıp için üretici siparişini bul
+                producer_order = ProducerOrder.objects.filter(
+                    ear_mold=mold,
+                    center=center
+                ).select_related('producer').first()
+                
+                if producer_order and producer_order.producer:
+                    producer = producer_order.producer
+                    if producer not in producer_molds:
+                        producer_molds[producer] = {'physical': [], 'digital': []}
+                    
+                    if mold.is_physical_shipment:
+                        producer_molds[producer]['physical'].append(mold)
+                    else:
+                        producer_molds[producer]['digital'].append(mold)
+            
+            # Her üretici için fatura oluştur
+            for producer, molds_dict in producer_molds.items():
+                try:
+                    # Bu dönemde bu üretici için zaten fatura var mı kontrol et
+                    existing_producer_invoice = Invoice.objects.filter(
+                        producer=producer,
+                        invoice_type='producer_invoice',
+                        issue_date__gte=start_date.date(),
+                        issue_date__lte=end_date.date()
+                    ).first()
+                    
+                    if existing_producer_invoice:
+                        # Mevcut faturaya ekle
+                        producer_invoice = existing_producer_invoice
+                    else:
+                        # Yeni fatura oluştur
+                        producer_invoice = Invoice()
+                        producer_invoice.invoice_type = 'producer_invoice'
+                        producer_invoice.producer = producer
+                        producer_invoice.user = producer.user
+                        producer_invoice.issued_by = request.user
+                        producer_invoice.issued_by_producer = producer
+                        producer_invoice.issue_date = now.date()
+                        producer_invoice.due_date = (now + timedelta(days=30)).date()
+                        producer_invoice.status = 'issued'
+                        producer_invoice.invoice_number = Invoice.generate_invoice_number('producer_invoice')
+                    
+                    # Üretici faturası için kalıp sayıları ve tutarları hesapla
+                    producer_physical_count = len(molds_dict['physical'])
+                    producer_digital_count = len(molds_dict['digital'])
+                    
+                    producer_physical_amount = Decimal('0.00')
+                    for mold in molds_dict['physical']:
+                        # Üretici faturası için: Paket hakkından kullanıldıysa (unit_price=0) bile gerçek kalıp fiyatını kullan
+                        # Çünkü üretici her zaman kalıp başına ücret almalı
+                        if mold.unit_price is not None and mold.unit_price > 0:
+                            # Normal kullanım - dinamik fiyat
+                            producer_physical_amount += mold.unit_price
+                        else:
+                            # Paket hakkından kullanıldı veya fiyat kaydedilmemiş - gerçek kalıp fiyatını kullan
+                            # Kalıbın oluşturulduğu tarihteki subscription plan fiyatını bul
+                            from core.models import UserSubscription
+                            try:
+                                subscription_at_time = UserSubscription.objects.filter(
+                                    user=mold.center.user,
+                                    start_date__lte=mold.created_at
+                                ).order_by('-start_date').first()
+                                
+                                if subscription_at_time and subscription_at_time.plan.per_mold_price_try:
+                                    producer_physical_amount += subscription_at_time.plan.per_mold_price_try
+                                else:
+                                    # Fallback: Sistem fiyatı
+                                    producer_physical_amount += pricing.physical_mold_price
+                            except:
+                                # Hata durumunda sistem fiyatı
+                                producer_physical_amount += pricing.physical_mold_price
+                    
+                    producer_digital_amount = Decimal('0.00')
+                    for mold in molds_dict['digital']:
+                        if mold.digital_modeling_price is not None:
+                            producer_digital_amount += mold.digital_modeling_price
+                        else:
+                            producer_digital_amount += pricing.digital_modeling_price
+                    
+                    producer_gross_revenue = producer_physical_amount + producer_digital_amount
+                    
+                    # KDV hariç tutar
+                    vat_multiplier = Decimal('1') + (pricing.vat_rate / Decimal('100'))
+                    producer_gross_without_vat = producer_gross_revenue / vat_multiplier
+                    producer_vat_amount = producer_gross_revenue - producer_gross_without_vat
+                    
+                    # MoldPark hizmet bedeli (KDV DAHİL brüt tutar üzerinden)
+                    producer_moldpark_fee = pricing.calculate_moldpark_fee(producer_gross_revenue)
+                    producer_cc_fee = pricing.calculate_credit_card_fee(producer_gross_revenue)
+                    
+                    # Üretici net kazancı
+                    producer_net_amount = producer_gross_without_vat - producer_moldpark_fee
+                    
+                    # Fatura bilgilerini güncelle
+                    producer_invoice.physical_mold_count = producer_physical_count
+                    producer_invoice.modeling_count = producer_digital_count
+                    producer_invoice.producer_gross_revenue = producer_gross_revenue
+                    producer_invoice.producer_net_revenue = producer_net_amount
+                    producer_invoice.moldpark_service_fee = producer_moldpark_fee
+                    producer_invoice.credit_card_fee = producer_cc_fee
+                    producer_invoice.moldpark_service_fee_rate = pricing.moldpark_commission_rate
+                    producer_invoice.credit_card_fee_rate = pricing.credit_card_commission_rate
+                    producer_invoice.total_amount = producer_gross_revenue
+                    producer_invoice.net_amount = producer_net_amount
+                    producer_invoice.vat_rate = pricing.vat_rate
+                    producer_invoice.subtotal_without_vat = producer_gross_without_vat
+                    producer_invoice.vat_amount = producer_vat_amount
+                    
+                    # İlişkili merkez faturasını kaydet
+                    if not producer_invoice.breakdown_data:
+                        producer_invoice.breakdown_data = {}
+                    if 'related_center_invoices' not in producer_invoice.breakdown_data:
+                        producer_invoice.breakdown_data['related_center_invoices'] = []
+                    producer_invoice.breakdown_data['related_center_invoices'].append({
+                        'invoice_number': invoice.invoice_number,
+                        'center_id': center.id,
+                        'center_name': center.name,
+                    })
+                    
+                    producer_invoice.save()
+                    
+                    producer_invoices_created.append({
+                        'producer': producer.company_name,
+                        'invoice_number': producer_invoice.invoice_number,
+                        'net_amount': producer_net_amount
+                    })
+                        
+                except Exception as e:
+                    logger.error(f"Üretici faturası oluşturulurken hata: {e}")
+                    # Hata olsa bile işleme devam et
+        else:
+            # Paket faturası varsa, üretici faturası zaten paket satın alındığında oluşturuldu
+            logger.info(f"Merkez {center.name} için paket faturası mevcut. Üretici faturası oluşturulmadı (paket satın alındığında zaten oluşturuldu).")
         
         # E-posta gönder
         try:
@@ -1013,6 +1303,8 @@ MoldPark Ekibi
             'physical_count': physical_count,
             'digital_count': digital_count,
             'monthly_fee': f'{monthly_fee_amount:,.2f}',
+            'producer_invoices_created': len(producer_invoices_created),
+            'producer_invoices': producer_invoices_created,
         })
         
     except Exception as e:
@@ -1060,6 +1352,19 @@ def bulk_create_center_invoices(request):
         all_centers = Center.objects.filter(is_active=True)
         
         for center in all_centers:
+            # Paket faturası kontrolü - Eğer paket faturası varsa tek tek kalıp faturası kesme
+            package_invoices = Invoice.objects.filter(
+                user=center.user,
+                invoice_type='center_admin_invoice',
+                invoice_number__startswith='PKG-',
+                issue_date__gte=start_date,
+                issue_date__lte=end_date
+            )
+            
+            if package_invoices.exists():
+                # Paket faturası varsa bu merkezi atla
+                continue
+            
             # Bu merkezden gönderilen fiziksel kalıplar
             physical_molds = EarMold.objects.filter(
                 center=center,
@@ -1079,6 +1384,30 @@ def bulk_create_center_invoices(request):
             physical_count = physical_molds.count()
             digital_count = digital_only_molds.count()
             
+            # Dinamik fiyat hesaplamaları - Her kalıp için kendi fiyatı
+            physical_amount = Decimal('0.00')
+            for mold in physical_molds:
+                if mold.unit_price is not None:
+                    physical_amount += mold.unit_price
+                else:
+                    # Eski kalıplar için varsayılan fiyat
+                    physical_amount += pricing.physical_mold_price
+            
+            digital_amount = Decimal('0.00')
+            for mold in digital_only_molds:
+                if mold.digital_modeling_price is not None:
+                    digital_amount += mold.digital_modeling_price
+                else:
+                    # Eski kalıplar için varsayılan fiyat
+                    digital_amount += pricing.digital_modeling_price
+            
+            # Ortalama birim fiyat hesapla (fatura için)
+            avg_unit_price = (physical_amount / physical_count) if physical_count > 0 else pricing.physical_mold_price
+            avg_digital_price = (digital_amount / digital_count) if digital_count > 0 else pricing.digital_modeling_price
+            
+            monthly_fee_amount = pricing.monthly_system_fee
+            gross_amount = physical_amount + digital_amount + monthly_fee_amount  # Aylık ücret dahil
+            
             # Her aktif merkez için fatura oluştur (aylık ücret + kullanım bedelleri)
             # Fatura oluştur
             invoice = Invoice()
@@ -1087,21 +1416,15 @@ def bulk_create_center_invoices(request):
             invoice.user = center.user
             invoice.physical_mold_count = physical_count
             invoice.modeling_count = digital_count
-            invoice.physical_mold_unit_price = pricing.physical_mold_price
+            invoice.physical_mold_unit_price = avg_unit_price  # Ortalama birim fiyat
             invoice.monthly_fee = pricing.monthly_system_fee  # Aylık sistem kullanım ücreti
-            
-            # Hesaplamalar - dinamik fiyat
-            physical_amount = physical_count * pricing.physical_mold_price
-            digital_amount = digital_count * pricing.digital_modeling_price
-            monthly_fee_amount = pricing.monthly_system_fee
-            gross_amount = physical_amount + digital_amount + monthly_fee_amount  # Aylık ücret dahil
             
             # KDV hariç tutar
             vat_multiplier = Decimal('1') + (pricing.vat_rate / Decimal('100'))
             gross_without_vat = gross_amount / vat_multiplier
             
-            # Komisyonlar
-            moldpark_fee = pricing.calculate_moldpark_fee(gross_without_vat)
+            # Komisyonlar (KDV DAHİL brüt tutar üzerinden hesaplanır)
+            moldpark_fee = pricing.calculate_moldpark_fee(gross_amount)
             cc_fee = pricing.calculate_credit_card_fee(gross_amount)
             
             # Fatura detaylarını set et
@@ -1124,6 +1447,153 @@ def bulk_create_center_invoices(request):
             invoice.save()
             created_invoices.append(invoice)
             total_amount += gross_amount
+            
+            # Üretici faturalarını oluştur - Bu merkezden gönderilen kalıplar için
+            all_molds = list(physical_molds) + list(digital_only_molds)
+            
+            # Kalıpları üreticiye göre grupla
+            producer_molds = {}
+            for mold in all_molds:
+                # Bu kalıp için üretici siparişini bul
+                producer_order = ProducerOrder.objects.filter(
+                    ear_mold=mold,
+                    center=center
+                ).select_related('producer').first()
+                
+                if producer_order and producer_order.producer:
+                    producer = producer_order.producer
+                    if producer not in producer_molds:
+                        producer_molds[producer] = {'physical': [], 'digital': []}
+                    
+                    if mold.is_physical_shipment:
+                        producer_molds[producer]['physical'].append(mold)
+                    else:
+                        producer_molds[producer]['digital'].append(mold)
+            
+            # Paket faturası kontrolü: Eğer bu dönemde paket faturası varsa, üretici faturası oluşturma
+            package_invoice_exists = Invoice.objects.filter(
+                user=center.user,
+                invoice_type='center_admin_invoice',
+                invoice_number__startswith='PKG-',
+                issue_date__gte=start_date.date(),
+                issue_date__lte=end_date.date()
+            ).exists()
+            
+            # Her üretici için fatura oluştur - Sadece paket faturası yoksa
+            if not package_invoice_exists:
+                for producer, molds_dict in producer_molds.items():
+                    try:
+                        # Bu dönemde bu üretici için zaten fatura var mı kontrol et
+                        existing_producer_invoice = Invoice.objects.filter(
+                            producer=producer,
+                            invoice_type='producer_invoice',
+                            issue_date__gte=start_date.date(),
+                            issue_date__lte=end_date.date()
+                        ).first()
+                        
+                        if existing_producer_invoice:
+                            # Mevcut faturaya ekle
+                            producer_invoice = existing_producer_invoice
+                        else:
+                            # Yeni fatura oluştur
+                            producer_invoice = Invoice()
+                            producer_invoice.invoice_type = 'producer_invoice'
+                            producer_invoice.producer = producer
+                            producer_invoice.user = producer.user
+                            producer_invoice.issued_by = request.user
+                            producer_invoice.issued_by_producer = producer
+                            producer_invoice.issue_date = now.date()
+                            producer_invoice.due_date = (now + timedelta(days=30)).date()
+                            producer_invoice.status = 'issued'
+                            producer_invoice.invoice_number = Invoice.generate_invoice_number('producer_invoice')
+                        
+                        # Üretici faturası için kalıp sayıları ve tutarları hesapla
+                        producer_physical_count = len(molds_dict['physical'])
+                        producer_digital_count = len(molds_dict['digital'])
+                        
+                        producer_physical_amount = Decimal('0.00')
+                        for mold in molds_dict['physical']:
+                            # Üretici faturası için: Paket hakkından kullanıldıysa (unit_price=0) bile gerçek kalıp fiyatını kullan
+                            # Çünkü üretici her zaman kalıp başına ücret almalı
+                            if mold.unit_price is not None and mold.unit_price > 0:
+                                # Normal kullanım - dinamik fiyat
+                                producer_physical_amount += mold.unit_price
+                            else:
+                                # Paket hakkından kullanıldı veya fiyat kaydedilmemiş - gerçek kalıp fiyatını kullan
+                                # Kalıbın oluşturulduğu tarihteki subscription plan fiyatını bul
+                                from core.models import UserSubscription
+                                try:
+                                    subscription_at_time = UserSubscription.objects.filter(
+                                        user=mold.center.user,
+                                        start_date__lte=mold.created_at
+                                    ).order_by('-start_date').first()
+                                    
+                                    if subscription_at_time and subscription_at_time.plan.per_mold_price_try:
+                                        producer_physical_amount += subscription_at_time.plan.per_mold_price_try
+                                    else:
+                                        # Fallback: Sistem fiyatı
+                                        producer_physical_amount += pricing.physical_mold_price
+                                except:
+                                    # Hata durumunda sistem fiyatı
+                                    producer_physical_amount += pricing.physical_mold_price
+                        
+                        producer_digital_amount = Decimal('0.00')
+                        for mold in molds_dict['digital']:
+                            if mold.digital_modeling_price is not None:
+                                producer_digital_amount += mold.digital_modeling_price
+                            else:
+                                producer_digital_amount += pricing.digital_modeling_price
+                        
+                        producer_gross_revenue = producer_physical_amount + producer_digital_amount
+                        
+                        # KDV hariç tutar
+                        vat_multiplier = Decimal('1') + (pricing.vat_rate / Decimal('100'))
+                        producer_gross_without_vat = producer_gross_revenue / vat_multiplier
+                        producer_vat_amount = producer_gross_revenue - producer_gross_without_vat
+                        
+                        # MoldPark hizmet bedeli (KDV DAHİL brüt tutar üzerinden)
+                        producer_moldpark_fee = pricing.calculate_moldpark_fee(producer_gross_revenue)
+                        producer_cc_fee = pricing.calculate_credit_card_fee(producer_gross_revenue)
+                        
+                        # Üretici net kazancı
+                        producer_net_amount = producer_gross_without_vat - producer_moldpark_fee
+                        
+                        # Fatura bilgilerini güncelle
+                        producer_invoice.physical_mold_count = (producer_invoice.physical_mold_count or 0) + producer_physical_count
+                        producer_invoice.modeling_count = (producer_invoice.modeling_count or 0) + producer_digital_count
+                        producer_invoice.producer_gross_revenue = (producer_invoice.producer_gross_revenue or Decimal('0.00')) + producer_gross_revenue
+                        producer_invoice.moldpark_service_fee = (producer_invoice.moldpark_service_fee or Decimal('0.00')) + producer_moldpark_fee
+                        producer_invoice.credit_card_fee = (producer_invoice.credit_card_fee or Decimal('0.00')) + producer_cc_fee
+                        producer_invoice.moldpark_service_fee_rate = pricing.moldpark_commission_rate
+                        producer_invoice.credit_card_fee_rate = pricing.credit_card_commission_rate
+                        producer_invoice.total_amount = (producer_invoice.total_amount or Decimal('0.00')) + producer_gross_revenue
+                        producer_invoice.vat_rate = pricing.vat_rate
+                        producer_invoice.subtotal_without_vat = (producer_invoice.subtotal_without_vat or Decimal('0.00')) + producer_gross_without_vat
+                        producer_invoice.vat_amount = (producer_invoice.vat_amount or Decimal('0.00')) + producer_vat_amount
+                        
+                        # Net kazancı yeniden hesapla: KDV hariç tutar - MoldPark komisyonu
+                        total_gross_without_vat = producer_invoice.producer_gross_revenue / vat_multiplier
+                        producer_invoice.producer_net_revenue = total_gross_without_vat - producer_invoice.moldpark_service_fee
+                        producer_invoice.net_amount = producer_invoice.producer_net_revenue
+                        
+                        # İlişkili merkez faturasını kaydet
+                        if not producer_invoice.breakdown_data:
+                            producer_invoice.breakdown_data = {}
+                        if 'related_center_invoices' not in producer_invoice.breakdown_data:
+                            producer_invoice.breakdown_data['related_center_invoices'] = []
+                        producer_invoice.breakdown_data['related_center_invoices'].append({
+                            'invoice_number': invoice.invoice_number,
+                            'center_id': center.id,
+                            'center_name': center.name,
+                        })
+                        
+                        producer_invoice.save()
+                        
+                    except Exception as e:
+                        logger.error(f"Üretici faturası oluşturulurken hata (merkez: {center.name}, üretici: {producer.company_name if producer else 'Bilinmiyor'}): {e}")
+                else:
+                    # Paket faturası varsa, üretici faturası zaten paket satın alındığında oluşturuldu
+                    logger.info(f"Merkez {center.name} için paket faturası mevcut. Üretici faturası oluşturulmadı (paket satın alındığında zaten oluşturuldu).")
             
             # E-posta gönder
             try:
@@ -1227,10 +1697,32 @@ def bulk_create_producer_invoices(request):
                 
                 for order in completed_orders:
                     if order.ear_mold.is_physical_shipment:
-                        gross_revenue += pricing.physical_mold_price
+                        # Üretici faturası için: Paket hakkından kullanıldıysa (unit_price=0) bile gerçek kalıp fiyatını kullan
+                        if order.ear_mold.unit_price is not None and order.ear_mold.unit_price > 0:
+                            # Normal kullanım - dinamik fiyat
+                            gross_revenue += order.ear_mold.unit_price
+                        else:
+                            # Paket hakkından kullanıldı - gerçek kalıp fiyatını kullan
+                            from core.models import UserSubscription
+                            try:
+                                subscription_at_time = UserSubscription.objects.filter(
+                                    user=order.ear_mold.center.user,
+                                    start_date__lte=order.ear_mold.created_at
+                                ).order_by('-start_date').first()
+                                
+                                if subscription_at_time and subscription_at_time.plan.per_mold_price_try:
+                                    gross_revenue += subscription_at_time.plan.per_mold_price_try
+                                else:
+                                    gross_revenue += pricing.physical_mold_price
+                            except:
+                                gross_revenue += pricing.physical_mold_price
                         physical_count += 1
                     else:
-                        gross_revenue += pricing.digital_modeling_price
+                        # 3D modelleme için kaydedilmiş dinamik fiyatı kullan
+                        if order.ear_mold.digital_modeling_price is not None:
+                            gross_revenue += order.ear_mold.digital_modeling_price
+                        else:
+                            gross_revenue += pricing.digital_modeling_price  # Eski kalıplar için varsayılan
                         digital_count += 1
                 
                 # Fatura oluştur
@@ -1248,10 +1740,10 @@ def bulk_create_producer_invoices(request):
                 vat_multiplier = Decimal('1') + (pricing.vat_rate / Decimal('100'))
                 gross_without_vat = gross_revenue / vat_multiplier
                 
-                # Kesintiler - dinamik komisyon
-                moldpark_cut = pricing.calculate_moldpark_fee(gross_without_vat)
+                # Kesintiler - dinamik komisyon (KDV DAHİL brüt tutar üzerinden)
+                moldpark_cut = pricing.calculate_moldpark_fee(gross_revenue)
                 cc_cut = pricing.calculate_credit_card_fee(gross_revenue)
-                net_payment = gross_without_vat - moldpark_cut
+                net_payment = gross_revenue - moldpark_cut
                 
                 invoice.moldpark_service_fee = moldpark_cut
                 invoice.credit_card_fee = cc_cut

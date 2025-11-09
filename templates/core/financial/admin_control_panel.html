@@ -8,7 +8,7 @@
     <!-- Page Header -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #F5B427 0%, #D49A1F 100%);">
                 <div class="card-body p-4 text-white">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
@@ -48,6 +48,22 @@
                         </a>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hesaplama Açıklaması -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-info alert-dismissible fade show" role="alert">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Finansal Hesaplama Yöntemi:</strong>
+                <ul class="mb-0 mt-2">
+                    <li><strong>MoldPark Hizmet Bedeli (%6.5):</strong> İşitme merkezlerinden tahsil edilen brüt tutar (KDV dahil) × %6.5</li>
+                    <li><strong>Kredi Kartı Komisyonu (%3):</strong> Brüt tutar (KDV dahil) × %3 (MoldPark maliyeti olarak hesaplanır)</li>
+                    <li><strong>Üreticiye Ödeme:</strong> Brüt tutar - MoldPark hizmet bedeli</li>
+                </ul>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         </div>
     </div>
@@ -102,9 +118,9 @@
                             </div>
                         </div>
                         <div class="flex-grow-1 ms-3">
-                            <div class="text-muted small">Hizmet Bedeli (%6.5)</div>
+                            <div class="text-muted small">Hizmet Bedeli (%6.5 - KDV DAHİL tutardan)</div>
                             <h4 class="mb-0 fw-bold text-warning">₺{{ cash_flow.moldpark_service_income|floatformat:2 }}</h4>
-                            <small class="text-muted">MoldPark Geliri</small>
+                            <small class="text-muted">MoldPark Geliri (Brüt × %6.5)</small>
                         </div>
                     </div>
                 </div>
@@ -353,15 +369,28 @@
                                             <strong>{{ item.center.name }}</strong>
                                         </td>
                                         <td class="text-center">
-                                            {% if item.physical_count > 0 %}
-                                                <span class="badge bg-primary" title="Fiziksel Kalıp (450 TL)">
-                                                    <i class="fas fa-box me-1"></i>{{ item.physical_count }}
+                                            {% if item.has_package_invoice %}
+                                                <span class="badge bg-success" title="Paket Faturası - {{ item.package_invoice_numbers|join:', ' }}">
+                                                    <i class="fas fa-gift me-1"></i>{{ item.package_info|default:"Paket" }}
                                                 </span>
-                                            {% endif %}
-                                            {% if item.digital_count > 0 %}
-                                                <span class="badge bg-info" title="3D Modelleme (50 TL)">
-                                                    <i class="fas fa-cube me-1"></i>{{ item.digital_count }}
-                                                </span>
+                                                {% if item.package_invoice_numbers %}
+                                                    {% if item.package_invoice_numbers.0 == "Fatura Oluşturulmamış" %}
+                                                        <br><small class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Fatura Oluşturulmamış</small>
+                                                    {% else %}
+                                                        <br><small class="text-muted">{{ item.package_invoice_numbers.0|truncatechars:20 }}</small>
+                                                    {% endif %}
+                                                {% endif %}
+                                            {% else %}
+                                                {% if item.physical_count > 0 %}
+                                                    <span class="badge bg-primary" title="Fiziksel Kalıp (Dinamik Fiyat)">
+                                                        <i class="fas fa-box me-1"></i>{{ item.physical_count }}
+                                                    </span>
+                                                {% endif %}
+                                                {% if item.digital_count > 0 %}
+                                                    <span class="badge bg-info" title="3D Modelleme (19 TL)">
+                                                        <i class="fas fa-cube me-1"></i>{{ item.digital_count }}
+                                                    </span>
+                                                {% endif %}
                                             {% endif %}
                                         </td>
                                         <td class="text-end">
@@ -369,9 +398,29 @@
                                                 <i class="fas fa-calendar-check me-1"></i>₺{{ item.monthly_system_fee|floatformat:0 }}
                                             </span>
                                         </td>
-                                        <td class="text-end">₺{{ item.gross_amount_without_vat|floatformat:2 }}</td>
-                                        <td class="text-end text-info">₺{{ item.vat_amount|floatformat:2 }}</td>
-                                        <td class="text-end"><strong>₺{{ item.gross_amount|floatformat:2 }}</strong></td>
+                                        <td class="text-end">
+                                            {% if item.has_package_invoice %}
+                                                ₺{{ item.package_amount|floatformat:2 }}
+                                            {% else %}
+                                                ₺{{ item.gross_amount_without_vat|floatformat:2 }}
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end text-info">
+                                            {% if item.has_package_invoice %}
+                                                ₺{{ item.vat_amount|floatformat:2 }}
+                                            {% else %}
+                                                ₺{{ item.vat_amount|floatformat:2 }}
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            <strong>
+                                                {% if item.has_package_invoice %}
+                                                    ₺{{ item.package_amount|floatformat:2 }}
+                                                {% else %}
+                                                    ₺{{ item.gross_amount|floatformat:2 }}
+                                                {% endif %}
+                                            </strong>
+                                        </td>
                                         <td class="text-end text-warning">₺{{ item.moldpark_fee|floatformat:2 }}</td>
                                         <td class="text-center">
                                             <button type="button" 

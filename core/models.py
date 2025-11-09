@@ -187,6 +187,8 @@ class PricingPlan(models.Model):
     
     PLAN_TYPE_CHOICES = [
         ('standard', 'Standart Paket'),  # Tek paket sistemi
+        ('package', 'Kalıp Paketi'),  # Kalıp paketleri
+        ('single', 'Tek Kalıp'),  # Tek kalıp seçeneği
     ]
     
     name = models.CharField('Plan Adı', max_length=100)
@@ -298,6 +300,10 @@ class UserSubscription(models.Model):
     # Geriye dönük uyumluluk
     amount_paid = models.DecimalField('Ödenen Tutar', max_digits=10, decimal_places=2, default=0)
     
+    # Paket Kullanım Hakları (Paket satın alındığında verilen haklar)
+    package_credits = models.IntegerField('Paket Kullanım Hakları', default=0, help_text='Satın alınan paketten kalan kullanım hakları')
+    used_credits = models.IntegerField('Kullanılan Haklar', default=0, help_text='Paket haklarından kullanılan miktar')
+    
     class Meta:
         verbose_name = 'Kullanıcı Aboneliği'
         verbose_name_plural = 'Kullanıcı Abonelikleri'
@@ -315,8 +321,17 @@ class UserSubscription(models.Model):
         return True
     
     def can_create_model(self):
-        """Model oluşturabilir mi? - Artık her zaman True (ödeme yapılacak)"""
-        return self.is_valid()
+        """Model oluşturabilir mi? - Her zaman True (paket hakkı varsa ücretsiz, yoksa tek kalıp ücreti alınır)"""
+        if not self.is_valid():
+            return False
+        # Paket hakları bitse bile tek kalıp satın alarak devam edebilir
+        return True
+    
+    def get_remaining_credits(self):
+        """Kalan paket haklarını döndür"""
+        if self.plan.plan_type == 'package':
+            return max(0, self.package_credits - self.used_credits)
+        return 0
     
     def add_mold_usage(self, ear_mold=None):
         """Kalıp kullanımı ekle ve maliyeti hesapla
@@ -333,18 +348,30 @@ class UserSubscription(models.Model):
         digital_cost = 0
 
         if ear_mold:
-            # Fiziksel kalıp gönderimi varsa ücret al
+            # Fiziksel kalıp gönderimi varsa
             if ear_mold.is_physical_shipment:
-                physical_cost = self.plan.per_mold_price_try  # 450 TL
+                # Paket planıysa ve hak varsa hak kullan, yoksa tek kalıp ücreti al
+                if self.plan.plan_type == 'package' and self.package_credits > self.used_credits:
+                    # Paket hakkından kullan
+                    self.used_credits += 1
+                    physical_cost = 0  # Paket hakkından kullanıldığı için ücret yok
+                else:
+                    # Paket hakkı yoksa tek kalıp ücreti al
+                    physical_cost = self.plan.per_mold_price_try  # 450 TL
+                
                 self.models_used_this_month += 1
 
             # Dijital tarama seçildiyse (3D Modelleme Hizmeti) ücret al
             if not ear_mold.is_physical_shipment:
-                digital_cost = self.plan.modeling_service_fee_try  # 50 TL
+                digital_cost = self.plan.modeling_service_fee_try  # 19 TL
                 self.digital_scans_this_month += 1
         else:
             # Geriye uyumluluk için eski davranış
-            physical_cost = self.plan.per_mold_price_try
+            if self.plan.plan_type == 'package' and self.package_credits > self.used_credits:
+                self.used_credits += 1
+                physical_cost = 0
+            else:
+                physical_cost = self.plan.per_mold_price_try
             self.models_used_this_month += 1
 
         total_cost = physical_cost + digital_cost
@@ -355,7 +382,7 @@ class UserSubscription(models.Model):
         return total_cost
     
     def reset_monthly_usage_if_needed(self):
-        """Gerekirse aylık kullanımı sıfırla"""
+        """Gerekirse aylık kullanımı sıfırla (paket hakları sıfırlanmaz)"""
         now = timezone.now()
         if (now.year != self.last_reset_date.year or
             now.month != self.last_reset_date.month):
@@ -364,6 +391,7 @@ class UserSubscription(models.Model):
             self.total_mold_cost_this_month = 0
             self.monthly_fee_paid = False
             self.last_reset_date = now
+            # NOT: used_credits ve package_credits sıfırlanmaz çünkü paket hakları aylık değil
             self.save()
     
     def get_remaining_models(self):
@@ -932,10 +960,11 @@ class Invoice(models.Model):
         self.modeling_count = self.digital_scan_count
         self.modeling_cost = self.digital_scan_cost
 
-        # MoldPark sistem komisyonu %6.5 (center faturalarında MoldPark'a olan borç)
+        # MoldPark sistem komisyonu %6.5 (KDV DAHİL brüt tutar üzerinden)
+        # subtotal zaten KDV dahil olduğu için doğrudan hesaplayabiliriz
         self.moldpark_system_fee = self.subtotal * Decimal('0.065')
 
-        # Kredi kartı komisyonu %2.6
+        # Kredi kartı komisyonu %2.6 (KDV dahil tutar üzerinden)
         self.credit_card_fee = self.subtotal * Decimal('0.026')
 
         # Toplam kesintiler
@@ -967,16 +996,25 @@ class Invoice(models.Model):
         # Aktif fiyatlandırmayı al
         pricing = PricingConfiguration.get_active()
         
-        # Fiziksel kalıp
+        # Fiziksel kalıp - Kalıp için kaydedilmiş fiyatı kullan
         self.physical_mold_count = 1  # Her fatura bir kalıp için
-        self.physical_mold_unit_price = pricing.physical_mold_price  # Dinamik fiyat
+        if ear_mold.unit_price is not None:
+            self.physical_mold_unit_price = ear_mold.unit_price  # Kalıp için kaydedilmiş dinamik fiyat
+        else:
+            self.physical_mold_unit_price = pricing.physical_mold_price  # Eski kalıplar için varsayılan
         self.physical_mold_cost = self.physical_mold_unit_price
         
         # 3D Modelleme hizmeti kontrolü
         # Eğer bu kalıp için ModeledMold kaydı varsa, 3D modelleme yapılmış demektir
         has_digital_modeling = ear_mold.modeled_files.exists()
         self.digital_scan_count = 1 if has_digital_modeling else 0
-        self.digital_scan_cost = pricing.digital_modeling_price if has_digital_modeling else Decimal('0.00')
+        if has_digital_modeling:
+            if ear_mold.digital_modeling_price is not None:
+                self.digital_scan_cost = ear_mold.digital_modeling_price  # Kalıp için kaydedilmiş dinamik fiyat
+            else:
+                self.digital_scan_cost = pricing.digital_modeling_price  # Eski kalıplar için varsayılan
+        else:
+            self.digital_scan_cost = Decimal('0.00')
         
         # Aylık sistem ücreti (dinamik)
         self.monthly_fee = pricing.monthly_system_fee
@@ -1013,7 +1051,7 @@ class Invoice(models.Model):
                 'physical_quantity': 1,
                 'physical_cost': float(self.physical_mold_cost),
                 'digital_modeling': has_digital_modeling,
-                'digital_unit_price': 50.00,
+                'digital_unit_price': float(self.digital_scan_cost / self.digital_scan_count) if self.digital_scan_count > 0 else 19.00,
                 'digital_quantity': self.digital_scan_count,
                 'digital_cost': float(self.digital_scan_cost)
             },
@@ -1067,8 +1105,35 @@ class Invoice(models.Model):
 
         self.invoice_type = 'producer_invoice'
         self.issued_by_producer = issued_by_producer
+        
+        # Aktif fiyatlandırmayı al
+        pricing = PricingConfiguration.get_active()
+        
+        # Kalıp için gerçek fiyatı belirle
+        # Üretici her zaman gerçek kalıp fiyatını almalı (paket hakkından kullanılsa bile)
+        if ear_mold.unit_price is not None and ear_mold.unit_price > 0:
+            # Normal kullanım - dinamik fiyat
+            physical_unit_price = ear_mold.unit_price
+        else:
+            # Paket hakkından kullanıldı veya fiyat kaydedilmemiş - gerçek kalıp fiyatını kullan
+            # Kalıbın oluşturulduğu tarihteki subscription plan fiyatını bul
+            try:
+                subscription_at_time = UserSubscription.objects.filter(
+                    user=ear_mold.center.user,
+                    start_date__lte=ear_mold.created_at
+                ).order_by('-start_date').first()
+                
+                if subscription_at_time and subscription_at_time.plan.per_mold_price_try:
+                    physical_unit_price = subscription_at_time.plan.per_mold_price_try
+                else:
+                    # Fallback: Sistem fiyatı
+                    physical_unit_price = pricing.physical_mold_price
+            except:
+                # Hata durumunda sistem fiyatı
+                physical_unit_price = pricing.physical_mold_price
+        
         self.physical_mold_count = 1
-        self.physical_mold_unit_price = Decimal('450.00')
+        self.physical_mold_unit_price = physical_unit_price
         self.physical_mold_cost = self.physical_mold_unit_price
 
         # Ara toplam (üreticinin kazandığı tutar)
@@ -1526,7 +1591,7 @@ class PricingConfiguration(models.Model):
         '3D Modelleme Fiyatı (₺)',
         max_digits=10,
         decimal_places=2,
-        default=50.00,
+        default=19.00,
         help_text='KDV dahil 3D modelleme hizmet fiyatı'
     )
     
@@ -1534,8 +1599,8 @@ class PricingConfiguration(models.Model):
         'Aylık Sistem Kullanım Ücreti (₺)',
         max_digits=10,
         decimal_places=2,
-        default=100.00,
-        help_text='İşitme merkezleri için aylık sabit ücret'
+        default=0.00,
+        help_text='İşitme merkezleri için aylık sabit ücret (0,00 TL = Ücretsiz)'
     )
     
     # Komisyon Oranları (Yüzde)
@@ -1618,7 +1683,7 @@ class PricingConfiguration(models.Model):
                 description='Sistem tarafından otomatik oluşturulan varsayılan fiyatlandırma',
                 is_active=True,
                 physical_mold_price=450.00,
-                digital_modeling_price=50.00,
+                digital_modeling_price=19.00,
                 moldpark_commission_rate=6.50,
                 credit_card_commission_rate=3.00,
                 vat_rate=20.00,

@@ -13,15 +13,21 @@ MoldPark'a kapsamlı bir finansal yönetim sistemi eklendi. Sistem, kullandıkç
 - **Kullanım Limiti:** Sınırsız (kullandıkça öde)
 
 ### Komisyon Oranları
-- **Kredi Kartı Komisyonu:** %3 (tüm işlemlerden)
-- **MoldPark Komisyonu:** %6.5 (sadece üretici siparişlerinden)
+- **Kredi Kartı Komisyonu:** %3 (KDV DAHİL brüt tutar üzerinden)
+- **MoldPark Hizmet Bedeli:** %6.5 (KDV DAHİL brüt tutar üzerinden tahsil edilir)
 
 ### Yeni Fatura Sistemi (Merkezileştirilmiş)
-- **İşitme Merkezi Admin:** Kalıp gönderimi için fatura keser (450 TL + %3 KK + %6.5 MoldPark)
-- **Üretici Merkez:** Hizmet bedeli için fatura keser (üreticiye ödeme bilgilendirmesi)
-- **Müşteri Ödemesi:** 450 TL + komisyonlar = 450 + 13.5 + 29.25 = 492.75 TL
-- **Üretici Ödemesi:** 450 - 13.5 - 29.25 = 407.25 TL
-- **MoldPark Kazancı:** 13.5 (KK) + 29.25 (hizmet) = 42.75 TL
+
+**Hesaplama Örneği (450 TL fiziksel kalıp):**
+1. **Brüt Tutar (KDV dahil):** 450 TL
+2. **MoldPark Hizmet Bedeli:** 450 × %6.5 = 29.25 TL
+3. **Kredi Kartı Komisyonu:** 450 × %3 = 13.5 TL
+4. **Üreticiye Ödeme:** 450 - 29.25 = 420.75 TL
+5. **MoldPark Geliri:** 29.25 TL (hizmet bedeli)
+6. **MoldPark Maliyeti:** 13.5 TL (kredi kartı komisyonu)
+7. **MoldPark Net Kar:** 29.25 - 13.5 = 15.75 TL
+
+**Not:** %6.5 MoldPark hizmet bedeli KDV DAHİL brüt tutardan tahsil edilir ve işitme merkezi faturasından kesilir.
 
 ## 🔧 Özellikler
 

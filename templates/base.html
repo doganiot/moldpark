@@ -46,12 +46,267 @@
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <!-- Custom CSS -->
-    <link href="{% static 'css/custom.css' %}?v=4.0" rel="stylesheet">
+    <link href="{% static 'css/custom.css' %}?v=4.1" rel="stylesheet">
+    
+    <!-- Navbar Modern CSS -->
+    <style>
+        /* Tüm sayfa arka planı */
+        body {
+            background: #FFD15C !important;
+            min-height: 100vh;
+        }
+        
+        .content-wrapper {
+            background: #FFD15C;
+        }
+        
+        .navbar-modern {
+            background: #FFD15C !important;
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .navbar-modern .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: #000000 !important;
+            text-shadow: none;
+        }
+        
+        .navbar-modern .navbar-nav .nav-link {
+            color: #000000 !important;
+            font-weight: 500;
+            font-size: 0.95rem;
+            padding: 0.75rem 1rem;
+            margin: 0 0.25rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .navbar-modern .navbar-nav .nav-link:hover {
+            color: #000000 !important;
+            background: rgba(0, 0, 0, 0.05);
+            transform: translateY(-1px);
+        }
+        
+        .navbar-modern .navbar-nav .nav-link.active {
+            background: rgba(0, 0, 0, 0.1);
+            color: #000000 !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .navbar-modern .btn-primary {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            border: none;
+            font-weight: 600;
+            padding: 0.75rem 1.5rem;
+            border-radius: 50px;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+            transition: all 0.3s ease;
+        }
+        
+        .navbar-modern .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.6);
+        }
+        
+        .navbar-modern .btn-success {
+            background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+            border: none;
+            font-weight: 600;
+            padding: 0.75rem 1.5rem;
+            border-radius: 50px;
+            box-shadow: 0 4px 15px rgba(0, 210, 255, 0.4);
+        }
+        
+        .notification-badge {
+            position: relative;
+            top: -8px;
+            right: -6px;
+            font-size: 0.6rem;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        
+        .dropdown-menu-modern {
+            border: none;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+        }
+        
+        .brand-logo {
+            transition: all 0.3s ease;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+        }
+        
+        .brand-logo:hover {
+            transform: scale(1.05);
+        }
+        
+        .navbar-shadow {
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            background: rgba(255, 255, 255, 0.95) !important;
+            backdrop-filter: blur(10px);
+        }
+        
+        .user-dropdown-modern {
+            width: 280px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        }
+        
+        .nav-item-divider {
+            height: 1px;
+            background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.2), transparent);
+            margin: 0.5rem 0;
+        }
+        
+        .mobile-user-header-modern {
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 12px;
+            margin: 1rem;
+            padding: 1rem;
+            color: #000000;
+        }
+        
+        .language-switcher-modern .dropdown-item {
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin: 0.25rem;
+            transition: all 0.3s ease;
+        }
+        
+        .language-switcher-modern .dropdown-item:hover {
+            background: rgba(0, 0, 0, 0.05);
+            transform: translateX(2px);
+        }
+        
+        .language-switcher-modern .dropdown-item.active {
+            background: rgba(0, 0, 0, 0.1);
+            color: #000000;
+        }
+        
+        /* Navbar icon ve badge renkleri */
+        .navbar-modern .navbar-nav .nav-link i,
+        .navbar-modern .navbar-nav .nav-link .fas,
+        .navbar-modern .navbar-nav .nav-link .fa {
+            color: #000000 !important;
+        }
+        
+        .navbar-modern .dropdown-toggle::after {
+            border-top-color: #000000;
+        }
+        
+        /* Navbar toggler icon */
+        .navbar-modern .navbar-toggler {
+            border-color: rgba(0, 0, 0, 0.2);
+        }
+        
+        .navbar-modern .navbar-toggler-icon {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%280, 0, 0, 0.85%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+        }
+        
+        /* Mobile quick actions butonları */
+        .navbar-modern .btn-link {
+            color: #000000 !important;
+        }
+        
+        .navbar-modern .btn-link:hover {
+            color: #000000 !important;
+            opacity: 0.7;
+        }
+        
+        /* Dropdown menü renkleri */
+        .navbar-modern .dropdown-menu {
+            background: #FFD15C;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        .navbar-modern .dropdown-item {
+            color: #000000;
+        }
+        
+        .navbar-modern .dropdown-item:hover {
+            background: rgba(0, 0, 0, 0.1);
+            color: #000000;
+        }
+        
+        .navbar-modern .dropdown-header {
+            color: #000000;
+            font-weight: 600;
+        }
+        
+        /* Badge renkleri navbar içinde */
+        .navbar-modern .badge {
+            color: white;
+        }
+        
+        /* Dropdown içindeki text renkleri */
+        .navbar-modern .dropdown-menu .text-muted {
+            color: #666666 !important;
+        }
+        
+        .navbar-modern .dropdown-menu .text-primary {
+            color: #000000 !important;
+        }
+        
+        .navbar-modern .dropdown-menu .text-success {
+            color: #28a745 !important;
+        }
+        
+        .navbar-modern .dropdown-menu .bg-light {
+            background-color: rgba(0, 0, 0, 0.05) !important;
+        }
+        
+        .navbar-modern .dropdown-menu hr {
+            border-color: rgba(0, 0, 0, 0.1);
+        }
+        
+        /* User dropdown icon */
+        .navbar-modern .fa-user-circle {
+            color: #000000 !important;
+        }
+        
+        /* Dropdown içindeki icon'lar */
+        .navbar-modern .dropdown-menu .fas,
+        .navbar-modern .dropdown-menu .fa {
+            color: #000000;
+        }
+        
+        /* Responsive improvements */
+        @media (max-width: 991.98px) {
+            .navbar-modern {
+                background: #FFD15C !important;
+            }
+            
+            .navbar-modern .navbar-nav .nav-link {
+                margin: 0.25rem 0;
+                text-align: center;
+                border-radius: 8px;
+            }
+            
+            .dropdown-menu-modern {
+                width: 100%;
+                margin: 0.5rem 0;
+            }
+        }
+    </style>
     
     {% block extra_css %}{% endblock %}
     
     <!-- Accessibility ve Tema Rengi -->
-    <meta name="theme-color" content="#4f46e5" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#F5B427" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#1e1b4b" media="(prefers-color-scheme: dark)">
     <meta name="color-scheme" content="light dark">
 </head>
@@ -62,7 +317,7 @@
     </a>
     
     <!-- Modern Navbar -->
-        <nav class="navbar navbar-expand-lg fixed-top navbar-modern" role="navigation" aria-label="Ana navigasyon">
+        <nav class="navbar navbar-expand-lg navbar-light navbar-modern" role="navigation" aria-label="Ana navigasyon">
         <div class="container">
             <!-- Logo -->
             <a class="navbar-brand d-flex align-items-center" href="{% if user.is_authenticated %}{% url 'accounts:smart_home_redirect' %}{% else %}{% url 'core:home' %}{% endif %}" title="{% if user.is_authenticated %}Dashboard{% else %}Ana Sayfa{% endif %}">
@@ -105,10 +360,10 @@
             
             <div class="collapse navbar-collapse" id="navbarNav">
                 <!-- Mobile User Header -->
-                <div class="d-lg-none border-bottom pb-3 mb-3 mt-3">
+                <div class="d-lg-none border-bottom pb-3 mb-3 mt-3 mobile-user-header-modern">
                     {% if user.is_authenticated %}
                         <div class="d-flex align-items-center">
-                            <i class="fas fa-user-circle fs-2 text-primary me-3"></i>
+                            <i class="fas fa-user-circle fs-2 me-3" style="color: #000000;"></i>
                             <div>
                                 <div class="fw-bold">
                                     {% if user.producer %}
@@ -119,7 +374,7 @@
                                         {{ user.username }}
                                     {% endif %}
                                 </div>
-                                <small class="text-muted">
+                                <small style="color: #666666;">
                                     {% if user.producer %}Üretici Merkez
                                     {% elif user.center %}İşitme Merkezi
                                     {% elif user.is_staff %}Sistem Yöneticisi
@@ -169,7 +424,7 @@
                     {% else %}
                         {% if user.is_staff %}
                             <!-- Admin -->
-                            <li class="nav-item"><a class="nav-link" href="{% url 'center:admin_dashboard' %}"><i class="fas fa-tachometer-alt me-1"></i>{% trans "Dashboard" %}</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{% url 'core:admin_dashboard' %}"><i class="fas fa-tachometer-alt me-1"></i>{% trans "Dashboard" %}</a></li>
                             <li class="nav-item"><a class="nav-link {% if 'message' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:message_list' %}" onclick="clearMessageBadges()"><i class="fas fa-envelope me-1"></i>{% trans "Mesajlar" %}{% if unread_message_count > 0 %}<span class="badge bg-danger ms-1 message-badge">{{ unread_message_count }}</span>{% endif %}</a></li>
                         {% elif user.producer %}
                             <!-- Üretici - Sol menü zaten var, burada tekrarlama -->
@@ -183,9 +438,9 @@
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle position-relative" href="#" id="notificationDropdown" role="button" data-bs-toggle="dropdown">
                                 <i class="fas fa-bell me-1"></i>{% trans "Bildirimler" %}
-                                {% if unread_notifications > 0 %}<span class="badge bg-danger ms-1">{{ unread_notifications }}</span>{% endif %}
+                                {% if unread_notifications > 0 %}<span class="badge bg-danger ms-1 notification-badge">{{ unread_notifications }}</span>{% endif %}
                             </a>
-                            <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="width: 320px; max-height: 400px; overflow-y: auto;">
+                            <ul class="dropdown-menu dropdown-menu-end dropdown-menu-modern shadow-lg" style="width: 320px; max-height: 400px; overflow-y: auto;">
                                 <li class="dropdown-header d-flex justify-content-between align-items-center">
                                     <span>{% trans "Bildirimler" %}</span>
                                     {% if unread_notifications > 0 %}<span class="badge bg-primary">{{ unread_notifications }}</span>{% endif %}
@@ -226,7 +481,7 @@
                             {% get_current_language as LANGUAGE_CODE %}
                             {% if LANGUAGE_CODE == 'tr' %}🇹🇷 TR{% elif LANGUAGE_CODE == 'en' %}🇺🇸 EN{% else %}{{ LANGUAGE_CODE|upper }}{% endif %}
                         </a>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageDropdown">
+                        <ul class="dropdown-menu dropdown-menu-end dropdown-menu-modern language-switcher-modern shadow-lg border-0" aria-labelledby="languageDropdown">
                             {% get_available_languages as LANGUAGES %}
                             {% get_language_info_list for LANGUAGES as languages %}
                             <!-- Debug: Current language: {{ LANGUAGE_CODE }} -->
@@ -277,7 +532,7 @@
                                     {% endif %}
                                 </span>
                             </a>
-                            <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                            <ul class="dropdown-menu dropdown-menu-end user-dropdown-modern">
                                 <li class="dropdown-header">
                                     <small class="text-muted">
                                         {% if user.producer %}Üretici Merkez{% elif user.center %}İşitme Merkezi{% elif user.is_staff %}Sistem Yöneticisi{% endif %}
@@ -294,9 +549,9 @@
                                     <li><a class="dropdown-item" href="{% url 'center:profile' %}"><i class="fas fa-user me-2"></i>{% trans "Profil Ayarları" %}</a></li>
                                     <li><a class="dropdown-item" href="{% url 'core:subscription_dashboard' %}"><i class="fas fa-credit-card me-2"></i>{% trans "Abonelik" %}</a></li>
                                 {% elif user.is_staff %}
-                                    <li><a class="dropdown-item" href="{% url 'center:admin_dashboard' %}"><i class="fas fa-tachometer-alt me-2"></i>{% trans "Admin Dashboard" %}</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'core:admin_dashboard' %}"><i class="fas fa-tachometer-alt me-2"></i>{% trans "Admin Dashboard" %}</a></li>
                                     <li><a class="dropdown-item" href="{% url 'core:admin_financial_control_panel' %}"><i class="fas fa-chart-line me-2"></i>{% trans "Finansal Kontrol" %}</a></li>
-                                    <li><a class="dropdown-item" href="{% url 'core:admin_dashboard' %}"><i class="fas fa-cog me-2"></i>{% trans "Sistem Yönetimi" %}</a></li>
+                                    <li><a class="dropdown-item" href="/admin/" target="_blank"><i class="fas fa-cog me-2"></i>{% trans "Django Admin Paneli" %}</a></li>
                                 {% endif %}
                                 
                                 <li><hr class="dropdown-divider"></li>
@@ -314,7 +569,7 @@
                         <!-- Misafir kullanıcılar için kayıt ve giriş -->
                         <li class="nav-item me-2">
                             <div class="dropdown">
-                                <button class="btn btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <button class="btn btn-outline-dark dropdown-toggle" type="button" data-bs-toggle="dropdown">
                                     <i class="fas fa-user-plus me-1"></i>{% trans "Kayıt Ol" %}
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0">
@@ -345,7 +600,7 @@
                             </div>
                         </li>
                         <li class="nav-item">
-                            <a class="btn btn-light" href="{% url 'account_login' %}">
+                            <a class="btn btn-dark" href="{% url 'account_login' %}">
                                 <i class="fas fa-sign-in-alt me-1"></i>{% trans "Giriş Yap" %}
                             </a>
                         </li>

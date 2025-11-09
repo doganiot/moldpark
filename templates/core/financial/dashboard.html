@@ -29,7 +29,7 @@
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }
-    .revenue-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+    .revenue-card { background: linear-gradient(135deg, #F5B427 0%, #D49A1F 100%); color: white; }
     .profit-card { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; }
     .commission-card { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; }
     .fees-card { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; }
@@ -57,7 +57,7 @@
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
     
-    .badge-revenue { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .badge-revenue { background: linear-gradient(135deg, #F5B427 0%, #D49A1F 100%); }
     .badge-profit { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
 </style>
 {% endblock %}
@@ -129,7 +129,7 @@
     <!-- Detaylı Kontrol Paneli Erişim Kartı -->
     <div class="row mt-4">
         <div class="col-12">
-            <div class="card border-0 shadow-lg" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px;">
+            <div class="card border-0 shadow-lg" style="background: linear-gradient(135deg, #F5B427 0%, #D49A1F 100%); border-radius: 15px;">
                 <div class="card-body p-4 text-white">
                     <div class="row align-items-center">
                         <div class="col-md-8">
@@ -397,8 +397,8 @@
             datasets: [{
                 label: 'Gelir',
                 data: monthlyTrendData.map(d => d.revenue),
-                borderColor: '#667eea',
-                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                borderColor: '#F5B427',
+                backgroundColor: 'rgba(245, 180, 39, 0.1)',
                 tension: 0.4,
                 fill: true
             }, {

@@ -196,7 +196,7 @@
                     <span style="font-size: 10pt; color: #666;">3D Baski + Kalip Imalati (KDV Dahil: 375 TL + 75 TL KDV)</span>
                 </td>
                 <td style="text-align: center;">{{ invoice.physical_mold_count }}</td>
-                <td style="text-align: right;">450 TL</td>
+                <td style="text-align: right;">{{ invoice.physical_mold_unit_price|floatformat:2 }} TL</td>
                 <td style="text-align: right;"><strong>{{ invoice.physical_mold_cost|floatformat:0 }} TL</strong></td>
             </tr>
             {% endif %}
@@ -205,10 +205,17 @@
             <tr>
                 <td>
                     <strong>3D Kalip Modelleme Hizmeti</strong><br>
-                    <span style="font-size: 10pt; color: #666;">Dijital Model Olusturma (KDV Dahil: 41.67 TL + 8.33 TL KDV)</span>
+                    <span style="font-size: 10pt; color: #666;">Dijital Model Olusturma (KDV Dahil: 15.83 TL + 3.17 TL KDV)</span>
                 </td>
                 <td style="text-align: center;">{{ invoice.digital_scan_count }}</td>
-                <td style="text-align: right;">50 TL</td>
+                <td style="text-align: right;">
+                    {% if invoice.digital_scan_count > 0 %}
+                        {% widthratio invoice.digital_scan_cost invoice.digital_scan_count 1 as unit_price %}
+                        {{ unit_price|floatformat:2 }} TL
+                    {% else %}
+                        19.00 TL
+                    {% endif %}
+                </td>
                 <td style="text-align: right;"><strong>{{ invoice.digital_scan_cost|floatformat:0 }} TL</strong></td>
             </tr>
             {% endif %}
@@ -238,9 +245,9 @@
     <!-- Fiyat Notu -->
     <div class="price-note">
         <strong>Fiyatlandirma Bilgisi:</strong>
-        • Fiziksel Kalip: 450 TL (375 TL + 75 TL KDV)<br>
-        • 3D Modelleme: 50 TL (41.67 TL + 8.33 TL KDV)<br>
-        • Aylik Sistem Ucreti: 100 TL (83.33 TL + 16.67 TL KDV)<br>
+        • Fiziksel Kalip: Dinamik fiyat (kalıp başına değişken)<br>
+        • 3D Modelleme: 19 TL (15.83 TL + 3.17 TL KDV)<br>
+        • Aylik Sistem Ucreti: 0 TL (UCRETSIZ)<br>
         • Tum fiyatlar KDV dahildir.
     </div>
 

@@ -6,6 +6,7 @@ from django.views.decorators.http import require_http_methods
 from django.urls import reverse
 from django.core.paginator import Paginator
 from django.db.models import Q
+from decimal import Decimal
 from .models import EarMold, Revision, QualityCheck, ModeledMold, RevisionRequest, MoldEvaluation
 from .forms import EarMoldForm, RevisionForm, QualityCheckForm, PhysicalShipmentForm, TrackingUpdateForm, RevisionRequestForm, MoldEvaluationForm
 from center.decorators import center_required
@@ -107,6 +108,24 @@ def mold_create(request):
                 try:
                     # Kalıbı oluştur
                     mold = form.save()
+                    
+                    # Kalıp için kullanılan fiyatları kaydet
+                    if mold.is_physical_shipment:
+                        # Paket planıysa ve hak varsa ücretsiz, yoksa tek kalıp ücreti
+                        if subscription.plan.plan_type == 'package' and subscription.package_credits > subscription.used_credits:
+                            mold.unit_price = Decimal('0.00')  # Paket hakkından kullanıldı
+                        else:
+                            mold.unit_price = subscription.plan.per_mold_price_try  # Tek kalıp ücreti
+                    else:
+                        mold.unit_price = Decimal('0.00')  # Dijital tarama için fiziksel ücret yok
+                    
+                    # 3D modelleme fiyatı
+                    if not mold.is_physical_shipment:
+                        mold.digital_modeling_price = subscription.plan.modeling_service_fee_try
+                    else:
+                        mold.digital_modeling_price = Decimal('0.00')
+                    
+                    mold.save()
                     
                     # Kalıp oluşturma maliyetini hesapla ve kaydet
                     mold_cost = subscription.add_mold_usage(ear_mold=mold)

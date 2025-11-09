@@ -1361,18 +1361,52 @@ def billing_invoices(request):
     digital_scans_count = current_month_molds.filter(is_physical_shipment=False).count()
 
     # Fiyatlar KDV dahil
-    MONTHLY_FEE = 100.00  # KDV dahil
     PHYSICAL_PRICE = 450.00  # KDV dahil (375 + 75 KDV)
-    DIGITAL_PRICE = 50.00  # KDV dahil (41.67 + 8.33 KDV)
+    DIGITAL_PRICE = 19.00  # KDV dahil (15.83 + 3.17 KDV)
+    
+    # Paket kullanım hakları kontrolü
+    from core.models import UserSubscription
+    subscription = UserSubscription.objects.filter(user=request.user, status='active').first()
+    package_credits = 0
+    used_credits = 0
+    remaining_credits = 0
+    
+    if subscription and subscription.plan.plan_type == 'package':
+        package_credits = subscription.package_credits
+        used_credits = subscription.used_credits
+        remaining_credits = subscription.get_remaining_credits()
+    
+    # Bu ay kullanılan kalıplar için maliyet hesaplama
+    # Paket hakkından kullanılanlar ücretsiz, hak bitince tek kalıp ücreti alınır
+    physical_cost = 0
+    for mold in current_month_molds.filter(is_physical_shipment=True):
+        if subscription and subscription.plan.plan_type == 'package':
+            # Paket planıysa ve hak varsa ücretsiz, yoksa tek kalıp ücreti
+            # Bu hesaplama yaklaşık olacak çünkü gerçek kullanım zamanına göre değişir
+            pass  # Detaylı hesaplama için transaction kayıtlarına bakılabilir
+        else:
+            physical_cost += PHYSICAL_PRICE
+    
+    # Basit hesaplama: Paket hakkı varsa ücretsiz, yoksa ücretli
+    if subscription and subscription.plan.plan_type == 'package':
+        # Paket hakkından kullanılanlar ücretsiz
+        free_molds = min(physical_molds_count, remaining_credits)
+        paid_molds = max(0, physical_molds_count - free_molds)
+        physical_cost = paid_molds * PHYSICAL_PRICE
+    else:
+        physical_cost = physical_molds_count * PHYSICAL_PRICE
 
     current_month_stats = {
         'total_molds': current_month_molds.count(),
         'physical_molds': physical_molds_count,
         'modeling_services': digital_scans_count,
-        'monthly_fee': MONTHLY_FEE,
-        'physical_cost': physical_molds_count * PHYSICAL_PRICE,
+        'monthly_fee': 0,  # Artık aylık ücret yok
+        'physical_cost': physical_cost,
         'modeling_cost': digital_scans_count * DIGITAL_PRICE,
-        'estimated_total': MONTHLY_FEE + (physical_molds_count * PHYSICAL_PRICE) + (digital_scans_count * DIGITAL_PRICE),
+        'estimated_total': physical_cost + (digital_scans_count * DIGITAL_PRICE),
+        'package_credits': package_credits,
+        'used_credits': used_credits,
+        'remaining_credits': remaining_credits,
     }
 
     # Kullanıcının faturaları (eski ve yeni sistem)

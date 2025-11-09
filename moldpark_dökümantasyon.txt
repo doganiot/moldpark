@@ -1,0 +1,11 @@
+http://127.0.0.1:8002/django-admin/
+ kullnıcı adı:alidogan
+şifre:975....Lim
+
+http://localhost:8002/django-admin/
+
+python manage.py runserver 8002
+
+moldpark
+
+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
