@@ -1377,36 +1377,62 @@ def billing_invoices(request):
         remaining_credits = subscription.get_remaining_credits()
     
     # Bu ay kullanılan kalıplar için maliyet hesaplama
-    # Paket hakkından kullanılanlar ücretsiz, hak bitince tek kalıp ücreti alınır
-    physical_cost = 0
-    for mold in current_month_molds.filter(is_physical_shipment=True):
-        if subscription and subscription.plan.plan_type == 'package':
-            # Paket planıysa ve hak varsa ücretsiz, yoksa tek kalıp ücreti
-            # Bu hesaplama yaklaşık olacak çünkü gerçek kullanım zamanına göre değişir
-            pass  # Detaylı hesaplama için transaction kayıtlarına bakılabilir
-        else:
-            physical_cost += PHYSICAL_PRICE
+    # PAKET VARSA: Paket fiyatı gösterilir, kalıp detayları değil
+    # PAKET YOKSA: Kalıp başına fiyat hesaplanır
     
-    # Basit hesaplama: Paket hakkı varsa ücretsiz, yoksa ücretli
-    if subscription and subscription.plan.plan_type == 'package':
-        # Paket hakkından kullanılanlar ücretsiz
-        free_molds = min(physical_molds_count, remaining_credits)
-        paid_molds = max(0, physical_molds_count - free_molds)
-        physical_cost = paid_molds * PHYSICAL_PRICE
+    from core.models import Invoice
+    from decimal import Decimal
+    
+    physical_cost = Decimal('0.00')
+    estimated_total = Decimal('0.00')
+    display_physical_molds = physical_molds_count
+    display_total_text = f"{physical_molds_count} kalıp"
+    
+    # Bu ay için paket faturası var mı kontrol et
+    current_month_start = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    current_month_end = datetime.now().replace(day=28, hour=23, minute=59, second=59) + timedelta(days=4)
+    current_month_end = current_month_end.replace(day=1) - timedelta(seconds=1)
+    
+    package_invoice = Invoice.objects.filter(
+        issued_by_center=center,
+        invoice_type='center_admin_invoice',
+        invoice_number__startswith='PKG-',
+        issue_date__gte=current_month_start.date(),
+        issue_date__lte=current_month_end.date()
+    ).first()
+    
+    if package_invoice:
+        # Paket faturası varsa: Paket fiyatı gösterilir
+        physical_cost = package_invoice.total_amount
+        display_physical_molds = package_invoice.physical_mold_count or 0
+        display_total_text = package_invoice.breakdown_data.get('package_name', 'Paket') if package_invoice.breakdown_data else 'Paket'
+        estimated_total = package_invoice.total_amount
     else:
-        physical_cost = physical_molds_count * PHYSICAL_PRICE
+        # Paket yoksa: Tek kalıp hesaplaması
+        if subscription and subscription.plan.plan_type == 'package':
+            # Paket planı ama bu ay faturası yok - Paket hakkından kullanılan ücretsiz, hak biterse tek kalıp ücreti
+            free_molds = min(physical_molds_count, remaining_credits)
+            paid_molds = max(0, physical_molds_count - free_molds)
+            physical_cost = Decimal(str(paid_molds * PHYSICAL_PRICE))
+        else:
+            # Tek kalıp planı
+            physical_cost = Decimal(str(physical_molds_count * PHYSICAL_PRICE))
+        
+        estimated_total = physical_cost + Decimal(str(digital_scans_count * DIGITAL_PRICE))
 
     current_month_stats = {
         'total_molds': current_month_molds.count(),
-        'physical_molds': physical_molds_count,
+        'physical_molds': display_physical_molds,
         'modeling_services': digital_scans_count,
         'monthly_fee': 0,  # Artık aylık ücret yok
         'physical_cost': physical_cost,
-        'modeling_cost': digital_scans_count * DIGITAL_PRICE,
-        'estimated_total': physical_cost + (digital_scans_count * DIGITAL_PRICE),
+        'modeling_cost': digital_scans_count * DIGITAL_PRICE if not package_invoice else Decimal('0.00'),
+        'estimated_total': estimated_total,
         'package_credits': package_credits,
         'used_credits': used_credits,
         'remaining_credits': remaining_credits,
+        'has_package_invoice': package_invoice is not None,
+        'package_name': display_total_text,
     }
 
     # Kullanıcının faturaları (eski ve yeni sistem)

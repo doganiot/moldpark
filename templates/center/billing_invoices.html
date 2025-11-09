@@ -45,6 +45,24 @@
                 </div>
                 <div class="card-body">
                     <div class="row text-center g-3">
+                        {% if current_month_stats.has_package_invoice %}
+                        <!-- PAKET VARSA: Paket İçeriği Göster -->
+                        <div class="col-md-3">
+                            <div class="border rounded p-3 h-100 bg-success bg-opacity-10">
+                                <div class="h4 text-success mb-1">
+                                    <i class="fas fa-gift me-2"></i>{{ current_month_stats.package_name }}
+                                </div>
+                                <small class="text-muted">Satın Alınan Paket</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="border rounded p-3 h-100">
+                                <div class="h4 text-info mb-1">{{ current_month_stats.physical_molds }}</div>
+                                <small class="text-muted">Paket İçeriği</small>
+                            </div>
+                        </div>
+                        {% else %}
+                        <!-- PAKET YOKSA: Kalıp Detayları Göster -->
                         <div class="col-md-2">
                             <div class="border rounded p-3 h-100">
                                 <div class="h4 text-primary mb-1">{{ current_month_stats.total_molds }}</div>
@@ -57,13 +75,18 @@
                                 <small class="text-muted">Fiziksel Kalıp</small>
                             </div>
                         </div>
+                        {% endif %}
+                        <!-- 3D Modelleme: Paket varsa gösterme, paket yoksa göster -->
+                        {% if not current_month_stats.has_package_invoice %}
                         <div class="col-md-2">
                             <div class="border rounded p-3 h-100">
                                 <div class="h4 text-warning mb-1">{{ current_month_stats.modeling_services }}</div>
                                 <small class="text-muted">3D Modelleme</small>
                             </div>
                         </div>
-                        {% if current_month_stats.package_credits > 0 %}
+                        {% endif %}
+                        <!-- Paket Hakkı: Paket varsa ve bu ay faturası yoksa göster -->
+                        {% if not current_month_stats.has_package_invoice and current_month_stats.package_credits > 0 %}
                         <div class="col-md-2">
                             <div class="border rounded p-3 h-100 bg-success bg-opacity-10">
                                 <div class="h5 text-success mb-1">{{ current_month_stats.remaining_credits }}</div>
@@ -75,7 +98,13 @@
                         <div class="col-md-2">
                             <div class="border rounded p-3 h-100">
                                 <div class="h5 text-danger mb-1">{{ current_month_stats.physical_cost|floatformat:0 }} ₺</div>
-                                <small class="text-muted">Fiziksel Maliyet</small>
+                                <small class="text-muted">
+                                    {% if current_month_stats.has_package_invoice %}
+                                        Paket Ücreti
+                                    {% else %}
+                                        Fiziksel Maliyet
+                                    {% endif %}
+                                </small>
                             </div>
                         </div>
                         <div class="col-md-2">
