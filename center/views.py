@@ -8,7 +8,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import logout
 
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Sum
 from django.db import models
 from datetime import datetime, timedelta
 from decimal import Decimal
@@ -1379,48 +1379,43 @@ def billing_invoices(request):
         remaining_credits = active_package.get_remaining_credits()
     
     # Bu ay kullanılan kalıplar için maliyet hesaplama
-    # PAKET VARSA: Paket fiyatı gösterilir, kalıp detayları değil
-    # PAKET YOKSA: Kalıp başına fiyat hesaplanır
-    
     from core.models import Invoice
     from decimal import Decimal
-    
-    physical_cost = Decimal('0.00')
-    estimated_total = Decimal('0.00')
+
+    physical_cost = current_month_molds.filter(is_physical_shipment=True).aggregate(total=Sum('unit_price'))['total'] or Decimal('0.00')
+    digital_cost = current_month_molds.aggregate(total=Sum('digital_modeling_price'))['total'] or Decimal('0.00')
+    estimated_total = physical_cost + digital_cost
+
     display_physical_molds = physical_molds_count
-    display_total_text = f"{physical_molds_count} kalıp"
-    
-    # Bu ay için paket faturası var mı kontrol et
-    current_month_start = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    current_month_end = datetime.now().replace(day=28, hour=23, minute=59, second=59) + timedelta(days=4)
-    current_month_end = current_month_end.replace(day=1) - timedelta(seconds=1)
-    
-    package_invoice = Invoice.objects.filter(
-        issued_by_center=center,
-        invoice_type='center_admin_invoice',
-        invoice_number__startswith='PKG-',
-        issue_date__gte=current_month_start.date(),
-        issue_date__lte=current_month_end.date()
-    ).first()
-    
-    if package_invoice:
-        # Paket faturası varsa: Paket fiyatı gösterilir
-        physical_cost = package_invoice.total_amount
-        display_physical_molds = package_invoice.physical_mold_count or 0
-        display_total_text = package_invoice.breakdown_data.get('package_name', 'Paket') if package_invoice.breakdown_data else 'Paket'
-        estimated_total = package_invoice.total_amount
-    else:
-        # Paket yoksa: Tek kalıp hesaplaması
-        if subscription and subscription.plan.plan_type == 'package':
-            # Paket planı ama bu ay faturası yok - Paket hakkından kullanılan ücretsiz, hak biterse tek kalıp ücreti
-            free_molds = min(physical_molds_count, remaining_credits)
-            paid_molds = max(0, physical_molds_count - free_molds)
-            physical_cost = Decimal(str(paid_molds * PHYSICAL_PRICE))
-        else:
-            # Tek kalıp planı
-            physical_cost = Decimal(str(physical_molds_count * PHYSICAL_PRICE))
-        
-        estimated_total = physical_cost + Decimal(str(digital_scans_count * DIGITAL_PRICE))
+    package_purchase_price = Decimal('0.00')
+    package_name = f"{physical_molds_count} kalıp"
+    has_active_package = False
+
+    # Aktif paket varsa paket bilgilerini göster
+    if active_package:
+        package_purchase_price = Decimal(str(active_package.purchase_price))
+        package_name = f"{active_package.package.name} Paketi"
+        has_active_package = True
+
+    # Eski sistemdeki paket faturalarını da kontrol et (geriye dönük uyumluluk)
+    package_invoice = None
+    if not has_active_package:
+        current_month_start = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        current_month_end = datetime.now().replace(day=28, hour=23, minute=59, second=59) + timedelta(days=4)
+        current_month_end = current_month_end.replace(day=1) - timedelta(seconds=1)
+
+        package_invoice = Invoice.objects.filter(
+            issued_by_center=center,
+            invoice_type='center_admin_invoice',
+            invoice_number__startswith='PKG-',
+            issue_date__gte=current_month_start.date(),
+            issue_date__lte=current_month_end.date()
+        ).first()
+
+        if package_invoice:
+            package_purchase_price = package_invoice.total_amount or Decimal('0.00')
+            package_name = package_invoice.breakdown_data.get('package_name', 'Paket') if package_invoice.breakdown_data else 'Paket'
+            has_active_package = True
 
     current_month_stats = {
         'total_molds': current_month_molds.count(),
@@ -1428,13 +1423,14 @@ def billing_invoices(request):
         'modeling_services': digital_scans_count,
         'monthly_fee': 0,  # Artık aylık ücret yok
         'physical_cost': physical_cost,
-        'modeling_cost': digital_scans_count * DIGITAL_PRICE if not package_invoice else Decimal('0.00'),
+        'modeling_cost': digital_cost,
         'estimated_total': estimated_total,
         'package_credits': package_credits,
         'used_credits': used_credits,
         'remaining_credits': remaining_credits,
-        'has_package_invoice': package_invoice is not None,
-        'package_name': display_total_text,
+        'has_active_package': has_active_package,
+        'package_name': package_name,
+        'package_purchase_price': package_purchase_price,
     }
 
     # Kullanıcının faturaları (eski ve yeni sistem)
@@ -1515,6 +1511,7 @@ def billing_invoices(request):
         'month_filter': month_filter,
         'years': years,
         'status_choices': Invoice.STATUS_CHOICES,
+        'active_package': active_package,
     }
 
     return render(request, 'center/billing_invoices.html', context)
