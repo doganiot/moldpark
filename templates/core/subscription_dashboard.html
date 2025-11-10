@@ -65,7 +65,7 @@
                                 <div class="mb-2">
                                     <small class="text-muted d-block">Bu Ay Toplam Maliyet</small>
                                     <strong class="h4 text-primary">₺{{ subscription.total_mold_cost_this_month }}</strong>
-                                    <small class="text-muted d-block">Paket hakkından kullanılanlar ücretsiz</small>
+                                    <small class="text-muted d-block">Paket üretim hakkından kullanılanlar ücretsiz</small>
                                 </div>
                             </div>
                             {% else %}
@@ -247,7 +247,7 @@
                                             <br>
                                             <small class="text-muted">
                                                 {% if subscription.plan.plan_type == 'package' %}
-                                                    Paket hakkından kullanılanlar ücretsiz, hak bitince tek kalıp ücreti alınır
+                                                    Paket üretim hakkından kullanılanlar ücretsiz, hak bitince tek kalıp ücreti alınır
                                                 {% else %}
                                                     ({{ subscription.models_used_this_month }} x ₺{{ subscription.plan.per_mold_price_try }})
                                                 {% endif %}
