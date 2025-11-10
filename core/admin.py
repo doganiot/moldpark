@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import ContactMessage, Message, MessageRecipient, PricingPlan, UserSubscription, PaymentHistory, SimpleNotification, SubscriptionRequest, PricingConfiguration
+from .models import ContactMessage, Message, MessageRecipient, PricingPlan, UserSubscription, PaymentHistory, SimpleNotification, SubscriptionRequest, PricingConfiguration, PurchasedPackage
 
 @admin.register(ContactMessage)
 class ContactMessageAdmin(admin.ModelAdmin):
@@ -129,6 +129,41 @@ class SimpleNotificationAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+
+
+@admin.register(PurchasedPackage)
+class PurchasedPackageAdmin(admin.ModelAdmin):
+    list_display = ('user', 'package', 'purchase_date', 'total_credits', 'used_credits', 'get_remaining', 'status', 'purchase_price', 'get_commission_display')
+    list_filter = ('status', 'package', 'purchase_date')
+    search_fields = ('user__username', 'user__email', 'package__name')
+    readonly_fields = ('moldpark_commission', 'producer_payment', 'created_at', 'updated_at', 'completion_date')
+    
+    fieldsets = (
+        ('Paket Bilgileri', {
+            'fields': ('user', 'package', 'status')
+        }),
+        ('Satın Alma Bilgileri', {
+            'fields': ('purchase_date', 'purchase_price', 'total_credits')
+        }),
+        ('Hak Bilgileri', {
+            'fields': ('used_credits',)
+        }),
+        ('Mali Bilgiler', {
+            'fields': ('moldpark_commission', 'producer_payment')
+        }),
+        ('Tarihler', {
+            'fields': ('completion_date', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_remaining(self, obj):
+        return obj.get_remaining_credits()
+    get_remaining.short_description = 'Kalan Haklar'
+    
+    def get_commission_display(self, obj):
+        return f'₺{obj.moldpark_commission:.2f}'
+    get_commission_display.short_description = 'Komisyon'
 
 
 @admin.register(SubscriptionRequest)

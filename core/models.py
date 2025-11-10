@@ -300,10 +300,6 @@ class UserSubscription(models.Model):
     # Geriye dönük uyumluluk
     amount_paid = models.DecimalField('Ödenen Tutar', max_digits=10, decimal_places=2, default=0)
     
-    # Paket Kullanım Hakları (Paket satın alındığında verilen haklar)
-    package_credits = models.IntegerField('Paket Kullanım Hakları', default=0, help_text='Satın alınan paketten kalan kullanım hakları')
-    used_credits = models.IntegerField('Kullanılan Haklar', default=0, help_text='Paket haklarından kullanılan miktar')
-    
     class Meta:
         verbose_name = 'Kullanıcı Aboneliği'
         verbose_name_plural = 'Kullanıcı Abonelikleri'
@@ -327,11 +323,6 @@ class UserSubscription(models.Model):
         # Paket hakları bitse bile tek kalıp satın alarak devam edebilir
         return True
     
-    def get_remaining_credits(self):
-        """Kalan paket haklarını döndür"""
-        if self.plan.plan_type == 'package':
-            return max(0, self.package_credits - self.used_credits)
-        return 0
     
     def add_mold_usage(self, ear_mold=None):
         """Kalıp kullanımı ekle ve maliyeti hesapla
@@ -408,6 +399,76 @@ class UserSubscription(models.Model):
     def use_model_quota(self):
         """Eski method - yeni sisteme yönlendir"""
         return self.add_mold_usage()
+
+
+class PurchasedPackage(models.Model):
+    """Paket Satın Almalarını Kayıt Eden Model"""
+    
+    STATUS_CHOICES = [
+        ('active', 'Aktif'),
+        ('completed', 'Tamamlandı - Tüm Haklar Kullanıldı'),
+        ('expired', 'Süresi Dolmuş'),
+        ('cancelled', 'İptal Edildi'),
+    ]
+    
+    # İlişkiler
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='purchased_packages', verbose_name='Kullanıcı')
+    package = models.ForeignKey(PricingPlan, on_delete=models.PROTECT, related_name='purchases', verbose_name='Paket', limit_choices_to={'plan_type': 'package'})
+    
+    # Satın Alma Bilgileri
+    purchase_date = models.DateTimeField('Satın Alma Tarihi', default=timezone.now)
+    purchase_price = models.DecimalField('Satın Alınan Fiyat', max_digits=10, decimal_places=2, help_text='Satın alındığı andaki paket fiyatı')
+    
+    # Hak Bilgileri
+    total_credits = models.IntegerField('Toplam Paket Hakkı', help_text='Paketin içindeki kalıp sayısı')
+    used_credits = models.IntegerField('Kullanılan Haklar', default=0, help_text='Paket haklarından kullanılan miktar')
+    
+    # Durum
+    status = models.CharField('Durum', max_length=20, choices=STATUS_CHOICES, default='active')
+    completion_date = models.DateTimeField('Tamamlama Tarihi', null=True, blank=True, help_text='Tüm haklar tüketildiğinde')
+    
+    # Mali Bilgiler
+    moldpark_commission = models.DecimalField('MoldPark Komisyonu (%6.5)', max_digits=10, decimal_places=2, default=0, help_text='Otomatik hesaplanır')
+    producer_payment = models.DecimalField('Üretici Ödemesi', max_digits=10, decimal_places=2, default=0, help_text='Fiyat - Komisyon')
+    
+    # Tarihler
+    created_at = models.DateTimeField('Oluşturulma Tarihi', auto_now_add=True)
+    updated_at = models.DateTimeField('Güncellenme Tarihi', auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Satın Alınan Paket'
+        verbose_name_plural = 'Satın Alınan Paketler'
+        ordering = ['-purchase_date']
+    
+    def __str__(self):
+        return f'{self.user.username} - {self.package.name} ({self.get_status_display()})'
+    
+    def save(self, *args, **kwargs):
+        """Komisyon ve ödemesini otomatik hesapla"""
+        if not self.total_credits:
+            self.total_credits = self.package.monthly_model_limit
+        
+        if not self.purchase_price:
+            self.purchase_price = self.package.price_try
+        
+        # Komisyon hesapla (%6.5)
+        self.moldpark_commission = (self.purchase_price * 6.5) / 100
+        # Üretici ödemesi = Fiyat - Komisyon
+        self.producer_payment = self.purchase_price - self.moldpark_commission
+        
+        super().save(*args, **kwargs)
+    
+    def get_remaining_credits(self):
+        """Kalan hakkı döndür"""
+        return max(0, self.total_credits - self.used_credits)
+    
+    def use_credit(self, amount=1):
+        """Hakları kullan ve durumu güncelle"""
+        self.used_credits += amount
+        if self.used_credits >= self.total_credits:
+            self.status = 'completed'
+            self.completion_date = timezone.now()
+        self.save()
 
 
 class PaymentHistory(models.Model):
