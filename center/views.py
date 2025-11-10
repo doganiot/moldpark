@@ -1365,16 +1365,18 @@ def billing_invoices(request):
     DIGITAL_PRICE = 19.00  # KDV dahil (15.83 + 3.17 KDV)
     
     # Paket kullanım hakları kontrolü
-    from core.models import UserSubscription
+    from core.models import UserSubscription, PurchasedPackage
     subscription = UserSubscription.objects.filter(user=request.user, status='active').first()
     package_credits = 0
     used_credits = 0
     remaining_credits = 0
     
-    if subscription and subscription.plan.plan_type == 'package':
-        package_credits = subscription.package_credits
-        used_credits = subscription.used_credits
-        remaining_credits = subscription.get_remaining_credits()
+    # Aktif paket varsa hakları al
+    active_package = PurchasedPackage.objects.filter(user=request.user, status='active').first()
+    if active_package:
+        package_credits = active_package.total_credits
+        used_credits = active_package.used_credits
+        remaining_credits = active_package.get_remaining_credits()
     
     # Bu ay kullanılan kalıplar için maliyet hesaplama
     # PAKET VARSA: Paket fiyatı gösterilir, kalıp detayları değil

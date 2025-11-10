@@ -341,10 +341,11 @@ class UserSubscription(models.Model):
         if ear_mold:
             # Fiziksel kalıp gönderimi varsa
             if ear_mold.is_physical_shipment:
-                # Paket planıysa ve hak varsa hak kullan, yoksa tek kalıp ücreti al
-                if self.plan.plan_type == 'package' and self.package_credits > self.used_credits:
+                # Paket hakkı varsa hak kullan, yoksa tek kalıp ücreti al
+                active_package = self.get_active_package()
+                if active_package and active_package.get_remaining_credits() > 0:
                     # Paket hakkından kullan
-                    self.used_credits += 1
+                    active_package.use_credit(1)
                     physical_cost = 0  # Paket hakkından kullanıldığı için ücret yok
                 else:
                     # Paket hakkı yoksa tek kalıp ücreti al
@@ -358,8 +359,9 @@ class UserSubscription(models.Model):
                 self.digital_scans_this_month += 1
         else:
             # Geriye uyumluluk için eski davranış
-            if self.plan.plan_type == 'package' and self.package_credits > self.used_credits:
-                self.used_credits += 1
+            active_package = self.get_active_package()
+            if active_package and active_package.get_remaining_credits() > 0:
+                active_package.use_credit(1)
                 physical_cost = 0
             else:
                 physical_cost = self.plan.per_mold_price_try
@@ -372,8 +374,16 @@ class UserSubscription(models.Model):
         self.save()
         return total_cost
     
+    def get_active_package(self):
+        """Kullanıcının aktif paketini döndür"""
+        from .models import PurchasedPackage
+        return PurchasedPackage.objects.filter(
+            user=self.user,
+            status='active'
+        ).first()
+    
     def reset_monthly_usage_if_needed(self):
-        """Gerekirse aylık kullanımı sıfırla (paket hakları sıfırlanmaz)"""
+        """Gerekirse aylık kullanımı sıfırla"""
         now = timezone.now()
         if (now.year != self.last_reset_date.year or
             now.month != self.last_reset_date.month):
@@ -382,7 +392,6 @@ class UserSubscription(models.Model):
             self.total_mold_cost_this_month = 0
             self.monthly_fee_paid = False
             self.last_reset_date = now
-            # NOT: used_credits ve package_credits sıfırlanmaz çünkü paket hakları aylık değil
             self.save()
     
     def get_remaining_models(self):

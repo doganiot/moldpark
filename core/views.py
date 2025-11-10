@@ -1238,10 +1238,18 @@ def subscription_dashboard(request):
                     user=request.user,
                     plan=plan,
                     status='active',
-                    monthly_fee_paid=True,  # Paket satın alındığında ücret ödendi
-                    package_credits=plan.monthly_model_limit,  # Paket içindeki kalıp sayısı kadar hak ver
-                    used_credits=0,  # Henüz kullanılmadı
+                    monthly_fee_paid=True,  # Abonelik aktif
                 )
+                
+                # Eğer paket türüyse PurchasedPackage kaydı oluştur
+                if plan.plan_type == 'package':
+                    from .models import PurchasedPackage
+                    PurchasedPackage.objects.create(
+                        user=request.user,
+                        package=plan,
+                        purchase_price=plan.price_try,
+                        total_credits=plan.monthly_model_limit,
+                    )
                 
                 # Ödeme kaydı oluştur
                 payment_history = PaymentHistory.objects.create(
@@ -1423,25 +1431,7 @@ def subscription_dashboard(request):
     try:
         subscription = UserSubscription.objects.filter(user=request.user, status='active').order_by('-created_at').first()
         if subscription:
-            # Paket planıysa ve package_credits 0 ise, plan.monthly_model_limit'ten set et
-            if subscription.plan.plan_type == 'package':
-                if subscription.package_credits == 0:
-                    subscription.package_credits = subscription.plan.monthly_model_limit
-                    subscription.save()
-                
-                # Paket satın alma tarihinden sonra kullanılan kalıpları say ve used_credits'i güncelle
-                from mold.models import EarMold
-                package_start_date = subscription.start_date
-                used_molds_count = EarMold.objects.filter(
-                    center__user=request.user,
-                    is_physical_shipment=True,
-                    created_at__gte=package_start_date
-                ).count()
-                
-                # used_credits'i güncelle (paket haklarını aşmamalı)
-                if used_molds_count != subscription.used_credits:
-                    subscription.used_credits = min(used_molds_count, subscription.package_credits)
-                    subscription.save()
+            pass  # Paket hakları artık PurchasedPackage'de takip edilir
             
             # Subscription'ı refresh et
             subscription.refresh_from_db()
