@@ -26,9 +26,9 @@ class Command(BaseCommand):
             ]
         )
         
-        # 2. İşitme Merkezi - Temel Plan
+        # 2. Silver Paket Plan
         center_basic = PricingPlan.objects.create(
-            name='İşitme Merkezi - Temel',
+            name='Silver',
             plan_type='center_basic',
             description='Küçük işitme merkezleri için uygun fiyatlı aylık abonelik. Aylık 30 kalıp modelleme hakkı.',
             price_usd=15.00,
@@ -44,9 +44,9 @@ class Command(BaseCommand):
             ]
         )
         
-        # 3. İşitme Merkezi - Profesyonel Plan
+        # 3. Gold Paket Plan
         center_professional = PricingPlan.objects.create(
-            name='İşitme Merkezi - Profesyonel',
+            name='Gold',
             plan_type='center_professional',
             description='Orta ve büyük işitme merkezleri için gelişmiş özellikler. Aylık 70 kalıp modelleme hakkı.',
             price_usd=30.00,
@@ -64,9 +64,9 @@ class Command(BaseCommand):
             ]
         )
         
-        # 4. Üretici Merkez Plan
+        # 4. Platinum Paket Plan
         producer_plan = PricingPlan.objects.create(
-            name='Üretici Merkez',
+            name='Platinum',
             plan_type='producer',
             description='Üretici merkezler için yüksek kapasiteli plan. Aylık 120 kalıp modelleme hakkı ve gelişmiş özellikler.',
             price_usd=45.00,
@@ -93,6 +93,7 @@ class Command(BaseCommand):
                 f'1. {pay_per_use.name} - ${pay_per_use.price_usd} (₺{pay_per_use.price_try})\n'
                 f'2. {center_basic.name} - ${center_basic.price_usd}/ay (₺{center_basic.price_try}/ay)\n'
                 f'3. {center_professional.name} - ${center_professional.price_usd}/ay (₺{center_professional.price_try}/ay)\n'
-                f'4. {producer_plan.name} - ${producer_plan.price_usd}/ay (₺{producer_plan.price_try}/ay)'
+                f'4. {producer_plan.name} - ${producer_plan.price_usd}/ay (₺{producer_plan.price_try}/ay)\n'
+                f'\nPaket Adları: Silver, Gold, Platinum'
             )
         ) 
