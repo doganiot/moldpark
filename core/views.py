@@ -28,10 +28,10 @@ from django.core.paginator import Paginator
 logger = logging.getLogger(__name__)
 
 def home(request):
-    # Paketleri al (Silver, Gold, Platinum ve single tipindeki planlar)
+    # Paketleri al (package ve single tipindeki planlar)
     packages = PricingPlan.objects.filter(
         is_active=True, 
-        plan_type__in=['center_basic', 'center_professional', 'producer', 'single']
+        plan_type__in=['package', 'single']
     ).order_by('order')[:3]  # İlk 3 paketi göster
     
     # En iyi puanlı üreticileri al
@@ -857,10 +857,10 @@ def privacy_policy(request):
 
 def pricing(request):
     """Fiyatlandırma sayfası - Paket sistemi"""
-    # Aktif paketleri göster (Silver, Gold, Platinum + single)
+    # Aktif paketleri göster (package ve single tipindeki planlar)
     packages = PricingPlan.objects.filter(
         is_active=True, 
-        plan_type__in=['center_basic', 'center_professional', 'producer', 'single']
+        plan_type__in=['package', 'single']
     ).order_by('order')
     
     # Tek kalıp seçeneği
@@ -872,7 +872,7 @@ def pricing(request):
     context = {
         'plans': packages,
         'single_plan': single_plan,
-        'packages': packages.filter(plan_type__in=['center_basic', 'center_professional', 'producer']),
+        'packages': packages.filter(plan_type='package'),
     }
     
     # Giriş yapmış kullanıcı için ek bilgiler (bu kod zaten çalışmayacak ama template'ler için bırakıyoruz)
@@ -1451,10 +1451,10 @@ def subscription_dashboard(request):
     # Ödeme geçmişi
     payments = PaymentHistory.objects.filter(user=request.user).order_by('-created_at')[:10]
     
-    # Aktif paketleri al (Silver, Gold, Platinum ve single tipindeki planlar)
+    # Aktif paketleri al (package ve single tipindeki planlar)
     packages = PricingPlan.objects.filter(
         is_active=True, 
-        plan_type__in=['center_basic', 'center_professional', 'producer', 'single']
+        plan_type__in=['package', 'single']
     ).order_by('order')
     
     # Tek kalıp seçeneği
@@ -1469,7 +1469,7 @@ def subscription_dashboard(request):
     context = {
         'subscription': subscription,
         'payments': payments,
-        'packages': packages.filter(plan_type__in=['center_basic', 'center_professional', 'producer']),
+        'packages': packages.filter(plan_type='package'),
         'single_plan': single_plan,
         'purchase_form': purchase_form,
     }
