@@ -1456,12 +1456,19 @@ def subscription_dashboard(request):
     # Paket satın alma formu
     purchase_form = PackagePurchaseForm()
     
+    # Aktif ve geçmiş paket satın almalarını al
+    from .models import PurchasedPackage
+    active_purchased_package = PurchasedPackage.objects.filter(user=request.user, status='active').first()
+    all_purchased_packages = PurchasedPackage.objects.filter(user=request.user).order_by('-purchase_date')
+    
     context = {
         'subscription': subscription,
         'payments': payments,
         'packages': packages.filter(plan_type='package'),
         'single_plan': single_plan,
         'purchase_form': purchase_form,
+        'purchased_package': active_purchased_package,  # Aktif paket
+        'purchased_packages': all_purchased_packages,   # Tüm paket satın almalarının geçmişi
     }
     
     return render(request, 'core/subscription_dashboard.html', context)

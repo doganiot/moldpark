@@ -53,18 +53,18 @@
                             <i class="fas fa-calculator me-2"></i>Bu Ay Toplam Maliyetiniz
                         </h5>
                         <div class="row text-center">
-                            {% if subscription.plan.plan_type == 'package' %}
+                            {% if purchased_package %}
                             <div class="col-6">
                                 <div class="mb-2">
-                                    <small class="text-muted d-block">Kalan Paket Hakkı</small>
-                                    <strong class="h4 text-success">{{ subscription.get_remaining_credits }}</strong>
-                                    <small class="text-muted d-block">({{ subscription.used_credits }}/{{ subscription.plan.monthly_model_limit }} kullanıldı)</small>
+                                    <small class="text-muted d-block">Kalan Üretim Hakkı</small>
+                                    <strong class="h4 text-success">{{ purchased_package.get_remaining_credits }}</strong>
+                                    <small class="text-muted d-block">({{ purchased_package.used_credits }}/{{ purchased_package.total_credits }} kullanıldı)</small>
                                 </div>
                             </div>
                             <div class="col-6">
                                 <div class="mb-2">
-                                    <small class="text-muted d-block">Bu Ay Toplam Maliyet</small>
-                                    <strong class="h4 text-primary">₺{{ subscription.total_mold_cost_this_month }}</strong>
+                                    <small class="text-muted d-block">Paket Bedeli</small>
+                                    <strong class="h4 text-primary">₺{{ purchased_package.purchase_price|floatformat:2 }}</strong>
                                     <small class="text-muted d-block">Paket üretim hakkından kullanılanlar ücretsiz</small>
                                 </div>
                             </div>
@@ -92,12 +92,12 @@
                         </small>
                     </div>
                     <div class="col-md-4 text-center">
-                        {% if subscription.plan.plan_type == 'package' %}
+                        {% if purchased_package %}
                         <div class="badge bg-white text-success px-4 py-3">
                             <div class="display-6 mb-2">📦</div>
-                            <strong>Paket Sistemi</strong>
+                            <strong>{{ purchased_package.package.name }} Paketi</strong>
                             <br>
-                            <small>{{ subscription.get_remaining_credits }} hak kaldı</small>
+                            <small>{{ purchased_package.get_remaining_credits }} hak kaldı</small>
                         </div>
                         {% else %}
                         <div class="badge bg-white text-info px-4 py-3">
@@ -129,20 +129,20 @@
                             <p class="text-muted mb-3">{{ subscription.plan.description }}</p>
                             
                             <div class="row">
-                                {% if subscription.plan.plan_type == 'package' %}
+                                {% if purchased_package %}
                                 <div class="col-sm-6 mb-3">
                                     <strong>Paket İçeriği:</strong><br>
                                     <span class="h5 text-success">
-                                        {{ subscription.plan.monthly_model_limit }} Kalıp Hakkı
+                                        {{ purchased_package.total_credits }} Kalıp Üretim Hakkı
                                     </span>
                                     <small class="text-muted d-block">(Satın alınan paket)</small>
                                 </div>
                                 <div class="col-sm-6 mb-3">
                                     <strong>Kalan Hak:</strong><br>
-                                    <span class="h5 text-{% if subscription.get_remaining_credits == 0 %}danger{% elif subscription.get_remaining_credits <= 2 %}warning{% else %}success{% endif %}">
-                                        {{ subscription.get_remaining_credits }} Kalıp
+                                    <span class="h5 text-{% if purchased_package.get_remaining_credits == 0 %}danger{% elif purchased_package.get_remaining_credits <= 2 %}warning{% else %}success{% endif %}">
+                                        {{ purchased_package.get_remaining_credits }} Kalıp
                                     </span>
-                                    <small class="text-muted d-block">({{ subscription.used_credits }} kullanıldı)</small>
+                                    <small class="text-muted d-block">({{ purchased_package.used_credits }} kullanıldı)</small>
                                 </div>
                             </div>
                             <div class="row">
@@ -183,10 +183,10 @@
                                     </span>
                                 </div>
                                 <div class="col-sm-6 mb-3">
-                                    <strong>{% if subscription.plan.plan_type == 'package' %}Paket Kullanımı{% else %}Toplam Üretim{% endif %}:</strong><br>
+                                    <strong>{% if purchased_package %}Paket Kullanımı{% else %}Toplam Üretim{% endif %}:</strong><br>
                                     <span class="h5 text-primary">
-                                        {% if subscription.plan.plan_type == 'package' %}
-                                            {{ subscription.used_credits }}/{{ subscription.plan.monthly_model_limit }} kalıp
+                                        {% if purchased_package %}
+                                            {{ purchased_package.used_credits }}/{{ purchased_package.total_credits }} kalıp
                                         {% else %}
                                             {{ subscription.models_used_total }} kalıp
                                         {% endif %}
@@ -194,40 +194,40 @@
                                 </div>
                             </div>
 
-                            {% if subscription.plan.plan_type == 'package' %}
+                            {% if purchased_package %}
                             <!-- Paket Kullanım Hakları -->
                             <div class="mb-3">
-                                <strong>Paket Kullanım Hakları:</strong>
+                                <strong>Paket Üretim Hakları:</strong>
                                 <div class="mt-2 p-3 bg-light rounded">
                                     <div class="d-flex justify-content-between align-items-center mb-2">
                                         <div>
                                             <i class="fas fa-gift text-success me-2"></i>
-                                            <strong>Kalan Hak: {{ subscription.get_remaining_credits }}</strong>
+                                            <strong>Kalan Hak: {{ purchased_package.get_remaining_credits }}</strong>
                                         </div>
                                         <div class="text-end">
-                                            <small class="text-muted">{{ subscription.used_credits }}/{{ subscription.plan.monthly_model_limit }} kullanıldı</small>
+                                            <small class="text-muted">{{ purchased_package.used_credits }}/{{ purchased_package.total_credits }} kullanıldı</small>
                                         </div>
                                     </div>
                                     <div class="progress" style="height: 25px;">
-                                        {% widthratio subscription.used_credits subscription.plan.monthly_model_limit 100 as usage_percent %}
-                                        <div class="progress-bar {% if subscription.get_remaining_credits == 0 %}bg-danger{% elif subscription.get_remaining_credits <= 2 %}bg-warning{% else %}bg-success{% endif %}" 
+                                        {% widthratio purchased_package.used_credits purchased_package.total_credits 100 as usage_percent %}
+                                        <div class="progress-bar {% if purchased_package.get_remaining_credits == 0 %}bg-danger{% elif purchased_package.get_remaining_credits <= 2 %}bg-warning{% else %}bg-success{% endif %}" 
                                              role="progressbar" 
-                                             style="width: {% widthratio subscription.used_credits subscription.plan.monthly_model_limit 100 %}%"
-                                             aria-valuenow="{{ subscription.used_credits }}" 
+                                             style="width: {% widthratio purchased_package.used_credits purchased_package.total_credits 100 %}%"
+                                             aria-valuenow="{{ purchased_package.used_credits }}" 
                                              aria-valuemin="0" 
-                                             aria-valuemax="{{ subscription.plan.monthly_model_limit }}">
-                                            {% widthratio subscription.used_credits subscription.plan.monthly_model_limit 100 %}%
+                                             aria-valuemax="{{ purchased_package.total_credits }}">
+                                            {% widthratio purchased_package.used_credits purchased_package.total_credits 100 %}%
                                         </div>
                                     </div>
-                                    {% if subscription.get_remaining_credits == 0 %}
+                                    {% if purchased_package.get_remaining_credits == 0 %}
                                     <div class="alert alert-warning mt-2 mb-0">
                                         <i class="fas fa-exclamation-triangle me-2"></i>
-                                        Paket haklarınız bitti. Yeni paket satın alabilir veya tek kalıp ücreti ile devam edebilirsiniz.
+                                        Paket üretim haklarınız bitti. Yeni paket satın alabilir veya tek kalıp ücreti ile devam edebilirsiniz.
                                     </div>
-                                    {% elif subscription.get_remaining_credits <= 2 %}
+                                    {% elif purchased_package.get_remaining_credits <= 2 %}
                                     <div class="alert alert-info mt-2 mb-0">
                                         <i class="fas fa-info-circle me-2"></i>
-                                        Paket haklarınız azalıyor. Yeni paket satın almayı düşünebilirsiniz.
+                                        Paket üretim haklarınız azalıyor. Yeni paket satın almayı düşünebilirsiniz.
                                     </div>
                                     {% endif %}
                                 </div>
