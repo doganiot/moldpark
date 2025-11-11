@@ -43,6 +43,26 @@
     </div>
 
     <div class="row">
+        {% if subscription and not purchased_package %}
+        <div class="col-12 mb-4">
+            <div class="alert alert-warning alert-permanent border-0 shadow-sm d-md-flex align-items-center justify-content-between">
+                <div class="me-md-4">
+                    <h5 class="alert-heading mb-2">
+                        <i class="fas fa-piggy-bank me-2"></i>Kalıp Maliyetlerinizi Paketlerle Düşürün
+                    </h5>
+                    <p class="mb-0 text-muted">
+                        Paket satın alarak kalıp başı maliyetinizi ciddi oranda azaltabilir, yoğun dönemlerde sürpriz maliyetlerle karşılaşmazsınız.
+                    </p>
+                </div>
+                <div class="mt-3 mt-md-0">
+                    <a href="{% url 'core:pricing' %}" class="btn btn-warning text-white fw-semibold">
+                        <i class="fas fa-box-open me-2"></i>Paketleri Hemen İncele
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Aylık Maliyet Özeti -->
         {% if subscription %}
         <div class="col-12 mb-4">
