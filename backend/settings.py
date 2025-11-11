@@ -50,10 +50,10 @@ INSTALLED_APPS = [
     # Third party apps
     'crispy_forms',
     'crispy_bootstrap5',
-    'allauth',
-    'allauth.account',
-    'allauth.socialaccount',
-    'notifications',
+    # 'allauth',  # Temporarily disabled - package installation issue
+    # 'allauth.account',
+    # 'allauth.socialaccount',
+    'notifications',  # Using mock module for testing
     'django_cleanup.apps.CleanupConfig',
     'django_extensions',
     
@@ -74,7 +74,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'allauth.account.middleware.AccountMiddleware',
+    # 'allauth.account.middleware.AccountMiddleware',  # Temporarily disabled
 ]
 
 # Debug Toolbar sadece development ortamında

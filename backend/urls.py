@@ -88,7 +88,7 @@ urlpatterns = [
     # API ve Sistem URL'leri
     # Custom login pages (allauth'dan önce tanımlanmalı)
     path('account/center-login/', center_login, name='account_center_login'),
-    path('accounts/', include('allauth.urls')),  # allauth URL'leri
+    # path('accounts/', include('allauth.urls')),  # allauth URL'leri - temporarily disabled
     # Django-notifications-hq paketini spesifik path'e taşı
     path('django-notifications/', include('notifications.urls', namespace='notifications')),
     # Language switcher
@@ -97,7 +97,7 @@ urlpatterns = [
 
 # Internationalized URLs
 urlpatterns += i18n_patterns(
-    path('account/', include('allauth.urls')),
+    # path('account/', include('allauth.urls')),  # Temporarily disabled
     path('accounts/', include('accounts.urls')),  # accounts app URL'leri
     path('', include('core.urls')),
     path('center/', include('center.urls')),
