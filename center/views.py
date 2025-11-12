@@ -135,14 +135,14 @@ def subscription_request(request):
         default_plan = PricingPlan.objects.create(
             name='Standart Abonelik',
             plan_type='standard',
-            description='MoldPark sistemi sınırsız kullanım - Aylık 100 TL',
-            monthly_fee_try=Decimal('100.00'),
-            per_mold_price_try=Decimal('0.00'),
-            modeling_service_fee_try=Decimal('0.00'),
-            monthly_model_limit=999999,
+            description='MoldPark sistemi sınırsız kullanım - Abonelik ÜCRETSİZ, kullandıkça öde',
+            monthly_fee_try=Decimal('0.00'),
+            per_mold_price_try=Decimal('450.00'),
+            modeling_service_fee_try=Decimal('50.00'),
+            monthly_model_limit=None,
             is_monthly=True,
             is_active=True,
-            price_try=Decimal('100.00'),
+            price_try=Decimal('0.00'),
             price_usd=Decimal('0.00'),
         )
         available_plans = [default_plan]

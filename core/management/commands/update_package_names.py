@@ -38,7 +38,7 @@ class Command(BaseCommand):
                     'is_monthly': True,
                     'per_mold_price_try': 450.00,
                     'modeling_service_fee_try': 50.00,
-                    'monthly_fee_try': 100.00,
+                    'monthly_fee_try': 0.00,
                 }
             )
             if not created:
@@ -69,7 +69,7 @@ class Command(BaseCommand):
                     'is_monthly': True,
                     'per_mold_price_try': 450.00,
                     'modeling_service_fee_try': 50.00,
-                    'monthly_fee_try': 100.00,
+                    'monthly_fee_try': 0.00,
                 }
             )
             if not created:
@@ -100,7 +100,7 @@ class Command(BaseCommand):
                     'is_monthly': True,
                     'per_mold_price_try': 450.00,
                     'modeling_service_fee_try': 50.00,
-                    'monthly_fee_try': 100.00,
+                    'monthly_fee_try': 0.00,
                 }
             )
             if not created:

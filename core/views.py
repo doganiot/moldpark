@@ -1244,12 +1244,14 @@ def subscription_dashboard(request):
                 # Eğer paket türüyse PurchasedPackage kaydı oluştur
                 if plan.plan_type == 'package':
                     from .models import PurchasedPackage
-                    PurchasedPackage.objects.create(
+                    purchased_package = PurchasedPackage.objects.create(
                         user=request.user,
                         package=plan,
                         purchase_price=plan.price_try,
                         total_credits=plan.monthly_model_limit,
                     )
+                else:
+                    purchased_package = None
                 
                 # Ödeme kaydı oluştur
                 payment_history = PaymentHistory.objects.create(
@@ -1262,6 +1264,10 @@ def subscription_dashboard(request):
                     status='completed' if payment_method == 'credit_card' else 'pending',
                     notes=f'{plan.name} paketi satın alındı - {payment_method}'
                 )
+
+                if purchased_package:
+                    purchased_package.payment_record = payment_history
+                    purchased_package.save(update_fields=['payment_record', 'moldpark_commission', 'producer_payment', 'updated_at'])
                 
                 # Fatura oluştur
                 try:

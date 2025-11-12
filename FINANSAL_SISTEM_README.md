@@ -7,7 +7,7 @@ MoldPark'a kapsamlı bir finansal yönetim sistemi eklendi. Sistem, kullandıkç
 ## 💰 Fiyatlandırma Yapısı
 
 ### MoldPark Standart Paket
-- **Aylık Sistem Kullanımı:** 100 TL
+- **Aylık Sistem Kullanımı:** 0 TL (abonelik ücreti yok)
 - **Fiziksel Kalıp Gönderme:** 450 TL/adet
 - **3D Kalıp Modelleme Hizmeti:** 50 TL/adet
 - **Kullanım Limiti:** Sınırsız (kullandıkça öde)
@@ -141,7 +141,7 @@ POST /invoices/create/producer/{mold_id}/
 - `status`: issued, paid, overdue, cancelled
 
 **İşitme Merkezi Faturaları:**
-- `monthly_fee`: Aylık sistem kullanım ücreti (100 TL)
+- `monthly_fee`: Aylık sistem kullanım ücreti (0 TL)
 - `physical_mold_count`, `physical_mold_cost`: Fiziksel kalıp sayısı ve maliyeti
 - `digital_scan_count`, `digital_scan_cost`: Digital tarama sayısı ve maliyeti
 - `subtotal`: Ara toplam
@@ -229,7 +229,7 @@ POST /invoices/create/producer/{mold_id}/
 ### Eski Aylık Faturalandırma Sistemi
 1. Her ayın 28'inde `generate_monthly_invoices` komutu çalıştırılır
 2. Tüm aktif işitme merkezleri için faturalar oluşturulur:
-   - 100 TL aylık ücret (her zaman)
+   - 0 TL aylık ücret (her zaman)
    - + Fiziksel kalıp maliyetleri
    - + 3D kalıp modelleme maliyetleri
    - + %3 kredi kartı komisyonu

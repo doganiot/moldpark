@@ -4,7 +4,7 @@ from decimal import Decimal
 
 
 class Command(BaseCommand):
-    help = 'Standart 100 TL abonelik paketini oluşturur'
+    help = 'Standart (ücretsiz) abonelik paketini oluşturur'
 
     def handle(self, *args, **options):
         self.stdout.write('Standart abonelik paketi oluşturuluyor...')
@@ -18,11 +18,11 @@ class Command(BaseCommand):
             plan_type='standard',
             defaults={
                 'name': 'Standart Abonelik',
-                'description': 'MoldPark sistemi sınırsız kullanım - Aylık 100 TL',
-                'monthly_fee_try': Decimal('100.00'),
-                'per_mold_price_try': Decimal('0.00'),  # Sınırsız kullanım
-                'modeling_service_fee_try': Decimal('0.00'),  # Sınırsız kullanım
-                'monthly_model_limit': 999999,  # Sınırsız
+                'description': 'MoldPark sistemi sınırsız kullanım - Abonelik ÜCRETSİZ, kullandıkça öde',
+                'monthly_fee_try': Decimal('0.00'),
+                'per_mold_price_try': Decimal('450.00'),
+                'modeling_service_fee_try': Decimal('50.00'),
+                'monthly_model_limit': None,  # sınırsız
                 'is_monthly': True,
                 'is_active': True,
             }
@@ -33,8 +33,8 @@ class Command(BaseCommand):
         else:
             self.stdout.write(self.style.SUCCESS(f'✅ Standart plan güncellendi: {plan.name}'))
         
-        self.stdout.write(self.style.SUCCESS(f'💰 Aylık Ücret: {plan.monthly_fee_try} TL'))
-        self.stdout.write(self.style.SUCCESS(f'🚀 Sınırsız Kullanım: Evet'))
+        self.stdout.write(self.style.SUCCESS(f'💰 Aylık Ücret: {plan.monthly_fee_try} TL (ÜCRETSİZ)'))
+        self.stdout.write(self.style.SUCCESS('🚀 Kullandıkça öde sistemi aktif'))
         self.stdout.write(self.style.SUCCESS(f'📊 Plan ID: {plan.id}'))
         
         self.stdout.write(self.style.SUCCESS('\n✅ Standart abonelik paketi hazır!'))

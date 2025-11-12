@@ -5,6 +5,7 @@ from producer.models import Producer
 from notifications.signals import notify
 from django.contrib.auth.models import User
 from django.utils import timezone
+from decimal import Decimal
 
 class CustomSignupForm(SignupForm):
     # Merkez alanları
@@ -139,7 +140,7 @@ class CustomSignupForm(SignupForm):
             from django.utils import timezone
             
             try:
-                # Aktif Standard planı al (100 TL'lik tek paket)
+                # Aktif Standart planı al (Ücretsiz temel plan)
                 standard_plan = PricingPlan.objects.filter(
                     plan_type='standard', 
                     is_active=True
@@ -150,14 +151,14 @@ class CustomSignupForm(SignupForm):
                     standard_plan = PricingPlan.objects.create(
                         name='Standart Abonelik',
                         plan_type='standard',
-                        description='MoldPark sistemi sınırsız kullanım - Aylık 100 TL',
-                        monthly_fee_try=Decimal('100.00'),
-                        per_mold_price_try=Decimal('0.00'),
-                        modeling_service_fee_try=Decimal('0.00'),
-                        monthly_model_limit=999999,
+                        description='MoldPark sistemi sınırsız kullanım - Abonelik ÜCRETSİZ, kullandıkça öde',
+                        monthly_fee_try=Decimal('0.00'),
+                        per_mold_price_try=Decimal('450.00'),
+                        modeling_service_fee_try=Decimal('50.00'),
+                        monthly_model_limit=None,
                         is_monthly=True,
                         is_active=True,
-                        price_try=Decimal('100.00'),
+                        price_try=Decimal('0.00'),
                         price_usd=Decimal('0.00'),
                     )
                 

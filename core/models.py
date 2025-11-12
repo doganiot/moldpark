@@ -4,6 +4,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from notifications.signals import notify
 from django.utils import timezone
+from decimal import Decimal
 
 class ContactMessage(models.Model):
     name = models.CharField('İsim', max_length=100)
@@ -196,7 +197,7 @@ class PricingPlan(models.Model):
     description = models.TextField('Açıklama')
     
     # Fiyatlar - Sistem kullanım bedeli (aylık)
-    monthly_fee_try = models.DecimalField('Aylık Sistem Kullanım Bedeli (TL)', max_digits=10, decimal_places=2, default=100.00)
+    monthly_fee_try = models.DecimalField('Aylık Sistem Kullanım Bedeli (TL)', max_digits=10, decimal_places=2, default=0.00)
     
     # Fiziksel kalıp gönderme ücreti
     per_mold_price_try = models.DecimalField('Fiziksel Kalıp Gönderme Ücreti (TL)', max_digits=10, decimal_places=2, default=450.00)
@@ -228,11 +229,15 @@ class PricingPlan(models.Model):
         ordering = ['order', 'price_usd']
     
     def __str__(self):
-        return f'{self.name} - ₺{self.monthly_fee_try}/ay + ₺{self.per_mold_price_try}/fiziksel kalıp + ₺{self.modeling_service_fee_try}/tarama'
+        if self.monthly_fee_try > 0:
+            return f'{self.name} - ₺{self.monthly_fee_try}/ay + ₺{self.per_mold_price_try}/fiziksel kalıp + ₺{self.modeling_service_fee_try}/tarama'
+        return f'{self.name} - Ücretsiz abonelik + ₺{self.per_mold_price_try}/fiziksel kalıp + ₺{self.modeling_service_fee_try}/tarama'
     
     def get_price_display(self):
         """Fiyat görüntüleme"""
-        return f'₺{self.monthly_fee_try}/ay (sistem) + ₺{self.per_mold_price_try}/fiziksel kalıp + ₺{self.modeling_service_fee_try}/digital tarama'
+        if self.monthly_fee_try > 0:
+            return f'₺{self.monthly_fee_try}/ay (sistem) + ₺{self.per_mold_price_try}/fiziksel kalıp + ₺{self.modeling_service_fee_try}/digital tarama'
+        return f'Ücretsiz abonelik + ₺{self.per_mold_price_try}/fiziksel kalıp + ₺{self.modeling_service_fee_try}/digital tarama'
     
     def get_limit_display(self):
         """Limit görüntüleme - Artık sınırsız"""
@@ -420,9 +425,16 @@ class PurchasedPackage(models.Model):
         ('cancelled', 'İptal Edildi'),
     ]
     
+    PRODUCER_PAYMENT_STATUS_CHOICES = [
+        ('pending', 'Beklemede'),
+        ('approved', 'Onaylandı'),
+        ('paid', 'Ödendi'),
+    ]
+    
     # İlişkiler
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='purchased_packages', verbose_name='Kullanıcı')
     package = models.ForeignKey(PricingPlan, on_delete=models.PROTECT, related_name='purchases', verbose_name='Paket', limit_choices_to={'plan_type': 'package'})
+    payment_record = models.OneToOneField('PaymentHistory', on_delete=models.SET_NULL, null=True, blank=True, related_name='purchased_package', verbose_name='Ödeme Kaydı')
     
     # Satın Alma Bilgileri
     purchase_date = models.DateTimeField('Satın Alma Tarihi', default=timezone.now)
@@ -439,6 +451,11 @@ class PurchasedPackage(models.Model):
     # Mali Bilgiler
     moldpark_commission = models.DecimalField('MoldPark Komisyonu (%6.5)', max_digits=10, decimal_places=2, default=0, help_text='Otomatik hesaplanır')
     producer_payment = models.DecimalField('Üretici Ödemesi', max_digits=10, decimal_places=2, default=0, help_text='Fiyat - Komisyon')
+    producer_payment_status = models.CharField('Üretici Ödeme Durumu', max_length=10, choices=PRODUCER_PAYMENT_STATUS_CHOICES, default='pending')
+    producer_payment_notes = models.TextField('Üretici Ödeme Notları', blank=True)
+    producer_payment_approved_at = models.DateTimeField('Ödeme Onay Tarihi', null=True, blank=True)
+    producer_payment_approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_purchased_packages', verbose_name='Ödemeyi Onaylayan Admin')
+    producer_payment_paid_at = models.DateTimeField('Üretici Ödeme Tarihi', null=True, blank=True)
     
     # Tarihler
     created_at = models.DateTimeField('Oluşturulma Tarihi', auto_now_add=True)
@@ -461,7 +478,7 @@ class PurchasedPackage(models.Model):
             self.purchase_price = self.package.price_try
         
         # Komisyon hesapla (%6.5)
-        self.moldpark_commission = (self.purchase_price * 6.5) / 100
+        self.moldpark_commission = (self.purchase_price * Decimal('6.5')) / Decimal('100')
         # Üretici ödemesi = Fiyat - Komisyon
         self.producer_payment = self.purchase_price - self.moldpark_commission
         
@@ -478,6 +495,32 @@ class PurchasedPackage(models.Model):
             self.status = 'completed'
             self.completion_date = timezone.now()
         self.save()
+    
+    def approve_producer_payment(self, user=None, notes=''):
+        """Admin üretici ödemesini onayladığında çağrılır"""
+        self.producer_payment_status = 'approved'
+        self.producer_payment_approved_at = timezone.now()
+        if user:
+            self.producer_payment_approved_by = user
+        if notes:
+            self.producer_payment_notes = notes
+        self.save()
+        if self.payment_record and self.payment_record.status == 'pending':
+            self.payment_record.status = 'completed'
+            self.payment_record.save(update_fields=['status', 'updated_at'])
+    
+    def mark_producer_payment_paid(self, user=None, notes=''):
+        """Üreticiye ödeme yapıldığında çağrılır"""
+        self.producer_payment_status = 'paid'
+        self.producer_payment_paid_at = timezone.now()
+        if user:
+            self.producer_payment_approved_by = user
+        if notes:
+            self.producer_payment_notes = notes
+        self.save()
+        if self.payment_record and self.payment_record.status != 'completed':
+            self.payment_record.status = 'completed'
+            self.payment_record.save(update_fields=['status', 'updated_at'])
 
 
 class PaymentHistory(models.Model):
