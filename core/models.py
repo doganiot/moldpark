@@ -4,7 +4,6 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from notifications.signals import notify
 from django.utils import timezone
-from decimal import Decimal
 
 class ContactMessage(models.Model):
     name = models.CharField('İsim', max_length=100)
@@ -197,7 +196,7 @@ class PricingPlan(models.Model):
     description = models.TextField('Açıklama')
     
     # Fiyatlar - Sistem kullanım bedeli (aylık)
-    monthly_fee_try = models.DecimalField('Aylık Sistem Kullanım Bedeli (TL)', max_digits=10, decimal_places=2, default=0.00)
+    monthly_fee_try = models.DecimalField('Aylık Sistem Kullanım Bedeli (TL)', max_digits=10, decimal_places=2, default=100.00)
     
     # Fiziksel kalıp gönderme ücreti
     per_mold_price_try = models.DecimalField('Fiziksel Kalıp Gönderme Ücreti (TL)', max_digits=10, decimal_places=2, default=450.00)
@@ -229,15 +228,11 @@ class PricingPlan(models.Model):
         ordering = ['order', 'price_usd']
     
     def __str__(self):
-        if self.monthly_fee_try > 0:
-            return f'{self.name} - ₺{self.monthly_fee_try}/ay + ₺{self.per_mold_price_try}/fiziksel kalıp + ₺{self.modeling_service_fee_try}/tarama'
-        return f'{self.name} - Ücretsiz abonelik + ₺{self.per_mold_price_try}/fiziksel kalıp + ₺{self.modeling_service_fee_try}/tarama'
+        return f'{self.name} - ₺{self.monthly_fee_try}/ay + ₺{self.per_mold_price_try}/fiziksel kalıp + ₺{self.modeling_service_fee_try}/tarama'
     
     def get_price_display(self):
         """Fiyat görüntüleme"""
-        if self.monthly_fee_try > 0:
-            return f'₺{self.monthly_fee_try}/ay (sistem) + ₺{self.per_mold_price_try}/fiziksel kalıp + ₺{self.modeling_service_fee_try}/digital tarama'
-        return f'Ücretsiz abonelik + ₺{self.per_mold_price_try}/fiziksel kalıp + ₺{self.modeling_service_fee_try}/digital tarama'
+        return f'₺{self.monthly_fee_try}/ay (sistem) + ₺{self.per_mold_price_try}/fiziksel kalıp + ₺{self.modeling_service_fee_try}/digital tarama'
     
     def get_limit_display(self):
         """Limit görüntüleme - Artık sınırsız"""
@@ -305,6 +300,10 @@ class UserSubscription(models.Model):
     # Geriye dönük uyumluluk
     amount_paid = models.DecimalField('Ödenen Tutar', max_digits=10, decimal_places=2, default=0)
     
+    # Paket Kullanım Hakları (Paket satın alındığında verilen haklar)
+    package_credits = models.IntegerField('Paket Kullanım Hakları', default=0, help_text='Satın alınan paketten kalan kullanım hakları')
+    used_credits = models.IntegerField('Kullanılan Haklar', default=0, help_text='Paket haklarından kullanılan miktar')
+    
     class Meta:
         verbose_name = 'Kullanıcı Aboneliği'
         verbose_name_plural = 'Kullanıcı Abonelikleri'
@@ -328,6 +327,11 @@ class UserSubscription(models.Model):
         # Paket hakları bitse bile tek kalıp satın alarak devam edebilir
         return True
     
+    def get_remaining_credits(self):
+        """Kalan paket haklarını döndür"""
+        if self.plan.plan_type == 'package':
+            return max(0, self.package_credits - self.used_credits)
+        return 0
     
     def add_mold_usage(self, ear_mold=None):
         """Kalıp kullanımı ekle ve maliyeti hesapla
@@ -346,11 +350,10 @@ class UserSubscription(models.Model):
         if ear_mold:
             # Fiziksel kalıp gönderimi varsa
             if ear_mold.is_physical_shipment:
-                # Paket hakkı varsa hak kullan, yoksa tek kalıp ücreti al
-                active_package = self.get_active_package()
-                if active_package and active_package.get_remaining_credits() > 0:
+                # Paket planıysa ve hak varsa hak kullan, yoksa tek kalıp ücreti al
+                if self.plan.plan_type == 'package' and self.package_credits > self.used_credits:
                     # Paket hakkından kullan
-                    active_package.use_credit(1)
+                    self.used_credits += 1
                     physical_cost = 0  # Paket hakkından kullanıldığı için ücret yok
                 else:
                     # Paket hakkı yoksa tek kalıp ücreti al
@@ -364,9 +367,8 @@ class UserSubscription(models.Model):
                 self.digital_scans_this_month += 1
         else:
             # Geriye uyumluluk için eski davranış
-            active_package = self.get_active_package()
-            if active_package and active_package.get_remaining_credits() > 0:
-                active_package.use_credit(1)
+            if self.plan.plan_type == 'package' and self.package_credits > self.used_credits:
+                self.used_credits += 1
                 physical_cost = 0
             else:
                 physical_cost = self.plan.per_mold_price_try
@@ -379,16 +381,8 @@ class UserSubscription(models.Model):
         self.save()
         return total_cost
     
-    def get_active_package(self):
-        """Kullanıcının aktif paketini döndür"""
-        from .models import PurchasedPackage
-        return PurchasedPackage.objects.filter(
-            user=self.user,
-            status='active'
-        ).first()
-    
     def reset_monthly_usage_if_needed(self):
-        """Gerekirse aylık kullanımı sıfırla"""
+        """Gerekirse aylık kullanımı sıfırla (paket hakları sıfırlanmaz)"""
         now = timezone.now()
         if (now.year != self.last_reset_date.year or
             now.month != self.last_reset_date.month):
@@ -397,6 +391,7 @@ class UserSubscription(models.Model):
             self.total_mold_cost_this_month = 0
             self.monthly_fee_paid = False
             self.last_reset_date = now
+            # NOT: used_credits ve package_credits sıfırlanmaz çünkü paket hakları aylık değil
             self.save()
     
     def get_remaining_models(self):
@@ -413,114 +408,6 @@ class UserSubscription(models.Model):
     def use_model_quota(self):
         """Eski method - yeni sisteme yönlendir"""
         return self.add_mold_usage()
-
-
-class PurchasedPackage(models.Model):
-    """Paket Satın Almalarını Kayıt Eden Model"""
-    
-    STATUS_CHOICES = [
-        ('active', 'Aktif'),
-        ('completed', 'Tamamlandı - Tüm Haklar Kullanıldı'),
-        ('expired', 'Süresi Dolmuş'),
-        ('cancelled', 'İptal Edildi'),
-    ]
-    
-    PRODUCER_PAYMENT_STATUS_CHOICES = [
-        ('pending', 'Beklemede'),
-        ('approved', 'Onaylandı'),
-        ('paid', 'Ödendi'),
-    ]
-    
-    # İlişkiler
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='purchased_packages', verbose_name='Kullanıcı')
-    package = models.ForeignKey(PricingPlan, on_delete=models.PROTECT, related_name='purchases', verbose_name='Paket', limit_choices_to={'plan_type': 'package'})
-    payment_record = models.OneToOneField('PaymentHistory', on_delete=models.SET_NULL, null=True, blank=True, related_name='purchased_package', verbose_name='Ödeme Kaydı')
-    
-    # Satın Alma Bilgileri
-    purchase_date = models.DateTimeField('Satın Alma Tarihi', default=timezone.now)
-    purchase_price = models.DecimalField('Satın Alınan Fiyat', max_digits=10, decimal_places=2, help_text='Satın alındığı andaki paket fiyatı')
-    
-    # Hak Bilgileri
-    total_credits = models.IntegerField('Toplam Paket Hakkı', help_text='Paketin içindeki kalıp sayısı')
-    used_credits = models.IntegerField('Kullanılan Haklar', default=0, help_text='Paket haklarından kullanılan miktar')
-    
-    # Durum
-    status = models.CharField('Durum', max_length=20, choices=STATUS_CHOICES, default='active')
-    completion_date = models.DateTimeField('Tamamlama Tarihi', null=True, blank=True, help_text='Tüm haklar tüketildiğinde')
-    
-    # Mali Bilgiler
-    moldpark_commission = models.DecimalField('MoldPark Komisyonu (%6.5)', max_digits=10, decimal_places=2, default=0, help_text='Otomatik hesaplanır')
-    producer_payment = models.DecimalField('Üretici Ödemesi', max_digits=10, decimal_places=2, default=0, help_text='Fiyat - Komisyon')
-    producer_payment_status = models.CharField('Üretici Ödeme Durumu', max_length=10, choices=PRODUCER_PAYMENT_STATUS_CHOICES, default='pending')
-    producer_payment_notes = models.TextField('Üretici Ödeme Notları', blank=True)
-    producer_payment_approved_at = models.DateTimeField('Ödeme Onay Tarihi', null=True, blank=True)
-    producer_payment_approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_purchased_packages', verbose_name='Ödemeyi Onaylayan Admin')
-    producer_payment_paid_at = models.DateTimeField('Üretici Ödeme Tarihi', null=True, blank=True)
-    
-    # Tarihler
-    created_at = models.DateTimeField('Oluşturulma Tarihi', auto_now_add=True)
-    updated_at = models.DateTimeField('Güncellenme Tarihi', auto_now=True)
-    
-    class Meta:
-        verbose_name = 'Satın Alınan Paket'
-        verbose_name_plural = 'Satın Alınan Paketler'
-        ordering = ['-purchase_date']
-    
-    def __str__(self):
-        return f'{self.user.username} - {self.package.name} ({self.get_status_display()})'
-    
-    def save(self, *args, **kwargs):
-        """Komisyon ve ödemesini otomatik hesapla"""
-        if not self.total_credits:
-            self.total_credits = self.package.monthly_model_limit
-        
-        if not self.purchase_price:
-            self.purchase_price = self.package.price_try
-        
-        # Komisyon hesapla (%6.5)
-        self.moldpark_commission = (self.purchase_price * Decimal('6.5')) / Decimal('100')
-        # Üretici ödemesi = Fiyat - Komisyon
-        self.producer_payment = self.purchase_price - self.moldpark_commission
-        
-        super().save(*args, **kwargs)
-    
-    def get_remaining_credits(self):
-        """Kalan hakkı döndür"""
-        return max(0, self.total_credits - self.used_credits)
-    
-    def use_credit(self, amount=1):
-        """Hakları kullan ve durumu güncelle"""
-        self.used_credits += amount
-        if self.used_credits >= self.total_credits:
-            self.status = 'completed'
-            self.completion_date = timezone.now()
-        self.save()
-    
-    def approve_producer_payment(self, user=None, notes=''):
-        """Admin üretici ödemesini onayladığında çağrılır"""
-        self.producer_payment_status = 'approved'
-        self.producer_payment_approved_at = timezone.now()
-        if user:
-            self.producer_payment_approved_by = user
-        if notes:
-            self.producer_payment_notes = notes
-        self.save()
-        if self.payment_record and self.payment_record.status == 'pending':
-            self.payment_record.status = 'completed'
-            self.payment_record.save(update_fields=['status', 'updated_at'])
-    
-    def mark_producer_payment_paid(self, user=None, notes=''):
-        """Üreticiye ödeme yapıldığında çağrılır"""
-        self.producer_payment_status = 'paid'
-        self.producer_payment_paid_at = timezone.now()
-        if user:
-            self.producer_payment_approved_by = user
-        if notes:
-            self.producer_payment_notes = notes
-        self.save()
-        if self.payment_record and self.payment_record.status != 'completed':
-            self.payment_record.status = 'completed'
-            self.payment_record.save(update_fields=['status', 'updated_at'])
 
 
 class PaymentHistory(models.Model):

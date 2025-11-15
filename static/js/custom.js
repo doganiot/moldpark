@@ -92,6 +92,23 @@ class MoldParkApp {
             })
         );
 
+        // Auto-hide alerts with animation
+        this.setupAutoHideAlerts();
+    }
+
+    setupAutoHideAlerts() {
+        const alerts = document.querySelectorAll('.alert:not(.alert-permanent)');
+        alerts.forEach(alert => {
+            setTimeout(() => {
+                alert.style.opacity = '0';
+                alert.style.transform = 'translateY(-20px)';
+                setTimeout(() => {
+                    if (alert.parentNode) {
+                        alert.remove();
+                    }
+                }, 300);
+            }, 5000);
+        });
     }
 
     // ========================================

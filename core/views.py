@@ -1238,20 +1238,10 @@ def subscription_dashboard(request):
                     user=request.user,
                     plan=plan,
                     status='active',
-                    monthly_fee_paid=True,  # Abonelik aktif
+                    monthly_fee_paid=True,  # Paket satın alındığında ücret ödendi
+                    package_credits=plan.monthly_model_limit,  # Paket içindeki kalıp sayısı kadar hak ver
+                    used_credits=0,  # Henüz kullanılmadı
                 )
-                
-                # Eğer paket türüyse PurchasedPackage kaydı oluştur
-                if plan.plan_type == 'package':
-                    from .models import PurchasedPackage
-                    purchased_package = PurchasedPackage.objects.create(
-                        user=request.user,
-                        package=plan,
-                        purchase_price=plan.price_try,
-                        total_credits=plan.monthly_model_limit,
-                    )
-                else:
-                    purchased_package = None
                 
                 # Ödeme kaydı oluştur
                 payment_history = PaymentHistory.objects.create(
@@ -1264,10 +1254,6 @@ def subscription_dashboard(request):
                     status='completed' if payment_method == 'credit_card' else 'pending',
                     notes=f'{plan.name} paketi satın alındı - {payment_method}'
                 )
-
-                if purchased_package:
-                    purchased_package.payment_record = payment_history
-                    purchased_package.save(update_fields=['payment_record', 'moldpark_commission', 'producer_payment', 'updated_at'])
                 
                 # Fatura oluştur
                 try:
@@ -1437,7 +1423,25 @@ def subscription_dashboard(request):
     try:
         subscription = UserSubscription.objects.filter(user=request.user, status='active').order_by('-created_at').first()
         if subscription:
-            pass  # Paket hakları artık PurchasedPackage'de takip edilir
+            # Paket planıysa ve package_credits 0 ise, plan.monthly_model_limit'ten set et
+            if subscription.plan.plan_type == 'package':
+                if subscription.package_credits == 0:
+                    subscription.package_credits = subscription.plan.monthly_model_limit
+                    subscription.save()
+                
+                # Paket satın alma tarihinden sonra kullanılan kalıpları say ve used_credits'i güncelle
+                from mold.models import EarMold
+                package_start_date = subscription.start_date
+                used_molds_count = EarMold.objects.filter(
+                    center__user=request.user,
+                    is_physical_shipment=True,
+                    created_at__gte=package_start_date
+                ).count()
+                
+                # used_credits'i güncelle (paket haklarını aşmamalı)
+                if used_molds_count != subscription.used_credits:
+                    subscription.used_credits = min(used_molds_count, subscription.package_credits)
+                    subscription.save()
             
             # Subscription'ı refresh et
             subscription.refresh_from_db()
@@ -1462,19 +1466,12 @@ def subscription_dashboard(request):
     # Paket satın alma formu
     purchase_form = PackagePurchaseForm()
     
-    # Aktif ve geçmiş paket satın almalarını al
-    from .models import PurchasedPackage
-    active_purchased_package = PurchasedPackage.objects.filter(user=request.user, status='active').first()
-    all_purchased_packages = PurchasedPackage.objects.filter(user=request.user).order_by('-purchase_date')
-    
     context = {
         'subscription': subscription,
         'payments': payments,
         'packages': packages.filter(plan_type='package'),
         'single_plan': single_plan,
         'purchase_form': purchase_form,
-        'purchased_package': active_purchased_package,  # Aktif paket
-        'purchased_packages': all_purchased_packages,   # Tüm paket satın almalarının geçmişi
     }
     
     return render(request, 'core/subscription_dashboard.html', context)

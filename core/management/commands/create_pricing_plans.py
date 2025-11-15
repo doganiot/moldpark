@@ -26,9 +26,9 @@ class Command(BaseCommand):
             ]
         )
         
-        # 2. Silver Paket Plan
+        # 2. İşitme Merkezi - Temel Plan
         center_basic = PricingPlan.objects.create(
-            name='Silver',
+            name='İşitme Merkezi - Temel',
             plan_type='center_basic',
             description='Küçük işitme merkezleri için uygun fiyatlı aylık abonelik. Aylık 30 kalıp modelleme hakkı.',
             price_usd=15.00,
@@ -44,9 +44,9 @@ class Command(BaseCommand):
             ]
         )
         
-        # 3. Gold Paket Plan
+        # 3. İşitme Merkezi - Profesyonel Plan
         center_professional = PricingPlan.objects.create(
-            name='Gold',
+            name='İşitme Merkezi - Profesyonel',
             plan_type='center_professional',
             description='Orta ve büyük işitme merkezleri için gelişmiş özellikler. Aylık 70 kalıp modelleme hakkı.',
             price_usd=30.00,
@@ -64,9 +64,9 @@ class Command(BaseCommand):
             ]
         )
         
-        # 4. Platinum Paket Plan
+        # 4. Üretici Merkez Plan
         producer_plan = PricingPlan.objects.create(
-            name='Platinum',
+            name='Üretici Merkez',
             plan_type='producer',
             description='Üretici merkezler için yüksek kapasiteli plan. Aylık 120 kalıp modelleme hakkı ve gelişmiş özellikler.',
             price_usd=45.00,
@@ -93,7 +93,6 @@ class Command(BaseCommand):
                 f'1. {pay_per_use.name} - ${pay_per_use.price_usd} (₺{pay_per_use.price_try})\n'
                 f'2. {center_basic.name} - ${center_basic.price_usd}/ay (₺{center_basic.price_try}/ay)\n'
                 f'3. {center_professional.name} - ${center_professional.price_usd}/ay (₺{center_professional.price_try}/ay)\n'
-                f'4. {producer_plan.name} - ${producer_plan.price_usd}/ay (₺{producer_plan.price_try}/ay)\n'
-                f'\nPaket Adları: Silver, Gold, Platinum'
+                f'4. {producer_plan.name} - ${producer_plan.price_usd}/ay (₺{producer_plan.price_try}/ay)'
             )
         ) 

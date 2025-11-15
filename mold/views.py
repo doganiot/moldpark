@@ -111,10 +111,8 @@ def mold_create(request):
                     
                     # Kalıp için kullanılan fiyatları kaydet
                     if mold.is_physical_shipment:
-                        # Aktif paket varsa ücretsiz, yoksa tek kalıp ücreti
-                        from core.models import PurchasedPackage
-                        active_package = PurchasedPackage.objects.filter(user=request.user, status='active').first()
-                        if active_package and active_package.get_remaining_credits() > 0:
+                        # Paket planıysa ve hak varsa ücretsiz, yoksa tek kalıp ücreti
+                        if subscription.plan.plan_type == 'package' and subscription.package_credits > subscription.used_credits:
                             mold.unit_price = Decimal('0.00')  # Paket hakkından kullanıldı
                         else:
                             mold.unit_price = subscription.plan.per_mold_price_try  # Tek kalıp ücreti
