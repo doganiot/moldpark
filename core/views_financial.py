@@ -673,7 +673,8 @@ def admin_financial_control_panel(request):
         subscription_digital_price = subscription.plan.modeling_service_fee_try if subscription and subscription.plan else pricing.digital_modeling_price
         
         # Paket faturası yoksa, tek tek kalıpları hesapla
-        has_package_invoice = package_invoices.exists() or package_invoices_in_period.exists() or (package_subscription is not None)
+        # SADECE fatura KESİLMİŞ ise paket faturası değer kabul et. Fatura kesılmadıysa fiziksel kalıpları hesapla
+        has_package_invoice = package_invoices_in_period.exists()  # Seçili tarihte kesılen paket faturası varsa
         if not has_package_invoice:
             # Bu merkezden gönderilen fiziksel kalıplar
             physical_molds = EarMold.objects.filter(
