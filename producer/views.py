@@ -4383,9 +4383,9 @@ def producer_payments(request):
         
         for order in completed_orders:
             if order.ear_mold.is_physical_shipment:
-                total_gross += Decimal('450.00')  # Fiziksel kalıp (KDV dahil)
+                total_gross += Decimal('399.00')  # Fiziksel kalıp (KDV dahil)
             else:
-                total_gross += Decimal('50.00')  # 3D modelleme (KDV dahil)
+                total_gross += Decimal('15.00')  # 3D modelleme (KDV dahil)
         
         # Kesintiler - BRÜT tutar (KDV dahil) üzerinden MoldPark hizmet bedeli
         moldpark_fee = total_gross * Decimal('0.065')  # %6.5 MoldPark hizmet bedeli
@@ -4409,8 +4409,8 @@ def producer_payments(request):
             work_items.append({
                 'name': 'Fiziksel Kalıp Üretimi',
                 'quantity': physical_molds,
-                'unit_price': Decimal('450.00'),
-                'total': physical_molds * Decimal('450.00'),
+                'unit_price': Decimal('399.00'),
+                'total': physical_molds * Decimal('399.00'),
                 'type': 'physical'
             })
         
@@ -4419,8 +4419,8 @@ def producer_payments(request):
             work_items.append({
                 'name': '3D Modelleme Hizmeti',
                 'quantity': digital_molds,
-                'unit_price': Decimal('50.00'),
-                'total': digital_molds * Decimal('50.00'),
+                'unit_price': Decimal('15.00'),
+                'total': digital_molds * Decimal('15.00'),
                 'type': 'digital'
             })
         
