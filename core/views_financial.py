@@ -2241,16 +2241,7 @@ def pricing_management(request):
 @require_http_methods(["POST"])
 def send_producer_payment_notification(request):
     """
-    DISABLED - Üretici fatura kesme sistemi deaktif
-    """
-    return JsonResponse({
-        'success': False,
-        'error': 'Üretici fatura kesme sistemi deaktif. Bu endpoint artık kullanılamıyor.'
-    }, status=403)
-
-def _DISABLED_send_producer_payment_notification(request):
-    """
-    DISABLED - Üreticiye ödeme bilgilendirme mesajı gönder
+    Üreticiye ödeme bilgilendirme mesajı gönder
     """
     import json
     from producer.models import Producer
@@ -2324,16 +2315,7 @@ MoldPark Ekibi
 @require_http_methods(["POST"])
 def mark_producer_as_paid(request):
     """
-    DISABLED - Üretici fatura kesme sistemi deaktif
-    """
-    return JsonResponse({
-        'success': False,
-        'error': 'Üretici fatura kesme sistemi deaktif. Bu endpoint artık kullanılamıyor.'
-    }, status=403)
-
-def _DISABLED_mark_producer_as_paid(request):
-    """
-    DISABLED - Üreticiyi ödendi olarak işaretle
+    Üreticiyi ödendi olarak işaretle
     """
     import json
     from producer.models import Producer

@@ -97,6 +97,8 @@ urlpatterns = [
     path('admin/financial-control/bulk-create-center-invoices/', views_financial.bulk_create_center_invoices, name='bulk_create_center_invoices'),
     path('admin/financial-control/create-center-invoice/<int:center_id>/', views_financial.create_single_center_invoice, name='create_single_center_invoice'),
     path('admin/financial-control/bulk-create-producer-invoices/', views_financial.bulk_create_producer_invoices, name='bulk_create_producer_invoices'),
+    path('admin/financial-control/send-payment-notification/', views_financial.send_producer_payment_notification, name='send_payment_notification'),
+    path('admin/financial-control/mark-producer-paid/', views_financial.mark_producer_as_paid, name='mark_producer_paid'),
     
     # PDF Fatura İşlemleri
     path('invoice/<int:invoice_id>/pdf/', views_financial.download_invoice_pdf, name='download_invoice_pdf'),

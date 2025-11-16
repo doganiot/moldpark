@@ -469,10 +469,100 @@
             </div>
         </div>
 
-        <!-- Üreticilere Ödemeler - DISABLED (Fatura sadece işitme merkezlerine kesilir) -->
-        <!-- <div class="col-lg-6">
-            Üretici fatura kesme sistemi deaktif
-        </div> -->
+        <!-- Üreticilere Ödemeler -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0">
+                    <h6 class="mb-0 fw-bold">
+                        <i class="fas fa-money-bill-wave me-2 text-info"></i>
+                        Üreticilere Ödemeler
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if producers_payment_summary %}
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead>
+                                    <tr class="table-light">
+                                        <th>Üretici Merkez</th>
+                                        <th class="text-end">Fiziksel</th>
+                                        <th class="text-end">3D</th>
+                                        <th class="text-end">Net Ödeme</th>
+                                        <th class="text-center">Durum</th>
+                                        <th class="text-center">İşlem</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in producers_payment_summary %}
+                                        {% if item.total_orders > 0 %}
+                                        <tr>
+                                            <td>
+                                                <small class="fw-bold">{{ item.producer.name }}</small>
+                                                <br>
+                                                <small class="text-muted">{{ item.producer.company_name }}</small>
+                                            </td>
+                                            <td class="text-end">
+                                                <small>{{ item.physical_count }}</small>
+                                            </td>
+                                            <td class="text-end">
+                                                <small>{{ item.digital_count }}</small>
+                                            </td>
+                                            <td class="text-end">
+                                                <strong class="text-primary">{{ item.net_payment|floatformat:2 }} ₺</strong>
+                                            </td>
+                                            <td class="text-center">
+                                                {% if item.is_paid %}
+                                                    <span class="badge bg-success">
+                                                        <i class="fas fa-check me-1"></i>Ödendi
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-warning">
+                                                        <i class="fas fa-clock me-1"></i>Bekliyor
+                                                    </span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-center">
+                                                {% if not item.is_paid %}
+                                                    <div class="btn-group btn-group-sm" role="group">
+                                                        <button type="button" 
+                                                                class="btn btn-outline-info"
+                                                                onclick="showPaymentNotificationModal({{ item.producer.id }}, '{{ item.producer.name }}', '{{ item.net_payment }}')"
+                                                                title="Ödeme Bilgilendirmesi Gönder">
+                                                            <i class="fas fa-envelope"></i>
+                                                        </button>
+                                                        <button type="button" 
+                                                                class="btn btn-outline-success"
+                                                                onclick="markProducerAsPaid({{ item.producer.id }}, '{{ item.producer.name }}')"
+                                                                title="Ödendi Olarak İşaretle">
+                                                            <i class="fas fa-check"></i>
+                                                        </button>
+                                                    </div>
+                                                {% else %}
+                                                    <small class="text-muted">Tamamlandı</small>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endif %}
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot>
+                                    <tr class="table-light fw-bold">
+                                        <td colspan="3">TOPLAM ÖDEMELER:</td>
+                                        <td class="text-end text-primary">{{ total_payments_to_producers|floatformat:2 }} ₺</td>
+                                        <td colspan="2"></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-0">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Bu dönemde ödemesi gereken üretici merkez bulunmamaktadır.
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Fatura Durumları -->
@@ -545,7 +635,60 @@
     </div>
 </div>
 
-<!-- Ödeme Bilgilendirme Modal - DISABLED (Üretici fatura kesme sistemi deaktif) -->
+<!-- Ödeme Bilgilendirme Modal -->
+<div class="modal fade" id="paymentNotificationModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-envelope me-2 text-info"></i>
+                    Ödeme Bilgilendirmesi Gönder
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="paymentNotificationForm">
+                    <div class="mb-3">
+                        <label class="form-label">Üretici Merkez</label>
+                        <input type="text" class="form-control" id="producerName" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Ödeme Tutarı</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="paymentAmount" readonly>
+                            <span class="input-group-text">₺</span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Ödeme Tarihi</label>
+                        <input type="date" class="form-control" id="paymentDate" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Ödeme Yöntemi</label>
+                        <select class="form-select" id="paymentMethod" required>
+                            <option value="">Seçiniz...</option>
+                            <option value="Banka Transferi">Banka Transferi</option>
+                            <option value="EFT">EFT</option>
+                            <option value="Çek">Çek</option>
+                            <option value="Nakit">Nakit</option>
+                            <option value="Diğer">Diğer</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Açıklama (İsteğe Bağlı)</label>
+                        <textarea class="form-control" id="paymentNotes" rows="3" placeholder="Ödeme ile ilgili notlar..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-info" onclick="sendPaymentNotification()">
+                    <i class="fas fa-paper-plane me-1"></i>Gönder
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script>
 // CSRF token
@@ -643,12 +786,103 @@ function bulkCreateCenterInvoices() {
     });
 }
 
-// Üreticilere toplu fatura kesme - DISABLED (Fatura sadece işitme merkezlerine kesilir)
-// function bulkCreateProducerInvoices() { ... }
+// Üretici Ödeme Bilgilendirmesi Modal'ı Aç
+function showPaymentNotificationModal(producerId, producerName, paymentAmount) {
+    document.getElementById('producerName').value = producerName;
+    document.getElementById('paymentAmount').value = parseFloat(paymentAmount).toFixed(2);
+    document.getElementById('paymentDate').valueAsDate = new Date();
+    document.getElementById('paymentMethod').value = '';
+    document.getElementById('paymentNotes').value = '';
+    
+    // Modal'ı aç
+    const modal = new bootstrap.Modal(document.getElementById('paymentNotificationModal'));
+    modal.show();
+    
+    // Producer ID'sini data attribute'e kaydet
+    document.getElementById('paymentNotificationForm').dataset.producerId = producerId;
+}
 
-// DISABLED - Üretici fatura kesme sistemi deaktif
-// Ödeme bilgilendirme ve ödeme onaylama fonksiyonları kaldırıldı
-// Fatura sadece işitme merkezlerine kesilir
+// Ödeme Bilgilendirmesi Gönder
+function sendPaymentNotification() {
+    const form = document.getElementById('paymentNotificationForm');
+    const producerId = form.dataset.producerId;
+    const paymentDate = document.getElementById('paymentDate').value;
+    const paymentMethod = document.getElementById('paymentMethod').value;
+    const paymentNotes = document.getElementById('paymentNotes').value;
+    
+    if (!paymentDate || !paymentMethod) {
+        alert('Lütfen zorunlu alanları doldurunuz!');
+        return;
+    }
+    
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Gönderiliyor...';
+    
+    fetch(`/admin/financial-control/send-payment-notification/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            producer_id: producerId,
+            payment_date: paymentDate,
+            payment_method: paymentMethod,
+            notes: paymentNotes,
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✓ Ödeme bilgilendirmesi başarıyla gönderildi!');
+            bootstrap.Modal.getInstance(document.getElementById('paymentNotificationModal')).hide();
+            location.reload();
+        } else {
+            alert('✗ Hata: ' + (data.message || data.error || 'Bir hata oluştu'));
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('✗ Bilgilendirme gönderirken bir hata oluştu: ' + error);
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    });
+}
+
+// Üretici Ödemesini Ödendi Olarak İşaretle
+function markProducerAsPaid(producerId, producerName) {
+    if (!confirm(`"${producerName}" için ödemenin gerçekleştirildiğini onaylamak istediğinize emin misiniz?`)) {
+        return;
+    }
+    
+    fetch(`/admin/financial-control/mark-producer-paid/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            producer_id: producerId,
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✓ Ödeme başarıyla onaylandı! Üretici merkezine "Ödeme Onaylandı" bildirimi gönderildi.');
+            location.reload();
+        } else {
+            alert('✗ Hata: ' + (data.message || data.error || 'Bir hata oluştu'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('✗ Ödeme onaylanırken bir hata oluştu: ' + error);
+    });
+}
 
 // Tooltip'leri aktif hale getir
 document.addEventListener('DOMContentLoaded', function() {
