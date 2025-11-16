@@ -867,10 +867,10 @@ def privacy_policy(request):
 
 def pricing(request):
     """Fiyatlandırma sayfası - Paket sistemi"""
-    # Aktif paketleri göster (package ve single tipindeki planlar)
+    # Aktif paketleri göster (standard, package ve single tipindeki planlar)
     packages = PricingPlan.objects.filter(
         is_active=True, 
-        plan_type__in=['package', 'single']
+        plan_type__in=['standard', 'package', 'single']
     ).order_by('order')
     
     # Tek kalıp seçeneği
