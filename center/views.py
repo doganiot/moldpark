@@ -127,8 +127,8 @@ def subscription_request(request):
             messages.error(request, f'Talep gönderilirken hata oluştu: {str(e)}')
             return redirect('center:subscription_request')
     
-    # GET request
-    available_plans = PricingPlan.objects.filter(is_active=True, plan_type='standard').order_by('monthly_fee_try')
+    # GET request - Standart ve Gold paketlerini göster
+    available_plans = PricingPlan.objects.filter(is_active=True, plan_type__in=['standard', 'package']).order_by('order')
     
     # Eğer plan yoksa oluştur
     if not available_plans.exists():

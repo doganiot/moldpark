@@ -1461,10 +1461,10 @@ def subscription_dashboard(request):
     # Ödeme geçmişi
     payments = PaymentHistory.objects.filter(user=request.user).order_by('-created_at')[:10]
     
-    # Aktif paketleri al (package ve single tipindeki planlar)
+    # Aktif paketleri al (standard, package ve single tipindeki planlar)
     packages = PricingPlan.objects.filter(
         is_active=True, 
-        plan_type__in=['package', 'single']
+        plan_type__in=['standard', 'package', 'single']
     ).order_by('order')
     
     # Tek kalıp seçeneği
@@ -1479,7 +1479,7 @@ def subscription_dashboard(request):
     context = {
         'subscription': subscription,
         'payments': payments,
-        'packages': packages.filter(plan_type='package'),
+        'packages': packages.exclude(plan_type='single'),  # single hariç tüm paketler (standard ve package)
         'single_plan': single_plan,
         'purchase_form': purchase_form,
     }
