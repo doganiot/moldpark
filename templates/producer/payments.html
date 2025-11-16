@@ -313,8 +313,9 @@
                                 <tr>
                                     <th>Dönem</th>
                                     <th>Brüt Kazanç</th>
-                                    <th>MoldPark Ücreti</th>
-                                    <th>KK Komisyonu</th>
+                                    <th>MoldPark Ücreti (%6.5)</th>
+                                    <th>KK Komisyonu (%3)</th>
+                                    <th>Toplam Kesinti</th>
                                     <th>Net Kazanç</th>
                                     <th>Durum</th>
                                 </tr>
@@ -324,8 +325,9 @@
                                 <tr>
                                     <td><strong>{{ earning.month_name }}</strong></td>
                                     <td>₺{{ earning.gross_revenue|floatformat:0 }}</td>
-                                    <td class="text-danger">-₺{{ earning.deductions|floatformat:0 }}</td>
-                                    <td class="text-danger">-%2.6</td>
+                                    <td class="text-danger">-₺{{ earning.moldpark_fee|floatformat:0 }}</td>
+                                    <td class="text-danger">-₺{{ earning.cc_fee|floatformat:0 }}</td>
+                                    <td class="text-danger">-₺{{ earning.total_deductions|floatformat:0 }}</td>
                                     <td class="text-success"><strong>₺{{ earning.net_earnings|floatformat:0 }}</strong></td>
                                     <td>
                                         {% if earning.net_earnings > 0 %}
