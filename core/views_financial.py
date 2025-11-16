@@ -11,7 +11,7 @@ from django.db.models import Sum, Count, Q, Avg
 from datetime import datetime, timedelta
 from decimal import Decimal
 
-from .models import Invoice, FinancialSummary, UserSubscription, PricingPlan, PricingConfiguration
+from .models import Invoice, FinancialSummary, UserSubscription, PricingPlan, PricingConfiguration, Transaction
 from center.models import Center
 from producer.models import Producer, ProducerOrder
 from mold.models import EarMold
