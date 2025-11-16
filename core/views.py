@@ -1435,27 +1435,41 @@ def subscription_dashboard(request):
         if subscription:
             # Paket planıysa ve package_credits 0 ise, plan.monthly_model_limit'ten set et
             if subscription.plan.plan_type == 'package':
-                if subscription.package_credits == 0:
-                    subscription.package_credits = subscription.plan.monthly_model_limit
+                if subscription.package_credits is None or subscription.package_credits == 0:
+                    subscription.package_credits = subscription.plan.monthly_model_limit or 0
+                    subscription.used_credits = subscription.used_credits or 0
                     subscription.save()
                 
                 # Paket satın alma tarihinden sonra kullanılan kalıpları say ve used_credits'i güncelle
-                from mold.models import EarMold
-                package_start_date = subscription.start_date
-                used_molds_count = EarMold.objects.filter(
-                    center__user=request.user,
-                    is_physical_shipment=True,
-                    created_at__gte=package_start_date
-                ).count()
-                
-                # used_credits'i güncelle (paket haklarını aşmamalı)
-                if used_molds_count != subscription.used_credits:
-                    subscription.used_credits = min(used_molds_count, subscription.package_credits)
-                    subscription.save()
+                try:
+                    from mold.models import EarMold
+                    package_start_date = subscription.start_date
+                    used_molds_count = EarMold.objects.filter(
+                        center__user=request.user,
+                        is_physical_shipment=True,
+                        created_at__gte=package_start_date
+                    ).count()
+                    
+                    # used_credits'i güncelle (paket haklarını aşmamalı)
+                    if used_molds_count != subscription.used_credits:
+                        subscription.used_credits = min(used_molds_count, subscription.package_credits or 0)
+                        subscription.save()
+                except Exception as e:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.warning(f"Credit update error: {e}")
             
             # Subscription'ı refresh et
-            subscription.refresh_from_db()
+            try:
+                subscription.refresh_from_db()
+            except Exception:
+                pass
     except UserSubscription.DoesNotExist:
+        subscription = None
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Subscription error: {e}")
         subscription = None
     
     # Ödeme geçmişi
