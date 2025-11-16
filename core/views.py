@@ -882,7 +882,7 @@ def pricing(request):
     context = {
         'plans': packages,
         'single_plan': single_plan,
-        'packages': packages.filter(plan_type='package'),
+        'packages': packages.exclude(plan_type='single'),  # single hariç tüm paketler (standard ve package)
     }
     
     # Giriş yapmış kullanıcı için ek bilgiler (bu kod zaten çalışmayacak ama template'ler için bırakıyoruz)
