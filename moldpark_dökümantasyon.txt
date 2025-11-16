@@ -1,6 +1,5 @@
-http://127.0.0.1:8002/django-admin/
- kullnıcı adı:alidogan
-şifre:975....Lim
+http://127.0.0.1:8002/django-admin
+/(Admin Paneli - admin/admin123) kullnıcı adı:admin@moldpark.com
 
 http://localhost:8002/django-admin/
 

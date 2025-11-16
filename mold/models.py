@@ -462,10 +462,20 @@ class RevisionRequest(models.Model):
     @property
     def mold(self):
         """Uyumluluk için - modeled_mold.ear_mold'a referans"""
-        return self.modeled_mold.ear_mold
+        try:
+            if self.modeled_mold and self.modeled_mold.ear_mold:
+                return self.modeled_mold.ear_mold
+        except:
+            pass
+        return None
 
     def __str__(self):
-        return f'{self.modeled_mold.ear_mold.patient_name} - {self.get_revision_type_display()} ({self.get_status_display()})'
+        try:
+            if self.modeled_mold and self.modeled_mold.ear_mold:
+                return f'{self.modeled_mold.ear_mold.patient_name} - {self.get_revision_type_display()} ({self.get_status_display()})'
+        except:
+            pass
+        return f'RevisionRequest #{self.pk}'
     
     def get_status_color(self):
         """Bootstrap renk sınıfı döndürür"""

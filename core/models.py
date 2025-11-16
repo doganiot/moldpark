@@ -156,32 +156,6 @@ class Message(models.Model):
         return False
 
 
-class MessageRecipient(models.Model):
-    """Toplu Mesajlar için Alıcı Listesi"""
-    
-    message = models.ForeignKey(Message, on_delete=models.CASCADE, related_name='recipients')
-    recipient = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='Alıcı')
-    is_read = models.BooleanField('Okundu', default=False)
-    read_at = models.DateTimeField('Okunma Tarihi', blank=True, null=True)
-    is_archived = models.BooleanField('Arşivlendi', default=False)
-
-    class Meta:
-        verbose_name = 'Mesaj Alıcısı'
-        verbose_name_plural = 'Mesaj Alıcıları'
-        unique_together = ['message', 'recipient']
-
-    def mark_as_read(self):
-        """Bu alıcı için mesajı okundu olarak işaretle"""
-        if not self.is_read:
-            self.is_read = True
-            self.read_at = timezone.now()
-            self.save()
-
-    def __str__(self):
-        recipient_name = self.recipient.get_full_name() if self.recipient else 'Silinmiş Kullanıcı'
-        return f'{self.message.subject} → {recipient_name}'
-
-
 class PricingPlan(models.Model):
     """Fiyatlandırma Planları - Basitleştirilmiş Sistem"""
     

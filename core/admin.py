@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import ContactMessage, Message, MessageRecipient, PricingPlan, UserSubscription, PaymentHistory, SimpleNotification, SubscriptionRequest, PricingConfiguration
+from .models import ContactMessage, Message, PricingPlan, UserSubscription, PaymentHistory, SimpleNotification, SubscriptionRequest, PricingConfiguration
 
 @admin.register(ContactMessage)
 class ContactMessageAdmin(admin.ModelAdmin):
@@ -23,13 +23,6 @@ class MessageAdmin(admin.ModelAdmin):
     list_filter = ('priority', 'created_at')
     search_fields = ('subject', 'content', 'sender__username')
     readonly_fields = ('created_at', 'read_at', 'replied_at')
-
-
-@admin.register(MessageRecipient)
-class MessageRecipientAdmin(admin.ModelAdmin):
-    list_display = ('message', 'recipient', 'is_read', 'read_at')
-    list_filter = ('is_read', 'read_at')
-    search_fields = ('message__subject', 'recipient__username')
 
 
 @admin.register(PricingPlan)

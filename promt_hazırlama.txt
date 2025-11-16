@@ -1,0 +1,17 @@
+teknik alt yapım django. Sisteme 3 ana bileşen var . Admin merkezi, İşitme Merkezi ve Kalıp üretici merkez. Kalıp siparişleri İşitme merkezlerinden gelir, Üretici merkezler kalıpları üretir ve işitme merkezine gönderir. Bu süreci admin merkez takip eder.  Üretici merkez 2 hizmeti karşılar. 1.Fiziksel kalıp yapımı, 2 .3D kulak kalıbı modelleme. Üretici merkezler hizmet bedelleri şöyle: paket satın alınmamışsa tek fiziksel kalıp üretimi 450,00 TL. 3D kulak kalıbı modelleme: 19,00 TL,
+Paketler:Silver ₺2100,00 Toplam Fiyat 5 Kalıp , Gold ₺3990,00 Toplam Fiyat 10 Kalıp, Platinum ₺7580,00 Toplam Fiyat 20 Kalıp.
+
+Fiyatlara KDV dahildir.
+
+İşitme merkezleri hizmeti alır, Üretici merkezler hizmet verir. Bu yapıyı admin kontrol eder ve her işleme ve paket üzerinden %6,5 komisyon alır. 
+
+Bunu cursor'da kodlayabilmem için bana promt öner.
+
+1
+2
+3
+4
+5
+6
+7
+8

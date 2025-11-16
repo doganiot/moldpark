@@ -17,7 +17,7 @@
 
 #### **Özellikler:**
 - ✅ Otomatik fatura oluşturma
-- ✅ Komisyon hesaplamaları (%6.5 MoldPark + %2.6 KK)
+- ✅ Komisyon hesaplamaları (%6.5 MoldPark )
 - ✅ İşlem takibi ve raporlama
 - ✅ Admin finans dashboard'u
 
@@ -44,7 +44,7 @@
 5. **Teslim Edildi**: Kalıp merkeze ulaşır
 
 #### **Kazanç Yapısı:**
-- **Fiziksel Kalıp**: ₺350 kazanç
+- **Fiziksel Kalıp**: ₺450 kazanç
 - **Dijital Tarama**: ₺150 kazanç
 
 ---

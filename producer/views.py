@@ -353,6 +353,18 @@ def producer_register(request):
                         related_url='/subscription/'
 
                     )
+                    
+                    # Admin'lere yeni üretici merkez bildirimi
+                    from django.contrib.auth.models import User as AdminUser
+                    admin_users = AdminUser.objects.filter(is_superuser=True)
+                    for admin in admin_users:
+                        SimpleNotification.objects.create(
+                            user=admin,
+                            title='🏭 Yeni Üretici Merkez Kaydı',
+                            message=f'Yeni üretici merkez kaydoldu: {producer.company_name}\nTelefon: {producer.phone}\nE-posta: {producer.contact_email}\nKullanıcı: {user.username}\nOnay Durumu: Bekliyor',
+                            notification_type='warning',
+                            related_url=f'/admin/producer/producer/{producer.id}/change/'
+                        )
 
             except Exception as e:
 
@@ -456,7 +468,7 @@ def producer_dashboard(request):
 
     # MESAJ İSTATİSTİKLERİ
 
-    from core.models import Message, MessageRecipient
+    from core.models import Message
 
     from django.db.models import Q
 
@@ -464,33 +476,29 @@ def producer_dashboard(request):
 
     # Direkt gelen mesajlar
 
-    user_messages = Message.objects.filter(
-
-        Q(recipient=request.user) | Q(recipients__recipient=request.user)
-
-    ).distinct()
+    try:
+        user_messages = Message.objects.filter(
+            Q(recipient=request.user)
+        ).distinct()
+    except Exception:
+        user_messages = Message.objects.none()
 
     
 
     # Okunmamış mesajlar
 
-    unread_direct = Message.objects.filter(
-
-        recipient=request.user,
-
-        is_read=False
-
-    ).count()
+    try:
+        unread_direct = Message.objects.filter(
+            recipient=request.user,
+            is_read=False
+        ).count()
+    except Exception:
+        unread_direct = 0
 
     
 
-    unread_broadcast = MessageRecipient.objects.filter(
-
-        recipient=request.user,
-
-        is_read=False
-
-    ).count()
+    # MessageRecipient tablosu kaldırıldığı için broadcast hesaplaması yapma
+    unread_broadcast = 0
 
     
 

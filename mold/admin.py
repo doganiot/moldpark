@@ -70,16 +70,39 @@ class QualityCheckAdmin(admin.ModelAdmin):
 
 @admin.register(RevisionRequest)
 class RevisionRequestAdmin(admin.ModelAdmin):
-    list_display = ('mold', 'center', 'revision_type', 'status', 'priority', 'created_at')
+    list_display = ('get_mold_info', 'center', 'revision_type', 'status', 'priority', 'created_at')
     list_filter = ('status', 'revision_type', 'priority', 'created_at')
-    search_fields = ('mold__patient_name', 'mold__patient_surname', 'center__name', 'title', 'description')
-    readonly_fields = ('created_at', 'updated_at')
+    search_fields = ('modeled_mold__ear_mold__patient_name', 'modeled_mold__ear_mold__patient_surname', 'center__name', 'title', 'description')
+    readonly_fields = ('created_at', 'updated_at', 'get_mold_info_readonly')
     ordering = ('-created_at',)
     actions = ['mark_as_accepted', 'mark_as_rejected', 'mark_as_in_progress', 'mark_as_completed']
-    
+
+    def get_mold_info(self, obj):
+        """Kalıp bilgilerini göster (list_display için)"""
+        try:
+            if obj.modeled_mold and obj.modeled_mold.ear_mold:
+                mold = obj.modeled_mold.ear_mold
+                return f"{mold.patient_name} {mold.patient_surname} - {mold.get_mold_type_display()}"
+        except:
+            pass
+        return "Bilgi Bulunamadı"
+    get_mold_info.short_description = 'Kalıp'
+    get_mold_info.admin_order_field = 'modeled_mold__ear_mold__patient_name'
+
+    def get_mold_info_readonly(self, obj):
+        """Kalıp bilgilerini göster (readonly için)"""
+        try:
+            if obj.modeled_mold and obj.modeled_mold.ear_mold:
+                mold = obj.modeled_mold.ear_mold
+                return f"{mold.patient_name} {mold.patient_surname} - {mold.get_mold_type_display()}"
+        except:
+            pass
+        return "Bilgi Bulunamadı"
+    get_mold_info_readonly.short_description = 'Kalıp Bilgileri'
+
     fieldsets = (
         ('Kalıp ve Merkez Bilgileri', {
-            'fields': ('modeled_mold', 'mold', 'center')
+            'fields': ('modeled_mold', 'center')
         }),
         ('Revizyon Detayları', {
             'fields': ('revision_type', 'title', 'description', 'priority')

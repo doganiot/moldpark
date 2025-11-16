@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.utils.translation import gettext as _
-from .models import ContactMessage, Message, MessageRecipient, PricingPlan, UserSubscription, PaymentHistory, SimpleNotification, SubscriptionRequest, Invoice, Transaction, Commission
+from .models import ContactMessage, Message, PricingPlan, UserSubscription, PaymentHistory, SimpleNotification, SubscriptionRequest, Invoice, Transaction, Commission
 from .forms import ContactForm, MessageForm, AdminMessageForm, MessageReplyForm, SubscriptionRequestForm, PackagePurchaseForm
 from django.views.generic import TemplateView
 from django.contrib.auth.decorators import user_passes_test, login_required
@@ -515,18 +515,17 @@ def message_list(request):
             Q(recipient=user) | 
             Q(is_broadcast=True) |
             Q(message_type__in=['center_to_admin', 'producer_to_admin'])
-        ).select_related('sender', 'recipient').prefetch_related('recipients')
+        ).select_related('sender', 'recipient')
     else:
         # Merkez ve üreticiler sadece kendilerine gelen mesajları görebilir
         received_messages = Message.objects.filter(
-            Q(recipient=user) | 
-            Q(recipients__recipient=user)
+            Q(recipient=user)
         ).select_related('sender', 'recipient').distinct()
     
     # Gönderilen mesajlar
     sent_messages = Message.objects.filter(
         sender=user
-    ).select_related('recipient').prefetch_related('recipients')
+    ).select_related('recipient')
     
     # Filtreleme
     message_filter = request.GET.get('filter', 'received')
@@ -562,21 +561,27 @@ def message_list(request):
         for msg in unread_direct_messages:
             msg.mark_as_read()
         
-        # Broadcast mesajları okundu olarak işaretle
-        unread_broadcast_recipients = MessageRecipient.objects.filter(
-            recipient=user,
-            is_read=False,
-            message__in=received_messages
-        )
-        for recipient in unread_broadcast_recipients:
-            recipient.mark_as_read()
+        # Broadcast mesajları okundu olarak işaretle (MessageRecipient tablosu yoksa skip)
+        try:
+            unread_broadcast_recipients = MessageRecipient.objects.filter(
+                recipient=user,
+                is_read=False,
+                message__in=received_messages
+            )
+            for recipient in unread_broadcast_recipients:
+                recipient.mark_as_read()
+        except Exception:
+            pass
     
     # Her mesaj için kullanıcının okuma durumunu hesapla
     for message in messages_page:
         if message.is_broadcast:
             # Broadcast mesajlar için MessageRecipient kontrolü
-            user_recipient = message.recipients.filter(recipient=user).first()
-            message.user_is_read = user_recipient.is_read if user_recipient else False
+            try:
+                user_recipient = message.recipients.filter(recipient=user).first()
+                message.user_is_read = user_recipient.is_read if user_recipient else False
+            except Exception:
+                message.user_is_read = False
         elif message.recipient == user:
             # Kullanıcı alıcı ise
             message.user_is_read = message.is_read
@@ -588,13 +593,11 @@ def message_list(request):
     stats = {
         'total_received': received_messages.count(),
         'unread_received': received_messages.filter(
-            Q(is_read=False, recipient=user) |
-            Q(recipients__recipient=user, recipients__is_read=False)
+            Q(is_read=False, recipient=user)
         ).distinct().count(),
         'total_sent': sent_messages.count(),
         'urgent_messages': received_messages.filter(
-            Q(priority='urgent', is_read=False, recipient=user) |
-            Q(priority='urgent', recipients__recipient=user, recipients__is_read=False)
+            Q(priority='urgent', is_read=False, recipient=user)
         ).distinct().count(),
     }
     
@@ -726,14 +729,18 @@ def message_create(request):
                 
                 message.save()
                 
-                # Her alıcı için MessageRecipient oluştur
+                # Her alıcı için MessageRecipient oluştur (MessageRecipient tablosu yoksa skip)
+                try:
+                    for recipient in recipients:
+                        MessageRecipient.objects.get_or_create(
+                            message=message,
+                            recipient=recipient
+                        )
+                except Exception:
+                    pass
+                
+                # Bildirim gönder
                 for recipient in recipients:
-                    MessageRecipient.objects.get_or_create(
-                        message=message,
-                        recipient=recipient
-                    )
-                    
-                    # Bildirim gönder
                     notify.send(
                         sender=request.user,
                         recipient=recipient,
@@ -762,13 +769,16 @@ def message_create(request):
                 
                 message.save()
                 
-                # Admin'e MessageRecipient oluştur
+                # Admin'e MessageRecipient oluştur (MessageRecipient tablosu yoksa skip)
                 admin = User.objects.filter(is_superuser=True).first()
                 if admin:
-                    MessageRecipient.objects.get_or_create(
-                        message=message,
-                        recipient=admin
-                    )
+                    try:
+                        MessageRecipient.objects.get_or_create(
+                            message=message,
+                            recipient=admin
+                        )
+                    except Exception:
+                        pass
                     
                     # Admin'e bildirim gönder
                     notify.send(

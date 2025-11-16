@@ -1,5 +1,5 @@
 from django.db.models import Q
-from .models import Message, MessageRecipient, SimpleNotification, PricingConfiguration
+from .models import Message, SimpleNotification, PricingConfiguration
 from mold.models import RevisionRequest
 
 
@@ -15,11 +15,8 @@ def unread_messages(request):
             is_read=False
         ).count()
         
-        # Toplu mesajlardaki okunmamış mesajlar
-        unread_broadcast = MessageRecipient.objects.filter(
-            recipient=request.user,
-            is_read=False
-        ).count()
+        # MessageRecipient tablosu kaldırıldığı için broadcast mesajları saymıyoruz
+        unread_broadcast = 0
         
         total_unread = unread_direct + unread_broadcast
         

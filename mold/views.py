@@ -2,6 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse, Http404
+from django.core.exceptions import PermissionDenied
 from django.views.decorators.http import require_http_methods
 from django.urls import reverse
 from django.core.paginator import Paginator
@@ -361,8 +362,7 @@ def mold_delete(request, pk):
         
         # Silme sınırlamaları
         if mold.status in ['processing', 'completed', 'delivered']:
-            messages.error(request, 
-                'İşlemde olan veya tamamlanmış kalıplar silinemez.')
+            messages.error(request, 'İşlemde olan veya tamamlanmış kalıplar silinemez.')
             return redirect('mold:mold_detail', pk=mold.pk)
         
         if request.method == 'POST':
@@ -377,8 +377,10 @@ def mold_delete(request, pk):
         messages.error(request, 'Bu kalıbı silme yetkiniz yok.')
         return redirect('mold:mold_list')
     except Exception as e:
+        import traceback
         logger.error(f"Mold delete error: {e}")
-        messages.error(request, 'Kalıp silme işleminde bir hata oluştu.')
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        messages.error(request, f'Kalıp silme işleminde bir hata oluştu: {str(e)}')
         return redirect('mold:mold_list')
 
 @login_required

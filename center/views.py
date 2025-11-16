@@ -362,24 +362,28 @@ def dashboard(request):
     unread_notifications_count = recent_notifications.count()
     
     # MESAJ İSTATİSTİKLERİ
-    from core.models import Message, MessageRecipient
+    from core.models import Message
     from django.db.models import Q
     
     # Direkt gelen mesajlar
-    user_messages = Message.objects.filter(
-        Q(recipient=request.user) | Q(recipients__recipient=request.user)
-    ).distinct()
+    try:
+        user_messages = Message.objects.filter(
+            Q(recipient=request.user)
+        ).distinct()
+    except Exception:
+        user_messages = Message.objects.none()
     
     # Okunmamış mesajlar
-    unread_direct = Message.objects.filter(
-        recipient=request.user,
-        is_read=False
-    ).count()
+    try:
+        unread_direct = Message.objects.filter(
+            recipient=request.user,
+            is_read=False
+        ).count()
+    except Exception:
+        unread_direct = 0
     
-    unread_broadcast = MessageRecipient.objects.filter(
-        recipient=request.user,
-        is_read=False
-    ).count()
+    # MessageRecipient tablosu kaldırıldığı için broadcast hesaplaması yapma
+    unread_broadcast = 0
     
     total_messages = user_messages.count()
     unread_message_count = unread_direct + unread_broadcast

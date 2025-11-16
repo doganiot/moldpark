@@ -195,12 +195,22 @@ class CustomSignupForm(SignupForm):
                     from django.contrib.auth.models import User as AdminUser
                     admin_users = AdminUser.objects.filter(is_superuser=True)
                     for admin in admin_users:
+                        # Abonelik talebi bildirimi
                         SimpleNotification.objects.create(
                             user=admin,
                             title='📥 Yeni Abonelik Talebi',
                             message=f'{center.name} ({user.username}) adlı yeni işitme merkezi abonelik onayı bekliyor.',
                             notification_type='info',
                             related_url='/admin/subscription-requests/'
+                        )
+                        
+                        # Yeni merkez kaydı bildirimi
+                        SimpleNotification.objects.create(
+                            user=admin,
+                            title='🏥 Yeni İşitme Merkezi Kaydı',
+                            message=f'Yeni işitme merkezi kaydoldu: {center.name}\nTelefon: {center.phone}\nKullanıcı: {user.username} ({user.email})\nAdres: {center.address[:50]}...',
+                            notification_type='success',
+                            related_url=f'/center/admin/centers/{center.id}/'
                         )
                 
             except Exception as e:
