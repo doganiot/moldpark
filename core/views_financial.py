@@ -822,6 +822,16 @@ def admin_financial_control_panel(request):
     all_producers = Producer.objects.filter(is_active=True)
     
     total_payments_to_producers = Decimal('0.00')
+    total_producer_gross_revenue = Decimal('0.00')
+    total_producer_gross_without_vat = Decimal('0.00')
+    total_producer_vat = Decimal('0.00')
+    total_moldpark_producer_fee = Decimal('0.00')
+    total_producer_cc_fee = Decimal('0.00')
+    total_completed_producer_orders = 0
+    total_physical_molds = 0
+    total_digital_molds = 0
+    paid_producers_count = 0
+    pending_producers_count = 0
     
     for producer in all_producers:
         # Önce bu üretici için paket faturalarını kontrol et
@@ -932,7 +942,16 @@ def admin_financial_control_panel(request):
             # Hiç iş yok
             continue
         
+        # Toplam hesaplamalara ekle
         total_payments_to_producers += net_payment
+        total_producer_gross_revenue += gross_revenue_with_vat
+        total_producer_gross_without_vat += gross_revenue_without_vat
+        total_producer_vat += vat_amount
+        total_moldpark_producer_fee += moldpark_cut
+        total_producer_cc_fee += cc_cut
+        total_completed_producer_orders += completed_orders.count() if completed_orders.exists() else 0
+        total_physical_molds += physical_count
+        total_digital_molds += digital_count
         
         # Ödeme durumunu kontrol et (bu dönem için)
         # SimpleNotification'dan son ödeme kaydını bul
@@ -945,6 +964,12 @@ def admin_financial_control_panel(request):
         ).order_by('-created_at').first()
         
         is_paid = last_payment is not None
+        
+        # Ödeme istatistiklerini güncelle
+        if is_paid:
+            paid_producers_count += 1
+        else:
+            pending_producers_count += 1
         
         producers_payment_summary.append({
             'producer': producer,
@@ -1033,6 +1058,16 @@ def admin_financial_control_panel(request):
         # Ödemeler
         'producers_payment_summary': producers_payment_summary,
         'total_payments_to_producers': total_payments_to_producers,
+        'total_producer_gross_revenue': total_producer_gross_revenue,
+        'total_producer_gross_without_vat': total_producer_gross_without_vat,
+        'total_producer_vat': total_producer_vat,
+        'total_moldpark_producer_fee': total_moldpark_producer_fee,
+        'total_producer_cc_fee': total_producer_cc_fee,
+        'total_completed_producer_orders': total_completed_producer_orders,
+        'total_physical_molds': total_physical_molds,
+        'total_digital_molds': total_digital_molds,
+        'paid_producers_count': paid_producers_count,
+        'pending_producers_count': pending_producers_count,
         
         # Komisyonlar
         'total_moldpark_service_fee': total_moldpark_service_fee,

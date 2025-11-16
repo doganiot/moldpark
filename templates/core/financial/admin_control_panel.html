@@ -565,6 +565,190 @@
         </div>
     </div>
 
+    <!-- Üretici Ödemeleri Detay Özeti -->
+    <div class="row mt-3">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0">
+                    <h6 class="mb-0 fw-bold">
+                        <i class="fas fa-chart-line me-2 text-info"></i>
+                        Üretici Ödemeleri Detay Özeti
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if producers_payment_summary %}
+                        <div class="row g-3">
+                            <!-- Tamamlanan İşler -->
+                            <div class="col-md-3">
+                                <div class="p-3 border rounded-3 border-info bg-info bg-opacity-5">
+                                    <small class="text-muted d-block mb-2">Toplam Tamamlanan İşler</small>
+                                    <h5 class="mb-1 text-info">
+                                        {{ total_completed_producer_orders|default:0 }}
+                                    </h5>
+                                    <small class="text-muted">
+                                        {% with physical=total_physical_molds digital=total_digital_molds %}
+                                            {{ physical }} fiziksel + {{ digital }} 3D
+                                        {% endwith %}
+                                    </small>
+                                </div>
+                            </div>
+
+                            <!-- Brüt Gelir (KDV Dahil) -->
+                            <div class="col-md-3">
+                                <div class="p-3 border rounded-3 border-success bg-success bg-opacity-5">
+                                    <small class="text-muted d-block mb-2">Brüt Gelir (KDV Dahil)</small>
+                                    <h5 class="mb-1 text-success">
+                                        ₺{{ total_producer_gross_revenue|floatformat:0 }}
+                                    </h5>
+                                    <small class="text-muted">
+                                        Satış fiyatlarından toplam
+                                    </small>
+                                </div>
+                            </div>
+
+                            <!-- KDV Tutarı -->
+                            <div class="col-md-3">
+                                <div class="p-3 border rounded-3 border-warning bg-warning bg-opacity-5">
+                                    <small class="text-muted d-block mb-2">KDV Tutarı (%20)</small>
+                                    <h5 class="mb-1 text-warning">
+                                        ₺{{ total_producer_vat|floatformat:0 }}
+                                    </h5>
+                                    <small class="text-muted">
+                                        Kesilen vergi
+                                    </small>
+                                </div>
+                            </div>
+
+                            <!-- MoldPark Komisyonu -->
+                            <div class="col-md-3">
+                                <div class="p-3 border rounded-3 border-danger bg-danger bg-opacity-5">
+                                    <small class="text-muted d-block mb-2">MoldPark Komisyonu</small>
+                                    <h5 class="mb-1 text-danger">
+                                        ₺{{ total_moldpark_producer_fee|floatformat:0 }}
+                                    </h5>
+                                    <small class="text-muted">
+                                        Hizmet bedeli (%6.5)
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Detaylı Hesaplama Tablosu -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="table-responsive">
+                                    <table class="table table-sm mb-0">
+                                        <tbody>
+                                            <!-- Brüt Gelir (KDV Dahil) -->
+                                            <tr class="border-top-2">
+                                                <td width="60%">
+                                                    <strong>Brüt Gelir (KDV Dahil)</strong>
+                                                    <br>
+                                                    <small class="text-muted">Tüm işlerin satış fiyatları</small>
+                                                </td>
+                                                <td class="text-end">
+                                                    <h6 class="mb-0">₺{{ total_producer_gross_revenue|floatformat:2 }}</h6>
+                                                </td>
+                                            </tr>
+
+                                            <!-- KDV Kesinti -->
+                                            <tr>
+                                                <td>
+                                                    <strong>- KDV Kesintisi (%20)</strong>
+                                                    <br>
+                                                    <small class="text-muted">Muhasebe hesabına aktarılan tutar</small>
+                                                </td>
+                                                <td class="text-end text-danger">
+                                                    <h6 class="mb-0">- ₺{{ total_producer_vat|floatformat:2 }}</h6>
+                                                </td>
+                                            </tr>
+
+                                            <!-- Net Gelir (KDV Hariç) -->
+                                            <tr class="table-light">
+                                                <td>
+                                                    <strong>= Net Gelir (KDV Hariç)</strong>
+                                                    <br>
+                                                    <small class="text-muted">Muhasebe tutarı</small>
+                                                </td>
+                                                <td class="text-end">
+                                                    <h6 class="mb-0 text-primary">₺{{ total_producer_gross_without_vat|floatformat:2 }}</h6>
+                                                </td>
+                                            </tr>
+
+                                            <!-- MoldPark Komisyonu -->
+                                            <tr>
+                                                <td>
+                                                    <strong>- MoldPark Komisyonu (%6.5)</strong>
+                                                    <br>
+                                                    <small class="text-muted">Platform hizmet bedeli</small>
+                                                </td>
+                                                <td class="text-end text-danger">
+                                                    <h6 class="mb-0">- ₺{{ total_moldpark_producer_fee|floatformat:2 }}</h6>
+                                                </td>
+                                            </tr>
+
+                                            <!-- Kredi Kartı Komisyonu -->
+                                            <tr>
+                                                <td>
+                                                    <strong>- Kredi Kartı Komisyonu</strong>
+                                                    <br>
+                                                    <small class="text-muted">İşitme merkezlerin ödeme işlem ücreti</small>
+                                                </td>
+                                                <td class="text-end text-danger">
+                                                    <h6 class="mb-0">- ₺{{ total_producer_cc_fee|floatformat:2 }}</h6>
+                                                </td>
+                                            </tr>
+
+                                            <!-- Net Ödeme (Genel Toplam) -->
+                                            <tr class="table-primary border-top-2 border-2">
+                                                <td>
+                                                    <strong>= ÜRETİCİLERE NET ÖDEME (GENEL TOPLAM)</strong>
+                                                    <br>
+                                                    <small class="text-muted">Ödenecek toplam tutar</small>
+                                                </td>
+                                                <td class="text-end">
+                                                    <h6 class="mb-0 text-primary fw-bold">₺{{ total_payments_to_producers|floatformat:2 }}</h6>
+                                                </td>
+                                            </tr>
+
+                                            <!-- İstatistik Satırı -->
+                                            <tr class="table-light mt-3">
+                                                <td colspan="2">
+                                                    <div class="row g-2 small">
+                                                        <div class="col-auto">
+                                                            <span class="badge bg-secondary">
+                                                                Aktif Üretici: {{ producers_payment_summary|length }}
+                                                            </span>
+                                                        </div>
+                                                        <div class="col-auto">
+                                                            <span class="badge bg-info">
+                                                                Ödenen: {{ paid_producers_count|default:0 }}
+                                                            </span>
+                                                        </div>
+                                                        <div class="col-auto">
+                                                            <span class="badge bg-warning">
+                                                                Bekleyen: {{ pending_producers_count|default:0 }}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info mb-0">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Bu dönemde ödemesi gereken üretici merkez bulunmamaktadır.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Fatura Durumları -->
     <div class="row mt-4">
         <div class="col-md-6 mb-3">
