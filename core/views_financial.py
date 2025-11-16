@@ -884,25 +884,8 @@ def admin_financial_control_panel(request):
             
             for order in completed_orders:
                 if order.ear_mold.is_physical_shipment:
-                    # Fiziksel kalıp - dinamik fiyat kullan
-                    if order.ear_mold.unit_price is not None and order.ear_mold.unit_price > 0:
-                        # Normal kullanım - dinamik fiyat
-                        with_vat = order.ear_mold.unit_price
-                    else:
-                        # Paket hakkından kullanıldı - gerçek kalıp fiyatını kullan
-                        from core.models import UserSubscription
-                        try:
-                            subscription_at_time = UserSubscription.objects.filter(
-                                user=order.ear_mold.center.user,
-                                start_date__lte=order.ear_mold.created_at
-                            ).order_by('-start_date').first()
-                            
-                            if subscription_at_time and subscription_at_time.plan.per_mold_price_try:
-                                with_vat = subscription_at_time.plan.per_mold_price_try
-                            else:
-                                with_vat = pricing.physical_mold_price
-                        except:
-                            with_vat = pricing.physical_mold_price
+                    # Fiziksel kalıp - SABIT FIYAT 399 TL
+                    with_vat = Decimal('399.00')
                     
                     vat_multiplier = Decimal('1') + (pricing.vat_rate / Decimal('100'))
                     without_vat = with_vat / vat_multiplier
@@ -912,11 +895,8 @@ def admin_financial_control_panel(request):
                     gross_revenue_without_vat += without_vat
                     vat_amount += vat
                 else:
-                    # 3D Modelleme - dinamik fiyat kullan
-                    if order.ear_mold.digital_modeling_price is not None:
-                        with_vat = order.ear_mold.digital_modeling_price
-                    else:
-                        with_vat = pricing.digital_modeling_price
+                    # 3D Modelleme - SABIT FIYAT 15 TL
+                    with_vat = Decimal('15.00')
                     
                     vat_multiplier = Decimal('1') + (pricing.vat_rate / Decimal('100'))
                     without_vat = with_vat / vat_multiplier
