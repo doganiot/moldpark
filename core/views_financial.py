@@ -719,8 +719,14 @@ def admin_financial_control_panel(request):
             physical_amount_with_vat = Decimal('0.00')
             digital_amount_with_vat = Decimal('0.00')
         
-        # Her aktif merkez için aylık sistem ücreti hesapla
-        monthly_fee = pricing.monthly_system_fee
+        # Her aktif merkez için aylık ücreti hesapla (abonelik varsa, abonelik fiyatı kullan)
+        if subscription and subscription.plan and subscription.plan.plan_type in ['package', 'standard']:
+            # Abonelik aylık ücretini kullan
+            monthly_fee = subscription.plan.monthly_fee_try
+        else:
+            # Sistem varsayılan aylık ücretini kullan
+            monthly_fee = pricing.monthly_system_fee
+        
         total_monthly_system_fees += monthly_fee
         
         # Toplam tutar: Paket faturası varsa paket fiyatı, yoksa tek tek kalıplar + aylık ücret
