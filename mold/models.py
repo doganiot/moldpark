@@ -464,7 +464,7 @@ class RevisionRequest(models.Model):
         """Uyumluluk için - modeled_mold.ear_mold'a referans"""
         try:
             if self.modeled_mold and self.modeled_mold.ear_mold:
-        return self.modeled_mold.ear_mold
+                return self.modeled_mold.ear_mold
         except:
             pass
         return None
@@ -472,7 +472,7 @@ class RevisionRequest(models.Model):
     def __str__(self):
         try:
             if self.modeled_mold and self.modeled_mold.ear_mold:
-        return f'{self.modeled_mold.ear_mold.patient_name} - {self.get_revision_type_display()} ({self.get_status_display()})'
+                return f'{self.modeled_mold.ear_mold.patient_name} - {self.get_revision_type_display()} ({self.get_status_display()})'
         except:
             pass
         return f'RevisionRequest #{self.pk}'
