@@ -667,6 +667,11 @@ def admin_financial_control_panel(request):
             package_info = package_subscription.plan.name
             package_invoice_numbers = ['Fatura Oluşturulmamış']
         
+        # Merkez aboneliğini al (dinamik fiyat için)
+        subscription = UserSubscription.objects.filter(user=center.user, status='active').first()
+        subscription_physical_price = subscription.plan.per_mold_price_try if subscription and subscription.plan else pricing.physical_mold_price
+        subscription_digital_price = subscription.plan.modeling_service_fee_try if subscription and subscription.plan else pricing.digital_modeling_price
+        
         # Paket faturası yoksa, tek tek kalıpları hesapla
         has_package_invoice = package_invoices.exists() or package_invoices_in_period.exists() or (package_subscription is not None)
         if not has_package_invoice:
@@ -689,23 +694,23 @@ def admin_financial_control_panel(request):
             physical_count = physical_molds.count()
             digital_count = digital_only_molds.count()
             
-            # Fiziksel kalıp: Her kalıp için dinamik fiyat (KDV dahil)
+            # Fiziksel kalıp: Her kalıp için dinamik fiyat (KDV dahil) - abonelik fiyatını kullan
             physical_amount_with_vat = Decimal('0.00')
             for mold in physical_molds:
                 if mold.unit_price is not None:
                     physical_amount_with_vat += mold.unit_price
                 else:
-                    # Eski kalıplar için varsayılan fiyat
-                    physical_amount_with_vat += pricing.physical_mold_price
+                    # Abonelik fiyatını kullan
+                    physical_amount_with_vat += subscription_physical_price
             
-            # 3D Modelleme: Her kalıp için dinamik fiyat (KDV dahil)
+            # 3D Modelleme: Her kalıp için dinamik fiyat (KDV dahil) - abonelik fiyatını kullan
             digital_amount_with_vat = Decimal('0.00')
             for mold in digital_only_molds:
                 if mold.digital_modeling_price is not None:
                     digital_amount_with_vat += mold.digital_modeling_price
                 else:
-                    # Eski kalıplar için varsayılan fiyat
-                    digital_amount_with_vat += pricing.digital_modeling_price
+                    # Abonelik fiyatını kullan
+                    digital_amount_with_vat += subscription_digital_price
         else:
             # Paket faturası varsa, tek tek kalıp sayısını gösterme
             physical_count = 0
