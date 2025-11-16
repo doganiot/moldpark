@@ -263,7 +263,7 @@ class Producer(models.Model):
         return total_pending
 
     def get_earnings_by_month(self, limit=12):
-        """Son X ay için aylık kazançları döndür - KK Komisyonu dahil"""
+        """Son X ay için aylık kazançları döndür - KK Komisyonu kaldırıldı"""
         from datetime import date, timedelta
         from calendar import monthrange
         from decimal import Decimal
@@ -278,11 +278,9 @@ class Producer(models.Model):
 
             monthly_revenue = self.get_monthly_revenue(year, month)
 
-            # Kesintiler - MoldPark hizmet bedeli (%6.5) + KK Komisyonu (%3)
+            # Kesintiler - Sadece MoldPark hizmet bedeli (%6.5)
             moldpark_fee = monthly_revenue * Decimal('0.065')  # %6.5
-            cc_fee = monthly_revenue * Decimal('0.03')  # %3
-            total_deductions = moldpark_fee + cc_fee
-            net_earnings = monthly_revenue - total_deductions
+            net_earnings = monthly_revenue - moldpark_fee
 
             earnings.append({
                 'year': year,
@@ -294,8 +292,6 @@ class Producer(models.Model):
                 }.get(month, ''),
                 'gross_revenue': monthly_revenue,
                 'moldpark_fee': moldpark_fee,
-                'cc_fee': cc_fee,
-                'total_deductions': total_deductions,
                 'net_earnings': net_earnings
             })
 
