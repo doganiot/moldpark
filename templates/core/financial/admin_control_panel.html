@@ -381,18 +381,24 @@
                                                     {% endif %}
                                                 {% endif %}
                                             {% else %}
-                                                {% if item.physical_count > 0 %}
-                                                    <span class="badge bg-primary" title="Fiziksel Kalıp">
-                                                        <i class="fas fa-box me-1"></i>{{ item.physical_count }}
-                                                    </span>
-                                                    <br><small class="text-muted">₺{{ item.physical_amount|floatformat:0 }}</small>
-                                                {% endif %}
-                                                {% if item.digital_count > 0 %}
-                                                    <span class="badge bg-info" title="3D Modelleme">
-                                                        <i class="fas fa-cube me-1"></i>{{ item.digital_count }}
-                                                    </span>
-                                                    <br><small class="text-muted">₺{{ item.digital_amount|floatformat:0 }}</small>
-                                                {% endif %}
+                                                <div class="d-flex flex-column gap-2">
+                                                    {% if item.physical_count > 0 %}
+                                                        <div>
+                                                            <span class="badge bg-primary" title="Fiziksel Kalıp">
+                                                                <i class="fas fa-box me-1"></i>{{ item.physical_count }}
+                                                            </span>
+                                                            <br><small class="text-muted">₺{{ item.physical_amount|floatformat:0 }}</small>
+                                                        </div>
+                                                    {% endif %}
+                                                    {% if item.digital_count > 0 %}
+                                                        <div>
+                                                            <span class="badge bg-info" title="3D Modelleme">
+                                                                <i class="fas fa-cube me-1"></i>{{ item.digital_count }}
+                                                            </span>
+                                                            <br><small class="text-muted">₺{{ item.digital_amount|floatformat:0 }}</small>
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
                                             {% endif %}
                                         </td>
                                         <td class="text-end">
