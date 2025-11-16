@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from .models import Center
 from .forms import CenterProfileForm, CenterLimitForm
-from .decorators import center_required
+from .decorators import center_required, admin_required
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import logout
@@ -577,7 +577,7 @@ def center_limit_update(request, pk):
         'limit_form': form,
     })
 
-@staff_member_required
+@admin_required
 def admin_dashboard(request):
     # Temel istatistikler
     from producer.models import Producer, ProducerNetwork, ProducerOrder
@@ -686,7 +686,7 @@ def admin_dashboard(request):
         'warnings': warnings,
     })
 
-@staff_member_required
+@admin_required
 def admin_mold_list(request):
     from mold.models import EarMold
     from center.models import Center
@@ -714,7 +714,7 @@ def admin_mold_list(request):
         'selected_mold_type': mold_type,
     })
 
-@staff_member_required
+@admin_required
 def admin_mold_detail(request, pk):
     """Admin için kapsamlı kalıp detayları - tüm geçmiş ve dosyalar"""
     from mold.models import EarMold, RevisionRequest, MoldEvaluation
@@ -785,7 +785,7 @@ def admin_mold_detail(request, pk):
     
     return render(request, 'center/admin_mold_detail.html', context)
 
-@staff_member_required
+@admin_required
 def admin_mold_update_status(request, pk):
     from mold.models import EarMold
     from notifications.signals import notify
@@ -807,7 +807,7 @@ def admin_mold_update_status(request, pk):
         return redirect('center:admin_mold_detail', pk=mold.pk)
     return redirect('center:admin_mold_detail', pk=mold.pk)
 
-@staff_member_required
+@admin_required
 def admin_upload_model(request, mold_id):
     """Admin tarafından model yükleme"""
     from mold.models import EarMold, ModeledMold
@@ -844,7 +844,7 @@ def admin_upload_model(request, mold_id):
     
     return redirect('center:admin_mold_detail', pk=mold_id)
 
-@staff_member_required
+@login_required
 def admin_delete_model(request, model_id):
     """Admin tarafından model silme"""
     from mold.models import ModeledMold
@@ -930,7 +930,7 @@ def delete_account(request):
         return redirect('core:home')
     return redirect('center:profile')
 
-@staff_member_required
+@login_required
 def admin_revision_list(request):
     """Admin revizyon talepleri listesi - sadece görüntüleme"""
     try:
@@ -1054,7 +1054,7 @@ def delete_notification(request, notification_id):
 # Kullanılmayan message view'ları kaldırıldı
 # Merkezi mesajlaşma sistemi kullanılıyor
 
-@staff_member_required
+@admin_required
 def admin_center_list(request):
     """Tüm merkezlerin listesi ve yönetimi"""
     from django.db.models import Count, Q
@@ -1099,7 +1099,7 @@ def admin_center_list(request):
         'search_query': search_query
     })
 
-@staff_member_required
+@admin_required
 def admin_center_detail(request, center_id):
     """Admin center detail view - sadeleştirilmiş"""
     center = get_object_or_404(Center, id=center_id)
@@ -1122,7 +1122,7 @@ def admin_center_detail(request, center_id):
     
     return render(request, 'center/admin_center_detail.html', context)
 
-@staff_member_required
+@admin_required
 def admin_center_toggle_status(request, center_id):
     """Toggle center active status"""
     if request.method == 'POST':
@@ -1146,7 +1146,7 @@ def admin_center_toggle_status(request, center_id):
     
     return JsonResponse({'success': False, 'message': 'Geçersiz istek.'})
 
-@staff_member_required
+@admin_required
 def admin_center_edit_user(request, center_id):
     """Edit center user information"""
     if request.method == 'POST':
@@ -1185,7 +1185,7 @@ def admin_center_edit_user(request, center_id):
     
     return JsonResponse({'success': False, 'message': 'Geçersiz istek.'})
 
-@staff_member_required
+@admin_required
 def admin_center_change_producer(request, center_id):
     """Change center's producer network"""
     if request.method == 'POST':
@@ -1241,7 +1241,7 @@ def admin_center_change_producer(request, center_id):
     
     return JsonResponse({'success': False, 'message': 'Geçersiz istek.'})
 
-@staff_member_required
+@admin_required
 def admin_center_delete(request, center_id):
     """Delete center and user"""
     if request.method == 'POST':
@@ -1283,7 +1283,7 @@ def admin_center_delete(request, center_id):
     
     return JsonResponse({'success': False, 'message': 'Geçersiz istek.'})
 
-@staff_member_required  
+@login_required  
 def get_producers_api(request):
     """API endpoint to get all producers for dropdowns"""
     try:
@@ -1564,10 +1564,25 @@ def billing_invoice_detail(request, invoice_id):
             created_at__lt=month_end
         ).order_by('-created_at')
 
+    # KDV hesaplamaları
+    from decimal import Decimal
+    
+    total_with_vat = invoice.total_amount or Decimal('0.00')
+    vat_rate = Decimal('20')  # %20 KDV
+    vat_multiplier = Decimal('1') + (vat_rate / Decimal('100'))
+    
+    # KDV hariç tutar
+    subtotal_without_vat = total_with_vat / vat_multiplier
+    # KDV miktarı
+    vat_amount = total_with_vat - subtotal_without_vat
+    
     context = {
         'center': center,
         'invoice': invoice,
         'related_molds': related_molds,
+        'subtotal_without_vat': round(subtotal_without_vat, 2),
+        'vat_amount': round(vat_amount, 2),
+        'total_with_vat': total_with_vat,
     }
 
     return render(request, 'center/billing_invoice_detail.html', context)

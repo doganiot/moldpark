@@ -43,6 +43,28 @@ def center_required(view_func):
         return view_func(request, *args, **kwargs)
     return _wrapped_view
 
+def admin_required(view_func):
+    """
+    Admin paneline erişim izni kontrolü - staff veya superuser olması gerekir
+    """
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            messages.error(request, 'Bu sayfaya erişmek için giriş yapmanız gerekiyor.')
+            return redirect('account_login')
+        
+        if not (request.user.is_staff or request.user.is_superuser):
+            messages.error(request, 'Bu sayfaya erişim izniniz yok.')
+            if hasattr(request.user, 'center'):
+                return redirect('center:dashboard')
+            elif hasattr(request.user, 'producer'):
+                return redirect('producer:dashboard')
+            else:
+                return redirect('account_login')
+        
+        return view_func(request, *args, **kwargs)
+    return _wrapped_view
+
 def subscription_required(view_func):
     """
     Decorator to ensure user has valid subscription for creating models

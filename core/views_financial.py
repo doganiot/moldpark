@@ -196,24 +196,25 @@ def financial_dashboard(request):
 
 
 def invoice_list(request):
-    """Fatura listesi - Yetkilendirmeli"""
+    """Fatura listesi - Sadece işitme merkezi faturaları (center_admin_invoice)"""
 
     # Kullanıcının rolüne göre fatura filtresi
     if request.user.is_superuser:
-        # Admin tüm faturaları görebilir
-        invoices = Invoice.objects.all()
+        # Admin sadece işitme merkezi faturalarını (center_admin_invoice) görebilir
+        # Üretici faturaları (producer_invoice) KESILMEZ, sadece bildirim gönderilir
+        invoices = Invoice.objects.filter(invoice_type='center_admin_invoice')
     elif hasattr(request.user, 'center'):
-        # Merkez kullanıcıları: kendi faturalarını ve kendi kestiği faturaları görebilir
+        # Merkez kullanıcıları: kendi faturalarını (center_admin_invoice) ve kendi kestiği faturalarını görebilir
         invoices = Invoice.objects.filter(
-            Q(user=request.user) |  # Kendi faturaları
-            Q(issued_by_center=request.user.center)  # Kestiği faturalar
+            Q(invoice_type='center_admin_invoice') & (
+                Q(user=request.user) |  # Kendi faturaları
+                Q(issued_by_center=request.user.center)  # Kestiği faturalar
+            )
         )
     elif hasattr(request.user, 'producer'):
-        # Üretici kullanıcıları: kendi faturalarını ve kendi kestiği faturaları görebilir
-        invoices = Invoice.objects.filter(
-            Q(user=request.user) |  # Kendi faturaları
-            Q(issued_by_producer=request.user.producer)  # Kestiği faturalar
-        )
+        # Üretici kullanıcıları: fatura görmez (sadece bildirim alır)
+        # Üreticilere fatura kesilmez, sadece bildirim gönderilir
+        invoices = Invoice.objects.none()
     else:
         # Diğer kullanıcılar hiçbir fatura göremez
         invoices = Invoice.objects.none()
@@ -221,8 +222,12 @@ def invoice_list(request):
     invoice_type = request.GET.get('type', 'all')
     status = request.GET.get('status', 'all')
     
-    if invoice_type != 'all':
+    # Fatura tipi filtresi: sadece center_admin_invoice göster
+    if invoice_type != 'all' and invoice_type == 'center_admin_invoice':
         invoices = invoices.filter(invoice_type=invoice_type)
+    elif invoice_type != 'all':
+        # Diğer fatura tiplerine erişim yok
+        invoices = Invoice.objects.none()
     
     if status != 'all':
         invoices = invoices.filter(status=status)
@@ -248,25 +253,26 @@ def invoice_list(request):
 
 
 def invoice_detail(request, invoice_id):
-    """Fatura detayı - Yetkilendirmeli - Basit ve temiz görünüm"""
+    """Fatura detayı - Sadece işitme merkezi faturaları (center_admin_invoice)"""
     invoice = get_object_or_404(Invoice, id=invoice_id)
 
     # Yetkilendirme kontrolü
     can_view = False
     if request.user.is_superuser:
-        can_view = True
+        # Admin sadece işitme merkezi faturalarını (center_admin_invoice) görebilir
+        # Üretici faturaları (producer_invoice) KESILMEZ
+        can_view = (invoice.invoice_type == 'center_admin_invoice')
     elif hasattr(request.user, 'center'):
-        # Kendi faturası mı veya kendi kestiği fatura mı?
+        # Merkez kullanıcıları: kendi işitme merkezi faturalarını ve kendi kestiği faturalarını görebilir
         can_view = (
-            invoice.user == request.user or
-            invoice.issued_by_center == request.user.center
+            invoice.invoice_type == 'center_admin_invoice' and (
+                invoice.user == request.user or
+                invoice.issued_by_center == request.user.center
+            )
         )
     elif hasattr(request.user, 'producer'):
-        # Kendi faturası mı veya kendi kestiği fatura mı?
-        can_view = (
-            invoice.user == request.user or
-            invoice.issued_by_producer == request.user.producer
-        )
+        # Üretici kullanıcıları: fatura görmez (sadece bildirim alır)
+        can_view = False
 
     if not can_view:
         from django.http import Http404
@@ -419,9 +425,17 @@ def create_producer_invoice(request, mold_id):
 
 @user_passes_test(lambda u: u.is_superuser)
 def invoice_mark_paid(request, invoice_id):
-    """Faturayı ödendi olarak işaretle"""
+    """Faturayı ödendi olarak işaretle - Sadece işitme merkezi faturaları (center_admin_invoice)"""
     if request.method == 'POST':
         invoice = get_object_or_404(Invoice, id=invoice_id)
+        
+        # Yetkilendirme: sadece admin ve sadece işitme merkezi faturaları
+        if not request.user.is_superuser:
+            return JsonResponse({'success': False, 'message': 'Bu işlem için yetkiniz yok'}, status=403)
+        
+        if invoice.invoice_type != 'center_admin_invoice':
+            return JsonResponse({'success': False, 'message': 'Sadece işitme merkezi faturaları işaretlenebilir'}, status=403)
+        
         invoice.mark_as_paid()
         
         return JsonResponse({'success': True, 'message': 'Fatura ödendi olarak işaretlendi'})
@@ -1091,21 +1105,6 @@ def create_single_center_invoice(request, center_id):
                 'error': f'Bu merkez için bu dönemde zaten fatura kesilmiş: {existing_invoice.invoice_number}'
             })
         
-        # Paket faturası kontrolü - Eğer paket faturası varsa tek tek kalıp faturası kesme
-        package_invoices = Invoice.objects.filter(
-            user=center.user,
-            invoice_type='center_admin_invoice',
-            invoice_number__startswith='PKG-',
-            issue_date__gte=start_date,
-            issue_date__lte=end_date
-        )
-        
-        if package_invoices.exists():
-            return JsonResponse({
-                'success': False,
-                'error': f'Bu merkez için paket faturası mevcut. Paket faturası: {package_invoices.first().invoice_number}'
-            })
-        
         # Bu merkezden gönderilen fiziksel kalıplar
         physical_molds = EarMold.objects.filter(
             center=center,
@@ -1122,89 +1121,76 @@ def create_single_center_invoice(request, center_id):
             created_at__lte=end_date
         )
         
-        # Paket faturası kontrolü - ÖNCE kontrol et
-        package_invoice = Invoice.objects.filter(
-            user=center.user,
-            invoice_type='center_admin_invoice',
-            invoice_number__startswith='PKG-',
-            issue_date__gte=start_date.date(),
-            issue_date__lte=end_date.date()
-        ).first()
+        physical_count = physical_molds.count()
+        digital_count = digital_only_molds.count()
         
-        # Paket faturası varsa normal fatura oluşturma
-        if not package_invoice:
-            physical_count = physical_molds.count()
-            digital_count = digital_only_molds.count()
-            
-            # Dinamik fiyat hesaplamaları - Her kalıp için kendi fiyatı
-            # Abonelik fiyatını öncelik ver
-            subscription_physical_price = subscription.plan.per_mold_price_try if subscription and subscription.plan else pricing.physical_mold_price
-            subscription_digital_price = subscription.plan.modeling_service_fee_try if subscription and subscription.plan else pricing.digital_modeling_price
-            
-            physical_amount = Decimal('0.00')
-            for mold in physical_molds:
-                if mold.unit_price is not None:
-                    physical_amount += mold.unit_price
-                else:
-                    # Abonelik fiyatı kullan
-                    physical_amount += subscription_physical_price
-            
-            digital_amount = Decimal('0.00')
-            for mold in digital_only_molds:
-                if mold.digital_modeling_price is not None:
-                    digital_amount += mold.digital_modeling_price
-                else:
-                    # Abonelik fiyatı kullan
-                    digital_amount += subscription_digital_price
-            
-            # Ortalama birim fiyat hesapla (fatura için)
-            avg_unit_price = (physical_amount / physical_count) if physical_count > 0 else subscription_physical_price
-            avg_digital_price = (digital_amount / digital_count) if digital_count > 0 else subscription_digital_price
-            
-            monthly_fee_amount = pricing.monthly_system_fee
-            gross_amount = physical_amount + digital_amount + monthly_fee_amount
-            
-            # Fatura oluştur
-            invoice = Invoice()
-            invoice.invoice_type = 'center_admin_invoice'
-            invoice.issued_by_center = center
-            invoice.user = center.user
-            invoice.physical_mold_count = physical_count
-            invoice.modeling_count = digital_count
-            invoice.physical_mold_unit_price = avg_unit_price  # Ortalama birim fiyat
-            invoice.monthly_fee = pricing.monthly_system_fee
-            
-            # KDV hariç tutar
-            vat_multiplier = Decimal('1') + (pricing.vat_rate / Decimal('100'))
-            gross_without_vat = gross_amount / vat_multiplier
-            
-            # Komisyonlar (KDV DAHİL brüt tutar üzerinden hesaplanır)
-            moldpark_fee = pricing.calculate_moldpark_fee(gross_amount)
-            cc_fee = pricing.calculate_credit_card_fee(gross_amount)
-            
-            # Fatura detayları
-            invoice.physical_mold_cost = physical_amount
-            invoice.digital_scan_count = digital_count
-            invoice.digital_scan_cost = digital_amount
-            invoice.total_amount = gross_amount
-            invoice.moldpark_service_fee = moldpark_fee
-            invoice.credit_card_fee = cc_fee
-            invoice.moldpark_service_fee_rate = pricing.moldpark_commission_rate
-            invoice.credit_card_fee_rate = pricing.credit_card_commission_rate
-            invoice.issue_date = now.date()
-            invoice.due_date = (now + timedelta(days=30)).date()
-            invoice.status = 'issued'
-            invoice.invoice_number = Invoice.generate_invoice_number('center_admin_invoice')
-            
-            invoice.save()
-        else:
-            physical_count = 0
-            digital_count = 0
-            invoice = package_invoice
+        # Dinamik fiyat hesaplamaları - Her kalıp için kendi fiyatı
+        # Abonelik fiyatını öncelik ver
+        subscription_physical_price = subscription.plan.per_mold_price_try if subscription and subscription.plan else pricing.physical_mold_price
+        subscription_digital_price = subscription.plan.modeling_service_fee_try if subscription and subscription.plan else pricing.digital_modeling_price
         
-        # Paket faturası varsa, paket için üretici faturası oluştur
+        physical_amount = Decimal('0.00')
+        for mold in physical_molds:
+            if mold.unit_price is not None:
+                physical_amount += mold.unit_price
+            else:
+                # Abonelik fiyatı kullan
+                physical_amount += subscription_physical_price
+        
+        digital_amount = Decimal('0.00')
+        for mold in digital_only_molds:
+            if mold.digital_modeling_price is not None:
+                digital_amount += mold.digital_modeling_price
+            else:
+                # Abonelik fiyatı kullan
+                digital_amount += subscription_digital_price
+        
+        # Ortalama birim fiyat hesapla (fatura için)
+        avg_unit_price = (physical_amount / physical_count) if physical_count > 0 else subscription_physical_price
+        avg_digital_price = (digital_amount / digital_count) if digital_count > 0 else subscription_digital_price
+        
+        monthly_fee_amount = pricing.monthly_system_fee
+        gross_amount = physical_amount + digital_amount + monthly_fee_amount
+        
+        # Fatura oluştur
+        invoice = Invoice()
+        invoice.invoice_type = 'center_admin_invoice'
+        invoice.issued_by_center = center
+        invoice.user = center.user
+        invoice.physical_mold_count = physical_count
+        invoice.modeling_count = digital_count
+        invoice.physical_mold_unit_price = avg_unit_price  # Ortalama birim fiyat
+        invoice.monthly_fee = pricing.monthly_system_fee
+        
+        # KDV hariç tutar
+        vat_multiplier = Decimal('1') + (pricing.vat_rate / Decimal('100'))
+        gross_without_vat = gross_amount / vat_multiplier
+        
+        # Komisyonlar (KDV DAHİL brüt tutar üzerinden hesaplanır)
+        moldpark_fee = pricing.calculate_moldpark_fee(gross_amount)
+        cc_fee = pricing.calculate_credit_card_fee(gross_amount)
+        
+        # Fatura detayları
+        invoice.physical_mold_cost = physical_amount
+        invoice.digital_scan_count = digital_count
+        invoice.digital_scan_cost = digital_amount
+        invoice.total_amount = gross_amount
+        invoice.moldpark_service_fee = moldpark_fee
+        invoice.credit_card_fee = cc_fee
+        invoice.moldpark_service_fee_rate = pricing.moldpark_commission_rate
+        invoice.credit_card_fee_rate = pricing.credit_card_commission_rate
+        invoice.issue_date = now.date()
+        invoice.due_date = (now + timedelta(days=30)).date()
+        invoice.status = 'issued'
+        invoice.invoice_number = Invoice.generate_invoice_number('center_admin_invoice')
+        
+        invoice.save()
+        
+        # Üretici faturası oluşturma - DEACTIVATED
+        # Üretici merkezlere FATURA KESİLMEZ, sadece bildirim gönderilir
+        # Tüm ödeme notifikasyonları admin tarafından manual olarak yapılır
         producer_invoices_created = []
-        if package_invoice:
+        if False:  # Üretici fatura kesme - deaktif
             # Paket faturası varsa, bağlı üretici merkezine paket faturası kesil
             try:
                 from producer.models import ProducerNetwork
@@ -1523,19 +1509,6 @@ def bulk_create_center_invoices(request):
             from core.models import UserSubscription
             subscription = UserSubscription.objects.filter(user=center.user, status='active').first()
             
-            # Paket faturası kontrolü - Eğer paket faturası varsa tek tek kalıp faturası kesme
-            package_invoices = Invoice.objects.filter(
-                user=center.user,
-                invoice_type='center_admin_invoice',
-                invoice_number__startswith='PKG-',
-                issue_date__gte=start_date,
-                issue_date__lte=end_date
-            )
-            
-            if package_invoices.exists():
-                # Paket faturası varsa bu merkezi atla
-                continue
-            
             # Bu merkezden gönderilen fiziksel kalıplar
             physical_molds = EarMold.objects.filter(
                 center=center,
@@ -1554,6 +1527,12 @@ def bulk_create_center_invoices(request):
             
             physical_count = physical_molds.count()
             digital_count = digital_only_molds.count()
+            
+            # Harcama yapan merkez mi kontrol et (fiziksel kalıp, dijital kalıp veya aylık ücret)
+            monthly_fee_amount = pricing.monthly_system_fee
+            if physical_count == 0 and digital_count == 0 and monthly_fee_amount == 0:
+                # Harcama yapılmamış merkezi atla
+                continue
             
             # Dinamik fiyat hesaplamaları - Abonelik fiyatını öncelik ver
             subscription_physical_price = subscription.plan.per_mold_price_try if subscription and subscription.plan else pricing.physical_mold_price
@@ -1579,7 +1558,6 @@ def bulk_create_center_invoices(request):
             avg_unit_price = (physical_amount / physical_count) if physical_count > 0 else subscription_physical_price
             avg_digital_price = (digital_amount / digital_count) if digital_count > 0 else subscription_digital_price
             
-            monthly_fee_amount = pricing.monthly_system_fee
             gross_amount = physical_amount + digital_amount + monthly_fee_amount  # Aylık ücret dahil
             
             # Her aktif merkez için fatura oluştur (aylık ücret + kullanım bedelleri)
@@ -1622,40 +1600,11 @@ def bulk_create_center_invoices(request):
             created_invoices.append(invoice)
             total_amount += gross_amount
             
-            # Üretici faturalarını oluştur - Bu merkezden gönderilen kalıplar için
-            all_molds = list(physical_molds) + list(digital_only_molds)
-            
-            # Kalıpları üreticiye göre grupla
-            producer_molds = {}
-            for mold in all_molds:
-                # Bu kalıp için üretici siparişini bul
-                producer_order = ProducerOrder.objects.filter(
-                    ear_mold=mold,
-                    center=center
-                ).select_related('producer').first()
-                
-                if producer_order and producer_order.producer:
-                    producer = producer_order.producer
-                    if producer not in producer_molds:
-                        producer_molds[producer] = {'physical': [], 'digital': []}
-                    
-                    if mold.is_physical_shipment:
-                        producer_molds[producer]['physical'].append(mold)
-                    else:
-                        producer_molds[producer]['digital'].append(mold)
-            
-            # Paket faturası kontrolü: Eğer bu dönemde paket faturası varsa, üretici faturası oluşturma
-            package_invoice_exists = Invoice.objects.filter(
-                user=center.user,
-                invoice_type='center_admin_invoice',
-                invoice_number__startswith='PKG-',
-                issue_date__gte=start_date.date(),
-                issue_date__lte=end_date.date()
-            ).exists()
-            
-            # Her üretici için fatura oluştur - Sadece paket faturası yoksa
-            if not package_invoice_exists:
-                for producer, molds_dict in producer_molds.items():
+            # Üretici faturası oluşturma - DEACTIVATED
+            # Üretici merkezlere FATURA KESİLMEZ, sadece bildirim gönderilir
+            # Her üretici için bildirim gönderilir - ancak fatura kesiLMEZ
+            if False:  # Üretici fatura kesme - deaktif
+                for producer, molds_dict in []:  # Boş liste - hiçbir işe yaramaz
                     try:
                         # Bu dönemde bu üretici için zaten fatura var mı kontrol et
                         existing_producer_invoice = Invoice.objects.filter(
@@ -1818,9 +1767,14 @@ MoldPark Ekibi
 
 @user_passes_test(lambda u: u.is_superuser)
 def bulk_create_producer_invoices(request):
-    """Üreticilere toplu fatura kesme"""
-    if request.method != 'POST':
-        return JsonResponse({'success': False, 'error': 'Only POST allowed'}, status=405)
+    """
+    DISABLED - Üretici fatura kesme sistemi deaktif
+    Fatura sadece işitme merkezlerine kesilir
+    """
+    return JsonResponse({
+        'success': False,
+        'error': 'Üretici fatura kesme sistemi deaktif. Fatura sadece işitme merkezlerine kesilir.'
+    }, status=403)
     
     try:
         from django.core.mail import send_mail
@@ -1977,12 +1931,19 @@ MoldPark Ekibi
 
 @user_passes_test(lambda u: u.is_superuser)
 def invoice_delete(request, invoice_id):
-    """Fatura silme işlemi - Sadece admin yetkisi ile"""
+    """Fatura silme işlemi - Sadece işitme merkezi faturaları (center_admin_invoice)"""
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': 'Geçersiz istek metodu'}, status=405)
     
     try:
         invoice = get_object_or_404(Invoice, id=invoice_id)
+        
+        # Yetkilendirme: sadece işitme merkezi faturaları silinebilir
+        if invoice.invoice_type != 'center_admin_invoice':
+            return JsonResponse({
+                'success': False,
+                'error': 'Sadece işitme merkezi faturaları silinebilir'
+            }, status=403)
         
         # Fatura bilgilerini kaydet (log için)
         invoice_number = invoice.invoice_number
@@ -2011,7 +1972,7 @@ def invoice_delete(request, invoice_id):
 
 @user_passes_test(lambda u: u.is_superuser)
 def bulk_delete_invoices(request):
-    """Toplu fatura silme işlemi - Sadece admin yetkisi ile"""
+    """Toplu fatura silme işlemi - Sadece işitme merkezi faturaları (center_admin_invoice)"""
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': 'Geçersiz istek metodu'}, status=405)
     
@@ -2028,14 +1989,17 @@ def bulk_delete_invoices(request):
                 'error': 'Silinecek fatura seçilmedi'
             })
         
-        # Faturaları al ve bilgilerini topla
-        invoices = Invoice.objects.filter(id__in=invoice_ids)
+        # Faturaları al - sadece işitme merkezi faturaları
+        invoices = Invoice.objects.filter(
+            id__in=invoice_ids,
+            invoice_type='center_admin_invoice'  # Sadece işitme merkezi faturaları
+        )
         count = invoices.count()
         
         if count == 0:
             return JsonResponse({
                 'success': False,
-                'error': 'Seçilen faturalar bulunamadı'
+                'error': 'Seçilen faturaların arasında silinebilir fatura yok (sadece işitme merkezi faturaları silinebilir)'
             })
         
         # Fatura numaralarını logla
@@ -2277,7 +2241,16 @@ def pricing_management(request):
 @require_http_methods(["POST"])
 def send_producer_payment_notification(request):
     """
-    Üreticiye ödeme bilgilendirme mesajı gönder
+    DISABLED - Üretici fatura kesme sistemi deaktif
+    """
+    return JsonResponse({
+        'success': False,
+        'error': 'Üretici fatura kesme sistemi deaktif. Bu endpoint artık kullanılamıyor.'
+    }, status=403)
+
+def _DISABLED_send_producer_payment_notification(request):
+    """
+    DISABLED - Üreticiye ödeme bilgilendirme mesajı gönder
     """
     import json
     from producer.models import Producer
@@ -2351,7 +2324,16 @@ MoldPark Ekibi
 @require_http_methods(["POST"])
 def mark_producer_as_paid(request):
     """
-    Üreticiyi ödendi olarak işaretle
+    DISABLED - Üretici fatura kesme sistemi deaktif
+    """
+    return JsonResponse({
+        'success': False,
+        'error': 'Üretici fatura kesme sistemi deaktif. Bu endpoint artık kullanılamıyor.'
+    }, status=403)
+
+def _DISABLED_mark_producer_as_paid(request):
+    """
+    DISABLED - Üreticiyi ödendi olarak işaretle
     """
     import json
     from producer.models import Producer

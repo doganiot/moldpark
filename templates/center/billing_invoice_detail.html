@@ -150,18 +150,18 @@
                                 
                                 <tr class="border-top border-2">
                                     <td colspan="3" class="text-end"><strong>Ara Toplam (KDV Hariç):</strong></td>
-                                    <td class="text-end"><strong>{{ invoice.subtotal_without_vat|floatformat:0 }} ₺</strong></td>
+                                    <td class="text-end"><strong>{{ subtotal_without_vat|floatformat:2 }} ₺</strong></td>
                                 </tr>
                                 <tr>
                                     <td colspan="3" class="text-end"><strong>KDV (%20):</strong></td>
-                                    <td class="text-end"><strong>{{ invoice.vat_amount|floatformat:0 }} ₺</strong></td>
+                                    <td class="text-end"><strong style="color: #dc3545;">{{ vat_amount|floatformat:2 }} ₺</strong></td>
                                 </tr>
                                 <tr class="table-primary border-top border-2">
                                     <td colspan="3" class="text-end">
                                         <h5 class="mb-0"><strong>GENEL TOPLAM (KDV Dahil):</strong></h5>
                                     </td>
                                     <td class="text-end">
-                                        <h5 class="mb-0 text-primary"><strong>{{ invoice.total_amount|floatformat:0 }} ₺</strong></h5>
+                                        <h5 class="mb-0 text-primary"><strong>{{ total_with_vat|floatformat:2 }} ₺</strong></h5>
                                     </td>
                                 </tr>
                             </tbody>

@@ -24,11 +24,13 @@
             <form method="get" class="row g-3">
                 <div class="col-md-4">
                     <label class="form-label">Fatura Türü</label>
-                    <select name="type" class="form-select" onchange="this.form.submit()">
-                        <option value="all" {% if invoice_type == 'all' %}selected{% endif %}>Tümü</option>
-                        <option value="center_admin_invoice" {% if invoice_type == 'center_admin_invoice' %}selected{% endif %}>İşitme Merkezi</option>
-                        <option value="producer_invoice" {% if invoice_type == 'producer_invoice' %}selected{% endif %}>Üretici</option>
-                    </select>
+                    <!-- Sadece işitme merkezi faturaları (center_admin_invoice) gösterilir -->
+                    <input type="hidden" name="type" value="center_admin_invoice">
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>İşitme Merkezi Faturaları</strong>
+                        <small class="d-block mt-1">Fatura sadece işitme merkezlerine kesilir. Üretici merkezlere bildirim gönderilir.</small>
+                    </div>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Durum</label>
