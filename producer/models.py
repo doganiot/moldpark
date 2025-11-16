@@ -263,10 +263,11 @@ class Producer(models.Model):
         return total_pending
 
     def get_earnings_by_month(self, limit=12):
-        """Son X ay için aylık kazançları döndür - KK Komisyonu kaldırıldı"""
+        """Son X ay için aylık kazançları döndür - Merkez bazlı ödeme takibi kullanarak"""
         from datetime import date, timedelta
-        from calendar import monthrange
         from decimal import Decimal
+        from django.db.models import Q
+        from mold.models import EarMold
 
         earnings = []
         current_date = date.today()
@@ -275,12 +276,44 @@ class Producer(models.Model):
             target_date = current_date - timedelta(days=30 * i)
             year = target_date.year
             month = target_date.month
-
-            monthly_revenue = self.get_monthly_revenue(year, month)
+            
+            # Ay başı ve sonu
+            if month == 12:
+                month_end = date(year + 1, 1, 1)
+            else:
+                month_end = date(year, month + 1, 1)
+            month_start = date(year, month, 1)
+            
+            # Merkez bazlı toplam brüt hesaplama
+            total_monthly_gross = Decimal('0.00')
+            
+            # Tüm aktif merkezler
+            active_networks = self.network_centers.filter(status='active')
+            
+            for network in active_networks:
+                center = network.center
+                
+                # Bu merkeze ait tamamlanan siparişler
+                completed_orders = self.orders.filter(
+                    center=center,
+                    created_at__gte=f'{month_start} 00:00:00',
+                    created_at__lte=f'{month_end} 00:00:00'
+                ).filter(
+                    Q(status='delivered') |  # Dijital
+                    Q(status__in=['received', 'designing', 'production', 'quality_check', 'packaging', 'shipping'],
+                      ear_mold__is_physical_shipment=True)  # Fiziksel
+                ).select_related('ear_mold')
+                
+                # Her siparişin brüt tutarı hesapla
+                for order in completed_orders:
+                    if order.ear_mold.is_physical_shipment:
+                        total_monthly_gross += Decimal('399.00')  # Fiziksel kalıp
+                    else:
+                        total_monthly_gross += Decimal('15.00')  # 3D modelleme
 
             # Kesintiler - Sadece MoldPark hizmet bedeli (%6.5)
-            moldpark_fee = monthly_revenue * Decimal('0.065')  # %6.5
-            net_earnings = monthly_revenue - moldpark_fee
+            moldpark_fee = total_monthly_gross * Decimal('0.065')  # %6.5
+            net_earnings = total_monthly_gross - moldpark_fee
 
             earnings.append({
                 'year': year,
@@ -290,7 +323,7 @@ class Producer(models.Model):
                     5: 'Mayıs', 6: 'Haziran', 7: 'Temmuz', 8: 'Ağustos',
                     9: 'Eylül', 10: 'Ekim', 11: 'Kasım', 12: 'Aralık'
                 }.get(month, ''),
-                'gross_revenue': monthly_revenue,
+                'gross_revenue': total_monthly_gross,
                 'moldpark_fee': moldpark_fee,
                 'net_earnings': net_earnings
             })
