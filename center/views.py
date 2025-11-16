@@ -1364,13 +1364,20 @@ def billing_invoices(request):
     physical_molds_count = current_month_molds.filter(is_physical_shipment=True).count()
     digital_scans_count = current_month_molds.filter(is_physical_shipment=False).count()
 
-    # Fiyatlar KDV dahil
-    PHYSICAL_PRICE = 450.00  # KDV dahil (375 + 75 KDV)
-    DIGITAL_PRICE = 19.00  # KDV dahil (15.83 + 3.17 KDV)
+    # Fiyatlar - Abonelik tipine göre dinamik olarak al
+    from core.models import UserSubscription, PricingConfiguration
+    subscription = UserSubscription.objects.filter(user=request.user, status='active').first()
+    
+    # Paket fiyatlarını al
+    if subscription:
+        PHYSICAL_PRICE = float(subscription.plan.per_mold_price_try)
+        DIGITAL_PRICE = float(subscription.plan.modeling_service_fee_try)
+    else:
+        # Varsayılan fiyatlar (Standart Abonelik)
+        PHYSICAL_PRICE = 450.00  # KDV dahil
+        DIGITAL_PRICE = 19.00    # KDV dahil
     
     # Paket kullanım hakları kontrolü
-    from core.models import UserSubscription
-    subscription = UserSubscription.objects.filter(user=request.user, status='active').first()
     package_credits = 0
     used_credits = 0
     remaining_credits = 0

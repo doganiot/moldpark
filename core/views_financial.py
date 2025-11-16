@@ -1062,6 +1062,10 @@ def create_single_center_invoice(request, center_id):
         # Aktif fiyatlandırmayı al
         pricing = PricingConfiguration.get_active()
         
+        # Merkez aboneliğini al
+        from core.models import UserSubscription
+        subscription = UserSubscription.objects.filter(user=center.user, status='active').first()
+        
         # Dönem bilgisi
         period = request.POST.get('period', 'this_month')
         now = timezone.now()
@@ -1141,25 +1145,29 @@ def create_single_center_invoice(request, center_id):
             digital_count = digital_only_molds.count()
             
             # Dinamik fiyat hesaplamaları - Her kalıp için kendi fiyatı
+            # Abonelik fiyatını öncelik ver
+            subscription_physical_price = subscription.plan.per_mold_price_try if subscription and subscription.plan else pricing.physical_mold_price
+            subscription_digital_price = subscription.plan.modeling_service_fee_try if subscription and subscription.plan else pricing.digital_modeling_price
+            
             physical_amount = Decimal('0.00')
             for mold in physical_molds:
                 if mold.unit_price is not None:
                     physical_amount += mold.unit_price
                 else:
-                    # Eski kalıplar için varsayılan fiyat
-                    physical_amount += pricing.physical_mold_price
+                    # Abonelik fiyatı kullan
+                    physical_amount += subscription_physical_price
             
             digital_amount = Decimal('0.00')
             for mold in digital_only_molds:
                 if mold.digital_modeling_price is not None:
                     digital_amount += mold.digital_modeling_price
                 else:
-                    # Eski kalıplar için varsayılan fiyat
-                    digital_amount += pricing.digital_modeling_price
+                    # Abonelik fiyatı kullan
+                    digital_amount += subscription_digital_price
             
             # Ortalama birim fiyat hesapla (fatura için)
-            avg_unit_price = (physical_amount / physical_count) if physical_count > 0 else pricing.physical_mold_price
-            avg_digital_price = (digital_amount / digital_count) if digital_count > 0 else pricing.digital_modeling_price
+            avg_unit_price = (physical_amount / physical_count) if physical_count > 0 else subscription_physical_price
+            avg_digital_price = (digital_amount / digital_count) if digital_count > 0 else subscription_digital_price
             
             monthly_fee_amount = pricing.monthly_system_fee
             gross_amount = physical_amount + digital_amount + monthly_fee_amount
@@ -1519,6 +1527,10 @@ def bulk_create_center_invoices(request):
         all_centers = Center.objects.filter(is_active=True)
         
         for center in all_centers:
+            # Merkez aboneliğini al
+            from core.models import UserSubscription
+            subscription = UserSubscription.objects.filter(user=center.user, status='active').first()
+            
             # Paket faturası kontrolü - Eğer paket faturası varsa tek tek kalıp faturası kesme
             package_invoices = Invoice.objects.filter(
                 user=center.user,
@@ -1551,26 +1563,29 @@ def bulk_create_center_invoices(request):
             physical_count = physical_molds.count()
             digital_count = digital_only_molds.count()
             
-            # Dinamik fiyat hesaplamaları - Her kalıp için kendi fiyatı
+            # Dinamik fiyat hesaplamaları - Abonelik fiyatını öncelik ver
+            subscription_physical_price = subscription.plan.per_mold_price_try if subscription and subscription.plan else pricing.physical_mold_price
+            subscription_digital_price = subscription.plan.modeling_service_fee_try if subscription and subscription.plan else pricing.digital_modeling_price
+            
             physical_amount = Decimal('0.00')
             for mold in physical_molds:
                 if mold.unit_price is not None:
                     physical_amount += mold.unit_price
                 else:
-                    # Eski kalıplar için varsayılan fiyat
-                    physical_amount += pricing.physical_mold_price
+                    # Abonelik fiyatı kullan
+                    physical_amount += subscription_physical_price
             
             digital_amount = Decimal('0.00')
             for mold in digital_only_molds:
                 if mold.digital_modeling_price is not None:
                     digital_amount += mold.digital_modeling_price
                 else:
-                    # Eski kalıplar için varsayılan fiyat
-                    digital_amount += pricing.digital_modeling_price
+                    # Abonelik fiyatı kullan
+                    digital_amount += subscription_digital_price
             
             # Ortalama birim fiyat hesapla (fatura için)
-            avg_unit_price = (physical_amount / physical_count) if physical_count > 0 else pricing.physical_mold_price
-            avg_digital_price = (digital_amount / digital_count) if digital_count > 0 else pricing.digital_modeling_price
+            avg_unit_price = (physical_amount / physical_count) if physical_count > 0 else subscription_physical_price
+            avg_digital_price = (digital_amount / digital_count) if digital_count > 0 else subscription_digital_price
             
             monthly_fee_amount = pricing.monthly_system_fee
             gross_amount = physical_amount + digital_amount + monthly_fee_amount  # Aylık ücret dahil
