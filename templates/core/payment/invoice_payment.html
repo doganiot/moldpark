@@ -74,22 +74,22 @@
                         {% csrf_token %}
                         
                         <div class="payment-methods">
-                            {% for value, label in form.payment_method.field.choices %}
+                            {% for payment_method in form.payment_method.field.queryset %}
                                 <div class="payment-option mb-3 p-4 border-2 rounded" style="cursor: pointer; background: #f8f9fa; transition: all 0.3s ease;">
                                     <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="payment_method" value="{{ value }}" id="payment_{{ value }}" required>
-                                        <label class="form-check-label w-100" for="payment_{{ value }}" style="cursor: pointer;">
+                                        <input class="form-check-input" type="radio" name="payment_method" value="{{ payment_method.id }}" id="payment_{{ payment_method.id }}" required>
+                                        <label class="form-check-label w-100" for="payment_{{ payment_method.id }}" style="cursor: pointer;">
                                             <strong class="d-block mb-2 fs-5">
-                                                {% if value == "credit_card" %}
+                                                {% if payment_method.method_type == "credit_card" %}
                                                     <i class="fas fa-credit-card me-2 text-primary"></i>Kredi Kartı
-                                                {% elif value == "bank_transfer" %}
+                                                {% elif payment_method.method_type == "bank_transfer" %}
                                                     <i class="fas fa-university me-2 text-success"></i>Havale/EFT
                                                 {% else %}
-                                                    {{ label.name }}
+                                                    {{ payment_method.name }}
                                                 {% endif %}
                                             </strong>
                                             <small class="text-muted d-block ms-4">
-                                                {{ label.description }}
+                                                {{ payment_method.description }}
                                             </small>
                                         </label>
                                     </div>
@@ -169,7 +169,7 @@
     }
     
     .payment-option .text-muted {
-        color: #666 !important;
+        color: #d61818 !important;
     }
 </style>
 {% endblock %}
