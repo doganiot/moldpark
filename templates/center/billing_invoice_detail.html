@@ -307,10 +307,11 @@
                             Yazdır
                         </button>
                         {% if invoice.status != 'paid' %}
-                        <button class="btn btn-success" disabled>
+                        <a href="{% url 'core:invoice_payment' invoice.id %}" 
+                           class="btn btn-success">
                             <i class="fas fa-credit-card me-2"></i>
-                            Ödeme Yap (Yakında)
-                        </button>
+                            Şimdi Öde
+                        </a>
                         {% endif %}
                     </div>
                 </div>
