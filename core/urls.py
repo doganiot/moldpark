@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views, views_financial
+from . import views, views_financial, payment_views
 from .api import SystemStatusAPI, production_pipeline_api, alerts_api, health_check_api
 from . import api
 from django.shortcuts import redirect
@@ -111,4 +111,11 @@ urlpatterns = [
     # Üretici Ödeme İşlemleri
     path('admin/financial-control/send-payment-notification/', views_financial.send_producer_payment_notification, name='send_producer_payment_notification'),
     path('admin/financial-control/mark-producer-paid/', views_financial.mark_producer_as_paid, name='mark_producer_as_paid'),
+    
+    # İşitme Merkezi Ödeme İşlemleri
+    path('payment/invoice/<int:invoice_id>/', payment_views.invoice_payment, name='invoice_payment'),
+    path('payment/invoice/<int:invoice_id>/credit-card/', payment_views.invoice_payment_credit_card, name='invoice_payment_credit_card'),
+    path('payment/invoice/<int:invoice_id>/bank-transfer/', payment_views.invoice_payment_bank_transfer, name='invoice_payment_bank_transfer'),
+    path('payment/methods/', payment_views.payment_methods_list, name='payment_methods_list'),
+    path('payment/bank-details/', payment_views.bank_transfer_details, name='bank_transfer_details'),
 ] 

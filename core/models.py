@@ -1731,3 +1731,134 @@ class PricingConfiguration(models.Model):
                 'vat_rate': self.vat_rate,
             }
         }
+
+
+class BankTransferConfiguration(models.Model):
+    """Havale/EFT Ödeme Bilgileri"""
+    
+    bank_name = models.CharField('Banka Adı', max_length=100)
+    account_holder = models.CharField('Hesap Sahibi', max_length=100)
+    iban = models.CharField('IBAN', max_length=34, unique=True)
+    swift_code = models.CharField('SWIFT Kodu', max_length=11, blank=True)
+    branch_code = models.CharField('Şube Kodu', max_length=10, blank=True)
+    account_number = models.CharField('Hesap Numarası', max_length=20, blank=True)
+    
+    is_active = models.BooleanField('Aktif', default=True)
+    created_at = models.DateTimeField('Oluşturulma', auto_now_add=True)
+    updated_at = models.DateTimeField('Güncellenme', auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Havale Bilgileri'
+        verbose_name_plural = 'Havale Bilgileri'
+    
+    def __str__(self):
+        return f'{self.bank_name} - {self.iban}'
+
+
+class PaymentMethod(models.Model):
+    """Ödeme Yöntemi Tanımları"""
+    
+    PAYMENT_TYPE_CHOICES = [
+        ('credit_card', 'Kredi Kartı'),
+        ('bank_transfer', 'Havale/EFT'),
+    ]
+    
+    method_type = models.CharField('Ödeme Türü', max_length=20, choices=PAYMENT_TYPE_CHOICES)
+    name = models.CharField('Ödeme Yöntemi Adı', max_length=100)
+    description = models.TextField('Açıklama', blank=True)
+    
+    # Havale için
+    bank_transfer_config = models.ForeignKey(
+        BankTransferConfiguration, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='payment_methods'
+    )
+    
+    is_active = models.BooleanField('Aktif', default=True)
+    is_default = models.BooleanField('Varsayılan', default=False)
+    order = models.IntegerField('Sıra', default=0)
+    
+    class Meta:
+        verbose_name = 'Ödeme Yöntemi'
+        verbose_name_plural = 'Ödeme Yöntemleri'
+        ordering = ['order']
+    
+    def __str__(self):
+        return f'{self.name} ({self.get_method_type_display()})'
+
+
+class Payment(models.Model):
+    """Detaylı Ödeme Kaydı - İşitme Merkezi Ödeme Takibi"""
+    
+    STATUS_CHOICES = [
+        ('pending', 'Beklemede'),
+        ('confirmed', 'Onaylandı'),
+        ('completed', 'Tamamlandı'),
+        ('failed', 'Başarısız'),
+        ('refunded', 'İade Edildi'),
+    ]
+    
+    # İlişkiler
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name='payments', verbose_name='Fatura')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='center_payments', verbose_name='Kullanıcı')
+    
+    # Ödeme Bilgileri
+    payment_method = models.ForeignKey(PaymentMethod, on_delete=models.SET_NULL, null=True, related_name='payments', verbose_name='Ödeme Yöntemi')
+    amount = models.DecimalField('Tutar', max_digits=10, decimal_places=2)
+    currency = models.CharField('Para Birimi', max_length=3, choices=[('TRY', 'TRY')], default='TRY')
+    status = models.CharField('Durum', max_length=20, choices=STATUS_CHOICES, default='pending')
+    
+    # Havale Bilgileri (Belge Yükleme İçin)
+    receipt_file = models.FileField('Ödeme Makbuzu', upload_to='payment_receipts/', blank=True, null=True)
+    bank_confirmation_number = models.CharField('Banka Referans No', max_length=50, blank=True)
+    payment_date = models.DateField('Ödeme Tarihi', null=True, blank=True)
+    
+    # Kredi Kartı Bilgileri (Şifreleme gerekebilir)
+    last_four_digits = models.CharField('Kartın Son 4 Hanesi', max_length=4, blank=True)
+    transaction_id = models.CharField('İşlem ID', max_length=100, blank=True)
+    
+    # Notlar
+    notes = models.TextField('Notlar', blank=True)
+    admin_notes = models.TextField('Admin Notları', blank=True)
+    
+    # İşlem Bilgileri
+    created_at = models.DateTimeField('Oluşturulma', auto_now_add=True)
+    updated_at = models.DateTimeField('Güncellenme', auto_now=True)
+    confirmed_at = models.DateTimeField('Onay Tarihi', null=True, blank=True)
+    
+    class Meta:
+        verbose_name = 'Ödeme'
+        verbose_name_plural = 'Ödemeler'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f'{self.user.get_full_name()} - {self.amount} ₺ - {self.get_status_display()}'
+    
+    def confirm_payment(self):
+        """Ödemeyi onaylı duruma getir"""
+        self.status = 'confirmed'
+        self.confirmed_at = timezone.now()
+        self.save()
+    
+    def complete_payment(self):
+        """Ödemeyi tamamlandı duruma getir"""
+        self.status = 'completed'
+        self.invoice.mark_as_paid(
+            payment_method=self.payment_method.get_method_type_display(),
+            transaction_id=self.transaction_id or self.bank_confirmation_number
+        )
+        self.save()
+
+
+@receiver(post_save, sender=Payment)
+def notify_payment_update(sender, instance, created, **kwargs):
+    """Ödeme güncellendiğinde bildirim gönder"""
+    if not created and instance.status == 'confirmed':
+        SimpleNotification.objects.create(
+            user=instance.user,
+            title='✅ Ödemeniz Onaylandı',
+            message=f'₺{instance.amount} tutarındaki ödemeniz onaylanmıştır.',
+            notification_type='success'
+        )

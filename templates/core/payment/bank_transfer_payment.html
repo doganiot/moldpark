@@ -1,0 +1,195 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Havale/EFT ile Ödeme - MoldPark{% endblock %}
+
+{% block content %}
+<div class="container mt-5 mb-5">
+    <div class="row">
+        <!-- Havale Bilgileri -->
+        <div class="col-md-4 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-university me-2"></i>
+                        Havale Bilgileri
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <small class="text-muted d-block">Banka Adı</small>
+                        <strong>{{ bank_config.bank_name }}</strong>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <small class="text-muted d-block">Hesap Sahibi</small>
+                        <strong>{{ bank_config.account_holder }}</strong>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <small class="text-muted d-block">IBAN</small>
+                        <strong style="font-family: monospace; font-size: 1.1em;">
+                            {{ bank_config.iban }}
+                        </strong>
+                        <button type="button" 
+                                class="btn btn-sm btn-outline-primary mt-2"
+                                onclick="copyToClipboard('{{ bank_config.iban }}')">
+                            <i class="fas fa-copy me-1"></i>
+                            Kopyala
+                        </button>
+                    </div>
+                    
+                    {% if bank_config.swift_code %}
+                    <div class="mb-3">
+                        <small class="text-muted d-block">SWIFT Kodu</small>
+                        <strong>{{ bank_config.swift_code }}</strong>
+                    </div>
+                    {% endif %}
+                    
+                    <hr>
+                    
+                    <div class="alert alert-info small mb-0">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Yukarıdaki bilgileri kullanarak havale yapabilirsiniz.
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Ödeme Formu -->
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-money-bill me-2"></i>
+                        Havale/EFT Ödeme Formu
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Fatura Özeti -->
+                    <div class="alert alert-light border mb-4">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <small class="text-muted d-block">Fatura Numarası</small>
+                                <strong>{{ invoice.invoice_number }}</strong>
+                            </div>
+                            <div class="col-md-6">
+                                <small class="text-muted d-block">Ödenecek Tutar</small>
+                                <h5 class="text-primary mb-0">{{ invoice.total_amount|floatformat:2 }} ₺</h5>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <!-- Banka Referans Numarası -->
+                        <div class="mb-3">
+                            <label for="bank_confirmation_number" class="form-label">
+                                Banka Referans Numarası
+                                <span class="text-muted small">(İsteğe bağlı)</span>
+                            </label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="bank_confirmation_number"
+                                   name="bank_confirmation_number"
+                                   placeholder="Örn: REF-202511-001234"
+                                   {% if form.bank_confirmation_number.value %}value="{{ form.bank_confirmation_number.value }}"{% endif %}>
+                            <small class="text-muted">Banka tarafından gönderilen referans numarasını yazınız.</small>
+                        </div>
+                        
+                        <!-- Ödeme Tarihi -->
+                        <div class="mb-3">
+                            <label for="payment_date" class="form-label">
+                                Ödeme Tarihi
+                                <span class="text-muted small">(İsteğe bağlı)</span>
+                            </label>
+                            <input type="date" 
+                                   class="form-control" 
+                                   id="payment_date"
+                                   name="payment_date"
+                                   {% if form.payment_date.value %}value="{{ form.payment_date.value }}"{% endif %}>
+                        </div>
+                        
+                        <!-- Ödeme Makbuzu -->
+                        <div class="mb-3">
+                            <label for="receipt_file" class="form-label">
+                                Ödeme Makbuzu
+                                <span class="text-muted small">(İsteğe bağlı)</span>
+                            </label>
+                            <input type="file" 
+                                   class="form-control" 
+                                   id="receipt_file"
+                                   name="receipt_file"
+                                   accept=".pdf,.jpg,.jpeg,.png">
+                            <small class="text-muted">PDF, JPG veya PNG formatında yükleyebilirsiniz. (Max 5MB)</small>
+                        </div>
+                        
+                        <!-- Notlar -->
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">
+                                Notlar
+                                <span class="text-muted small">(İsteğe bağlı)</span>
+                            </label>
+                            <textarea class="form-control" 
+                                      id="notes"
+                                      name="notes"
+                                      rows="3"
+                                      placeholder="Ödeme ile ilgili açıklamaları yazınız...">{% if form.notes.value %}{{ form.notes.value }}{% endif %}</textarea>
+                        </div>
+                        
+                        <!-- Başarılı Mesajı -->
+                        <div class="alert alert-success alert-dismissible fade show d-none" id="success-alert" role="alert">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <strong>Havale Talebiniz Alınmıştır!</strong>
+                            Ödemeniz onaylandıktan sonra faturanız işaretlenecektir.
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                        
+                        <!-- Ödeme Butonu -->
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-lg btn-success">
+                                <i class="fas fa-check-circle me-2"></i>
+                                Havale Talebini Gönder
+                            </button>
+                            <a href="{% url 'core:invoice_payment' invoice.id %}" class="btn btn-lg btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>
+                                Geri Dön
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Bilgilendirme -->
+            <div class="alert alert-info mt-4 alert-dismissible fade show" role="alert">
+                <h5 class="alert-heading">
+                    <i class="fas fa-question-circle me-2"></i>
+                    Nasıl Yapmalıyım?
+                </h5>
+                <ol class="mb-0">
+                    <li>Yukarıdaki banka bilgilerini not ediniz veya kopyalayınız</li>
+                    <li>Kendi bankanızda havale işlemi başlatınız</li>
+                    <li>Havale tutarı: <strong>{{ invoice.total_amount|floatformat:2 }} ₺</strong></li>
+                    <li>Banka referans numarasını bu forma yazınız (isteğe bağlı)</li>
+                    <li>Makbuz fotoğrafını yükleyiniz</li>
+                    <li>Formu göndererek ödeme talebini tamamlayınız</li>
+                    <li>Ödemeniz onaylandıktan sonra fatura otomatik işaretlenecektir</li>
+                </ol>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(function() {
+            alert('IBAN kopyalandı!');
+        }, function(err) {
+            console.error('Kopyalama hatası:', err);
+        });
+    }
+</script>
+{% endblock %}
+

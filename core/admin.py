@@ -1,6 +1,10 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import ContactMessage, Message, PricingPlan, UserSubscription, PaymentHistory, SimpleNotification, SubscriptionRequest, PricingConfiguration
+from .models import (
+    ContactMessage, Message, PricingPlan, UserSubscription, PaymentHistory, 
+    SimpleNotification, SubscriptionRequest, PricingConfiguration,
+    BankTransferConfiguration, PaymentMethod, Payment
+)
 
 @admin.register(ContactMessage)
 class ContactMessageAdmin(admin.ModelAdmin):
@@ -305,3 +309,97 @@ class PricingConfigurationAdmin(admin.ModelAdmin):
         if not change:  # Yeni kayıt
             obj.created_by = request.user
         super().save_model(request, obj, form, change)
+
+
+@admin.register(BankTransferConfiguration)
+class BankTransferConfigurationAdmin(admin.ModelAdmin):
+    list_display = ('bank_name', 'account_holder', 'iban', 'is_active', 'created_at')
+    list_filter = ('is_active', 'created_at')
+    search_fields = ('bank_name', 'account_holder', 'iban')
+    readonly_fields = ('created_at', 'updated_at')
+    
+    fieldsets = (
+        ('Banka Bilgileri', {
+            'fields': ('bank_name', 'account_holder', 'is_active')
+        }),
+        ('Hesap Detayları', {
+            'fields': ('iban', 'swift_code', 'branch_code', 'account_number')
+        }),
+        ('Zaman Bilgileri', {
+            'fields': ('created_at', 'updated_at')
+        }),
+    )
+
+
+@admin.register(PaymentMethod)
+class PaymentMethodAdmin(admin.ModelAdmin):
+    list_display = ('name', 'method_type', 'is_active', 'is_default', 'order')
+    list_filter = ('method_type', 'is_active')
+    search_fields = ('name', 'description')
+    ordering = ['order']
+    
+    fieldsets = (
+        ('Ödeme Yöntemi Bilgileri', {
+            'fields': ('name', 'method_type', 'description', 'order')
+        }),
+        ('Durum', {
+            'fields': ('is_active', 'is_default')
+        }),
+        ('Havale Yapılandırması', {
+            'fields': ('bank_transfer_config',),
+            'classes': ('collapse',)
+        }),
+    )
+
+
+@admin.register(Payment)
+class PaymentAdmin(admin.ModelAdmin):
+    list_display = ('invoice', 'user_display', 'amount', 'payment_method', 'status', 'created_at')
+    list_filter = ('status', 'payment_method__method_type', 'created_at')
+    search_fields = ('invoice__invoice_number', 'user__username', 'user__email')
+    readonly_fields = ('created_at', 'updated_at', 'confirmed_at')
+    
+    fieldsets = (
+        ('Ödeme Bilgileri', {
+            'fields': ('invoice', 'user', 'payment_method', 'amount', 'currency')
+        }),
+        ('Ödeme Durumu', {
+            'fields': ('status', 'created_at', 'updated_at', 'confirmed_at')
+        }),
+        ('Havale Detayları', {
+            'fields': ('bank_confirmation_number', 'receipt_file', 'payment_date'),
+            'classes': ('collapse',)
+        }),
+        ('Kredi Kartı Detayları', {
+            'fields': ('last_four_digits', 'transaction_id'),
+            'classes': ('collapse',)
+        }),
+        ('Notlar', {
+            'fields': ('notes', 'admin_notes'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    actions = ['confirm_payments', 'complete_payments']
+    
+    def user_display(self, obj):
+        return f"{obj.user.get_full_name()} ({obj.user.username})"
+    user_display.short_description = 'Kullanıcı'
+    
+    def confirm_payments(self, request, queryset):
+        """Seçilen ödemeleri onaylı duruma getir"""
+        count = 0
+        for payment in queryset.filter(status='pending'):
+            payment.confirm_payment()
+            count += 1
+        self.message_user(request, f'{count} ödeme onaylandı.')
+    confirm_payments.short_description = "Ödemeleri onayla"
+    
+    def complete_payments(self, request, queryset):
+        """Seçilen ödemeleri tamamlandı duruma getir"""
+        count = 0
+        for payment in queryset.filter(status='confirmed'):
+            payment.complete_payment()
+            count += 1
+        self.message_user(request, f'{count} ödeme tamamlandı.')
+    complete_payments.short_description = "Ödemeleri tamamla"

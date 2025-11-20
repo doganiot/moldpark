@@ -1,6 +1,9 @@
 from django import forms
 from django.utils.translation import gettext_lazy as _
-from .models import ContactMessage, Message, User, SubscriptionRequest, PricingPlan, PaymentHistory
+from .models import (
+    ContactMessage, Message, User, SubscriptionRequest, PricingPlan, PaymentHistory,
+    Payment, PaymentMethod
+)
 
 class ContactForm(forms.ModelForm):
     class Meta:
@@ -312,3 +315,120 @@ class PackagePurchaseForm(forms.Form):
         if not plan:
             raise forms.ValidationError('Lütfen bir paket seçin.')
         return plan
+
+
+class InvoicePaymentForm(forms.ModelForm):
+    """Fatura Ödeme Formu"""
+    
+    payment_method = forms.ModelChoiceField(
+        queryset=PaymentMethod.objects.filter(is_active=True),
+        label='Ödeme Yöntemi',
+        widget=forms.RadioSelect,
+        empty_label=None
+    )
+    
+    class Meta:
+        model = Payment
+        fields = ['payment_method']
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Aktif olan ödeme yöntemlerini göster
+        self.fields['payment_method'].queryset = PaymentMethod.objects.filter(
+            is_active=True
+        ).order_by('order')
+
+
+class CreditCardPaymentForm(forms.Form):
+    """Kredi Kartı Ödeme Formu"""
+    
+    card_number = forms.CharField(
+        label='Kart Numarası',
+        max_length=19,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': '1234 5678 9012 3456',
+            'maxlength': '19'
+        }),
+        required=False  # Kredi Kartı seçildiğinde zorunlu
+    )
+    
+    expiry_date = forms.CharField(
+        label='Geçerlilik Tarihi',
+        max_length=5,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'AA/YY',
+            'maxlength': '5'
+        }),
+        required=False
+    )
+    
+    cvv = forms.CharField(
+        label='CVV',
+        max_length=4,
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': '123',
+            'maxlength': '4'
+        }),
+        required=False
+    )
+    
+    cardholder_name = forms.CharField(
+        label='Kart Sahibinin Adı',
+        max_length=100,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'MEHMET YILMAZ'
+        }),
+        required=False
+    )
+
+
+class BankTransferPaymentForm(forms.ModelForm):
+    """Havale/EFT Ödeme Formu"""
+    
+    bank_confirmation_number = forms.CharField(
+        label='Banka Referans Numarası',
+        max_length=50,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Örn: REF-202511-001234'
+        }),
+        required=False,
+        help_text='Banka transferinin referans numarasını giriniz'
+    )
+    
+    payment_date = forms.DateField(
+        label='Ödeme Tarihi',
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date'
+        }),
+        required=False
+    )
+    
+    receipt_file = forms.FileField(
+        label='Ödeme Makbuzu',
+        widget=forms.FileInput(attrs={
+            'class': 'form-control',
+            'accept': '.pdf,.jpg,.jpeg,.png'
+        }),
+        required=False,
+        help_text='Banka makulesinin görselini yükleyiniz (PDF, JPG, PNG)'
+    )
+    
+    notes = forms.CharField(
+        label='Notlar',
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 3,
+            'placeholder': 'Ödeme ile ilgili açıklamaları yazınız...'
+        }),
+        required=False
+    )
+    
+    class Meta:
+        model = Payment
+        fields = ['bank_confirmation_number', 'payment_date', 'receipt_file', 'notes']

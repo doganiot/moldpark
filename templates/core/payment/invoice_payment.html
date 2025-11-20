@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Fatura Ödeme - MoldPark{% endblock %}
+
+{% block content %}
+<div class="container mt-5 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <!-- Fatura Özeti -->
+            <div class="card mb-4 border-0 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-file-invoice me-2"></i>
+                        Fatura Özeti
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="text-muted small">Fatura Numarası</label>
+                            <p class="fw-bold text-dark">{{ invoice.invoice_number }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Fatura Tarihi</label>
+                            <p class="fw-bold text-dark">{{ invoice.issue_date|date:"d.m.Y" }}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="text-muted small">Vade Tarihi</label>
+                            <p class="fw-bold text-dark">{{ invoice.due_date|date:"d.m.Y" }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Durum</label>
+                            <p class="fw-bold text-dark">
+                                {% if invoice.status == 'draft' %}
+                                    <span class="badge bg-secondary">Taslak</span>
+                                {% elif invoice.status == 'issued' %}
+                                    <span class="badge bg-warning">Kesildi</span>
+                                {% elif invoice.status == 'sent' %}
+                                    <span class="badge bg-info">Gönderildi</span>
+                                {% elif invoice.status == 'paid' %}
+                                    <span class="badge bg-success">Ödendi</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <span class="text-muted">Toplam Tutar (KDV Dahil):</span>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <h4 class="text-primary fw-bold">{{ invoice.total_amount|floatformat:2 }} ₺</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Ödeme Yöntemi Seçimi -->
+            <div class="card mb-4 border-0 shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-money-bill-wave me-2"></i>
+                        Ödeme Yöntemi Seçiniz
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="payment-methods">
+                            {% for method in form.payment_method %}
+                                <div class="payment-option mb-3 p-3 border rounded" style="cursor: pointer;">
+                                    <label style="cursor: pointer; margin: 0;">
+                                        {{ method.tag }}
+                                        <strong>{{ method.choice_label.name }}</strong>
+                                        <small class="d-block text-muted mt-1">
+                                            {{ method.choice_label.description }}
+                                        </small>
+                                    </label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-lg btn-primary">
+                                <i class="fas fa-credit-card me-2"></i>
+                                Devam Et
+                            </button>
+                            <a href="{% url 'core:invoice_detail' invoice.id %}" class="btn btn-lg btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>
+                                Geri Dön
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Bilgilendirme -->
+            <div class="alert alert-info alert-dismissible fade show" role="alert">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Bilgilendirme:</strong> Ödeme yönteminizi seçtikten sonra ilgili sayfaya yönlendirileceksiniz.
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .payment-option {
+        transition: all 0.3s ease;
+        background: #f8f9fa;
+    }
+    
+    .payment-option:hover {
+        background: #e9ecef;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .payment-option input[type="radio"] {
+        cursor: pointer;
+    }
+</style>
+{% endblock %}
+
