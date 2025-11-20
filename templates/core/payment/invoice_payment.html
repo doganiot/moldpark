@@ -74,13 +74,13 @@
                         {% csrf_token %}
                         
                         <div class="payment-methods">
-                            {% for method in form.payment_method %}
+                            {% for value, label in form.payment_method.field.choices %}
                                 <div class="payment-option mb-3 p-3 border rounded" style="cursor: pointer;">
                                     <label style="cursor: pointer; margin: 0;">
-                                        {{ method.tag }}
-                                        <strong>{{ method.choice_label.name }}</strong>
+                                        <input type="radio" name="payment_method" value="{{ value }}" class="form-check-input me-2" required>
+                                        <strong>{{ label.name }}</strong>
                                         <small class="d-block text-muted mt-1">
-                                            {{ method.choice_label.description }}
+                                            {{ label.description }}
                                         </small>
                                     </label>
                                 </div>
