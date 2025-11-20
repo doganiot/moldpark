@@ -129,6 +129,69 @@
         </div>
     </div>
 
+    <!-- Ödenmemiş Faturalar - Hızlı Ödeme Paneli -->
+    {% if paid_invoices < total_invoices %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-danger border-2">
+                <div class="card-header bg-danger bg-opacity-10 border-danger">
+                    <h5 class="mb-0 text-danger">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        Ödenmemiş Faturalarınız ({{ pending_invoices }})
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        {% for invoice in page_obj %}
+                            {% if invoice.status != 'paid' %}
+                            <div class="col-md-6 col-lg-4">
+                                <div class="card border-warning h-100 hover-shadow" style="transition: all 0.3s ease;">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-3">
+                                            <div>
+                                                <h6 class="card-subtitle text-muted mb-1">
+                                                    {{ invoice.invoice_number }}
+                                                </h6>
+                                                <small class="text-muted">{{ invoice.issue_date|date:"d.m.Y" }}</small>
+                                            </div>
+                                            {% if invoice.status == 'overdue' %}
+                                            <span class="badge bg-danger">Vadesi Geçmiş</span>
+                                            {% else %}
+                                            <span class="badge bg-warning">Beklemede</span>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <small class="text-muted d-block">Ödenecek Tutar</small>
+                                            <h5 class="text-danger mb-0">
+                                                {{ invoice.total_amount|floatformat:2 }} ₺
+                                            </h5>
+                                        </div>
+                                        
+                                        <div class="d-grid gap-2">
+                                            <a href="{% url 'core:invoice_payment' invoice.id %}"
+                                               class="btn btn-success btn-sm">
+                                                <i class="fas fa-credit-card me-1"></i>
+                                                Şimdi Öde
+                                            </a>
+                                            <a href="{% url 'center:usage_invoice_detail' invoice.id %}"
+                                               class="btn btn-outline-primary btn-sm">
+                                                <i class="fas fa-eye me-1"></i>
+                                                Detayları Gör
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Fatura Listesi -->
     <div class="card">
         <div class="card-header bg-primary text-white">
@@ -192,6 +255,13 @@
                                            target="_blank">
                                             <i class="fas fa-file-pdf"></i>
                                         </a>
+                                        {% if invoice.status != 'paid' %}
+                                        <a href="{% url 'core:invoice_payment' invoice.id %}"
+                                           class="btn btn-outline-success"
+                                           title="Ödeme Yap">
+                                            <i class="fas fa-credit-card"></i>
+                                        </a>
+                                        {% endif %}
                                     </div>
                                 </td>
                             </tr>
@@ -271,6 +341,24 @@
 .border-info {
     border-color: #0dcaf0 !important;
     border-width: 2px;
+}
+
+.hover-shadow {
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.hover-shadow:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    transform: translateY(-4px);
+}
+
+.card.border-danger {
+    background: linear-gradient(135deg, #fff5f7 0%, #fffbfc 100%);
+}
+
+.card.border-warning {
+    background: linear-gradient(135deg, #fffbf0 0%, #fffef9 100%);
 }
 </style>
 {% endblock %}
