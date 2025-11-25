@@ -1,0 +1,28 @@
+[Unit]
+Description=Gunicorn service for MoldPark Django application
+After=network.target
+
+[Service]
+User=root
+Group=root
+WorkingDirectory=/root/moldpark
+Environment="PATH=/root/moldpark/venv/bin"
+Environment="DJANGO_SETTINGS_MODULE=backend.settings"
+ExecStart=/root/moldpark/venv/bin/gunicorn \
+    --bind 127.0.0.1:8000 \
+    --workers 4 \
+    --threads 2 \
+    --timeout 120 \
+    --max-requests 1000 \
+    --max-requests-jitter 50 \
+    --access-logfile /root/moldpark/logs/gunicorn_access.log \
+    --error-logfile /root/moldpark/logs/gunicorn_error.log \
+    --log-level info \
+    backend.wsgi:application
+
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+

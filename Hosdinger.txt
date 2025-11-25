@@ -1,0 +1,21 @@
+Hosdinger
+
+Kök şifresi oluştur
+975137Lim.So
+
+ortak alan
+/root/.ssh/id_ed25519.pub
+
+
+Host (Sunucu/IP): 72.62.0.8
+Kullanıcı Adı: root
+Parola: VPS’inizin root şifresi (kurulumda belirlediğiniz veya size verilen şifre)
+Port: 22
+
+python3 -m venv venv
+source venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+
+api hostinger
+9AtQTvtQuWcphmf04kjKV7CxtDitkPhuOVoGTI0Ee0095e24

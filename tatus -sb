@@ -1,0 +1,62 @@
+warning: in the working copy of 'backend/settings.py', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/backend/settings.py b/backend/settings.py[m
+[1mindex 73f1eab..aa0eda8 100644[m
+[1m--- a/backend/settings.py[m
+[1m+++ b/backend/settings.py[m
+[36m@@ -19,6 +19,16 @@[m [mssl._create_default_https_context = ssl._create_unverified_context[m
+ [m
+ load_dotenv()[m
+ [m
+[32m+[m
+[32m+[m[32mdef get_env_list(var_name: str, default=None):[m
+[32m+[m[32m    """[m
+[32m+[m[32m    Ortam değişkenlerini virgülle ayrılmış liste olarak okumayı kolaylaştırır.[m
+[32m+[m[32m    """[m
+[32m+[m[32m    value = os.getenv(var_name)[m
+[32m+[m[32m    if value:[m
+[32m+[m[32m        return [item.strip() for item in value.split(',') if item.strip()][m
+[32m+[m[32m    return default or [][m
+[32m+[m
+ # Build paths inside the project like this: BASE_DIR / 'subdir'.[m
+ BASE_DIR = Path(__file__).resolve().parent.parent[m
+ [m
+[36m@@ -30,9 +40,20 @@[m [mBASE_DIR = Path(__file__).resolve().parent.parent[m
+ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-default-key-change-this')[m
+ [m
+ # SECURITY WARNING: don't run with debug turned on in production![m
+[31m-DEBUG = os.getenv('DEBUG', 'True') == 'True'[m
+[32m+[m[32mDEBUG = os.getenv('DEBUG', 'True').lower() == 'true'[m
+ [m
+[31m-ALLOWED_HOSTS = ['*'] if DEBUG else ['moldpark.com', 'www.moldpark.com', 'localhost', '127.0.0.1'][m
+[32m+[m[32mif DEBUG:[m
+[32m+[m[32m    ALLOWED_HOSTS = ['*'][m
+[32m+[m[32m    CSRF_TRUSTED_ORIGINS = [[m
+[32m+[m[32m        'http://localhost:8000',[m
+[32m+[m[32m        'http://127.0.0.1:8000',[m
+[32m+[m[32m        'http://localhost:8002',[m
+[32m+[m[32m        'http://127.0.0.1:8002',[m
+[32m+[m[32m    ][m
+[32m+[m[32melse:[m
+[32m+[m[32m    ALLOWED_HOSTS = get_env_list('ALLOWED_HOSTS', ['moldpark.com', 'www.moldpark.com'])[m
+[32m+[m[32m    default_csrf = [f"https://{host}" for host in ALLOWED_HOSTS if host not in {'*', ''}][m
+[32m+[m[32m    CSRF_TRUSTED_ORIGINS = get_env_list('CSRF_TRUSTED_ORIGINS', default_csrf)[m
+ [m
+ [m
+ # Application definition[m
+[36m@@ -231,6 +252,10 @@[m [melse:[m
+ [m
+ DEFAULT_FROM_EMAIL = 'MoldPark <noreply@moldpark.com>'[m
+ [m
+[32m+[m[32m# Proxy ayarları (Nginx/Gunicorn)[m
+[32m+[m[32mSECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')[m
+[32m+[m[32mUSE_X_FORWARDED_HOST = True[m
+[32m+[m
+ # Security Settings[m
+ if not DEBUG:[m
+     SECURE_SSL_REDIRECT = True[m
+[36m@@ -319,4 +344,4 @@[m [mMOLDPARK_MAX_MOLD_SIZE = 52428800  # 50MB[m
+ MOLDPARK_ALLOWED_EXTENSIONS = ['stl', 'obj', 'ply', 'scan'][m
+ [m
+ [m
+[31m-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'moldpar.settings')[m
+[32m+[m[32mos.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')[m

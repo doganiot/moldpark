@@ -8,3 +8,18 @@ python manage.py runserver 8002
 moldpark
 
 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
+
+
+
+Kart Numarası: 4532015112830366
+Geçerlilik: 12/25
+CVV: 123
+Kart Sahibi: TEST USER
+
+
+Banka Adı: XYZ Bankası
+Hesap Sahibi: MoldPark Yazılım A.Ş.
+IBAN: 5698542147852332
+SWIFT: XYZBTRISXXX
+Şube Kodu: 0123
+
