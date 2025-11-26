@@ -144,16 +144,19 @@ DATABASES = {
     }
 }
 
-# Production için PostgreSQL desteği
+# Production için PostgreSQL desteği (sadece .env'de PostgreSQL ayarları varsa)
 if not DEBUG:
-    DATABASES['default'] = {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME', 'moldpark'),
-        'USER': os.getenv('DB_USER', 'moldpark'),
-        'PASSWORD': os.getenv('DB_PASSWORD'),
-        'HOST': os.getenv('DB_HOST', 'localhost'),
-        'PORT': os.getenv('DB_PORT', '5432'),
-    }
+    db_engine = os.getenv('DB_ENGINE', 'sqlite3')
+    if db_engine == 'postgresql':
+        DATABASES['default'] = {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('DB_NAME', 'moldpark'),
+            'USER': os.getenv('DB_USER', 'moldpark'),
+            'PASSWORD': os.getenv('DB_PASSWORD'),
+            'HOST': os.getenv('DB_HOST', 'localhost'),
+            'PORT': os.getenv('DB_PORT', '5432'),
+        }
+    # SQLite varsayılan olarak kalır
 
 
 # Password validation
