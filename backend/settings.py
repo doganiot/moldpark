@@ -53,7 +53,7 @@ if DEBUG:
 else:
     ALLOWED_HOSTS = get_env_list(
         'ALLOWED_HOSTS',
-        ['moldpark.com', 'www.moldpark.com', '72.62.0.8', 'localhost'],
+        ['moldpark.com', 'www.moldpark.com', '72.62.0.8', '127.0.0.1', 'localhost'],
     )
     default_csrf = [f"https://{host}" for host in ALLOWED_HOSTS if host not in {'*', ''}]
     CSRF_TRUSTED_ORIGINS = get_env_list('CSRF_TRUSTED_ORIGINS', default_csrf)
