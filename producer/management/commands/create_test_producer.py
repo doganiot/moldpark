@@ -43,7 +43,6 @@ class Command(BaseCommand):
                 'tax_number': '1234567890',
                 'trade_registry': 'İstanbul-123456',
                 'established_year': 2020,
-                'mold_limit': 100,
                 'monthly_limit': 500,
                 'is_active': True,
                 'is_verified': True,  # Test için doğrulanmış olarak ayarla
