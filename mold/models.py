@@ -80,14 +80,14 @@ class EarMold(models.Model):
         upload_to='scans/',
         validators=[
             FileExtensionValidator(
-                allowed_extensions=['stl', 'obj', 'ply', 'zip', 'rar'],
-                message='Sadece STL, OBJ, PLY, ZIP ve RAR dosyaları yüklenebilir.'
+                allowed_extensions=['stl', 'obj', 'ply', 'zip', 'rar', 'chitubox'],
+                message='Sadece STL, OBJ, PLY, ZIP, RAR ve CHITUBOX dosyaları yüklenebilir.'
             ),
             validate_scan_file_size
         ],
         null=True,
         blank=True,
-        help_text='STL, OBJ, PLY, ZIP veya RAR formatında tarama dosyası yükleyin (Maks. 100MB)'
+        help_text='STL, OBJ, PLY, ZIP, RAR veya CHITUBOX formatında tarama dosyası yükleyin (Maks. 100MB)'
     )
     
     notes = models.TextField('Notlar', blank=True)

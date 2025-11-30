@@ -279,7 +279,7 @@ function handleFile(file, revisionId) {
 
 function validateFile(file) {
     const maxSize = 52428800; // 50MB
-    const allowedExtensions = ['stl', 'obj', 'ply', '3mf', 'amf'];
+    const allowedExtensions = ['stl', 'obj', 'ply', '3mf', 'amf', 'chitubox'];
     
     // Boyut kontrolü
     if (file.size > maxSize) {
@@ -294,7 +294,7 @@ function validateFile(file) {
     if (!allowedExtensions.includes(fileExtension)) {
         return {
             valid: false,
-            message: 'Sadece STL, OBJ, PLY, 3MF, AMF dosyaları yüklenebilir.'
+            message: 'Sadece STL, OBJ, PLY, 3MF, AMF ve CHITUBOX dosyaları yüklenebilir.'
         };
     }
     
@@ -823,7 +823,7 @@ function showSuccess(message) {
                             
                             <div class="mb-3">
                                 <label class="form-label">Revize Edilmiş Dosya:</label>
-                                <input type="file" name="revised_file" class="form-control" accept=".stl,.obj,.ply,.3mf,.amf" required>
+                                <input type="file" name="revised_file" class="form-control" accept=".stl,.obj,.ply,.3mf,.amf,.chitubox" required>
                                 <small class="form-text text-muted">
                                     Desteklenen formatlar: STL, OBJ, PLY, 3MF, AMF (Maks. 50MB)
                                 </small>
@@ -1019,7 +1019,7 @@ function showSuccess(message) {
                                                          </button>
                                                      </div>
                                                      <input type="file" name="revised_file" id="fileInput{{ revision.id }}" 
-                                                            class="d-none" accept=".stl,.obj,.ply,.3mf,.amf" required>
+                                                            class="d-none" accept=".stl,.obj,.ply,.3mf,.amf,.chitubox" required>
                                                  </div>
                                                  
                                                  <!-- Dosya Bilgileri -->

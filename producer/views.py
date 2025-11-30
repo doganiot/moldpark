@@ -1853,7 +1853,7 @@ def mold_detail(request, pk):
 
                     # Dosya formatı kontrolü
 
-                    allowed_extensions = ['stl', 'obj', 'ply', '3mf', 'amf']
+                    allowed_extensions = ['stl', 'obj', 'ply', '3mf', 'amf', 'chitubox']
 
                     file_extension = revised_file.name.split('.')[-1].lower()
 
@@ -2271,7 +2271,7 @@ def mold_upload_result(request, pk):
 
             # Dosya türü kontrolü
 
-            allowed_extensions = ['.stl', '.obj', '.ply', '.zip', '.rar']
+            allowed_extensions = ['.stl', '.obj', '.ply', '.zip', '.rar', '.chitubox']
 
             file_extension = os.path.splitext(uploaded_file.name)[1].lower()
 
@@ -2517,7 +2517,7 @@ def mold_upload_result(request, pk):
 
         'producer': producer,
 
-        'allowed_extensions': ['.stl', '.obj', '.ply', '.zip', '.rar'],
+        'allowed_extensions': ['.stl', '.obj', '.ply', '.zip', '.rar', '.chitubox'],
 
         'max_file_size': '50MB',
 

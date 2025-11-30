@@ -63,7 +63,7 @@ class EarMoldForm(forms.ModelForm):
             }),
             'scan_file': forms.FileInput(attrs={
                 'class': 'form-control',
-                'accept': '.stl,.obj,.ply,.zip,.rar'
+                'accept': '.stl,.obj,.ply,.zip,.rar,.chitubox'
             }),
             'notes': forms.Textarea(attrs={
                 'rows': 4,
@@ -123,7 +123,7 @@ class EarMoldForm(forms.ModelForm):
                 })
             elif scan_file:
                 # Dosya uzantısı kontrolü
-                allowed_extensions = ['stl', 'obj', 'ply', 'zip', 'rar']
+                allowed_extensions = ['stl', 'obj', 'ply', 'zip', 'rar', 'chitubox']
                 ext = scan_file.name.split('.')[-1].lower()
                 if ext not in allowed_extensions:
                     raise ValidationError({

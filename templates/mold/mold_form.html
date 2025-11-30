@@ -534,7 +534,7 @@
                     <div class="file-upload-text">Dosya yüklemek için tıklayın</div>
                     <div class="file-upload-hint">
                         veya dosyayı buraya sürükleyip bırakın<br>
-                        <small>Desteklenen formatlar: STL, OBJ, PLY, ZIP, RAR (Maks. 100MB)</small>
+                        <small>Desteklenen formatlar: STL, OBJ, PLY, ZIP, RAR, CHITUBOX (Maks. 100MB)</small>
                     </div>
                     {{ form.scan_file|add_class:"form-control" }}
                     <style>
@@ -709,12 +709,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function handleFileSelect(file) {
         // Validate file
-        const allowedExtensions = ['stl', 'obj', 'ply', 'zip', 'rar'];
+        const allowedExtensions = ['stl', 'obj', 'ply', 'zip', 'rar', 'chitubox'];
         const fileExt = file.name.split('.').pop().toLowerCase();
         const maxSize = 100 * 1024 * 1024; // 100MB
 
         if (!allowedExtensions.includes(fileExt)) {
-            alert('Sadece STL, OBJ, PLY, ZIP ve RAR dosyaları yüklenebilir.');
+            alert('Sadece STL, OBJ, PLY, ZIP, RAR ve CHITUBOX dosyaları yüklenebilir.');
             return;
         }
 

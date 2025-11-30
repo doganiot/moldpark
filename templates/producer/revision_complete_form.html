@@ -106,7 +106,7 @@
                                        class="d-none" 
                                        id="revised_file" 
                                        name="revised_file" 
-                                       accept=".stl,.obj,.ply,.3mf,.amf" 
+                                       accept=".stl,.obj,.ply,.3mf,.amf,.chitubox" 
                                        required>
                             </div>
                             
@@ -223,10 +223,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // Dosya türü kontrolü
-            const allowedTypes = ['stl', 'obj', 'ply', '3mf', 'amf'];
+            const allowedTypes = ['stl', 'obj', 'ply', '3mf', 'amf', 'chitubox'];
             const fileExtension = file.name.split('.').pop().toLowerCase();
             if (!allowedTypes.includes(fileExtension)) {
-                alert('Sadece STL, OBJ, PLY, 3MF ve AMF dosyaları yüklenebilir!');
+                alert('Sadece STL, OBJ, PLY, 3MF, AMF ve CHITUBOX dosyaları yüklenebilir!');
                 fileInput.value = '';
                 return;
             }
