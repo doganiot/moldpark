@@ -347,9 +347,9 @@ class RevisionRequestForm(forms.ModelForm):
     def clean_reference_image(self):
         image = self.cleaned_data.get('reference_image')
         if image:
-            # Dosya boyutu kontrolü (10MB)
-            if image.size > 10485760:
-                raise forms.ValidationError('Görsel boyutu 10MB\'dan büyük olamaz.')
+            # Dosya boyutu kontrolü (30MB)
+            if image.size > 31457280:
+                raise forms.ValidationError('Görsel boyutu 30MB\'dan büyük olamaz.')
             
             # Dosya uzantısı kontrolü
             allowed_extensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp']

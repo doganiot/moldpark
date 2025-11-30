@@ -269,7 +269,7 @@ class MoldParkApp {
     }
 
     validateFile(input, file) {
-        const maxSize = 10 * 1024 * 1024; // 10MB
+        const maxSize = 30 * 1024 * 1024; // 30MB
         const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'];
         
         let isValid = true;
@@ -277,7 +277,7 @@ class MoldParkApp {
         
         if (file.size > maxSize) {
             isValid = false;
-            errorMessage = 'Dosya boyutu 10MB\'dan büyük olamaz.';
+            errorMessage = 'Dosya boyutu 30MB\'dan büyük olamaz.';
         } else if (!allowedTypes.includes(file.type)) {
             isValid = false;
             errorMessage = 'Sadece JPG, PNG, GIF ve PDF dosyaları kabul edilir.';
@@ -298,7 +298,7 @@ class MoldParkApp {
         dropZone.innerHTML = `
             <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
             <p class="mb-2">Dosyayı buraya sürükleyin veya tıklayın</p>
-            <small class="text-muted">Maksimum 10MB • JPG, PNG, GIF, PDF</small>
+            <small class="text-muted">Maksimum 30MB • JPG, PNG, GIF, PDF</small>
         `;
         
         input.parentNode.insertBefore(dropZone, input);
