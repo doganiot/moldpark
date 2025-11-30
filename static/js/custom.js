@@ -235,7 +235,25 @@ class MoldParkApp {
         
         const file = files[0];
         this.displayFileInfo(input, file);
-        this.validateFile(input, file);
+        
+        // 3D model dosyaları için genel validasyonu atla (kendi validasyonları var)
+        const acceptAttr = input.getAttribute('accept') || '';
+        const fileExt = file.name.split('.').pop().toLowerCase();
+        const is3DModelFile = acceptAttr.includes('.stl') || 
+                              acceptAttr.includes('.obj') || 
+                              acceptAttr.includes('.ply') || 
+                              acceptAttr.includes('.chitubox') ||
+                              acceptAttr.includes('.3mf') ||
+                              acceptAttr.includes('.amf') ||
+                              ['stl', 'obj', 'ply', 'chitubox', '3mf', 'amf', 'zip', 'rar'].includes(fileExt);
+        
+        // Sadece görsel/PDF dosyaları için genel validasyonu çalıştır
+        if (!is3DModelFile) {
+            this.validateFile(input, file);
+        } else {
+            // 3D model dosyaları için sadece hata mesajlarını temizle
+            this.hideFieldError(input);
+        }
     }
 
     displayFileInfo(input, file) {
