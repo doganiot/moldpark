@@ -398,9 +398,13 @@ def dashboard(request):
     
     # FİZİKSEL GÖNDERİM İSTATİSTİKLERİ
     physical_shipments = molds.filter(is_physical_shipment=True)
+    # 3D modelleme sayısı: is_physical_shipment=False olanlar VEYA ModeledMold kaydı olanlar
+    digital_scans_count = molds.filter(
+        Q(is_physical_shipment=False) | Q(modeled_files__isnull=False)
+    ).distinct().count()
     shipment_stats = {
         'total_physical': physical_shipments.count(),
-        'digital_scans': molds.filter(is_physical_shipment=False).count(),
+        'digital_scans': digital_scans_count,
         'in_transit': physical_shipments.filter(shipment_status='in_transit').count(),
         'delivered_to_producer': physical_shipments.filter(shipment_status='delivered_to_producer').count(),
     }
@@ -1362,7 +1366,12 @@ def billing_invoices(request):
 
     # Bu ay kullanım özeti - Fiyatlar KDV Dahil
     physical_molds_count = current_month_molds.filter(is_physical_shipment=True).count()
-    digital_scans_count = current_month_molds.filter(is_physical_shipment=False).count()
+    
+    # 3D modelleme sayısı: is_physical_shipment=False olanlar VEYA ModeledMold kaydı olanlar
+    # Her iki durumu da say (birleşik küme - distinct ile tekrar edenleri önle)
+    digital_scans_count = current_month_molds.filter(
+        Q(is_physical_shipment=False) | Q(modeled_files__isnull=False)
+    ).distinct().count()
 
     # Fiyatlar - Abonelik tipine göre dinamik olarak al
     from core.models import UserSubscription, PricingConfiguration
