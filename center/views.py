@@ -1750,6 +1750,7 @@ def my_usage(request):
     digital_this_month = digital_molds.filter(created_at__gte=current_month_start).count()
     digital_this_year = digital_molds.filter(created_at__gte=current_year_start).count()
     digital_total = digital_molds.count()
+
     
     # Aylık kullanım grafiği için veri (son 12 ay)
     monthly_data = []
@@ -1792,12 +1793,14 @@ def my_usage(request):
     if subscription:
         if subscription.plan:
             # Aylık limit
-            usage_limits['monthly_limit'] = subscription.plan.monthly_limit
+            usage_limits['monthly_limit'] = subscription.plan.monthly_model_limit or 0
             usage_limits['used_this_month'] = subscription.models_used_this_month
             usage_limits['remaining'] = max(0, usage_limits['monthly_limit'] - usage_limits['used_this_month'])
             
             if usage_limits['monthly_limit'] > 0:
                 usage_limits['percentage'] = min(100, int((usage_limits['used_this_month'] / usage_limits['monthly_limit']) * 100))
+                # Progress circle için stroke-dashoffset hesaplaması
+                usage_limits['stroke_dashoffset'] = 327 - (327 * usage_limits['percentage'] / 100)
             
             # Paket kredileri (varsa)
             if subscription.plan.plan_type == 'package':
@@ -1831,20 +1834,65 @@ def my_usage(request):
     # Faturalama özeti
     current_month = datetime.now().month
     current_year = datetime.now().year
-    
+
     invoices = Invoice.objects.filter(
         Q(user=request.user, invoice_type='center') |
         Q(issued_by_center=center, invoice_type='center_admin_invoice'),
         issue_date__year=current_year,
         issue_date__month=current_month
     )
-    
+
+    # Mevcut ay fatura toplamları
+    invoiced_total = sum(inv.total_amount for inv in invoices if inv.total_amount)
+    invoiced_paid = sum(inv.total_amount for inv in invoices.filter(status='paid') if inv.total_amount)
+
+    # Bu ayın henüz faturalandırılmamış kullanım maliyetleri
+    from core.models import PricingConfiguration
+    pricing = PricingConfiguration.get_active()
+
+    # Tüm kalıpların maliyetleri (mevcut kullanım için)
+    physical_cost_total = physical_total * float(pricing.physical_mold_price) if pricing else 0
+    digital_cost_total = digital_total * float(pricing.digital_modeling_price) if pricing else 0
+
+    # Aylık sistem kullanım ücreti (Standart abonelik ücretsiz)
+    if subscription and subscription.plan.monthly_fee_try == 0:
+        monthly_system_fee = 0  # Standart abonelik ücretsiz
+    else:
+        monthly_system_fee = float(pricing.monthly_system_fee) if pricing else 0
+
+    # Bu ay maliyet (faturalandırılmamış olanlar için)
+    physical_cost_this_month = physical_this_month * float(pricing.physical_mold_price) if pricing else 0
+    digital_cost_this_month = digital_this_month * float(pricing.digital_modeling_price) if pricing else 0
+
+    # Toplam bu ay maliyet (öncelikli olarak bu ay gösterilsin)
+    total_cost_this_month = physical_cost_this_month + digital_cost_this_month + monthly_system_fee
+
+    # Eğer bu ay hiç kullanım yoksa, toplam kullanımı göster
+    if total_cost_this_month == monthly_system_fee and (physical_cost_total > 0 or digital_cost_total > 0):
+        total_cost_this_month = physical_cost_total + digital_cost_total + monthly_system_fee
+        physical_cost_this_month = physical_cost_total
+        digital_cost_this_month = digital_cost_total
+
+    # Genel toplam (faturalanmış + bu ay tahmini)
+    total_amount = invoiced_total + total_cost_this_month
+    remaining_amount = total_amount - invoiced_paid
+
     billing_summary = {
         'total_invoices': invoices.count(),
         'paid': invoices.filter(status='paid').count(),
         'pending': invoices.filter(status__in=['issued', 'overdue']).count(),
-        'total_amount': sum(inv.total_amount for inv in invoices if inv.total_amount),
-        'paid_amount': sum(inv.total_amount for inv in invoices.filter(status='paid') if inv.total_amount)
+        'invoiced_total': invoiced_total,
+        'invoiced_paid': invoiced_paid,
+        'physical_cost_total': physical_cost_total,
+        'digital_cost_total': digital_cost_total,
+        'monthly_system_fee': monthly_system_fee,
+        'physical_cost_this_month': physical_cost_this_month,
+        'digital_cost_this_month': digital_cost_this_month,
+        'total_cost_this_month': total_cost_this_month,
+        'total_amount': total_amount,
+        'paid_amount': invoiced_paid,
+        'remaining_amount': remaining_amount,
+        'pricing': pricing
     }
     
     context = {

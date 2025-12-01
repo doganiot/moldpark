@@ -150,45 +150,37 @@ class CustomSignupForm(SignupForm):
                     standard_plan = PricingPlan.objects.create(
                         name='Standart Abonelik',
                         plan_type='standard',
-                        description='MoldPark sistemi sınırsız kullanım - Aylık 100 TL',
-                        monthly_fee_try=Decimal('100.00'),
-                        per_mold_price_try=Decimal('0.00'),
-                        modeling_service_fee_try=Decimal('0.00'),
+                        description='Standart Abonelik - Ücretsiz, Fiziksel kalıp 450 TL, 3D modelleme 19 TL',
+                        monthly_fee_try=Decimal('0.00'),
+                        per_mold_price_try=Decimal('450.00'),
+                        modeling_service_fee_try=Decimal('19.00'),
                         monthly_model_limit=999999,
                         is_monthly=True,
                         is_active=True,
-                        price_try=Decimal('100.00'),
+                        price_try=Decimal('0.00'),
                         price_usd=Decimal('0.00'),
                     )
                 
                 if standard_plan:
-                    # Abonelik talebi oluştur (ONAY BEKLİYOR)
-                    subscription_request = SubscriptionRequest.objects.create(
-                        user=user,
-                        plan=standard_plan,
-                        status='pending',
-                        user_notes='Yeni kayıt - otomatik talep'
-                    )
-                    
-                    # Pending durumda abonelik oluştur
+                    # OTOMATİK STANDART ABONELİK OLUŞTUR (AKTİF)
                     subscription = UserSubscription.objects.create(
                         user=user,
                         plan=standard_plan,
-                        status='pending',  # ONAY BEKLİYOR
+                        status='active',  # OTOMATİK AKTİF
                         start_date=timezone.now(),
                         end_date=None,  # Sınırsız
                         models_used_this_month=0,
                         amount_paid=0,
                         currency='TRY'
                     )
-                    
-                    # Kullanıcıya bildirim gönder
+
+                    # Kullanıcıya hoş geldin bildirimi gönder
                     SimpleNotification.objects.create(
                         user=user,
                         title='👋 Hoş Geldiniz!',
-                        message=f'Kaydınız başarıyla tamamlandı. Abonelik talebiniz admin onayı bekliyor. Onaylandıktan sonra sistemi sınırsız kullanabileceksiniz.',
-                        notification_type='info',
-                        related_url='/center/subscription-status/'
+                        message=f'Kaydınız başarıyla tamamlandı. Standart abonelik otomatik olarak aktif edildi. Sistemi hemen kullanmaya başlayabilirsiniz!',
+                        notification_type='success',
+                        related_url='/center/dashboard/'
                     )
                     
                     # Admin'lere bildirim gönder

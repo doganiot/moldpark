@@ -1221,7 +1221,51 @@ def reject_subscription_request(request, request_id):
 
 @login_required
 def subscription_dashboard(request):
-    """Abonelik yönetim paneli - Paket satın alma ve ödeme"""
+    """Abonelik yönetim paneli - Paket satın alma ve abonelik değiştirme"""
+    # Abonelik değiştirme işlemi
+    if request.method == 'POST' and 'change_subscription' in request.POST:
+        plan_id = request.POST.get('plan_id')
+        if plan_id:
+            try:
+                new_plan = PricingPlan.objects.get(id=plan_id, is_active=True)
+
+                # Mevcut aktif aboneliği bul ve iptal et
+                try:
+                    current_subscription = UserSubscription.objects.get(user=request.user, status='active')
+                    current_subscription.status = 'cancelled'
+                    current_subscription.save()
+                except UserSubscription.DoesNotExist:
+                    pass
+
+                # Yeni abonelik oluştur
+                new_subscription = UserSubscription.objects.create(
+                    user=request.user,
+                    plan=new_plan,
+                    status='active',
+                    start_date=timezone.now(),
+                    end_date=None,  # Sınırsız
+                    models_used_this_month=0,
+                    amount_paid=0,
+                    currency='TRY'
+                )
+
+                # Kullanıcıya bildirim gönder
+                SimpleNotification.objects.create(
+                    user=request.user,
+                    title='✅ Abonelik Güncellendi',
+                    message=f'Aboneliğiniz başarıyla {new_plan.name} olarak güncellendi.',
+                    notification_type='success',
+                    related_url='/center/dashboard/'
+                )
+
+                messages.success(request, f'Aboneliğiniz {new_plan.name} olarak güncellendi.')
+                return redirect('core:subscription_dashboard')
+
+            except PricingPlan.DoesNotExist:
+                messages.error(request, 'Seçilen abonelik planı bulunamadı.')
+            except Exception as e:
+                messages.error(request, f'Abonelik güncelleme hatası: {str(e)}')
+
     # Paket satın alma işlemi
     if request.method == 'POST' and 'purchase_package' in request.POST:
         form = PackagePurchaseForm(request.POST)
@@ -1490,12 +1534,20 @@ def subscription_dashboard(request):
     # Paket satın alma formu
     purchase_form = PackagePurchaseForm()
     
+    # Abonelik planları (Standart ve Pro)
+    subscription_plans = PricingPlan.objects.filter(
+        is_active=True,
+        plan_type='standard',
+        name__in=['Standart Abonelik', 'Pro Abonelik']
+    ).order_by('monthly_fee_try')
+
     context = {
         'subscription': subscription,
         'payments': payments,
         'packages': packages.exclude(plan_type='single'),  # single hariç tüm paketler (standard ve package)
         'single_plan': single_plan,
         'purchase_form': purchase_form,
+        'subscription_plans': subscription_plans,
     }
     
     return render(request, 'core/subscription_dashboard.html', context)

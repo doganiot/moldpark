@@ -330,8 +330,8 @@
                     <h3 class="fw-bold mb-2">{{ plan.name }}</h3>
                     
                     <div class="mb-3">
-                        <div class="plan-price">₺{{ plan.price_try|floatformat:2 }}</div>
-                        <div class="text-muted small">Toplam Fiyat</div>
+                        <div class="plan-price">₺{{ plan.monthly_fee_try|floatformat:0 }}</div>
+                        <div class="text-muted small">Aylık Ücret</div>
                     </div>
                     
                     <div class="mb-3 p-3 bg-light rounded">

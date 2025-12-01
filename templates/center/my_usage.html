@@ -284,7 +284,7 @@
                             <circle class="progress-circle-bg" cx="60" cy="60" r="52"></circle>
                             <circle class="progress-circle-fill" cx="60" cy="60" r="52"
                                     stroke-dasharray="327"
-                                    stroke-dashoffset="{{ 327 - (327 * usage_limits.percentage / 100) }}"
+                                    stroke-dashoffset="{{ usage_limits.stroke_dashoffset }}"
                                     style="stroke: {% if usage_limits.percentage > 80 %}#dc3545{% elif usage_limits.percentage > 60 %}#ffc107{% else %}#28a745{% endif %};">
                             </circle>
                         </svg>
@@ -434,6 +434,37 @@
                     
                     <!-- Tutar Bilgileri -->
                     <div class="list-group list-group-flush">
+                        {% if billing_summary.total_cost_this_month > 0 %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <span class="text-muted">Bu Ay Kullanım Maliyeti</span>
+                            <strong>₺{{ billing_summary.total_cost_this_month|floatformat:2 }}</strong>
+                        </div>
+                        {% if billing_summary.monthly_system_fee > 0 %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center px-0 small">
+                            <span class="text-muted">• Aylık Sistem Kullanım Ücreti</span>
+                            <span>₺{{ billing_summary.monthly_system_fee|floatformat:2 }}</span>
+                        </div>
+                        {% endif %}
+                        {% if billing_summary.physical_cost_this_month > 0 %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center px-0 small">
+                            <span class="text-muted">• Fiziksel Kalıp ({{ physical_this_month }} adet × ₺{{ billing_summary.pricing.physical_mold_price|floatformat:2 }})</span>
+                            <span>₺{{ billing_summary.physical_cost_this_month|floatformat:2 }}</span>
+                        </div>
+                        {% endif %}
+                        {% if billing_summary.digital_cost_this_month > 0 %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center px-0 small">
+                            <span class="text-muted">• 3D Modelleme ({{ digital_this_month }} adet × ₺{{ billing_summary.pricing.digital_modeling_price|floatformat:2 }})</span>
+                            <span>₺{{ billing_summary.digital_cost_this_month|floatformat:2 }}</span>
+                        </div>
+                        {% endif %}
+                        {% if billing_summary.invoiced_total > 0 %}
+                        <hr class="my-2">
+                        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <span class="text-muted">Önceki Faturalar</span>
+                            <strong>₺{{ billing_summary.invoiced_total|floatformat:2 }}</strong>
+                        </div>
+                        {% endif %}
+                        {% endif %}
                         <div class="list-group-item d-flex justify-content-between align-items-center px-0">
                             <span class="text-muted">Toplam Tutar</span>
                             <strong>₺{{ billing_summary.total_amount|floatformat:2 }}</strong>
@@ -444,7 +475,7 @@
                         </div>
                         <div class="list-group-item d-flex justify-content-between align-items-center px-0">
                             <span class="text-muted">Kalan</span>
-                            <strong class="text-warning">₺{{ billing_summary.total_amount|sub:billing_summary.paid_amount|floatformat:2 }}</strong>
+                            <strong class="text-warning">₺{{ billing_summary.remaining_amount|floatformat:2 }}</strong>
                         </div>
                     </div>
                     

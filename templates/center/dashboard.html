@@ -651,6 +651,15 @@
                             <p class="text-muted small mb-0">{% trans "Aylık faturalarınız" %}</p>
                         </a>
                     </div>
+                    <div class="col-md-6 col-lg-3">
+                        <a href="{% url 'center:my_usage' %}" class="quick-action">
+                            <div class="action-icon bg-secondary bg-opacity-10">
+                                <i class="fas fa-chart-line text-secondary"></i>
+                            </div>
+                            <h6 class="fw-bold mb-2">{% trans "Kullanımlarım" %}</h6>
+                            <p class="text-muted small mb-0">{% trans "İstatistikleri incele" %}</p>
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -827,7 +836,13 @@
                     </div>
                     <div class="d-flex justify-content-between mt-2">
                         <small class="text-muted">{% trans "%" %}{{ usage_percentage }} kullanıldı</small>
-                        <small class="text-muted">${{ subscription.plan.price_usd }}/ay</small>
+                        <small class="text-muted">{{ subscription.plan.monthly_fee_try|floatformat:0 }} TL/ay</small>
+                    </div>
+                    <div class="mt-3 text-center">
+                        <a href="{% url 'core:subscription_dashboard' %}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-exchange-alt me-1"></i>
+                            {% trans "Abonelik Değiştir" %}
+                        </a>
                     </div>
                 </div>
             </div>

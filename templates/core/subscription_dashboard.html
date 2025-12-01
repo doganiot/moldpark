@@ -305,6 +305,63 @@
                 </div>
             </div>
             {% else %}
+            <!-- Abonelik Değiştirme Bölümü -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exchange-alt me-2"></i>Abonelik Değiştir
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Mevcut abonelik planınızı Standart veya Pro olarak değiştirebilirsiniz.
+                    </div>
+
+                    <form method="post" id="subscriptionChangeForm">
+                        {% csrf_token %}
+                        <input type="hidden" name="change_subscription" value="1">
+
+                        <!-- Plan Seçimi -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Yeni Abonelik Planı</label>
+                            <div class="row g-3">
+                                {% for plan in subscription_plans %}
+                                <div class="col-md-6">
+                                    <div class="card h-100 border subscription-plan-card {% if subscription and subscription.plan.id == plan.id %}selected{% endif %}"
+                                         data-plan-id="{{ plan.id }}"
+                                         style="cursor: pointer; transition: all 0.3s;">
+                                        <div class="card-body text-center">
+                                            {% if plan.name == 'Pro Abonelik' %}
+                                            <span class="badge bg-warning text-dark mb-2">POPÜLER</span>
+                                            {% endif %}
+                                            <h5 class="fw-bold">{{ plan.name }}</h5>
+                                            <div class="h4 text-primary mb-2">{{ plan.monthly_fee_try|floatformat:0 }} TL<span class="fs-6 text-muted">/ay</span></div>
+                                            <div class="text-muted small mb-2">
+                                                Fiziksel Kalıp: ₺{{ plan.per_mold_price_try|floatformat:0 }}/adet<br>
+                                                3D Modelleme: ₺{{ plan.modeling_service_fee_try|floatformat:0 }}/adet
+                                            </div>
+                                            {% if subscription and subscription.plan.id == plan.id %}
+                                            <span class="badge bg-success">Mevcut Planınız</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <input type="hidden" name="plan_id" id="selected-plan-id" value="{% if subscription %}{{ subscription.plan.id }}{% endif %}">
+
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-success btn-lg" id="changeSubscriptionBtn" disabled>
+                                <i class="fas fa-exchange-alt me-2"></i>Aboneliği Değiştir
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
             <!-- Paket Satın Alma Bölümü -->
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-header bg-primary text-white">
@@ -474,10 +531,33 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Abonelik plan seçimi
+    const subscriptionPlanCards = document.querySelectorAll('.subscription-plan-card');
+    const selectedPlanInput = document.getElementById('selected-plan-id');
+    const changeSubscriptionBtn = document.getElementById('changeSubscriptionBtn');
+
+    subscriptionPlanCards.forEach(card => {
+        card.addEventListener('click', function() {
+            // Eğer bu zaten seçili plan ise, hiçbir şey yapma
+            if (this.classList.contains('selected')) {
+                return;
+            }
+
+            subscriptionPlanCards.forEach(c => c.classList.remove('selected'));
+            this.classList.add('selected');
+            const planId = this.getAttribute('data-plan-id');
+            selectedPlanInput.value = planId;
+
+            // Butonu aktif et
+            changeSubscriptionBtn.disabled = false;
+            changeSubscriptionBtn.innerHTML = '<i class="fas fa-exchange-alt me-2"></i>Planı Değiştir';
+        });
+    });
+
     // Paket seçimi
     const packageCards = document.querySelectorAll('.package-card');
     const planSelect = document.getElementById('package-select');
-    
+
     packageCards.forEach(card => {
         card.addEventListener('click', function() {
             packageCards.forEach(c => c.classList.remove('selected'));
