@@ -1707,3 +1707,171 @@ def center_invoice_detail(request, invoice_id):
     }
     
     return render(request, 'center/invoice_detail.html', context)
+
+
+@login_required
+@center_required
+def my_usage(request):
+    """İşitme merkezi kullanım detayları - Abonelik, fiziksel kalıp ve 3D modelleme takibi"""
+    try:
+        center = request.user.center
+    except Center.DoesNotExist:
+        messages.error(request, "Merkez bilgileriniz bulunamadı.")
+        return redirect('center:profile')
+    
+    from mold.models import EarMold, ModeledMold
+    from core.models import UserSubscription, Invoice
+    from django.db.models import Count, Q, Sum
+    from datetime import datetime, timedelta
+    from django.utils import timezone
+    import calendar
+    
+    # Abonelik bilgileri
+    subscription = UserSubscription.objects.filter(user=request.user, status='active').first()
+    
+    # Tarih hesaplamaları
+    today = timezone.now().date()
+    current_month_start = today.replace(day=1)
+    current_year_start = today.replace(month=1, day=1)
+    
+    # Tüm kalıplar
+    all_molds = EarMold.objects.filter(center=center)
+    
+    # Fiziksel kalıplar
+    physical_molds = all_molds.filter(is_physical_shipment=True)
+    physical_this_month = physical_molds.filter(created_at__gte=current_month_start).count()
+    physical_this_year = physical_molds.filter(created_at__gte=current_year_start).count()
+    physical_total = physical_molds.count()
+    
+    # 3D modelleme hizmetleri (is_physical_shipment=False VEYA ModeledMold kaydı olanlar)
+    digital_molds = all_molds.filter(
+        Q(is_physical_shipment=False) | Q(modeled_files__isnull=False)
+    ).distinct()
+    digital_this_month = digital_molds.filter(created_at__gte=current_month_start).count()
+    digital_this_year = digital_molds.filter(created_at__gte=current_year_start).count()
+    digital_total = digital_molds.count()
+    
+    # Aylık kullanım grafiği için veri (son 12 ay)
+    monthly_data = []
+    for i in range(11, -1, -1):
+        month_date = today - timedelta(days=30*i)
+        month_start = month_date.replace(day=1)
+        month_end = (month_start + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+        
+        month_physical = physical_molds.filter(
+            created_at__gte=month_start,
+            created_at__lte=month_end
+        ).count()
+        
+        month_digital = all_molds.filter(
+            Q(is_physical_shipment=False) | Q(modeled_files__isnull=False)
+        ).filter(
+            created_at__gte=month_start,
+            created_at__lte=month_end
+        ).distinct().count()
+        
+        monthly_data.append({
+            'month': month_date.strftime('%B'),
+            'year': month_date.year,
+            'physical': month_physical,
+            'digital': month_digital,
+            'total': month_physical + month_digital
+        })
+    
+    # Kullanım limitleri
+    usage_limits = {
+        'monthly_limit': 0,
+        'used_this_month': 0,
+        'remaining': 0,
+        'percentage': 0,
+        'package_credits': 0,
+        'used_credits': 0,
+        'remaining_credits': 0
+    }
+    
+    if subscription:
+        if subscription.plan:
+            # Aylık limit
+            usage_limits['monthly_limit'] = subscription.plan.monthly_limit
+            usage_limits['used_this_month'] = subscription.models_used_this_month
+            usage_limits['remaining'] = max(0, usage_limits['monthly_limit'] - usage_limits['used_this_month'])
+            
+            if usage_limits['monthly_limit'] > 0:
+                usage_limits['percentage'] = min(100, int((usage_limits['used_this_month'] / usage_limits['monthly_limit']) * 100))
+            
+            # Paket kredileri (varsa)
+            if subscription.plan.plan_type == 'package':
+                usage_limits['package_credits'] = subscription.package_credits
+                usage_limits['used_credits'] = subscription.used_credits
+                usage_limits['remaining_credits'] = subscription.get_remaining_credits()
+    
+    # Durum bazlı istatistikler
+    status_stats = {
+        'waiting': all_molds.filter(status='waiting').count(),
+        'processing': all_molds.filter(status='processing').count(),
+        'completed': all_molds.filter(status='completed').count(),
+        'delivered': all_molds.filter(status='delivered').count(),
+    }
+    
+    # Son 10 kullanım
+    recent_usage = []
+    for mold in all_molds.order_by('-created_at')[:10]:
+        usage_type = 'Fiziksel Kalıp' if mold.is_physical_shipment else '3D Modelleme'
+        if not mold.is_physical_shipment and mold.modeled_files.exists():
+            usage_type = '3D Modelleme'
+        
+        recent_usage.append({
+            'date': mold.created_at,
+            'patient': f"{mold.patient_name} {mold.patient_surname}",
+            'type': usage_type,
+            'status': mold.get_status_display(),
+            'id': mold.id
+        })
+    
+    # Faturalama özeti
+    current_month = datetime.now().month
+    current_year = datetime.now().year
+    
+    invoices = Invoice.objects.filter(
+        Q(user=request.user, invoice_type='center') |
+        Q(issued_by_center=center, invoice_type='center_admin_invoice'),
+        issue_date__year=current_year,
+        issue_date__month=current_month
+    )
+    
+    billing_summary = {
+        'total_invoices': invoices.count(),
+        'paid': invoices.filter(status='paid').count(),
+        'pending': invoices.filter(status__in=['issued', 'overdue']).count(),
+        'total_amount': sum(inv.total_amount for inv in invoices if inv.total_amount),
+        'paid_amount': sum(inv.total_amount for inv in invoices.filter(status='paid') if inv.total_amount)
+    }
+    
+    context = {
+        'center': center,
+        'subscription': subscription,
+        
+        # Fiziksel kalıp istatistikleri
+        'physical_this_month': physical_this_month,
+        'physical_this_year': physical_this_year,
+        'physical_total': physical_total,
+        
+        # 3D modelleme istatistikleri
+        'digital_this_month': digital_this_month,
+        'digital_this_year': digital_this_year,
+        'digital_total': digital_total,
+        
+        # Toplam istatistikler
+        'total_this_month': physical_this_month + digital_this_month,
+        'total_this_year': physical_this_year + digital_this_year,
+        'total_all_time': physical_total + digital_total,
+        
+        # Grafikler ve limitler
+        'monthly_data': monthly_data,
+        'usage_limits': usage_limits,
+        'status_stats': status_stats,
+        'recent_usage': recent_usage,
+        'billing_summary': billing_summary,
+    }
+    
+    return render(request, 'center/my_usage.html', context)

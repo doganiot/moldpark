@@ -249,7 +249,7 @@ class MoldParkApp {
         
         // Sadece görsel/PDF dosyaları için genel validasyonu çalıştır
         if (!is3DModelFile) {
-            this.validateFile(input, file);
+        this.validateFile(input, file);
         } else {
             // 3D model dosyaları için sadece hata mesajlarını temizle
             this.hideFieldError(input);

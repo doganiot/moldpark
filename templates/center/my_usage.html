@@ -1,0 +1,553 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% load humanize %}
+
+{% block title %}Kullanımlarım - {{ center.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .usage-card {
+        border-radius: 12px;
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        margin-bottom: 1.5rem;
+    }
+    
+    .stat-card {
+        border-radius: 10px;
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+    
+    .subscription-badge {
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+    
+    .usage-timeline {
+        position: relative;
+        padding-left: 40px;
+    }
+    
+    .usage-timeline::before {
+        content: '';
+        position: absolute;
+        left: 15px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #e9ecef;
+    }
+    
+    .usage-item {
+        position: relative;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        margin-bottom: 15px;
+    }
+    
+    .usage-item::before {
+        content: '';
+        position: absolute;
+        left: -30px;
+        top: 20px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #6c757d;
+        border: 2px solid #fff;
+    }
+    
+    .usage-item.physical::before {
+        background: #28a745;
+    }
+    
+    .usage-item.digital::before {
+        background: #ffc107;
+    }
+    
+    .progress-circle {
+        width: 120px;
+        height: 120px;
+        position: relative;
+        margin: 0 auto;
+    }
+    
+    .progress-circle svg {
+        width: 100%;
+        height: 100%;
+        transform: rotate(-90deg);
+    }
+    
+    .progress-circle-bg {
+        fill: none;
+        stroke: #e9ecef;
+        stroke-width: 8;
+    }
+    
+    .progress-circle-fill {
+        fill: none;
+        stroke: #28a745;
+        stroke-width: 8;
+        stroke-linecap: round;
+        transition: stroke-dashoffset 0.6s ease;
+    }
+    
+    .progress-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+    }
+    
+    .chart-container {
+        position: relative;
+        height: 300px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Başlık ve Abonelik Durumu -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="usage-card card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="mb-1">
+                                <i class="fas fa-chart-line me-2 text-primary"></i>
+                                Kullanımlarım
+                            </h4>
+                            <p class="text-muted mb-0">Detaylı kullanım takibi ve abonelik durumu</p>
+                        </div>
+                        <div class="text-end">
+                            {% if subscription %}
+                                <span class="subscription-badge bg-success text-white">
+                                    <i class="fas fa-check-circle me-1"></i>
+                                    {{ subscription.plan.name }} - Aktif
+                                </span>
+                                <div class="small text-muted mt-1">
+                                    Başlangıç: {{ subscription.start_date|date:"d M Y" }}
+                                </div>
+                            {% else %}
+                                <span class="subscription-badge bg-warning text-dark">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Abonelik Yok
+                                </span>
+                                <div class="mt-2">
+                                    <a href="{% url 'core:pricing' %}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-crown me-1"></i> Plan Seç
+                                    </a>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Özet İstatistikler -->
+    <div class="row mb-4">
+        <!-- Fiziksel Kalıplar -->
+        <div class="col-md-4 mb-3">
+            <div class="stat-card card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="stat-icon bg-success bg-opacity-10">
+                            <i class="fas fa-box text-success"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h6 class="mb-0 text-muted">Fiziksel Kalıplar</h6>
+                            <h3 class="mb-0">{{ physical_total }}</h3>
+                        </div>
+                    </div>
+                    <div class="row text-center small">
+                        <div class="col-4">
+                            <div class="text-muted">Bu Ay</div>
+                            <strong>{{ physical_this_month }}</strong>
+                        </div>
+                        <div class="col-4">
+                            <div class="text-muted">Bu Yıl</div>
+                            <strong>{{ physical_this_year }}</strong>
+                        </div>
+                        <div class="col-4">
+                            <div class="text-muted">Toplam</div>
+                            <strong>{{ physical_total }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 3D Modelleme -->
+        <div class="col-md-4 mb-3">
+            <div class="stat-card card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="stat-icon bg-warning bg-opacity-10">
+                            <i class="fas fa-cube text-warning"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h6 class="mb-0 text-muted">3D Modelleme</h6>
+                            <h3 class="mb-0">{{ digital_total }}</h3>
+                        </div>
+                    </div>
+                    <div class="row text-center small">
+                        <div class="col-4">
+                            <div class="text-muted">Bu Ay</div>
+                            <strong>{{ digital_this_month }}</strong>
+                        </div>
+                        <div class="col-4">
+                            <div class="text-muted">Bu Yıl</div>
+                            <strong>{{ digital_this_year }}</strong>
+                        </div>
+                        <div class="col-4">
+                            <div class="text-muted">Toplam</div>
+                            <strong>{{ digital_total }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Toplam Kullanım -->
+        <div class="col-md-4 mb-3">
+            <div class="stat-card card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="stat-icon bg-primary bg-opacity-10">
+                            <i class="fas fa-chart-pie text-primary"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h6 class="mb-0 text-muted">Toplam Kullanım</h6>
+                            <h3 class="mb-0">{{ total_all_time }}</h3>
+                        </div>
+                    </div>
+                    <div class="row text-center small">
+                        <div class="col-4">
+                            <div class="text-muted">Bu Ay</div>
+                            <strong>{{ total_this_month }}</strong>
+                        </div>
+                        <div class="col-4">
+                            <div class="text-muted">Bu Yıl</div>
+                            <strong>{{ total_this_year }}</strong>
+                        </div>
+                        <div class="col-4">
+                            <div class="text-muted">Toplam</div>
+                            <strong>{{ total_all_time }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Kullanım Limitleri ve Grafik -->
+    <div class="row mb-4">
+        <!-- Kullanım Limitleri -->
+        {% if subscription %}
+        <div class="col-md-4 mb-3">
+            <div class="usage-card card">
+                <div class="card-header bg-transparent border-bottom">
+                    <h6 class="mb-0">
+                        <i class="fas fa-tachometer-alt me-2"></i>
+                        Kullanım Limitleri
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="progress-circle">
+                        <svg>
+                            <circle class="progress-circle-bg" cx="60" cy="60" r="52"></circle>
+                            <circle class="progress-circle-fill" cx="60" cy="60" r="52"
+                                    stroke-dasharray="327"
+                                    stroke-dashoffset="{{ 327 - (327 * usage_limits.percentage / 100) }}"
+                                    style="stroke: {% if usage_limits.percentage > 80 %}#dc3545{% elif usage_limits.percentage > 60 %}#ffc107{% else %}#28a745{% endif %};">
+                            </circle>
+                        </svg>
+                        <div class="progress-text">
+                            <h4 class="mb-0">{{ usage_limits.percentage }}%</h4>
+                            <small class="text-muted">Kullanım</small>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Kullanılan</span>
+                            <strong>{{ usage_limits.used_this_month }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Limit</span>
+                            <strong>{{ usage_limits.monthly_limit }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Kalan</span>
+                            <strong class="text-success">{{ usage_limits.remaining }}</strong>
+                        </div>
+                    </div>
+                    
+                    {% if usage_limits.package_credits > 0 %}
+                    <hr>
+                    <h6 class="mb-3">Paket Kredileri</h6>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Toplam</span>
+                        <strong>{{ usage_limits.package_credits }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Kullanılan</span>
+                        <strong>{{ usage_limits.used_credits }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Kalan</span>
+                        <strong class="text-success">{{ usage_limits.remaining_credits }}</strong>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Aylık Kullanım Grafiği -->
+        <div class="col-md-{% if subscription %}8{% else %}12{% endif %} mb-3">
+            <div class="usage-card card">
+                <div class="card-header bg-transparent border-bottom">
+                    <h6 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>
+                        Son 12 Aylık Kullanım
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="usageChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Son Kullanımlar ve Faturalama -->
+    <div class="row">
+        <!-- Son Kullanımlar -->
+        <div class="col-md-7 mb-3">
+            <div class="usage-card card">
+                <div class="card-header bg-transparent border-bottom d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        <i class="fas fa-history me-2"></i>
+                        Son Kullanımlar
+                    </h6>
+                    <a href="{% url 'mold:mold_list' %}" class="btn btn-sm btn-outline-primary">
+                        Tümünü Gör
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="usage-timeline">
+                        {% for usage in recent_usage %}
+                        <div class="usage-item {% if usage.type == 'Fiziksel Kalıp' %}physical{% else %}digital{% endif %}">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="mb-1">{{ usage.patient }}</h6>
+                                    <div class="d-flex align-items-center">
+                                        <span class="badge {% if usage.type == 'Fiziksel Kalıp' %}bg-success{% else %}bg-warning{% endif %} me-2">
+                                            {{ usage.type }}
+                                        </span>
+                                        <small class="text-muted">{{ usage.date|date:"d M Y H:i" }}</small>
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-secondary">{{ usage.status }}</span>
+                                    <div class="mt-1">
+                                        <a href="{% url 'mold:mold_detail' usage.id %}" class="btn btn-sm btn-outline-secondary">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">Henüz kullanım kaydı bulunmamaktadır.</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Faturalama Özeti -->
+        <div class="col-md-5 mb-3">
+            <div class="usage-card card">
+                <div class="card-header bg-transparent border-bottom d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        <i class="fas fa-file-invoice me-2"></i>
+                        Faturalama Özeti (Bu Ay)
+                    </h6>
+                    <a href="{% url 'center:usage_details' %}" class="btn btn-sm btn-outline-primary">
+                        Faturalar
+                    </a>
+                </div>
+                <div class="card-body">
+                    <!-- Fatura İstatistikleri -->
+                    <div class="row text-center mb-4">
+                        <div class="col-4">
+                            <div class="border-end">
+                                <h5 class="mb-0">{{ billing_summary.total_invoices }}</h5>
+                                <small class="text-muted">Toplam</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="border-end">
+                                <h5 class="mb-0 text-success">{{ billing_summary.paid }}</h5>
+                                <small class="text-muted">Ödendi</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div>
+                                <h5 class="mb-0 text-warning">{{ billing_summary.pending }}</h5>
+                                <small class="text-muted">Bekleyen</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tutar Bilgileri -->
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <span class="text-muted">Toplam Tutar</span>
+                            <strong>₺{{ billing_summary.total_amount|floatformat:2 }}</strong>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <span class="text-muted">Ödenen</span>
+                            <strong class="text-success">₺{{ billing_summary.paid_amount|floatformat:2 }}</strong>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <span class="text-muted">Kalan</span>
+                            <strong class="text-warning">₺{{ billing_summary.total_amount|sub:billing_summary.paid_amount|floatformat:2 }}</strong>
+                        </div>
+                    </div>
+                    
+                    <!-- Durum İstatistikleri -->
+                    <div class="mt-4">
+                        <h6 class="mb-3">Kalıp Durumları</h6>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <div class="p-2 bg-warning bg-opacity-10 rounded text-center">
+                                    <h5 class="mb-0">{{ status_stats.waiting }}</h5>
+                                    <small>Bekleyen</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-2 bg-info bg-opacity-10 rounded text-center">
+                                    <h5 class="mb-0">{{ status_stats.processing }}</h5>
+                                    <small>İşleniyor</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-2 bg-success bg-opacity-10 rounded text-center">
+                                    <h5 class="mb-0">{{ status_stats.completed }}</h5>
+                                    <small>Tamamlandı</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-2 bg-primary bg-opacity-10 rounded text-center">
+                                    <h5 class="mb-0">{{ status_stats.delivered }}</h5>
+                                    <small>Teslim Edildi</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Aylık Kullanım Grafiği
+const ctx = document.getElementById('usageChart').getContext('2d');
+const usageChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: {{ monthly_data|safe }}.map(item => `${item.month.substring(0, 3)} ${item.year}`),
+        datasets: [
+            {
+                label: 'Fiziksel Kalıp',
+                data: {{ monthly_data|safe }}.map(item => item.physical),
+                backgroundColor: 'rgba(40, 167, 69, 0.5)',
+                borderColor: 'rgba(40, 167, 69, 1)',
+                borderWidth: 1
+            },
+            {
+                label: '3D Modelleme',
+                data: {{ monthly_data|safe }}.map(item => item.digital),
+                backgroundColor: 'rgba(255, 193, 7, 0.5)',
+                borderColor: 'rgba(255, 193, 7, 1)',
+                borderWidth: 1
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: true,
+                position: 'top',
+            },
+            tooltip: {
+                callbacks: {
+                    footer: function(tooltipItems) {
+                        let sum = 0;
+                        tooltipItems.forEach(function(tooltipItem) {
+                            sum += tooltipItem.parsed.y;
+                        });
+                        return 'Toplam: ' + sum;
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            },
+            x: {
+                grid: {
+                    display: false
+                }
+            }
+        }
+    }
+});
+
+// JSON verisini düzelt
+const monthlyData = {{ monthly_data|safe|escapejs }};
+</script>
+{% endblock %}

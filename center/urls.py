@@ -15,6 +15,7 @@ urlpatterns = [
     path('network/', views.network_management, name='network_management'),
 
     # Usage Details
+    path('my-usage/', views.my_usage, name='my_usage'),
     path('usage/', views.billing_invoices, name='usage_details'),
     path('usage/<int:invoice_id>/', views.billing_invoice_detail, name='usage_invoice_detail'),
     
