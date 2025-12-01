@@ -698,13 +698,16 @@ def admin_financial_control_panel(request):
                 created_at__lte=end_date
             )
             
-            # Sadece 3D modelleme hizmeti (fiziksel gönderim yok)
+            # 3D modelleme hizmeti: is_physical_shipment=False olanlar VEYA ModeledMold kaydı olanlar
+            from django.db.models import Q
+            from mold.models import ModeledMold
             digital_only_molds = EarMold.objects.filter(
                 center=center,
-                is_physical_shipment=False,
                 created_at__gte=start_date,
                 created_at__lte=end_date
-            )
+            ).filter(
+                Q(is_physical_shipment=False) | Q(modeled_files__isnull=False)
+            ).distinct()
             
             physical_count = physical_molds.count()
             digital_count = digital_only_molds.count()
@@ -1148,13 +1151,14 @@ def create_single_center_invoice(request, center_id):
             created_at__lte=end_date
         )
         
-        # Sadece 3D modelleme hizmeti
+        # 3D modelleme hizmeti: is_physical_shipment=False olanlar VEYA ModeledMold kaydı olanlar
         digital_only_molds = EarMold.objects.filter(
             center=center,
-            is_physical_shipment=False,
             created_at__gte=start_date,
             created_at__lte=end_date
-        )
+        ).filter(
+            Q(is_physical_shipment=False) | Q(modeled_files__isnull=False)
+        ).distinct()
         
         physical_count = physical_molds.count()
         digital_count = digital_only_molds.count()
@@ -1552,13 +1556,14 @@ def bulk_create_center_invoices(request):
                 created_at__lte=end_date
             )
             
-            # Sadece 3D modelleme hizmeti
+            # 3D modelleme hizmeti: is_physical_shipment=False olanlar VEYA ModeledMold kaydı olanlar
             digital_only_molds = EarMold.objects.filter(
                 center=center,
-                is_physical_shipment=False,
                 created_at__gte=start_date,
                 created_at__lte=end_date
-            )
+            ).filter(
+                Q(is_physical_shipment=False) | Q(modeled_files__isnull=False)
+            ).distinct()
             
             physical_count = physical_molds.count()
             digital_count = digital_only_molds.count()

@@ -476,6 +476,12 @@ def dashboard(request):
             'value': status_stats['completed'] + status_stats['delivered'],
             'icon': 'fas fa-check-circle',
             'color': 'success'
+        },
+        {
+            'title': '3D Modelleme',
+            'value': shipment_stats['digital_scans'],
+            'icon': 'fas fa-cube',
+            'color': 'warning'
         }
     ]
     
