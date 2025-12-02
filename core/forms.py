@@ -386,6 +386,129 @@ class CreditCardPaymentForm(forms.Form):
     )
 
 
+class SubscriptionPaymentForm(forms.Form):
+    """Abonelik Ödeme Formu"""
+    
+    PAYMENT_METHOD_CHOICES = [
+        ('credit_card', 'Kredi Kartı'),
+        ('bank_transfer', 'Havale/EFT'),
+    ]
+    
+    payment_method = forms.ChoiceField(
+        choices=PAYMENT_METHOD_CHOICES,
+        label='Ödeme Yöntemi',
+        widget=forms.RadioSelect(attrs={
+            'class': 'form-check-input'
+        }),
+        initial='credit_card'
+    )
+    
+    # Kredi Kartı Alanları
+    card_number = forms.CharField(
+        label='Kart Numarası',
+        max_length=19,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': '1234 5678 9012 3456',
+            'maxlength': '19'
+        })
+    )
+    
+    expiry_date = forms.CharField(
+        label='Geçerlilik Tarihi (AA/YY)',
+        max_length=5,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': '12/25',
+            'maxlength': '5'
+        })
+    )
+    
+    cvv = forms.CharField(
+        label='CVV',
+        max_length=4,
+        required=False,
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': '123',
+            'maxlength': '4'
+        })
+    )
+    
+    cardholder_name = forms.CharField(
+        label='Kart Sahibinin Adı',
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'MEHMET YILMAZ'
+        })
+    )
+    
+    # Havale/EFT Alanları
+    bank_reference_number = forms.CharField(
+        label='Banka Referans Numarası',
+        max_length=50,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Örn: 1234567890'
+        })
+    )
+    
+    payment_date = forms.DateField(
+        label='Ödeme Tarihi',
+        required=False,
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date'
+        })
+    )
+    
+    receipt_file = forms.FileField(
+        label='Ödeme Makbuzu',
+        required=False,
+        widget=forms.FileInput(attrs={
+            'class': 'form-control',
+            'accept': '.pdf,.jpg,.jpeg,.png'
+        })
+    )
+    
+    notes = forms.CharField(
+        label='Notlar (Opsiyonel)',
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 3,
+            'placeholder': 'Ek bilgiler...'
+        })
+    )
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        payment_method = cleaned_data.get('payment_method')
+        
+        if payment_method == 'credit_card':
+            if not cleaned_data.get('card_number'):
+                raise forms.ValidationError({'card_number': 'Kart numarası gereklidir.'})
+            if not cleaned_data.get('expiry_date'):
+                raise forms.ValidationError({'expiry_date': 'Geçerlilik tarihi gereklidir.'})
+            if not cleaned_data.get('cvv'):
+                raise forms.ValidationError({'cvv': 'CVV gereklidir.'})
+            if not cleaned_data.get('cardholder_name'):
+                raise forms.ValidationError({'cardholder_name': 'Kart sahibinin adı gereklidir.'})
+        
+        elif payment_method == 'bank_transfer':
+            if not cleaned_data.get('bank_reference_number'):
+                raise forms.ValidationError({'bank_reference_number': 'Banka referans numarası gereklidir.'})
+            if not cleaned_data.get('payment_date'):
+                raise forms.ValidationError({'payment_date': 'Ödeme tarihi gereklidir.'})
+        
+        return cleaned_data
+
+
 class BankTransferPaymentForm(forms.ModelForm):
     """Havale/EFT Ödeme Formu"""
     

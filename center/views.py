@@ -10,7 +10,7 @@ from django.contrib.auth import logout
 
 from django.db.models import Count, Q
 from django.db import models
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time as dt_time
 from decimal import Decimal
 from mold.models import EarMold
 from producer.models import ProducerNetwork, Producer
@@ -1731,8 +1731,12 @@ def my_usage(request):
     
     # Tarih hesaplamaları
     today = timezone.now().date()
-    current_month_start = today.replace(day=1)
-    current_year_start = today.replace(month=1, day=1)
+    current_month_start = timezone.make_aware(
+        datetime.combine(today.replace(day=1), dt_time.min)
+    )
+    current_year_start = timezone.make_aware(
+        datetime.combine(today.replace(month=1, day=1), dt_time.min)
+    )
     
     # Tüm kalıplar
     all_molds = EarMold.objects.filter(center=center)
@@ -1847,22 +1851,122 @@ def my_usage(request):
     invoiced_paid = sum(inv.total_amount for inv in invoices.filter(status='paid') if inv.total_amount)
 
     # Bu ayın henüz faturalandırılmamış kullanım maliyetleri
-    from core.models import PricingConfiguration
+    # Tarih bazlı fiyatlandırma: Pro abonelik öncesi Standart, sonrası Pro fiyatları
+    from core.models import PricingConfiguration, PricingPlan
     pricing = PricingConfiguration.get_active()
-
-    # Tüm kalıpların maliyetleri (mevcut kullanım için)
-    physical_cost_total = physical_total * float(pricing.physical_mold_price) if pricing else 0
-    digital_cost_total = digital_total * float(pricing.digital_modeling_price) if pricing else 0
-
-    # Aylık sistem kullanım ücreti (Standart abonelik ücretsiz)
-    if subscription and subscription.plan.monthly_fee_try == 0:
-        monthly_system_fee = 0  # Standart abonelik ücretsiz
+    
+    # Standart ve Pro plan fiyatları
+    standart_plan = PricingPlan.objects.filter(name='Standart Abonelik', is_active=True).first()
+    pro_plan = PricingPlan.objects.filter(name='Pro Abonelik', is_active=True).first()
+    
+    standart_physical_price = float(standart_plan.per_mold_price_try) if standart_plan else 450.00
+    standart_digital_price = float(standart_plan.modeling_service_fee_try) if standart_plan else 19.00
+    pro_physical_price = float(pro_plan.per_mold_price_try) if pro_plan else 399.00
+    pro_digital_price = float(pro_plan.modeling_service_fee_try) if pro_plan else 15.00
+    
+    # Mevcut abonelik bilgileri
+    if subscription and subscription.plan:
+        current_plan = subscription.plan
+        subscription_start_date = subscription.start_date
+        monthly_system_fee = float(subscription.plan.monthly_fee_try)
     else:
-        monthly_system_fee = float(pricing.monthly_system_fee) if pricing else 0
+        current_plan = None
+        subscription_start_date = None
+        monthly_system_fee = 0
+    
+    # Pro abonelik başlangıç tarihini bul (eğer Pro aboneliği varsa)
+    pro_subscription_start = None
+    if subscription and subscription.plan and subscription.plan.name == 'Pro Abonelik':
+        # date'i datetime'a çevir (günün başlangıcı olarak)
+        if subscription.start_date:
+            pro_subscription_start = timezone.make_aware(
+                datetime.combine(subscription.start_date, dt_time.min)
+            )
+    else:
+        # Kullanıcının Pro abonelik geçmişini kontrol et
+        pro_sub_history = UserSubscription.objects.filter(
+            user=request.user,
+            plan__name='Pro Abonelik',
+            status__in=['active', 'cancelled']
+        ).order_by('-start_date').first()
+        if pro_sub_history and pro_sub_history.start_date:
+            pro_subscription_start = timezone.make_aware(
+                datetime.combine(pro_sub_history.start_date, dt_time.min)
+            )
+    
+    # Tüm kalıpları tarih bazlı fiyatlandır - Merkezileştirilmiş fonksiyon kullan
+    from core.views_financial import get_mold_price_at_date
+    
+    physical_cost_total = 0
+    digital_cost_total = 0
+    physical_cost_this_month = 0
+    digital_cost_this_month = 0
+    
+    # Fiziksel kalıplar
+    for mold in physical_molds:
+        # Merkezileştirilmiş fonksiyon kullan
+        mold_price = float(get_mold_price_at_date(mold, request.user, pricing))
+        
+        physical_cost_total += mold_price
+        if mold.created_at >= current_month_start:
+            physical_cost_this_month += mold_price
+    
+    # 3D modelleme kalıpları
+    for mold in digital_molds:
+        # Merkezileştirilmiş fonksiyon kullan
+        mold_price = float(get_mold_price_at_date(mold, request.user, pricing))
+        
+        digital_cost_total += mold_price
+        if mold.created_at >= current_month_start:
+            digital_cost_this_month += mold_price
 
-    # Bu ay maliyet (faturalandırılmamış olanlar için)
-    physical_cost_this_month = physical_this_month * float(pricing.physical_mold_price) if pricing else 0
-    digital_cost_this_month = digital_this_month * float(pricing.digital_modeling_price) if pricing else 0
+    # Bu ay için Pro öncesi/sonrası ayrımı
+    physical_before_pro_this_month = 0
+    physical_after_pro_this_month = 0
+    digital_before_pro_this_month = 0
+    digital_after_pro_this_month = 0
+    physical_before_pro_this_month_count = 0
+    physical_after_pro_this_month_count = 0
+    digital_before_pro_this_month_count = 0
+    digital_after_pro_this_month_count = 0
+    
+    if pro_subscription_start:
+        # Bu ay için Pro öncesi kalıplar
+        physical_before_pro_this_month_molds = physical_molds.filter(
+            Q(created_at__lt=pro_subscription_start) & Q(created_at__gte=current_month_start)
+        )
+        # Bu ay için Pro sonrası kalıplar
+        physical_after_pro_this_month_molds = physical_molds.filter(
+            Q(created_at__gte=pro_subscription_start) & Q(created_at__gte=current_month_start)
+        )
+        digital_before_pro_this_month_molds = digital_molds.filter(
+            Q(created_at__lt=pro_subscription_start) & Q(created_at__gte=current_month_start)
+        )
+        digital_after_pro_this_month_molds = digital_molds.filter(
+            Q(created_at__gte=pro_subscription_start) & Q(created_at__gte=current_month_start)
+        )
+        
+        physical_before_pro_this_month_count = physical_before_pro_this_month_molds.count()
+        physical_after_pro_this_month_count = physical_after_pro_this_month_molds.count()
+        digital_before_pro_this_month_count = digital_before_pro_this_month_molds.count()
+        digital_after_pro_this_month_count = digital_after_pro_this_month_molds.count()
+        
+        # Merkezileştirilmiş fonksiyon kullanarak hesapla
+        physical_before_pro_this_month = 0
+        for mold in physical_before_pro_this_month_molds:
+            physical_before_pro_this_month += float(get_mold_price_at_date(mold, request.user, pricing))
+        
+        physical_after_pro_this_month = 0
+        for mold in physical_after_pro_this_month_molds:
+            physical_after_pro_this_month += float(get_mold_price_at_date(mold, request.user, pricing))
+        
+        digital_before_pro_this_month = 0
+        for mold in digital_before_pro_this_month_molds:
+            digital_before_pro_this_month += float(get_mold_price_at_date(mold, request.user, pricing))
+        
+        digital_after_pro_this_month = 0
+        for mold in digital_after_pro_this_month_molds:
+            digital_after_pro_this_month += float(get_mold_price_at_date(mold, request.user, pricing))
 
     # Toplam bu ay maliyet (öncelikli olarak bu ay gösterilsin)
     total_cost_this_month = physical_cost_this_month + digital_cost_this_month + monthly_system_fee
@@ -1877,6 +1981,49 @@ def my_usage(request):
     total_amount = invoiced_total + total_cost_this_month
     remaining_amount = total_amount - invoiced_paid
 
+    # Pro abonelik öncesi/sonrası ayrımı için detaylı hesaplama
+    physical_before_pro_count = 0
+    physical_after_pro_count = 0
+    digital_before_pro_count = 0
+    digital_after_pro_count = 0
+    physical_before_pro_cost = 0
+    physical_after_pro_cost = 0
+    digital_before_pro_cost = 0
+    digital_after_pro_cost = 0
+    
+    if pro_subscription_start:
+        physical_before_pro_molds = physical_molds.filter(created_at__lt=pro_subscription_start)
+        physical_after_pro_molds = physical_molds.filter(created_at__gte=pro_subscription_start)
+        digital_before_pro_molds = digital_molds.filter(created_at__lt=pro_subscription_start)
+        digital_after_pro_molds = digital_molds.filter(created_at__gte=pro_subscription_start)
+        
+        physical_before_pro_count = physical_before_pro_molds.count()
+        physical_after_pro_count = physical_after_pro_molds.count()
+        digital_before_pro_count = digital_before_pro_molds.count()
+        digital_after_pro_count = digital_after_pro_molds.count()
+        
+        # Merkezileştirilmiş fonksiyon kullanarak hesapla
+        physical_before_pro_cost = 0
+        for mold in physical_before_pro_molds:
+            physical_before_pro_cost += float(get_mold_price_at_date(mold, request.user, pricing))
+        
+        physical_after_pro_cost = 0
+        for mold in physical_after_pro_molds:
+            physical_after_pro_cost += float(get_mold_price_at_date(mold, request.user, pricing))
+        
+        digital_before_pro_cost = 0
+        for mold in digital_before_pro_molds:
+            digital_before_pro_cost += float(get_mold_price_at_date(mold, request.user, pricing))
+        
+        digital_after_pro_cost = 0
+        for mold in digital_after_pro_molds:
+            digital_after_pro_cost += float(get_mold_price_at_date(mold, request.user, pricing))
+    else:
+        physical_before_pro_count = physical_total
+        digital_before_pro_count = digital_total
+        physical_before_pro_cost = physical_cost_total
+        digital_before_pro_cost = digital_cost_total
+    
     billing_summary = {
         'total_invoices': invoices.count(),
         'paid': invoices.filter(status='paid').count(),
@@ -1892,7 +2039,28 @@ def my_usage(request):
         'total_amount': total_amount,
         'paid_amount': invoiced_paid,
         'remaining_amount': remaining_amount,
-        'pricing': pricing
+        'standart_physical_price': standart_physical_price,
+        'standart_digital_price': standart_digital_price,
+        'pro_physical_price': pro_physical_price,
+        'pro_digital_price': pro_digital_price,
+        'pro_subscription_start': pro_subscription_start,
+        'physical_before_pro_count': physical_before_pro_count,
+        'physical_after_pro_count': physical_after_pro_count,
+        'digital_before_pro_count': digital_before_pro_count,
+        'digital_after_pro_count': digital_after_pro_count,
+        'physical_before_pro_cost': physical_before_pro_cost,
+        'physical_after_pro_cost': physical_after_pro_cost,
+        'digital_before_pro_cost': digital_before_pro_cost,
+        'digital_after_pro_cost': digital_after_pro_cost,
+        'physical_before_pro_this_month': physical_before_pro_this_month,
+        'physical_after_pro_this_month': physical_after_pro_this_month,
+        'digital_before_pro_this_month': digital_before_pro_this_month,
+        'digital_after_pro_this_month': digital_after_pro_this_month,
+        'physical_before_pro_this_month_count': physical_before_pro_this_month_count,
+        'physical_after_pro_this_month_count': physical_after_pro_this_month_count,
+        'digital_before_pro_this_month_count': digital_before_pro_this_month_count,
+        'digital_after_pro_this_month_count': digital_after_pro_this_month_count,
+        'subscription_plan': subscription.plan if subscription else None
     }
     
     context = {

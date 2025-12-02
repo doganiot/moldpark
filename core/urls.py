@@ -20,6 +20,8 @@ urlpatterns = [
     path('features/', views.features, name='features'),
     path('subscribe/<int:plan_id>/', views.subscribe_to_plan, name='subscribe_to_plan'),
     path('subscription/', views.subscription_dashboard, name='subscription_dashboard'),
+    path('subscription/payment/', views.subscription_payment, name='subscription_payment'),
+    path('subscription/payment/history/', views.subscription_payment_history, name='subscription_payment_history'),
     
     # Abonelik Talep Sistemi
     path('subscription/request/', views.request_subscription, name='request_subscription'),

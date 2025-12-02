@@ -2,10 +2,11 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.utils.translation import gettext as _
 from .models import ContactMessage, Message, PricingPlan, UserSubscription, PaymentHistory, SimpleNotification, SubscriptionRequest, Invoice, Transaction, Commission
-from .forms import ContactForm, MessageForm, AdminMessageForm, MessageReplyForm, SubscriptionRequestForm, PackagePurchaseForm
+from .forms import ContactForm, MessageForm, AdminMessageForm, MessageReplyForm, SubscriptionRequestForm, PackagePurchaseForm, SubscriptionPaymentForm
 from django.views.generic import TemplateView
 from django.contrib.auth.decorators import user_passes_test, login_required
 from django.contrib.admin.views.decorators import staff_member_required
+from center.decorators import center_required
 from center.models import Center
 from mold.models import EarMold
 from producer.models import Producer, ProducerOrder, ProducerNetwork
@@ -866,7 +867,7 @@ def privacy_policy(request):
     return render(request, 'core/privacy.html')
 
 def pricing(request):
-    """Fiyatlandırma sayfası - Paket sistemi"""
+    """Fiyatlandırma sayfası - Paket sistemi (Herkes erişebilir)"""
     # Aktif paketleri göster (standard, package ve single tipindeki planlar)
     packages = PricingPlan.objects.filter(
         is_active=True, 
@@ -885,7 +886,7 @@ def pricing(request):
         'packages': packages.exclude(plan_type='single'),  # single hariç tüm paketler (standard ve package)
     }
     
-    # Giriş yapmış kullanıcı için ek bilgiler (bu kod zaten çalışmayacak ama template'ler için bırakıyoruz)
+    # Giriş yapmış kullanıcı için ek bilgiler
     if request.user.is_authenticated:
         # Kullanıcının mevcut aboneliği
         try:
@@ -911,6 +912,8 @@ def pricing(request):
     return render(request, 'core/pricing.html', context)
 
 @login_required
+@login_required
+@center_required
 def request_subscription(request):
     """Abonelik Talep Sayfası"""
     if request.method == 'POST':
@@ -948,7 +951,7 @@ def request_subscription(request):
                     user_notes=f'Fiyatlandırma sayfasından {plan.name} planı için talep gönderildi.',
                     status='pending'
                 )
-                
+
                 messages.success(
                     request, 
                     f'🎉 {plan.name} planı için talebiniz başarıyla gönderildi! '
@@ -996,6 +999,8 @@ def request_subscription(request):
     })
 
 @login_required
+@login_required
+@center_required
 def subscription_requests(request):
     """Kullanıcının Abonelik Talepleri"""
     requests = SubscriptionRequest.objects.filter(
@@ -1015,6 +1020,8 @@ def subscription_requests(request):
     })
 
 @login_required
+@login_required
+@center_required
 def subscription_request_cancel(request, request_id):
     """Beklemede olan talebi iptal et"""
     subscription_request = get_object_or_404(
@@ -1220,6 +1227,8 @@ def reject_subscription_request(request, request_id):
 
 
 @login_required
+@login_required
+@center_required
 def subscription_dashboard(request):
     """Abonelik yönetim paneli - Paket satın alma ve abonelik değiştirme"""
     # Abonelik değiştirme işlemi
@@ -2034,3 +2043,153 @@ def admin_invoice_detail(request, invoice_id):
         logger.error(f"Admin Invoice Detail Error: {e}")
         messages.error(request, 'Fatura detayı yüklenirken hata oluştu.')
         return redirect('core:admin_invoice_management')
+
+
+@login_required
+@center_required
+def subscription_payment(request):
+    """Abonelik Ödeme Sayfası"""
+    from decimal import Decimal
+    from core.models import PaymentHistory, PaymentMethod, SimpleNotification
+    
+    # Kullanıcının aktif aboneliğini kontrol et
+    try:
+        subscription = UserSubscription.objects.get(user=request.user, status='active')
+    except UserSubscription.DoesNotExist:
+        messages.error(request, 'Aktif aboneliğiniz bulunmamaktadır.')
+        return redirect('core:subscription_dashboard')
+    
+    # Ödenecek tutar (aylık ücret)
+    amount = subscription.plan.monthly_fee_try
+    
+    # Eğer ücretsiz plan ise ödeme gerekmez
+    if amount == 0:
+        messages.info(request, 'Standart abonelik ücretsizdir, ödeme gerekmez.')
+        return redirect('core:subscription_dashboard')
+    
+    # Bu ay ödeme yapılmış mı kontrol et
+    current_month = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    paid_this_month = PaymentHistory.objects.filter(
+        user=request.user,
+        subscription=subscription,
+        payment_type='subscription',
+        status='completed',
+        created_at__gte=current_month
+    ).exists()
+    
+    if paid_this_month:
+        messages.info(request, 'Bu ayın abonelik ücreti zaten ödenmiştir.')
+        return redirect('core:subscription_dashboard')
+    
+    if request.method == 'POST':
+        form = SubscriptionPaymentForm(request.POST, request.FILES)
+        if form.is_valid():
+            payment_method = form.cleaned_data['payment_method']
+            
+            # Ödeme kaydı oluştur
+            payment_history = PaymentHistory.objects.create(
+                user=request.user,
+                subscription=subscription,
+                amount=amount,
+                currency='TRY',
+                payment_type='subscription',
+                status='completed' if payment_method == 'credit_card' else 'pending',
+                payment_method='Kredi Kartı' if payment_method == 'credit_card' else 'Havale/EFT',
+                transaction_id=f'SUB-{timezone.now().strftime("%Y%m%d%H%M%S")}',
+                notes=form.cleaned_data.get('notes', '')
+            )
+            
+            if payment_method == 'credit_card':
+                # Kredi kartı ödemesi - anında tamamlandı
+                subscription.monthly_fee_paid = True
+                subscription.last_payment_date = timezone.now()
+                subscription.save()
+                
+                # Bildirim gönder
+                SimpleNotification.objects.create(
+                    user=request.user,
+                    title='✅ Abonelik Ödemesi Tamamlandı',
+                    message=f'{subscription.plan.name} aboneliğiniz için {amount} TL ödeme başarıyla tamamlandı.',
+                    notification_type='success',
+                    related_url='/subscription/'
+                )
+                
+                messages.success(request, f'{amount} TL abonelik ödemesi başarıyla tamamlandı!')
+                return redirect('core:subscription_dashboard')
+            
+            else:
+                # Havale/EFT - bekliyor
+                # Makbuz dosyası varsa kaydet
+                if 'receipt_file' in request.FILES:
+                    receipt = request.FILES['receipt_file']
+                    # Dosyayı kaydet (basit bir yöntem)
+                    import os
+                    from django.conf import settings
+                    upload_path = os.path.join(settings.MEDIA_ROOT, 'payment_receipts', f'subscription_{payment_history.id}_{receipt.name}')
+                    os.makedirs(os.path.dirname(upload_path), exist_ok=True)
+                    with open(upload_path, 'wb+') as destination:
+                        for chunk in receipt.chunks():
+                            destination.write(chunk)
+                
+                # Bildirim gönder
+                SimpleNotification.objects.create(
+                    user=request.user,
+                    title='⏳ Abonelik Ödemesi Bekleniyor',
+                    message=f'{subscription.plan.name} aboneliğiniz için {amount} TL ödeme talebi oluşturuldu. Ödeme onaylandıktan sonra aboneliğiniz aktif olacak.',
+                    notification_type='info',
+                    related_url='/subscription/'
+                )
+                
+                # Admin'e bildirim gönder
+                admin_users = User.objects.filter(is_superuser=True)
+                for admin in admin_users:
+                    SimpleNotification.objects.create(
+                        user=admin,
+                        title='💰 Yeni Abonelik Ödeme Talebi',
+                        message=f'{request.user.get_full_name()} ({request.user.username}) {amount} TL abonelik ödemesi yaptı. Onay bekliyor.',
+                        notification_type='info',
+                        related_url=f'/admin/payment-history/'
+                    )
+                
+                messages.info(request, f'{amount} TL ödeme talebi oluşturuldu. Ödeme onaylandıktan sonra aboneliğiniz aktif olacak.')
+                return redirect('core:subscription_dashboard')
+    else:
+        form = SubscriptionPaymentForm()
+    
+    context = {
+        'subscription': subscription,
+        'form': form,
+        'amount': amount,
+        'paid_this_month': paid_this_month,
+    }
+    
+    return render(request, 'core/subscription_payment.html', context)
+
+
+@login_required
+@center_required
+def subscription_payment_history(request):
+    """Abonelik Ödeme Geçmişi"""
+    try:
+        subscription = UserSubscription.objects.get(user=request.user, status='active')
+    except UserSubscription.DoesNotExist:
+        messages.error(request, 'Aktif aboneliğiniz bulunmamaktadır.')
+        return redirect('core:subscription_dashboard')
+    
+    payments = PaymentHistory.objects.filter(
+        user=request.user,
+        subscription=subscription,
+        payment_type='subscription'
+    ).order_by('-created_at')
+    
+    # Toplam tutar hesapla
+    from django.db.models import Sum
+    total_amount = payments.filter(status='completed').aggregate(Sum('amount'))['amount__sum'] or 0
+    
+    context = {
+        'subscription': subscription,
+        'payments': payments,
+        'total_amount': total_amount,
+    }
+    
+    return render(request, 'core/subscription_payment_history.html', context)

@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+{% load humanize %}
+
+{% block title %}Abonelik Ödeme Geçmişi - MoldPark{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-12">
+            <!-- Başlık -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="fas fa-history me-2"></i>
+                        Abonelik Ödeme Geçmişi
+                    </h2>
+                    <p class="text-muted mb-0">{{ subscription.plan.name }}</p>
+                </div>
+                <div>
+                    <a href="{% url 'core:subscription_dashboard' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-arrow-left me-1"></i>
+                        Abonelik Paneli
+                    </a>
+                    {% if subscription.plan.monthly_fee_try > 0 %}
+                    <a href="{% url 'core:subscription_payment' %}" class="btn btn-primary">
+                        <i class="fas fa-credit-card me-1"></i>
+                        Ödeme Yap
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Özet Kartları -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card border-primary">
+                        <div class="card-body text-center">
+                            <h6 class="text-muted mb-2">Toplam Ödeme</h6>
+                            <h3 class="text-primary mb-0">
+                                ₺{{ payments|length|floatformat:0 }}
+                            </h3>
+                            <small class="text-muted">İşlem Sayısı</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-success">
+                        <div class="card-body text-center">
+                            <h6 class="text-muted mb-2">Toplam Tutar</h6>
+                            <h3 class="text-success mb-0">
+                                ₺{{ total_amount|floatformat:2 }}
+                            </h3>
+                            <small class="text-muted">Ödenen Toplam</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-info">
+                        <div class="card-body text-center">
+                            <h6 class="text-muted mb-2">Aylık Ücret</h6>
+                            <h3 class="text-info mb-0">
+                                ₺{{ subscription.plan.monthly_fee_try|floatformat:2 }}
+                            </h3>
+                            <small class="text-muted">Mevcut Plan</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ödeme Listesi -->
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>
+                        Ödeme Geçmişi
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if payments %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Tarih</th>
+                                    <th>Tutar</th>
+                                    <th>Ödeme Yöntemi</th>
+                                    <th>Durum</th>
+                                    <th>İşlem ID</th>
+                                    <th>Notlar</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for payment in payments %}
+                                <tr>
+                                    <td>
+                                        <i class="fas fa-calendar me-2 text-muted"></i>
+                                        {{ payment.created_at|date:"d.m.Y H:i" }}
+                                    </td>
+                                    <td>
+                                        <strong class="text-success">
+                                            ₺{{ payment.amount|floatformat:2 }}
+                                        </strong>
+                                    </td>
+                                    <td>
+                                        {% if payment.payment_method == 'Kredi Kartı' %}
+                                            <i class="fas fa-credit-card me-2 text-primary"></i>
+                                        {% else %}
+                                            <i class="fas fa-university me-2 text-success"></i>
+                                        {% endif %}
+                                        {{ payment.payment_method }}
+                                    </td>
+                                    <td>
+                                        {% if payment.status == 'completed' %}
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check me-1"></i>
+                                                Tamamlandı
+                                            </span>
+                                        {% elif payment.status == 'pending' %}
+                                            <span class="badge bg-warning">
+                                                <i class="fas fa-clock me-1"></i>
+                                                Beklemede
+                                            </span>
+                                        {% elif payment.status == 'failed' %}
+                                            <span class="badge bg-danger">
+                                                <i class="fas fa-times me-1"></i>
+                                                Başarısız
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ payment.get_status_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ payment.transaction_id|default:"-" }}</small>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ payment.notes|default:"-"|truncatewords:5 }}</small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">Henüz ödeme geçmişi bulunmamaktadır.</p>
+                        {% if subscription.plan.monthly_fee_try > 0 %}
+                        <a href="{% url 'core:subscription_payment' %}" class="btn btn-primary">
+                            <i class="fas fa-credit-card me-1"></i>
+                            İlk Ödemeyi Yap
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

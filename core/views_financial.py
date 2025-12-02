@@ -15,6 +15,58 @@ from .models import Invoice, FinancialSummary, UserSubscription, PricingPlan, Pr
 from center.models import Center
 from producer.models import Producer, ProducerOrder
 from mold.models import EarMold
+from datetime import time as dt_time
+
+
+def get_mold_price_at_date(mold, user, pricing):
+    """
+    Bir kalıp için o kalıbın oluşturulduğu tarihteki abonelik planına göre fiyat döndürür.
+    Standart aboneyken yapılan harcamalar Standart fiyatlar, Pro'ya geçtikten sonra Pro fiyatlar.
+    """
+    from django.utils import timezone
+    from datetime import datetime
+    
+    # Standart ve Pro planlarını al
+    standart_plan = PricingPlan.objects.filter(name='Standart Abonelik', is_active=True).first()
+    pro_plan = PricingPlan.objects.filter(name='Pro Abonelik', is_active=True).first()
+    
+    standart_physical_price = float(standart_plan.per_mold_price_try) if standart_plan else 450.00
+    standart_digital_price = float(standart_plan.modeling_service_fee_try) if standart_plan else 19.00
+    pro_physical_price = float(pro_plan.per_mold_price_try) if pro_plan else 399.00
+    pro_digital_price = float(pro_plan.modeling_service_fee_try) if pro_plan else 15.00
+    
+    # Kalıbın oluşturulduğu tarih
+    mold_date = mold.created_at
+    
+    # Pro abonelik başlangıç tarihini bul
+    pro_subscription = UserSubscription.objects.filter(
+        user=user,
+        plan__name='Pro Abonelik',
+        status__in=['active', 'cancelled']
+    ).order_by('-start_date').first()
+    
+    # Eğer Pro abonelik varsa ve kalıp Pro başlangıç tarihinden sonra oluşturulmuşsa Pro fiyatı kullan
+    if pro_subscription and pro_subscription.start_date:
+        # start_date datetime ise direkt kullan, date ise datetime'a çevir
+        if isinstance(pro_subscription.start_date, datetime):
+            pro_start = pro_subscription.start_date
+        else:
+            pro_start = timezone.make_aware(
+                datetime.combine(pro_subscription.start_date, dt_time.min)
+            )
+        
+        if mold_date >= pro_start:
+            # Pro fiyatları
+            if mold.is_physical_shipment:
+                return Decimal(str(pro_physical_price))
+            else:
+                return Decimal(str(pro_digital_price))
+    
+    # Standart fiyatlar (Pro yoksa veya Pro öncesi tarihse)
+    if mold.is_physical_shipment:
+        return Decimal(str(standart_physical_price))
+    else:
+        return Decimal(str(standart_digital_price))
 
 
 @user_passes_test(lambda u: u.is_superuser)
@@ -681,10 +733,13 @@ def admin_financial_control_panel(request):
             package_info = package_subscription.plan.name
             package_invoice_numbers = ['Fatura Oluşturulmamış']
         
-        # Merkez aboneliğini al (dinamik fiyat için)
+        # Merkez aboneliğini al (aylık ücret için)
         subscription = UserSubscription.objects.filter(user=center.user, status='active').first()
-        subscription_physical_price = subscription.plan.per_mold_price_try if subscription and subscription.plan else pricing.physical_mold_price
-        subscription_digital_price = subscription.plan.modeling_service_fee_try if subscription and subscription.plan else pricing.digital_modeling_price
+        # Ortalama birim fiyat hesaplamak için Standart ve Pro fiyatlarını al (sadece gösterim için)
+        standart_plan = PricingPlan.objects.filter(name='Standart Abonelik', is_active=True).first()
+        pro_plan = PricingPlan.objects.filter(name='Pro Abonelik', is_active=True).first()
+        subscription_physical_price = standart_plan.per_mold_price_try if standart_plan else pricing.physical_mold_price
+        subscription_digital_price = standart_plan.modeling_service_fee_try if standart_plan else pricing.digital_modeling_price
         
         # Paket faturası yoksa, tek tek kalıpları hesapla
         # SADECE fatura KESİLMİŞ ise paket faturası değer kabul et. Fatura kesılmadıysa fiziksel kalıpları hesapla
@@ -712,29 +767,94 @@ def admin_financial_control_panel(request):
             physical_count = physical_molds.count()
             digital_count = digital_only_molds.count()
             
-            # Fiziksel kalıp: Her kalıp için dinamik fiyat (KDV dahil) - abonelik fiyatını kullan
+            # Fiziksel kalıp: Her kalıp için o tarihteki abonelik planına göre fiyatlandırma
+            # Standart aboneyken yapılan harcamalar Standart fiyatlar, Pro'ya geçtikten sonra Pro fiyatlar
             physical_amount_with_vat = Decimal('0.00')
+            physical_before_pro_count = 0
+            physical_after_pro_count = 0
+            physical_before_pro_amount = Decimal('0.00')
+            physical_after_pro_amount = Decimal('0.00')
+            
+            # Pro abonelik başlangıç tarihini bul
+            pro_subscription = UserSubscription.objects.filter(
+                user=center.user,
+                plan__name='Pro Abonelik',
+                status__in=['active', 'cancelled']
+            ).order_by('-start_date').first()
+            
+            pro_subscription_start = None
+            if pro_subscription and pro_subscription.start_date:
+                if isinstance(pro_subscription.start_date, datetime):
+                    pro_subscription_start = pro_subscription.start_date
+                else:
+                    pro_subscription_start = timezone.make_aware(
+                        datetime.combine(pro_subscription.start_date, dt_time.min)
+                    )
+            
             for mold in physical_molds:
                 if mold.unit_price is not None:
-                    physical_amount_with_vat += mold.unit_price
+                    mold_price = mold.unit_price
                 else:
-                    # Abonelik fiyatını kullan
-                    physical_amount_with_vat += subscription_physical_price
+                    # Kalıbın oluşturulduğu tarihteki abonelik planına göre fiyatlandır
+                    mold_price = get_mold_price_at_date(mold, center.user, pricing)
+                
+                physical_amount_with_vat += mold_price
+                
+                # Pro öncesi/sonrası ayrımı
+                if pro_subscription_start:
+                    if mold.created_at < pro_subscription_start:
+                        physical_before_pro_count += 1
+                        physical_before_pro_amount += mold_price
+                    else:
+                        physical_after_pro_count += 1
+                        physical_after_pro_amount += mold_price
+                else:
+                    physical_before_pro_count += 1
+                    physical_before_pro_amount += mold_price
             
-            # 3D Modelleme: Her kalıp için dinamik fiyat (KDV dahil) - abonelik fiyatını kullan
+            # 3D Modelleme: Her kalıp için o tarihteki abonelik planına göre fiyatlandırma
+            # Standart aboneyken yapılan harcamalar Standart fiyatlar, Pro'ya geçtikten sonra Pro fiyatlar
             digital_amount_with_vat = Decimal('0.00')
+            digital_before_pro_count = 0
+            digital_after_pro_count = 0
+            digital_before_pro_amount = Decimal('0.00')
+            digital_after_pro_amount = Decimal('0.00')
+            
             for mold in digital_only_molds:
                 if mold.digital_modeling_price is not None:
-                    digital_amount_with_vat += mold.digital_modeling_price
+                    mold_price = mold.digital_modeling_price
                 else:
-                    # Abonelik fiyatını kullan
-                    digital_amount_with_vat += subscription_digital_price
+                    # Kalıbın oluşturulduğu tarihteki abonelik planına göre fiyatlandır
+                    mold_price = get_mold_price_at_date(mold, center.user, pricing)
+                
+                digital_amount_with_vat += mold_price
+                
+                # Pro öncesi/sonrası ayrımı
+                if pro_subscription_start:
+                    if mold.created_at < pro_subscription_start:
+                        digital_before_pro_count += 1
+                        digital_before_pro_amount += mold_price
+                    else:
+                        digital_after_pro_count += 1
+                        digital_after_pro_amount += mold_price
+                else:
+                    digital_before_pro_count += 1
+                    digital_before_pro_amount += mold_price
         else:
             # Paket faturası varsa, tek tek kalıp sayısını gösterme
             physical_count = 0
             digital_count = 0
             physical_amount_with_vat = Decimal('0.00')
             digital_amount_with_vat = Decimal('0.00')
+            physical_before_pro_count = 0
+            physical_after_pro_count = 0
+            physical_before_pro_amount = Decimal('0.00')
+            physical_after_pro_amount = Decimal('0.00')
+            digital_before_pro_count = 0
+            digital_after_pro_count = 0
+            digital_before_pro_amount = Decimal('0.00')
+            digital_after_pro_amount = Decimal('0.00')
+            pro_subscription_start = None
         
         # Her aktif merkez için aylık ücreti hesapla (abonelik varsa, abonelik fiyatı kullan)
         if subscription and subscription.plan and subscription.plan.plan_type in ['package', 'standard']:
@@ -804,6 +924,15 @@ def admin_financial_control_panel(request):
                 'digital_count': digital_count,
                 'physical_amount': physical_amount_with_vat,
                 'digital_amount': digital_amount_with_vat,
+                'physical_before_pro_count': physical_before_pro_count,
+                'physical_after_pro_count': physical_after_pro_count,
+                'physical_before_pro_amount': physical_before_pro_amount,
+                'physical_after_pro_amount': physical_after_pro_amount,
+                'digital_before_pro_count': digital_before_pro_count,
+                'digital_after_pro_count': digital_after_pro_count,
+                'digital_before_pro_amount': digital_before_pro_amount,
+                'digital_after_pro_amount': digital_after_pro_amount,
+                'has_pro_subscription': pro_subscription_start is not None,
                 'package_amount': package_amount if has_package_invoice else Decimal('0.00'),
                 'package_info': package_info,
                 'package_invoice_numbers': package_invoice_numbers,
@@ -1163,26 +1292,32 @@ def create_single_center_invoice(request, center_id):
         physical_count = physical_molds.count()
         digital_count = digital_only_molds.count()
         
-        # Dinamik fiyat hesaplamaları - Her kalıp için kendi fiyatı
-        # Abonelik fiyatını öncelik ver
-        subscription_physical_price = subscription.plan.per_mold_price_try if subscription and subscription.plan else pricing.physical_mold_price
-        subscription_digital_price = subscription.plan.modeling_service_fee_try if subscription and subscription.plan else pricing.digital_modeling_price
+        # Dinamik fiyat hesaplamaları - Her kalıp için o tarihteki abonelik planına göre fiyatlandırma
+        # Standart aboneyken yapılan harcamalar Standart fiyatlar, Pro'ya geçtikten sonra Pro fiyatlar
         
         physical_amount = Decimal('0.00')
         for mold in physical_molds:
             if mold.unit_price is not None:
                 physical_amount += mold.unit_price
             else:
-                # Abonelik fiyatı kullan
-                physical_amount += subscription_physical_price
+                # Kalıbın oluşturulduğu tarihteki abonelik planına göre fiyatlandır
+                mold_price = get_mold_price_at_date(mold, center.user, pricing)
+                physical_amount += mold_price
         
         digital_amount = Decimal('0.00')
         for mold in digital_only_molds:
             if mold.digital_modeling_price is not None:
                 digital_amount += mold.digital_modeling_price
             else:
-                # Abonelik fiyatı kullan
-                digital_amount += subscription_digital_price
+                # Kalıbın oluşturulduğu tarihteki abonelik planına göre fiyatlandır
+                mold_price = get_mold_price_at_date(mold, center.user, pricing)
+                digital_amount += mold_price
+        
+        # Ortalama birim fiyat hesaplamak için Standart ve Pro fiyatlarını al
+        standart_plan = PricingPlan.objects.filter(name='Standart Abonelik', is_active=True).first()
+        pro_plan = PricingPlan.objects.filter(name='Pro Abonelik', is_active=True).first()
+        subscription_physical_price = standart_plan.per_mold_price_try if standart_plan else pricing.physical_mold_price
+        subscription_digital_price = standart_plan.modeling_service_fee_try if standart_plan else pricing.digital_modeling_price
         
         # Ortalama birim fiyat hesapla (fatura için)
         avg_unit_price = (physical_amount / physical_count) if physical_count > 0 else subscription_physical_price
@@ -1574,25 +1709,32 @@ def bulk_create_center_invoices(request):
                 # Harcama yapılmamış merkezi atla
                 continue
             
-            # Dinamik fiyat hesaplamaları - Abonelik fiyatını öncelik ver
-            subscription_physical_price = subscription.plan.per_mold_price_try if subscription and subscription.plan else pricing.physical_mold_price
-            subscription_digital_price = subscription.plan.modeling_service_fee_try if subscription and subscription.plan else pricing.digital_modeling_price
+            # Dinamik fiyat hesaplamaları - Her kalıp için o tarihteki abonelik planına göre fiyatlandırma
+            # Standart aboneyken yapılan harcamalar Standart fiyatlar, Pro'ya geçtikten sonra Pro fiyatlar
             
             physical_amount = Decimal('0.00')
             for mold in physical_molds:
                 if mold.unit_price is not None:
                     physical_amount += mold.unit_price
                 else:
-                    # Abonelik fiyatı kullan
-                    physical_amount += subscription_physical_price
+                    # Kalıbın oluşturulduğu tarihteki abonelik planına göre fiyatlandır
+                    mold_price = get_mold_price_at_date(mold, center.user, pricing)
+                    physical_amount += mold_price
             
             digital_amount = Decimal('0.00')
             for mold in digital_only_molds:
                 if mold.digital_modeling_price is not None:
                     digital_amount += mold.digital_modeling_price
                 else:
-                    # Abonelik fiyatı kullan
-                    digital_amount += subscription_digital_price
+                    # Kalıbın oluşturulduğu tarihteki abonelik planına göre fiyatlandır
+                    mold_price = get_mold_price_at_date(mold, center.user, pricing)
+                    digital_amount += mold_price
+            
+            # Ortalama birim fiyat hesaplamak için Standart ve Pro fiyatlarını al
+            standart_plan = PricingPlan.objects.filter(name='Standart Abonelik', is_active=True).first()
+            pro_plan = PricingPlan.objects.filter(name='Pro Abonelik', is_active=True).first()
+            subscription_physical_price = standart_plan.per_mold_price_try if standart_plan else pricing.physical_mold_price
+            subscription_digital_price = standart_plan.modeling_service_fee_try if standart_plan else pricing.digital_modeling_price
             
             # Ortalama birim fiyat hesapla (fatura için)
             avg_unit_price = (physical_amount / physical_count) if physical_count > 0 else subscription_physical_price

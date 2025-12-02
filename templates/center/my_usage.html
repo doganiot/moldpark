@@ -447,15 +447,51 @@
                         {% endif %}
                         {% if billing_summary.physical_cost_this_month > 0 %}
                         <div class="list-group-item d-flex justify-content-between align-items-center px-0 small">
-                            <span class="text-muted">• Fiziksel Kalıp ({{ physical_this_month }} adet × ₺{{ billing_summary.pricing.physical_mold_price|floatformat:2 }})</span>
+                            <span class="text-muted">• Fiziksel Kalıp</span>
                             <span>₺{{ billing_summary.physical_cost_this_month|floatformat:2 }}</span>
                         </div>
+                        {% if billing_summary.pro_subscription_start %}
+                            {% if billing_summary.physical_before_pro_this_month_count > 0 %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center px-0 small ps-3">
+                                <span class="text-muted">  - Pro öncesi ({{ billing_summary.physical_before_pro_this_month_count }} adet × ₺{{ billing_summary.standart_physical_price|floatformat:2 }})</span>
+                                <span>₺{{ billing_summary.physical_before_pro_this_month|floatformat:2 }}</span>
+                            </div>
+                            {% endif %}
+                            {% if billing_summary.physical_after_pro_this_month_count > 0 %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center px-0 small ps-3">
+                                <span class="text-muted">  - Pro sonrası ({{ billing_summary.physical_after_pro_this_month_count }} adet × ₺{{ billing_summary.pro_physical_price|floatformat:2 }})</span>
+                                <span>₺{{ billing_summary.physical_after_pro_this_month|floatformat:2 }}</span>
+                            </div>
+                            {% endif %}
+                        {% else %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center px-0 small ps-3">
+                                <span class="text-muted">  ({{ physical_this_month }} adet × ₺{{ billing_summary.standart_physical_price|floatformat:2 }})</span>
+                            </div>
+                        {% endif %}
                         {% endif %}
                         {% if billing_summary.digital_cost_this_month > 0 %}
                         <div class="list-group-item d-flex justify-content-between align-items-center px-0 small">
-                            <span class="text-muted">• 3D Modelleme ({{ digital_this_month }} adet × ₺{{ billing_summary.pricing.digital_modeling_price|floatformat:2 }})</span>
+                            <span class="text-muted">• 3D Modelleme</span>
                             <span>₺{{ billing_summary.digital_cost_this_month|floatformat:2 }}</span>
                         </div>
+                        {% if billing_summary.pro_subscription_start %}
+                            {% if billing_summary.digital_before_pro_this_month_count > 0 %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center px-0 small ps-3">
+                                <span class="text-muted">  - Pro öncesi ({{ billing_summary.digital_before_pro_this_month_count }} adet × ₺{{ billing_summary.standart_digital_price|floatformat:2 }})</span>
+                                <span>₺{{ billing_summary.digital_before_pro_this_month|floatformat:2 }}</span>
+                            </div>
+                            {% endif %}
+                            {% if billing_summary.digital_after_pro_this_month_count > 0 %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center px-0 small ps-3">
+                                <span class="text-muted">  - Pro sonrası ({{ billing_summary.digital_after_pro_this_month_count }} adet × ₺{{ billing_summary.pro_digital_price|floatformat:2 }})</span>
+                                <span>₺{{ billing_summary.digital_after_pro_this_month|floatformat:2 }}</span>
+                            </div>
+                            {% endif %}
+                        {% else %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center px-0 small ps-3">
+                                <span class="text-muted">  ({{ digital_this_month }} adet × ₺{{ billing_summary.standart_digital_price|floatformat:2 }})</span>
+                            </div>
+                        {% endif %}
                         {% endif %}
                         {% if billing_summary.invoiced_total > 0 %}
                         <hr class="my-2">
