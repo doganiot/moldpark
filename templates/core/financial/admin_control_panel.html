@@ -60,8 +60,7 @@
                 <strong>Finansal Hesaplama Yöntemi:</strong>
                 <ul class="mb-0 mt-2">
                     <li><strong>MoldPark Hizmet Bedeli (%6.5):</strong> İşitme merkezlerinden tahsil edilen brüt tutar (KDV dahil) × %6.5</li>
-                    <li><strong>Kredi Kartı Komisyonu (%3):</strong> Brüt tutar (KDV dahil) × %3 (MoldPark maliyeti olarak hesaplanır)</li>
-                    <li><strong>Üreticiye Ödeme:</strong> Brüt tutar - MoldPark hizmet bedeli</li>
+                    <li><strong>Üreticiye Ödeme:</strong> Brüt tutar - MoldPark hizmet bedeli (Aylık sistem kullanım ücretleri dahil değil)</li>
                 </ul>
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
@@ -127,24 +126,6 @@
             </div>
         </div>
 
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid #ec4899 !important;">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0">
-                            <div class="bg-danger bg-opacity-10 rounded-circle p-3">
-                                <i class="fas fa-credit-card text-danger fa-2x"></i>
-                            </div>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <div class="text-muted small">Kredi Kartı Komisyonu (%3)</div>
-                            <h4 class="mb-0 fw-bold text-danger">₺{{ cash_flow.credit_card_fees|floatformat:2 }}</h4>
-                            <small class="text-muted">MoldPark Maliyeti</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- İkinci Satır Kartlar -->
@@ -166,13 +147,9 @@
                     </div>
                     <hr class="my-3">
                     <div class="row text-center">
-                        <div class="col-6 border-end">
+                        <div class="col-12">
                             <small class="text-muted d-block">Hizmet Bedeli</small>
                             <strong class="text-success">+₺{{ cash_flow.moldpark_service_income|floatformat:2 }}</strong>
-                        </div>
-                        <div class="col-6">
-                            <small class="text-muted d-block">KK Komisyonu</small>
-                            <strong class="text-danger">-₺{{ cash_flow.credit_card_fees|floatformat:2 }}</strong>
                         </div>
                     </div>
                 </div>
@@ -191,22 +168,18 @@
                         <div class="flex-grow-1 ms-3">
                             <div class="text-muted small">Gerçek Bakiye</div>
                             <h4 class="mb-0 fw-bold text-info">₺{{ cash_flow.balance|floatformat:2 }}</h4>
-                            <small class="text-muted">Tahsilat - Ödeme - KK Kom.</small>
+                            <small class="text-muted">Tahsilat - Ödeme</small>
                         </div>
                     </div>
                     <hr class="my-3">
                     <div class="row text-center small">
-                        <div class="col-4 border-end">
+                        <div class="col-6 border-end">
                             <small class="text-muted d-block">Tahsilat</small>
                             <strong class="text-success">+₺{{ cash_flow.total_incoming|floatformat:0 }}</strong>
                         </div>
-                        <div class="col-4 border-end">
+                        <div class="col-6">
                             <small class="text-muted d-block">Ödeme</small>
                             <strong class="text-danger">-₺{{ cash_flow.total_outgoing|floatformat:0 }}</strong>
-                        </div>
-                        <div class="col-4">
-                            <small class="text-muted d-block">KK Kom.</small>
-                            <strong class="text-danger">-₺{{ cash_flow.credit_card_fees|floatformat:0 }}</strong>
                         </div>
                     </div>
                 </div>
@@ -277,22 +250,6 @@
                                     </td>
                                 </tr>
                                 <tr class="border-bottom">
-                                    <td class="py-3 ps-4">
-                                        <i class="fas fa-credit-card text-info me-2"></i>
-                                        Kredi Kartı Komisyonu (%3)
-                                        <br>
-                                        <small class="text-muted fst-italic">
-                                            <i class="fas fa-info-circle me-1"></i>
-                                            İşitme merkezinden kesilen komisyon (MoldPark karından düşülmez)
-                                        </small>
-                                    </td>
-                                    <td class="text-end py-3">
-                                        <span class="text-info">₺{{ cash_flow.credit_card_fees|floatformat:2 }}</span>
-                                        <br>
-                                        <small class="text-muted">(Bilgi amaçlı)</small>
-                                    </td>
-                                </tr>
-                                <tr class="border-bottom">
                                     <td class="py-3">
                                         <i class="fas fa-arrow-up text-danger me-2"></i>
                                         <strong>Üreticilere Ödeme</strong>
@@ -310,7 +267,7 @@
                                         <br>
                                         <small class="text-success fst-italic">
                                             <i class="fas fa-check-circle me-1"></i>
-                                            Sadece hizmet bedeli (%6.5) - K.K. komisyonu dahil değil
+                                            Hizmet bedeli (%6.5)
                                         </small>
                                     </td>
                                     <td class="text-end py-3">
@@ -684,18 +641,6 @@
                                                 </td>
                                                 <td class="text-end text-danger">
                                                     <h6 class="mb-0">- ₺{{ total_moldpark_producer_fee|floatformat:2 }}</h6>
-                                                </td>
-                                            </tr>
-
-                                            <!-- Kredi Kartı Komisyonu -->
-                                            <tr>
-                                                <td>
-                                                    <strong>- Kredi Kartı Komisyonu</strong>
-                                                    <br>
-                                                    <small class="text-muted">İşitme merkezlerin ödeme işlem ücreti</small>
-                                                </td>
-                                                <td class="text-end text-danger">
-                                                    <h6 class="mb-0">- ₺{{ total_producer_cc_fee|floatformat:2 }}</h6>
                                                 </td>
                                             </tr>
 

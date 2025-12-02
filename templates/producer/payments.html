@@ -10,92 +10,27 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-header bg-success text-white">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h4 class="mb-0">
-                                <i class="fas fa-money-bill-wave me-2"></i>
-                                Kazançlarım ve Ödemelerim
-                            </h4>
-                            <small class="text-white-50">Verdiğiniz hizmetlerin karşılığını ve ödeme geçmişinizi takip edin</small>
-                        </div>
-                        <div class="text-end">
-                            <div class="h5 mb-0">{{ total_net_amount_received|floatformat:0 }} ₺</div>
-                            <small class="text-white-50">Toplam Alınan Ödeme</small>
-                        </div>
+                    <div>
+                        <h4 class="mb-0">
+                            <i class="fas fa-money-bill-wave me-2"></i>
+                            Kazançlarım ve Ödemelerim
+                        </h4>
+                        <small class="text-white-50">Ağınızdaki işitme merkezlerinin fiziksel kalıp ve 3D kalıp hizmetlerinden doğan kazançlarınızı takip edin</small>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Kazanç Özeti -->
+    <!-- Bilgilendirme -->
     <div class="row mb-4">
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-success shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                Bu Ay Brüt Kazanç</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">₺{{ earnings_this_month.gross_revenue|floatformat:0 }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-chart-line fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-primary shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                Bu Ay Net Kazanç</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">₺{{ earnings_this_month.net_earnings|floatformat:0 }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-coins fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-warning shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                Bekleyen Ödeme</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">₺{{ pending_payments|floatformat:0 }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-clock fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-info shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                Toplam Sipariş</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_orders_completed|intcomma }}</div>
-                            <div class="text-xs text-muted">Tamamlanan</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-shopping-cart fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
+        <div class="col-12">
+            <div class="alert alert-info">
+                <h6><i class="fas fa-info-circle me-2"></i>Kazanç Bilgileri</h6>
+                <p class="mb-0">
+                    Bu sayfada sadece <strong>kendi ağınızdaki işitme merkezlerinin</strong> fiziksel kalıp ve 3D kalıp hizmetlerinden doğan kazançlarınızı görebilirsiniz. 
+                    Toplam tahsilatlar ve sistem geneli istatistikler sadece admin panelinde görüntülenir.
+                </p>
             </div>
         </div>
     </div>
