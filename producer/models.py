@@ -233,7 +233,7 @@ class Producer(models.Model):
             total_completed_orders += 1
 
         # Kesintiler
-        moldpark_fee = total_gross * Decimal('0.065')  # %6.5
+        moldpark_fee = total_gross * Decimal('0.075')  # %7.5
         credit_card_fee = total_gross * Decimal('0.03')  # %3 (güncel oran)
         total_deductions = moldpark_fee + credit_card_fee
 
@@ -311,8 +311,8 @@ class Producer(models.Model):
                     else:
                         total_monthly_gross += Decimal('15.00')  # 3D modelleme
 
-            # Kesintiler - Sadece MoldPark hizmet bedeli (%6.5)
-            moldpark_fee = total_monthly_gross * Decimal('0.065')  # %6.5
+            # Kesintiler - Sadece MoldPark hizmet bedeli (%7.5)
+            moldpark_fee = total_monthly_gross * Decimal('0.075')  # %7.5
             net_earnings = total_monthly_gross - moldpark_fee
 
             earnings.append({

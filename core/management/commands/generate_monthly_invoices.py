@@ -239,7 +239,7 @@ class Command(BaseCommand):
                 ))
             else:
                 # Dry run
-                moldpark_commission = gross_revenue * Decimal('0.065')
+                moldpark_commission = gross_revenue * Decimal('0.075')
                 credit_fee = gross_revenue * Decimal('0.03')
                 net_to_producer = gross_revenue - moldpark_commission - credit_fee
                 

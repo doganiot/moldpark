@@ -59,7 +59,7 @@
                 <i class="fas fa-info-circle me-2"></i>
                 <strong>Finansal Hesaplama Yöntemi:</strong>
                 <ul class="mb-0 mt-2">
-                    <li><strong>MoldPark Hizmet Bedeli (%6.5):</strong> İşitme merkezlerinden tahsil edilen brüt tutar (KDV dahil) × %6.5</li>
+                    <li><strong>MoldPark Hizmet Bedeli (%7.5):</strong> İşitme merkezlerinden tahsil edilen brüt tutar (KDV dahil) × %7.5</li>
                     <li><strong>Üreticiye Ödeme:</strong> Brüt tutar - MoldPark hizmet bedeli (Aylık sistem kullanım ücretleri dahil değil)</li>
                 </ul>
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -81,7 +81,7 @@
                         <div class="flex-grow-1 ms-3">
                             <div class="text-muted small">İşitme Merkezlerinden</div>
                             <h4 class="mb-0 fw-bold text-success">₺{{ cash_flow.total_incoming|floatformat:2 }}</h4>
-                            <small class="text-muted">Toplam Tahsilat</small>
+                            <small class="text-muted">Toplam Tahsilat <span class="text-info">(Fiziksel kalıp + 3D modelleme + Aylık sistem ücretleri - KDV dahil)</span></small>
                         </div>
                     </div>
                 </div>
@@ -100,7 +100,7 @@
                         <div class="flex-grow-1 ms-3">
                             <div class="text-muted small">Üreticilere</div>
                             <h4 class="mb-0 fw-bold text-danger">₺{{ cash_flow.total_outgoing|floatformat:2 }}</h4>
-                            <small class="text-muted">Toplam Ödeme</small>
+                            <small class="text-muted">Toplam Ödeme <span class="text-info">(Toplam tahsilat - (Aylık ücret + MoldPark komisyonu %7.5))</span></small>
                         </div>
                     </div>
                 </div>
@@ -117,9 +117,9 @@
                             </div>
                         </div>
                         <div class="flex-grow-1 ms-3">
-                            <div class="text-muted small">Hizmet Bedeli (%6.5 - KDV DAHİL tutardan)</div>
+                            <div class="text-muted small">Hizmet Bedeli (%7.5 - KDV DAHİL tutardan)</div>
                             <h4 class="mb-0 fw-bold text-warning">₺{{ cash_flow.moldpark_service_income|floatformat:2 }}</h4>
-                            <small class="text-muted">MoldPark Geliri (Brüt × %6.5)</small>
+                            <small class="text-muted">MoldPark Geliri <span class="text-info">((Toplam gelir - Aylık ücret) × %7.5)</span></small>
                         </div>
                     </div>
                 </div>
@@ -142,13 +142,13 @@
                         <div class="flex-grow-1 ms-3">
                             <div class="text-muted small">MoldPark Net Kar</div>
                             <h4 class="mb-0 fw-bold text-primary">₺{{ cash_flow.moldpark_net_profit|floatformat:2 }}</h4>
-                            <small class="text-muted">Hizmet Bedeli - KK Kom.</small>
+                            <small class="text-muted">Hizmet Bedeli <span class="text-info">(total_moldpark_service_fee - kredi kartı komisyonu artık düşülmüyor)</span></small>
                         </div>
                     </div>
                     <hr class="my-3">
                     <div class="row text-center">
                         <div class="col-12">
-                            <small class="text-muted d-block">Hizmet Bedeli</small>
+                            <small class="text-muted d-block">Hizmet Bedeli <span class="text-info">((Toplam gelir - Aylık ücret) × %7.5)</span></small>
                             <strong class="text-success">+₺{{ cash_flow.moldpark_service_income|floatformat:2 }}</strong>
                         </div>
                     </div>
@@ -168,17 +168,17 @@
                         <div class="flex-grow-1 ms-3">
                             <div class="text-muted small">Gerçek Bakiye</div>
                             <h4 class="mb-0 fw-bold text-info">₺{{ cash_flow.balance|floatformat:2 }}</h4>
-                            <small class="text-muted">Tahsilat - Ödeme</small>
+                            <small class="text-muted">Tahsilat - Ödeme <span class="text-info">(total_collections_from_centers - total_payments_to_producers)</span></small>
                         </div>
                     </div>
                     <hr class="my-3">
                     <div class="row text-center small">
                         <div class="col-6 border-end">
-                            <small class="text-muted d-block">Tahsilat</small>
+                            <small class="text-muted d-block">Tahsilat <span class="text-info">(Fiziksel + 3D + Aylık ücret)</span></small>
                             <strong class="text-success">+₺{{ cash_flow.total_incoming|floatformat:0 }}</strong>
                         </div>
                         <div class="col-6">
-                            <small class="text-muted d-block">Ödeme</small>
+                            <small class="text-muted d-block">Ödeme <span class="text-info">(Brüt - %7.5 komisyon)</span></small>
                             <strong class="text-danger">-₺{{ cash_flow.total_outgoing|floatformat:0 }}</strong>
                         </div>
                     </div>
@@ -201,7 +201,7 @@
                         <div class="flex-grow-1 ms-3">
                             <div class="text-muted small">Aylık Sistem Kullanım Ücretleri</div>
                             <h4 class="mb-0 fw-bold text-success">₺{{ cash_flow.monthly_system_fees|floatformat:2 }}</h4>
-                            <small class="text-muted">{{ total_centers }} Aktif Merkez × ₺{{ pricing.monthly_system_fee|floatformat:0 }}</small>
+                            <small class="text-muted">{{ total_centers }} Aktif Merkez × ₺{{ pricing.monthly_system_fee|floatformat:0 }} <span class="text-info">(UserSubscription.plan.monthly_fee_try veya pricing.monthly_system_fee)</span></small>
                         </div>
                         <div class="flex-shrink-0 text-end">
                             <div class="badge bg-success fs-6 px-3 py-2">
@@ -243,7 +243,7 @@
                                 <tr class="border-bottom">
                                     <td class="py-3 ps-4">
                                         <i class="fas fa-minus-circle text-warning me-2"></i>
-                                        MoldPark Hizmet Bedeli (%6.5)
+                                        MoldPark Hizmet Bedeli (%7.5)
                                     </td>
                                     <td class="text-end py-3">
                                         <span class="text-warning">-₺{{ cash_flow.moldpark_service_income|floatformat:2 }}</span>
@@ -267,7 +267,7 @@
                                         <br>
                                         <small class="text-success fst-italic">
                                             <i class="fas fa-check-circle me-1"></i>
-                                            Hizmet bedeli (%6.5)
+                                            Hizmet bedeli (%7.5)
                                         </small>
                                     </td>
                                     <td class="text-end py-3">
@@ -584,7 +584,7 @@
                                         ₺{{ total_moldpark_producer_fee|floatformat:0 }}
                                     </h5>
                                     <small class="text-muted">
-                                        Hizmet bedeli (%6.5)
+                                        Hizmet bedeli (%7.5)
                                     </small>
                                 </div>
                             </div>
@@ -635,7 +635,7 @@
                                             <!-- MoldPark Komisyonu -->
                                             <tr>
                                                 <td>
-                                                    <strong>- MoldPark Komisyonu (%6.5)</strong>
+                                                    <strong>- MoldPark Komisyonu (%7.5)</strong>
                                                     <br>
                                                     <small class="text-muted">Platform hizmet bedeli</small>
                                                 </td>

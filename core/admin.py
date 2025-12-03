@@ -206,7 +206,7 @@ class PricingConfigurationAdmin(admin.ModelAdmin):
                 'credit_card_commission_rate',
                 'vat_rate'
             ),
-            'description': 'Komisyon oranları yüzde (%) olarak girilmelidir. Örn: 6.50 = %6.5'
+            'description': 'Komisyon oranları yüzde (%) olarak girilmelidir. Örn: 7.50 = %7.5'
         }),
         ('Fiyatlandırma Özeti', {
             'fields': ('pricing_summary_display',),

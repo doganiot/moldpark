@@ -4053,9 +4053,9 @@ def producer_payments(request):
 
 
 
-    # Bu ay tahmini MoldPark komisyonu (%6.5)
+    # Bu ay tahmini MoldPark komisyonu (%7.5)
 
-    current_month_moldpark_commission = current_month_estimated_revenue * Decimal("0.065")
+    current_month_moldpark_commission = current_month_estimated_revenue * Decimal("0.075")
 
 
 
@@ -4341,11 +4341,11 @@ def producer_payments(request):
     pending_payments = producer.get_pending_payments()
 
     # Bu ay detayları (güncel oranlarla)
-    moldpark_fee_this_month = earnings_this_month * Decimal('0.065')  # Sadece %6.5 MoldPark hizmet bedeli
+    moldpark_fee_this_month = earnings_this_month * Decimal('0.075')  # Sadece %7.5 MoldPark hizmet bedeli
     
     earnings_this_month = {
         'gross_revenue': earnings_this_month,
-        'moldpark_fee': moldpark_fee_this_month,  # %6.5
+        'moldpark_fee': moldpark_fee_this_month,  # %7.5
         'net_earnings': earnings_this_month - moldpark_fee_this_month  # Üreticinin net kazancı
     }
 
@@ -4388,7 +4388,7 @@ def producer_payments(request):
                 total_gross += Decimal('15.00')  # 3D modelleme (KDV dahil)
         
         # Kesintiler - BRÜT tutar (KDV dahil) üzerinden MoldPark hizmet bedeli
-        moldpark_fee = total_gross * Decimal('0.065')  # %6.5 MoldPark hizmet bedeli
+        moldpark_fee = total_gross * Decimal('0.075')  # %7.5 MoldPark hizmet bedeli
         net_earnings = total_gross - moldpark_fee  # Üreticinin net kazancı
         
         # Bu merkeze ait faturalar

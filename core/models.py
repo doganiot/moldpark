@@ -637,7 +637,7 @@ class Commission(models.Model):
     """Komisyon ve Kazanç Takibi"""
 
     COMMISSION_TYPE_CHOICES = [
-        ('moldpark_fee', 'MoldPark Sistem Ücreti (%6.5)'),
+        ('moldpark_fee', 'MoldPark Sistem Ücreti (%7.5)'),
         ('credit_card', 'Kredi Kartı Komisyonu (%2.6)'),
         ('producer_commission', 'Üretici Komisyonu'),
     ]
@@ -794,7 +794,7 @@ class Invoice(models.Model):
     digital_scan_cost = models.DecimalField('Digital Tarama Maliyeti', max_digits=10, decimal_places=2, default=0)
 
     # Yeni Hesaplama Alanları (Merkezileştirilmiş Sistem)
-    moldpark_service_fee_rate = models.DecimalField('MoldPark Hizmet Bedeli Oranı (%)', max_digits=5, decimal_places=2, default=6.50)
+    moldpark_service_fee_rate = models.DecimalField('MoldPark Hizmet Bedeli Oranı (%)', max_digits=5, decimal_places=2, default=7.50)
     credit_card_fee_rate = models.DecimalField('Kredi Kartı Komisyonu Oranı (%)', max_digits=5, decimal_places=2, default=3.00)
     moldpark_service_fee = models.DecimalField('MoldPark Hizmet Bedeli', max_digits=10, decimal_places=2, default=0)
     credit_card_fee = models.DecimalField('Kredi Kartı Komisyonu', max_digits=10, decimal_places=2, default=0)
@@ -811,7 +811,7 @@ class Invoice(models.Model):
     producer_net_revenue = models.DecimalField('Üretici Net Geliri', max_digits=10, decimal_places=2, default=0)
 
     # Komisyonlar ve Kesintiler (ayrıntılı)
-    moldpark_system_fee = models.DecimalField('MoldPark Sistem Ücreti (%6.5)', max_digits=10, decimal_places=2, default=0)
+    moldpark_system_fee = models.DecimalField('MoldPark Sistem Ücreti (%7.5)', max_digits=10, decimal_places=2, default=0)
     credit_card_fee = models.DecimalField('Kredi Kartı Komisyonu (%2.6)', max_digits=10, decimal_places=2, default=0)
     producer_commission_amount = models.DecimalField('Üretici Komisyonu Kesintisi', max_digits=10, decimal_places=2, default=0)
 
@@ -934,9 +934,9 @@ class Invoice(models.Model):
         self.modeling_count = self.digital_scan_count
         self.modeling_cost = self.digital_scan_cost
 
-        # MoldPark sistem komisyonu %6.5 (KDV DAHİL brüt tutar üzerinden)
+        # MoldPark sistem komisyonu %7.5 (KDV DAHİL brüt tutar üzerinden)
         # subtotal zaten KDV dahil olduğu için doğrudan hesaplayabiliriz
-        self.moldpark_system_fee = self.subtotal * Decimal('0.065')
+        self.moldpark_system_fee = self.subtotal * Decimal('0.075')
 
         # Kredi kartı komisyonu %2.6 (KDV dahil tutar üzerinden)
         self.credit_card_fee = self.subtotal * Decimal('0.026')
@@ -1113,7 +1113,7 @@ class Invoice(models.Model):
         # Ara toplam (üreticinin kazandığı tutar)
         self.subtotal = self.physical_mold_cost
 
-        # MoldPark hizmet bedeli kesintisi (%6.5)
+        # MoldPark hizmet bedeli kesintisi (%7.5)
         self.moldpark_service_fee = self.subtotal * (self.moldpark_service_fee_rate / Decimal('100'))
 
         # Kredi kartı komisyonu kesintisi (%3)
@@ -1223,7 +1223,7 @@ class Invoice(models.Model):
         self.subtotal = total_gross
 
         # Komisyon kesintileri
-        self.moldpark_system_fee = self.subtotal * Decimal('0.065')  # %6.5 MoldPark sistem ücreti
+        self.moldpark_system_fee = self.subtotal * Decimal('0.075')  # %7.5 MoldPark sistem ücreti
         self.credit_card_fee = self.subtotal * Decimal('0.026')  # %2.6 KK komisyonu
 
         # Toplam kesintiler
@@ -1582,8 +1582,8 @@ class PricingConfiguration(models.Model):
         'MoldPark Hizmet Bedeli Oranı (%)',
         max_digits=5,
         decimal_places=2,
-        default=6.50,
-        help_text='MoldPark komisyon oranı (örn: 6.50 = %6.5)'
+        default=7.50,
+        help_text='MoldPark komisyon oranı (örn: 7.50 = %7.5)'
     )
     
     credit_card_commission_rate = models.DecimalField(
@@ -1658,7 +1658,7 @@ class PricingConfiguration(models.Model):
                 is_active=True,
                 physical_mold_price=450.00,
                 digital_modeling_price=19.00,
-                moldpark_commission_rate=6.50,
+                moldpark_commission_rate=7.50,
                 credit_card_commission_rate=3.00,
                 vat_rate=20.00,
                 monthly_system_fee=0.00

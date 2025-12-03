@@ -1004,40 +1004,29 @@
             <span class="badge bg-warning text-dark px-3 py-2 rounded-pill mb-3">
                 <i class="fas fa-gift me-2"></i>ÖZEL KAMPANYA
             </span>
-            <h2 class="display-5 fw-bold mb-3">1 Ay Tamamen Ücretsiz!</h2>
-            <p class="lead mb-0">İşitme merkezleri ve üretici merkezler için özel fırsat</p>
+            <h2 class="display-5 fw-bold mb-3">Yeni Üyelere Özel!</h2>
+            <p class="lead mb-0">İşitme merkezleri için özel fırsat</p>
             <p class="opacity-75 mb-0"><small>Kredi kartı gerekmez • Otomatik yenileme yok</small></p>
         </div>
         
         <div class="row g-4 justify-content-center">
-            <div class="col-lg-5 col-md-6">
-                <div class="register-card bg-white text-dark rounded-4 p-4 text-center h-100">
+            <div class="col-lg-6 col-md-8">
+                <div class="register-card bg-white text-dark rounded-4 p-4 text-center h-100 shadow-lg" style="opacity: 1 !important; transform: translateY(0) !important;">
                     <i class="fas fa-hospital fa-3x text-primary mb-3"></i>
                     <h4 class="fw-bold mb-3">İşitme Merkezi</h4>
+                    <div class="alert alert-success mb-4 alert-permanent">
+                        <h5 class="mb-2"><i class="fas fa-gift me-2"></i>Ücretsiz Başlangıç Paketi</h5>
+                        <p class="mb-0 fw-bold">2 Fiziksel Kalıp + 2 3D Modelleme Hizmeti ÜCRETSİZ!</p>
+                    </div>
                     <ul class="list-unstyled text-start mb-4 small">
-                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>1 ay ücretsiz deneme (100 kalıp/ay)</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i><strong>2 Fiziksel Kalıp</strong> tamamen ücretsiz</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i><strong>2 3D Modelleme Hizmeti</strong> tamamen ücretsiz</li>
                         <li class="mb-2"><i class="fas fa-check text-success me-2"></i>AI destekli 3D modelleme</li>
                         <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Tüm üretici ağlarına erişim</li>
                         <li class="mb-2"><i class="fas fa-check text-success me-2"></i>7/24 destek</li>
                     </ul>
                     <a href="{% url 'account_signup' %}" class="btn btn-primary btn-lg w-100 rounded-pill">
                         <i class="fas fa-rocket me-2"></i>Hemen Kaydol
-                    </a>
-                </div>
-            </div>
-            
-            <div class="col-lg-5 col-md-6">
-                <div class="register-card bg-white text-dark rounded-4 p-4 text-center h-100">
-                    <i class="fas fa-industry fa-3x text-warning mb-3"></i>
-                    <h4 class="fw-bold mb-3">Üretici Merkez</h4>
-                    <ul class="list-unstyled text-start mb-4 small">
-                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>1 ay ücretsiz deneme (200 sipariş/ay)</li>
-                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Otomatik sipariş eşleştirme</li>
-                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>API erişimi</li>
-                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Detaylı raporlama</li>
-                    </ul>
-                    <a href="{% url 'producer:register' %}" class="btn btn-warning btn-lg w-100 rounded-pill">
-                        <i class="fas fa-industry me-2"></i>Üretici Kaydı
                     </a>
                 </div>
             </div>
@@ -1518,12 +1507,18 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }, observerOptions);
     
-    // Observe all cards
-    document.querySelectorAll('.feature-card-simple, .step-card-simple, .price-card-simple, .register-card').forEach(card => {
+    // Observe all cards (register-card hariç - sabit kalacak)
+    document.querySelectorAll('.feature-card-simple, .step-card-simple, .price-card-simple').forEach(card => {
         card.style.opacity = '0';
         card.style.transform = 'translateY(20px)';
         card.style.transition = 'all 0.6s ease';
         observer.observe(card);
+    });
+    
+    // Register card'ı sabit tut (animasyon yok, her zaman görünür)
+    document.querySelectorAll('.register-card').forEach(card => {
+        card.style.opacity = '1';
+        card.style.transform = 'translateY(0)';
     });
 });
 </script>

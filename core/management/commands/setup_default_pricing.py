@@ -32,14 +32,14 @@ MoldPark 2025 yılı standart fiyatlandırma yapılandırması.
 - Aylık Sistem Kullanımı: 100 TL
 - Fiziksel kalıp: 450 TL (KDV Dahil)
 - 3D Modelleme: 50 TL (KDV Dahil)
-- MoldPark Komisyonu: %6.5
+- MoldPark Komisyonu: %7.5
 - Kredi Kartı Komisyonu: %3
 - KDV Oranı: %20
             '''.strip(),
             physical_mold_price=450.00,
             digital_modeling_price=50.00,
             monthly_system_fee=100.00,
-            moldpark_commission_rate=6.50,
+            moldpark_commission_rate=7.50,
             credit_card_commission_rate=3.00,
             vat_rate=20.00,
             is_active=True

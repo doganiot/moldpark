@@ -1403,7 +1403,7 @@ def subscription_dashboard(request):
                             
                             # Üretici faturası oluştur - Paket fiyatı üzerinden
                             # Paket satın alındığında üretici merkez bu satın almayı karşılayacak olan taraftır
-                            # MoldPark Hizmet Bedeli (%6.5) KDV DAHİL brüt tutar üzerinden alınır
+                            # MoldPark Hizmet Bedeli (%7.5) KDV DAHİL brüt tutar üzerinden alınır
                             producer_moldpark_fee = pricing.calculate_moldpark_fee(plan.price_try)
                             producer_cc_fee = pricing.calculate_credit_card_fee(plan.price_try) if payment_method == 'credit_card' else Decimal('0.00')
                             
@@ -1711,17 +1711,26 @@ def admin_financial_dashboard(request):
         # === BU AY GELİRLER ===
         current_month_revenue = Decimal('0.00')
 
-        # Center faturalarından gelen gelir (sistem kullanım + fiziksel kalıp)
+        # Center faturalarından gelen toplam gelir ve aylık ücretler
         center_invoices = Invoice.objects.filter(
             invoice_type__startswith='center',
             issue_date__gte=current_month_start,
             status='paid'
         )
 
-        for invoice in center_invoices:
-            current_month_revenue += invoice.total_deductions  # MoldPark'a giden kısım
+        total_gross_revenue_this_month = Decimal('0.00')
+        total_monthly_fees_this_month = Decimal('0.00')
 
-        # Producer ödemelerinden gelen gelir (komisyonlar)
+        for invoice in center_invoices:
+            # Toplam brüt gelir (aylık ücret hariç)
+            total_gross_revenue_this_month += invoice.subtotal or Decimal('0.00')
+            # Aylık sistem kullanım ücreti
+            total_monthly_fees_this_month += invoice.monthly_system_fee or Decimal('0.00')
+
+        # MoldPark geliri = (Toplam gelir - Aylık sistem ücretleri) × %7.5
+        current_month_revenue = (total_gross_revenue_this_month - total_monthly_fees_this_month) * Decimal('0.075')
+
+        # Producer ödemelerinden gelen gelir (komisyonlar) - Producer faturalarında zaten %7.5 komisyon hesaplanmış
         producer_invoices = Invoice.objects.filter(
             invoice_type__startswith='producer',
             issue_date__gte=current_month_start,
@@ -1729,7 +1738,8 @@ def admin_financial_dashboard(request):
         )
 
         for invoice in producer_invoices:
-            current_month_revenue += invoice.total_deductions  # MoldPark komisyonları
+            # Producer faturalarında MoldPark komisyonu zaten hesaplanmış durumda
+            current_month_revenue += invoice.moldpark_service_fee or Decimal('0.00')
 
         # === ÖDENMEMİŞ TUTARLAR ===
         pending_center_invoices = Invoice.objects.filter(
@@ -1754,21 +1764,30 @@ def admin_financial_dashboard(request):
 
             month_revenue = Decimal('0.00')
 
-            # Center faturalarından
-            center_monthly = Invoice.objects.filter(
+            # Center faturalarından toplam gelir ve aylık ücretler
+            center_monthly_invoices = Invoice.objects.filter(
                 invoice_type__startswith='center',
                 issue_date__gte=month_start,
                 issue_date__lt=month_end,
                 status='paid'
-            ).aggregate(total=Sum('total_deductions'))['total'] or Decimal('0.00')
+            )
 
-            # Producer faturalarından
+            center_gross_monthly = Decimal('0.00')
+            center_monthly_fees = Decimal('0.00')
+            for invoice in center_monthly_invoices:
+                center_gross_monthly += invoice.subtotal or Decimal('0.00')
+                center_monthly_fees += invoice.monthly_system_fee or Decimal('0.00')
+
+            # Center MoldPark geliri = (Toplam gelir - Aylık ücret) × %7.5
+            center_monthly = (center_gross_monthly - center_monthly_fees) * Decimal('0.075')
+
+            # Producer faturalarından (MoldPark komisyonu) - Zaten %7.5 komisyon hesaplanmış
             producer_monthly = Invoice.objects.filter(
                 invoice_type__startswith='producer',
                 issue_date__gte=month_start,
                 issue_date__lt=month_end,
                 status='paid'
-            ).aggregate(total=Sum('total_deductions'))['total'] or Decimal('0.00')
+            ).aggregate(total=Sum('moldpark_service_fee'))['total'] or Decimal('0.00')
 
             month_revenue = center_monthly + producer_monthly
 
@@ -1787,8 +1806,14 @@ def admin_financial_dashboard(request):
                 user=center_user,
                 status='paid'
             )
+            total_center_gross = Decimal('0.00')
+            total_center_monthly = Decimal('0.00')
             for invoice in center_invoices:
-                center_revenue += invoice.total_deductions
+                total_center_gross += invoice.subtotal or Decimal('0.00')
+                total_center_monthly += invoice.monthly_system_fee or Decimal('0.00')
+
+            # Center MoldPark geliri = (Toplam gelir - Aylık ücret) × %7.5
+            center_revenue = (total_center_gross - total_center_monthly) * Decimal('0.075')
 
             if center_revenue > 0:
                 top_centers.append({

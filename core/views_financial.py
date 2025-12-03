@@ -145,7 +145,7 @@ def financial_dashboard(request):
     
     for invoice in new_producer_invoices:
         new_producer_gross += invoice.producer_gross_revenue or Decimal('0.00')
-        new_producer_moldpark_fee += (invoice.producer_gross_revenue or Decimal('0.00')) * Decimal('0.065')
+        new_producer_moldpark_fee += (invoice.producer_gross_revenue or Decimal('0.00')) * Decimal('0.075')
         new_producer_cc_fee += invoice.credit_card_fee or Decimal('0.00')
     
     # === BİRLEŞTİRİLMİŞ İSTATİSTİKLER ===
@@ -669,19 +669,21 @@ def admin_financial_control_panel(request):
         start_date = datetime(2020, 1, 1)
         end_date = now
         period_name = 'Tüm Zamanlar'
-    
+
     # ==========================================
     # 1. İŞİTME MERKEZLERİNDEN TAHSİLATLAR
     # ==========================================
-    
+
     # Fiziksel kalıp gönderen işitme merkezleri
     centers_with_physical_molds = []
     all_centers = Center.objects.filter(is_active=True)
-    
+
     total_collections_from_centers = Decimal('0.00')
-    total_moldpark_service_fee = Decimal('0.00')
     total_monthly_system_fees = Decimal('0.00')  # Aylık sistem ücretleri toplamı
-    
+
+    # MoldPark gelirini hesaplamak için toplam gelir (sadece fiziksel + dijital hizmetler)
+    total_gross_revenue = Decimal('0.00')  # Fiziksel + Dijital hizmetler toplamı (aylık ücret hariç)
+
     for center in all_centers:
         # Paket faturalarını kontrol et (PKG- prefix'li faturalar)
         # Tarih filtresini kaldırdık çünkü paket faturaları her zaman gösterilmeli
@@ -868,7 +870,7 @@ def admin_financial_control_panel(request):
         # Toplam tutar: Paket faturası varsa paket fiyatı, yoksa tek tek kalıplar + aylık ücret
         if has_package_invoice:
             # Paket faturası zaten KDV dahil tutarı içerir
-            gross_amount_with_vat = package_amount + monthly_fee
+            gross_amount_with_vat = package_amount + monthly_fee  # Toplam tahsilat
             physical_count = 0  # Paket faturası varsa kalıp sayısını gösterme
             digital_count = 0
             
@@ -877,12 +879,15 @@ def admin_financial_control_panel(request):
             gross_amount_without_vat = gross_amount_with_vat / vat_multiplier
             vat_amount = gross_amount_with_vat - gross_amount_without_vat
             
-            # MoldPark hizmet bedeli KDV DAHİL brüt tutar üzerinden hesaplanır
-            moldpark_fee = pricing.calculate_moldpark_fee(gross_amount_with_vat)
+            # MoldPark hizmet bedeli: Aylık ücret düşüldükten sonra kalan tutar üzerinden hesaplanır
+            # (Brüt - Aylık ücret) × %7.5
+            amount_after_monthly_fee = package_amount  # Paket faturası zaten aylık ücret içermiyor
+            moldpark_fee = pricing.calculate_moldpark_fee(amount_after_monthly_fee)
             
-            # Üreticiye giden KDV hariç tutar
-            net_to_producer = gross_amount_without_vat - moldpark_fee
+            # Üreticiye giden: (Brüt - Aylık ücret) - MoldPark komisyonu
+            net_to_producer = amount_after_monthly_fee - moldpark_fee
         elif physical_count > 0 or digital_count > 0 or monthly_fee > 0:
+            # Toplam tahsilat: Fiziksel + 3D + Aylık ücret
             gross_amount_with_vat = physical_amount_with_vat + digital_amount_with_vat + monthly_fee
             
             # KDV hesaplamaları
@@ -890,11 +895,13 @@ def admin_financial_control_panel(request):
             gross_amount_without_vat = gross_amount_with_vat / vat_multiplier
             vat_amount = gross_amount_with_vat - gross_amount_without_vat
             
-            # MoldPark hizmet bedeli KDV DAHİL brüt tutar üzerinden hesaplanır
-            moldpark_fee = pricing.calculate_moldpark_fee(gross_amount_with_vat)
+            # MoldPark hizmet bedeli: Aylık ücret düşüldükten sonra kalan tutar üzerinden hesaplanır
+            # (Brüt - Aylık ücret) × %7.5
+            amount_after_monthly_fee = physical_amount_with_vat + digital_amount_with_vat
+            moldpark_fee = pricing.calculate_moldpark_fee(amount_after_monthly_fee)
             
-            # Üreticiye giden KDV hariç tutar
-            net_to_producer = gross_amount_without_vat - moldpark_fee
+            # Üreticiye giden: (Brüt - Aylık ücret) - MoldPark komisyonu
+            net_to_producer = amount_after_monthly_fee - moldpark_fee
         else:
             # Hiçbir şey yoksa sıfır değerler
             gross_amount_with_vat = Decimal('0.00')
@@ -907,7 +914,8 @@ def admin_financial_control_panel(request):
         if gross_amount_with_vat > 0 or has_package_invoice:
             if gross_amount_with_vat > 0:
                 total_collections_from_centers += gross_amount_with_vat
-                total_moldpark_service_fee += moldpark_fee
+                # MoldPark komisyonu için toplam brüt gelir (sadece fiziksel + dijital hizmetler, aylık ücret hariç)
+                total_gross_revenue += amount_after_monthly_fee
             
             centers_with_physical_molds.append({
                 'center': center,
@@ -940,10 +948,14 @@ def admin_financial_control_panel(request):
     # 2. ÜRETİCİLERE YAPILACAK ÖDEMELER
     # ==========================================
     
+    # İşitme merkezlerinden tahsilat bölümündeki net_to_producer değerlerinin toplamı
+    total_payments_to_producers = Decimal('0.00')
+    for center_data in centers_with_physical_molds:
+        total_payments_to_producers += center_data.get('net_to_producer', Decimal('0.00'))
+    
+    # Üretici detayları için ayrı hesaplama (sadece gösterim için)
     producers_payment_summary = []
     all_producers = Producer.objects.filter(is_active=True)
-    
-    total_payments_to_producers = Decimal('0.00')
     total_producer_gross_revenue = Decimal('0.00')
     total_producer_gross_without_vat = Decimal('0.00')
     total_producer_vat = Decimal('0.00')
@@ -1061,7 +1073,8 @@ def admin_financial_control_panel(request):
             continue
         
         # Toplam hesaplamalara ekle
-        total_payments_to_producers += net_payment
+        # NOT: total_payments_to_producers zaten işitme merkezlerinden tahsilat bölümündeki net_to_producer değerlerinin toplamından hesaplanıyor
+        # Burada sadece detaylı istatistikler için hesaplama yapılıyor
         total_producer_gross_revenue += gross_revenue_with_vat
         total_producer_gross_without_vat += gross_revenue_without_vat
         total_producer_vat += vat_amount
@@ -1105,13 +1118,14 @@ def admin_financial_control_panel(request):
     # ==========================================
     # 3. MOLDPARK NET KAZANCI
     # ==========================================
-    
-    # MoldPark'ın toplam geliri = Hizmet bedeli (%6.5)
-    moldpark_total_income = total_moldpark_service_fee
-    
+
+    # MoldPark'ın toplam geliri = (Sadece Hizmetler: Fiziksel + Dijital) × %7.5
+    # Aylık sistem ücretleri MoldPark komisyonuna dahil edilmez
+    moldpark_total_income = total_gross_revenue * Decimal('0.075')
+
     # MoldPark'ın net kazancı = Hizmet bedeli (kredi kartı komisyonu artık hesaplanmıyor)
     moldpark_net_profit = moldpark_total_income
-    
+
     # ==========================================
     # 4. PARA AKIŞI ÖZETİ
     # ==========================================
@@ -1119,7 +1133,7 @@ def admin_financial_control_panel(request):
     cash_flow = {
         'total_incoming': total_collections_from_centers,  # İşitme merkezlerinden gelen
         'total_outgoing': total_payments_to_producers,  # Üreticilere giden (aylık sistem ücretleri dahil değil)
-        'moldpark_service_income': total_moldpark_service_fee,  # MoldPark hizmet bedeli (brüt)
+        'moldpark_service_income': moldpark_total_income,  # MoldPark hizmet bedeli ((Toplam gelir - Aylık ücret) × %7.5)
         'monthly_system_fees': total_monthly_system_fees,  # Aylık sistem kullanım ücretleri
         'moldpark_net_profit': moldpark_net_profit,  # MoldPark net kar (hizmet bedeli)
         'balance': total_collections_from_centers - total_payments_to_producers,  # Gerçek kalan bakiye
@@ -1181,7 +1195,7 @@ def admin_financial_control_panel(request):
         'pending_producers_count': pending_producers_count,
         
         # Komisyonlar
-        'total_moldpark_service_fee': total_moldpark_service_fee,
+        'total_moldpark_service_fee': moldpark_total_income,  # MoldPark hizmet bedeli (sadece fiziksel + dijital × %7.5)
         'moldpark_net_profit': moldpark_net_profit,
         
         # Para akışı
