@@ -128,10 +128,10 @@
                                 <tr>
                                     <td>
                                         <strong>Fiziksel Kulak Kalıbı Üretimi</strong>
-                                        <br><small class="text-muted">3D Baskı + Kalıp İmalatı (KDV Dahil: 375₺ + 75₺ KDV)</small>
+                                        <br><small class="text-muted">3D Baskı + Kalıp İmalatı (KDV Dahil)</small>
                                     </td>
                                     <td class="text-center">{{ invoice.physical_mold_count }}</td>
-                                    <td class="text-end">450 ₺</td>
+                                    <td class="text-end">{{ physical_unit_price|floatformat:0 }} ₺</td>
                                     <td class="text-end"><strong>{{ invoice.physical_mold_cost|floatformat:0 }} ₺</strong></td>
                                 </tr>
                                 {% endif %}
@@ -140,10 +140,10 @@
                                 <tr>
                                     <td>
                                         <strong>3D Kalıp Modelleme Hizmeti</strong>
-                                        <br><small class="text-muted">Dijital Model Oluşturma (KDV Dahil: 41.67₺ + 8.33₺ KDV)</small>
+                                        <br><small class="text-muted">Dijital Model Oluşturma (KDV Dahil)</small>
                                     </td>
                                     <td class="text-center">{{ invoice.digital_scan_count }}</td>
-                                    <td class="text-end">50 ₺</td>
+                                    <td class="text-end">{{ digital_unit_price|floatformat:0 }} ₺</td>
                                     <td class="text-end"><strong>{{ invoice.digital_scan_cost|floatformat:0 }} ₺</strong></td>
                                 </tr>
                                 {% endif %}

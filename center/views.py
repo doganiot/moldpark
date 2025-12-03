@@ -1415,8 +1415,9 @@ def billing_invoices(request):
     display_total_text = f"{physical_molds_count} kalıp"
     
     # Bu ay için paket faturası var mı kontrol et
-    current_month_start = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    current_month_end = datetime.now().replace(day=28, hour=23, minute=59, second=59) + timedelta(days=4)
+    # Timezone-aware datetime kullan
+    current_month_start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    current_month_end = timezone.now().replace(day=28, hour=23, minute=59, second=59) + timedelta(days=4)
     current_month_end = current_month_end.replace(day=1) - timedelta(seconds=1)
     
     package_invoice = Invoice.objects.filter(
@@ -1581,6 +1582,7 @@ def billing_invoice_detail(request, invoice_id):
 
     # KDV hesaplamaları
     from decimal import Decimal
+    from core.models import UserSubscription, PricingPlan
     
     total_with_vat = invoice.total_amount or Decimal('0.00')
     vat_rate = Decimal('20')  # %20 KDV
@@ -1591,6 +1593,91 @@ def billing_invoice_detail(request, invoice_id):
     # KDV miktarı
     vat_amount = total_with_vat - subtotal_without_vat
     
+    # Faturadaki birim fiyatları kullan (fatura oluşturulurken kaydedilmiş)
+    # Önce faturadaki unit_price alanlarını kontrol et
+    if invoice.physical_mold_unit_price and invoice.physical_mold_unit_price > 0:
+        physical_unit_price = invoice.physical_mold_unit_price
+    elif invoice.physical_mold_count > 0 and invoice.physical_mold_cost > 0:
+        # Unit price yoksa, toplam maliyet / adet ile hesapla
+        physical_unit_price = invoice.physical_mold_cost / invoice.physical_mold_count
+    else:
+        # Fatura tarihindeki abonelik bilgisini bul
+        physical_unit_price = Decimal('450.00')  # Varsayılan: Standart fiyat
+        
+        if invoice.issue_date:
+            # Fatura tarihindeki aktif aboneliği bul (tarih karşılaştırması için datetime'a çevir)
+            from django.utils import timezone
+            from datetime import datetime, time as dt_time
+            
+            invoice_datetime = invoice.issue_date
+            if isinstance(invoice_datetime, datetime):
+                if timezone.is_naive(invoice_datetime):
+                    invoice_datetime = timezone.make_aware(invoice_datetime)
+            else:
+                # date ise datetime'a çevir
+                invoice_datetime = timezone.make_aware(datetime.combine(invoice_datetime, dt_time.max))
+            
+            # Fatura tarihinde aktif olan aboneliği bul
+            subscription_at_invoice_date = UserSubscription.objects.filter(
+                user=request.user,
+                start_date__lte=invoice_datetime,
+                status='active'
+            ).order_by('-start_date').first()
+            
+            # Eğer aktif abonelik yoksa, iptal edilmiş ama o tarihte geçerli olan aboneliği kontrol et
+            if not subscription_at_invoice_date:
+                subscription_at_invoice_date = UserSubscription.objects.filter(
+                    user=request.user,
+                    start_date__lte=invoice_datetime,
+                    status__in=['active', 'cancelled']
+                ).order_by('-start_date').first()
+            
+            if subscription_at_invoice_date and subscription_at_invoice_date.plan:
+                physical_unit_price = subscription_at_invoice_date.plan.per_mold_price_try or Decimal('450.00')
+            else:
+                # Abonelik yoksa Standart plan fiyatlarını kullan
+                standart_plan = PricingPlan.objects.filter(name='Standart Abonelik', is_active=True).first()
+                if standart_plan:
+                    physical_unit_price = standart_plan.per_mold_price_try or Decimal('450.00')
+    
+    # Dijital için maliyet / adet ile hesapla
+    if invoice.digital_scan_count > 0 and invoice.digital_scan_cost > 0:
+        digital_unit_price = invoice.digital_scan_cost / invoice.digital_scan_count
+    else:
+        # Fatura tarihindeki abonelik bilgisini bul
+        digital_unit_price = Decimal('19.00')  # Varsayılan: Standart fiyat
+        
+        if invoice.issue_date:
+            from django.utils import timezone
+            from datetime import datetime, time as dt_time
+            
+            invoice_datetime = invoice.issue_date
+            if isinstance(invoice_datetime, datetime):
+                if timezone.is_naive(invoice_datetime):
+                    invoice_datetime = timezone.make_aware(invoice_datetime)
+            else:
+                invoice_datetime = timezone.make_aware(datetime.combine(invoice_datetime, dt_time.max))
+            
+            subscription_at_invoice_date = UserSubscription.objects.filter(
+                user=request.user,
+                start_date__lte=invoice_datetime,
+                status='active'
+            ).order_by('-start_date').first()
+            
+            if not subscription_at_invoice_date:
+                subscription_at_invoice_date = UserSubscription.objects.filter(
+                    user=request.user,
+                    start_date__lte=invoice_datetime,
+                    status__in=['active', 'cancelled']
+                ).order_by('-start_date').first()
+            
+            if subscription_at_invoice_date and subscription_at_invoice_date.plan:
+                digital_unit_price = subscription_at_invoice_date.plan.modeling_service_fee_try or Decimal('19.00')
+            else:
+                standart_plan = PricingPlan.objects.filter(name='Standart Abonelik', is_active=True).first()
+                if standart_plan:
+                    digital_unit_price = standart_plan.modeling_service_fee_try or Decimal('19.00')
+    
     context = {
         'center': center,
         'invoice': invoice,
@@ -1598,6 +1685,8 @@ def billing_invoice_detail(request, invoice_id):
         'subtotal_without_vat': round(subtotal_without_vat, 2),
         'vat_amount': round(vat_amount, 2),
         'total_with_vat': total_with_vat,
+        'physical_unit_price': physical_unit_price,
+        'digital_unit_price': digital_unit_price,
     }
 
     return render(request, 'center/billing_invoice_detail.html', context)
@@ -1846,9 +1935,15 @@ def my_usage(request):
         issue_date__month=current_month
     )
 
-    # Mevcut ay fatura toplamları
-    invoiced_total = sum(inv.total_amount for inv in invoices if inv.total_amount)
-    invoiced_paid = sum(inv.total_amount for inv in invoices.filter(status='paid') if inv.total_amount)
+    # Mevcut ay fatura toplamları (Decimal olarak)
+    invoiced_total = sum(inv.total_amount for inv in invoices if inv.total_amount) or Decimal('0.00')
+    invoiced_paid = sum(inv.total_amount for inv in invoices.filter(status='paid') if inv.total_amount) or Decimal('0.00')
+    
+    # Decimal'e çevir
+    if not isinstance(invoiced_total, Decimal):
+        invoiced_total = Decimal(str(invoiced_total))
+    if not isinstance(invoiced_paid, Decimal):
+        invoiced_paid = Decimal(str(invoiced_paid))
 
     # Bu ayın henüz faturalandırılmamış kullanım maliyetleri
     # Tarih bazlı fiyatlandırma: Pro abonelik öncesi Standart, sonrası Pro fiyatları
@@ -1968,16 +2063,16 @@ def my_usage(request):
         for mold in digital_after_pro_this_month_molds:
             digital_after_pro_this_month += float(get_mold_price_at_date(mold, request.user, pricing))
 
-    # Toplam bu ay maliyet (öncelikli olarak bu ay gösterilsin)
-    total_cost_this_month = physical_cost_this_month + digital_cost_this_month + monthly_system_fee
+    # Toplam bu ay maliyet (öncelikli olarak bu ay gösterilsin) - Decimal'e çevir
+    total_cost_this_month = Decimal(str(physical_cost_this_month)) + Decimal(str(digital_cost_this_month)) + Decimal(str(monthly_system_fee))
 
     # Eğer bu ay hiç kullanım yoksa, toplam kullanımı göster
-    if total_cost_this_month == monthly_system_fee and (physical_cost_total > 0 or digital_cost_total > 0):
-        total_cost_this_month = physical_cost_total + digital_cost_total + monthly_system_fee
+    if total_cost_this_month == Decimal(str(monthly_system_fee)) and (physical_cost_total > 0 or digital_cost_total > 0):
+        total_cost_this_month = Decimal(str(physical_cost_total)) + Decimal(str(digital_cost_total)) + Decimal(str(monthly_system_fee))
         physical_cost_this_month = physical_cost_total
         digital_cost_this_month = digital_cost_total
 
-    # Genel toplam (faturalanmış + bu ay tahmini)
+    # Genel toplam (faturalanmış + bu ay tahmini) - Decimal toplama
     total_amount = invoiced_total + total_cost_this_month
     remaining_amount = total_amount - invoiced_paid
 
