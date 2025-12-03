@@ -1,6 +1,7 @@
 """
 İşitme Merkezi Ödeme İşlemleri View'ları
 """
+import logging
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import Http404
@@ -16,6 +17,8 @@ from core.forms import (
     InvoicePaymentForm, CreditCardPaymentForm, BankTransferPaymentForm
 )
 
+logger = logging.getLogger(__name__)
+
 
 @login_required
 def invoice_payment(request, invoice_id):
@@ -25,7 +28,16 @@ def invoice_payment(request, invoice_id):
     
     # İzin kontrolü
     if not request.user.is_superuser:
-        if not hasattr(request.user, 'center') or invoice.issued_by_center != request.user.center:
+        can_view = False
+        if hasattr(request.user, 'center'):
+            # Yeni sistem: issued_by_center kontrolü
+            if invoice.issued_by_center == request.user.center:
+                can_view = True
+            # Eski sistem: user kontrolü
+            elif invoice.user == request.user:
+                can_view = True
+        
+        if not can_view:
             raise Http404("Bu faturayı görüntüleme yetkiniz yok")
     
     # Ödenen faturalar için hata
@@ -58,65 +70,81 @@ def invoice_payment(request, invoice_id):
 
 @login_required
 def invoice_payment_credit_card(request, invoice_id):
-    """Kredi kartı ile ödeme"""
+    """Kredi kartı ile ödeme - İyzico entegrasyonu"""
     
     invoice = get_object_or_404(Invoice, id=invoice_id)
     
     # İzin kontrolü
     if not request.user.is_superuser:
-        if not hasattr(request.user, 'center') or invoice.issued_by_center != request.user.center:
+        can_view = False
+        if hasattr(request.user, 'center'):
+            # Yeni sistem: issued_by_center kontrolü
+            if invoice.issued_by_center == request.user.center:
+                can_view = True
+            # Eski sistem: user kontrolü
+            elif invoice.user == request.user:
+                can_view = True
+        
+        if not can_view:
             raise Http404("Bu faturayı görüntüleme yetkiniz yok")
     
     if invoice.status == 'paid':
         messages.info(request, 'Bu fatura zaten ödenmiş.')
         return redirect('core:invoice_detail', invoice_id=invoice_id)
     
-    payment_method = get_object_or_404(PaymentMethod, method_type='credit_card', is_active=True)
+    payment_method = PaymentMethod.objects.filter(method_type='credit_card', is_active=True).first()
+    if not payment_method:
+        messages.error(request, 'Kredi kartı ödeme yöntemi aktif değil. Lütfen admin ile iletişime geçin.')
+        return redirect('core:invoice_payment', invoice_id=invoice_id)
     
-    if request.method == 'POST':
-        form = CreditCardPaymentForm(request.POST)
-        if form.is_valid():
-            # Demo modda doğrudan ödendi olarak işaretle
-            # Gerçek uygulamada Stripe, PayPal vb. gateway kullanılacak
-            
-            payment = Payment.objects.create(
-                invoice=invoice,
-                user=request.user,
-                payment_method=payment_method,
-                amount=invoice.total_amount,
-                status='completed',
-                last_four_digits=form.cleaned_data.get('card_number', '')[-4:] if form.cleaned_data.get('card_number') else 'XXXX',
-                transaction_id=f'DEMO-{invoice_id}-{timezone.now().timestamp()}',
-                notes=f'Kredi kartı ile ödeme yapıldı. ({form.cleaned_data.get("cardholder_name", "İsim belirtilmedi")})'
+    # İyzico ödeme servisi
+    from core.payment_service import IyzicoPaymentService
+    try:
+        iyzico_service = IyzicoPaymentService()
+    except ValueError as e:
+        messages.error(request, str(e))
+        return redirect('core:invoice_payment', invoice_id=invoice_id)
+    except Exception as e:
+        logger.error(f"İyzico servis hatası: {str(e)}")
+        messages.error(request, f"Ödeme sistemi yapılandırma hatası: {str(e)}")
+        return redirect('core:invoice_payment', invoice_id=invoice_id)
+    
+    # İyzico ödeme formu oluştur
+    payment_result = iyzico_service.create_payment_request(invoice, request.user, request)
+    
+    if not payment_result.get('success'):
+        error_msg = payment_result.get('error_message', 'Bilinmeyen hata')
+        # İyzico'dan gelen hata mesajlarını kontrol et
+        if 'api' in error_msg.lower() or 'bilgileri' in error_msg.lower():
+            messages.error(
+                request, 
+                "İyzico API anahtarları yapılandırılmamış veya geçersiz. "
+                "Lütfen admin ile iletişime geçin veya .env dosyasına API anahtarlarını ekleyin."
             )
-            
-            # Faturayı ödendi olarak işaretle
-            invoice.mark_as_paid(
-                payment_method='Kredi Kartı',
-                transaction_id=payment.transaction_id
-            )
-            
-            # Bildirim gönder
-            SimpleNotification.objects.create(
-                user=request.user,
-                title='Ödeme Basarili',
-                message=f'₺{invoice.total_amount} tutarındaki faturanız kredi kartı ile ödenmiştir.',
-                notification_type='success',
-                related_url=f'/financial/invoices/{invoice_id}/'
-            )
-            
-            messages.success(request, f'Ödemeniz başarıyla yapılmıştır. Fatura Numarası: {invoice.invoice_number}')
-            return redirect('core:invoice_detail', invoice_id=invoice_id)
-    else:
-        form = CreditCardPaymentForm()
+        else:
+            messages.error(request, f"Ödeme formu oluşturulamadı: {error_msg}")
+        return redirect('core:invoice_payment', invoice_id=invoice_id)
+    
+    # Ödeme kaydı oluştur (pending durumunda)
+    payment = Payment.objects.create(
+        invoice=invoice,
+        user=request.user,
+        payment_method=payment_method,
+        amount=invoice.total_amount,
+        status='pending',
+        iyzico_conversation_id=payment_result.get('conversation_id', ''),
+        notes='İyzico ödeme formu oluşturuldu'
+    )
     
     context = {
         'invoice': invoice,
-        'form': form,
         'payment_method': payment_method,
+        'checkout_form_content': payment_result.get('checkout_form_content', ''),
+        'payment_page_url': payment_result.get('payment_page_url', ''),
+        'payment': payment,
     }
     
-    return render(request, 'core/payment/credit_card_payment.html', context)
+    return render(request, 'core/payment/iyzico_payment.html', context)
 
 
 @login_required
@@ -127,15 +155,31 @@ def invoice_payment_bank_transfer(request, invoice_id):
     
     # İzin kontrolü
     if not request.user.is_superuser:
-        if not hasattr(request.user, 'center') or invoice.issued_by_center != request.user.center:
+        can_view = False
+        if hasattr(request.user, 'center'):
+            # Yeni sistem: issued_by_center kontrolü
+            if invoice.issued_by_center == request.user.center:
+                can_view = True
+            # Eski sistem: user kontrolü
+            elif invoice.user == request.user:
+                can_view = True
+        
+        if not can_view:
             raise Http404("Bu faturayı görüntüleme yetkiniz yok")
     
     if invoice.status == 'paid':
         messages.info(request, 'Bu fatura zaten ödenmiş.')
         return redirect('core:invoice_detail', invoice_id=invoice_id)
     
-    payment_method = get_object_or_404(PaymentMethod, method_type='bank_transfer', is_active=True)
-    bank_config = payment_method.bank_transfer_config
+    payment_method = PaymentMethod.objects.filter(method_type='bank_transfer', is_active=True).first()
+    if not payment_method:
+        messages.error(request, 'Havale/EFT ödeme yöntemi aktif değil. Lütfen admin ile iletişime geçin.')
+        return redirect('core:invoice_payment', invoice_id=invoice_id)
+    
+    bank_config = payment_method.bank_transfer_config if hasattr(payment_method, 'bank_transfer_config') else None
+    if not bank_config:
+        messages.error(request, 'Havale/EFT banka bilgileri yapılandırılmamış. Lütfen admin ile iletişime geçin.')
+        return redirect('core:invoice_payment', invoice_id=invoice_id)
     
     if request.method == 'POST':
         form = BankTransferPaymentForm(request.POST, request.FILES)
@@ -225,4 +269,95 @@ def bank_transfer_details(request):
     }
     
     return render(request, 'core/payment/bank_transfer_details.html', context)
+
+
+@login_required
+def iyzico_payment_callback(request, invoice_id):
+    """İyzico ödeme callback - Ödeme sonucu işleme"""
+    
+    invoice = get_object_or_404(Invoice, id=invoice_id)
+    
+    # İzin kontrolü
+    if not request.user.is_superuser:
+        can_view = False
+        if hasattr(request.user, 'center'):
+            # Yeni sistem: issued_by_center kontrolü
+            if invoice.issued_by_center == request.user.center:
+                can_view = True
+            # Eski sistem: user kontrolü
+            elif invoice.user == request.user:
+                can_view = True
+        
+        if not can_view:
+            raise Http404("Bu faturayı görüntüleme yetkiniz yok")
+    
+    # İyzico token'ı al
+    token = request.GET.get('token')
+    if not token:
+        messages.error(request, 'Ödeme token\'ı bulunamadı.')
+        return redirect('core:invoice_payment', invoice_id=invoice_id)
+    
+    # İyzico ödeme servisi
+    from core.payment_service import IyzicoPaymentService
+    iyzico_service = IyzicoPaymentService()
+    
+    # Ödeme doğrulama
+    verification_result = iyzico_service.verify_payment(token, invoice)
+    
+    # Bekleyen ödeme kaydını bul
+    payment = Payment.objects.filter(
+        invoice=invoice,
+        user=request.user,
+        status='pending',
+        iyzico_token__isnull=True
+    ).order_by('-created_at').first()
+    
+    if not payment:
+        payment = Payment.objects.create(
+            invoice=invoice,
+            user=request.user,
+            payment_method=PaymentMethod.objects.filter(method_type='credit_card', is_active=True).first(),
+            amount=invoice.total_amount,
+            status='pending'
+        )
+    
+    if verification_result.get('success'):
+        # Ödeme başarılı
+        payment.status = 'completed'
+        payment.iyzico_payment_id = verification_result.get('payment_id', '')
+        payment.iyzico_token = token
+        payment.iyzico_conversation_id = verification_result.get('conversation_id', '')
+        payment.transaction_id = verification_result.get('payment_id', '')
+        payment.iyzico_response = verification_result.get('raw_response', {})
+        payment.last_four_digits = 'XXXX'  # İyzico'dan gelen kart bilgisi yoksa
+        payment.confirmed_at = timezone.now()
+        payment.save()
+        
+        # Faturayı ödendi olarak işaretle
+        invoice.mark_as_paid(
+            payment_method='Kredi Kartı (İyzico)',
+            transaction_id=payment.transaction_id
+        )
+        
+        # Bildirim gönder
+        SimpleNotification.objects.create(
+            user=request.user,
+            title='Ödeme Başarılı',
+            message=f'₺{invoice.total_amount} tutarındaki faturanız kredi kartı ile ödenmiştir.',
+            notification_type='success',
+            related_url=f'/financial/invoices/{invoice_id}/'
+        )
+        
+        messages.success(request, f'Ödemeniz başarıyla yapılmıştır. Fatura Numarası: {invoice.invoice_number}')
+        return redirect('core:invoice_detail', invoice_id=invoice_id)
+    else:
+        # Ödeme başarısız
+        payment.status = 'failed'
+        payment.iyzico_token = token
+        payment.iyzico_response = verification_result.get('raw_response', {})
+        payment.notes = f"Ödeme başarısız: {verification_result.get('error_message', 'Bilinmeyen hata')}"
+        payment.save()
+        
+        messages.error(request, f"Ödeme başarısız: {verification_result.get('error_message', 'Bilinmeyen hata')}")
+        return redirect('core:invoice_payment', invoice_id=invoice_id)
 

@@ -1819,6 +1819,12 @@ class Payment(models.Model):
     last_four_digits = models.CharField('Kartın Son 4 Hanesi', max_length=4, blank=True)
     transaction_id = models.CharField('İşlem ID', max_length=100, blank=True)
     
+    # İyzico Ödeme Gateway Bilgileri
+    iyzico_payment_id = models.CharField('İyzico Ödeme ID', max_length=100, blank=True)
+    iyzico_conversation_id = models.CharField('İyzico Konuşma ID', max_length=100, blank=True)
+    iyzico_token = models.CharField('İyzico Token', max_length=200, blank=True)
+    iyzico_response = models.JSONField('İyzico Yanıt', blank=True, null=True)
+    
     # Notlar
     notes = models.TextField('Notlar', blank=True)
     admin_notes = models.TextField('Admin Notları', blank=True)

@@ -349,5 +349,11 @@ MOLDPARK_VERSION = "2.0.0"
 MOLDPARK_MAX_MOLD_SIZE = 52428800  # 50MB
 MOLDPARK_ALLOWED_EXTENSIONS = ['stl', 'obj', 'ply', 'scan']
 
+# İyzico Ödeme Gateway Ayarları
+IYZICO_API_KEY = os.getenv('IYZICO_API_KEY', 'sandbox-xxx')
+IYZICO_SECRET_KEY = os.getenv('IYZICO_SECRET_KEY', 'sandbox-xxx')
+IYZICO_BASE_URL = os.getenv('IYZICO_BASE_URL', 'https://sandbox-api.iyzipay.com')
+IYZICO_TEST_MODE = os.getenv('IYZICO_TEST_MODE', 'True').lower() == 'true'
+
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')

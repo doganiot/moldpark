@@ -118,6 +118,7 @@ urlpatterns = [
     path('payment/invoice/<int:invoice_id>/', payment_views.invoice_payment, name='invoice_payment'),
     path('payment/invoice/<int:invoice_id>/credit-card/', payment_views.invoice_payment_credit_card, name='invoice_payment_credit_card'),
     path('payment/invoice/<int:invoice_id>/bank-transfer/', payment_views.invoice_payment_bank_transfer, name='invoice_payment_bank_transfer'),
+    path('payment/iyzico/callback/<int:invoice_id>/', payment_views.iyzico_payment_callback, name='iyzico_payment_callback'),
     path('payment/methods/', payment_views.payment_methods_list, name='payment_methods_list'),
     path('payment/bank-details/', payment_views.bank_transfer_details, name='bank_transfer_details'),
 ] 
