@@ -48,19 +48,35 @@ Bu komut Payment model'ine İyzico alanlarını ekleyecektir.
 
 ## 6. Test Kartları
 
-İyzico test ortamında aşağıdaki kartları kullanabilirsiniz:
+İyzico sandbox ortamında aşağıdaki güncel test kartlarını kullanabilirsiniz:
 
-### Başarılı Ödeme
-- **Kart No:** `5528 7900 0000 0000`
-- **Son Kullanma:** `12/30`
-- **CVV:** `123`
+### ✅ Başarılı Ödeme Kartları
+
+**Visa Credit (Denizbank)**
+- **Kart No:** `4603 4500 0000 0000`
+- **Son Kullanma:** `12/30` (bugünden sonraki herhangi bir tarih)
+- **CVV:** `123` (herhangi bir 3 haneli sayı)
 - **Kart Sahibi:** Herhangi bir isim
 
-### Başarısız Ödeme
-- **Kart No:** `5528 7900 0000 0001`
+**Visa Debit (Denizbank)**
+- **Kart No:** `4766 6200 0000 0001`
 - **Son Kullanma:** `12/30`
 - **CVV:** `123`
-- **Kart Sahibi:** Herhangi bir isim
+
+**MasterCard Credit (Akbank)**
+- **Kart No:** `5526 0800 0000 0006`
+- **Son Kullanma:** `12/30`
+- **CVV:** `123`
+
+**MasterCard Debit (Akbank)**
+- **Kart No:** `5890 0400 0000 0016`
+- **Son Kullanma:** `12/30`
+- **CVV:** `123`
+
+### ❌ Başarısız Ödeme Testi
+Herhangi bir geçersiz kart numarası kullanarak başarısız ödeme testi yapabilirsiniz.
+
+**Önemli:** Son kullanma tarihi mutlaka bugünden sonraki bir tarih olmalıdır.
 
 ## 7. Production'a Geçiş
 

@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+
+{% block title %}Ödeme Başarılı - MoldPark{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center p-5">
+                    <div class="mb-4">
+                        <i class="fas fa-check-circle text-success" style="font-size: 5rem;"></i>
+                    </div>
+                    <h2 class="text-success mb-3">Ödeme Başarılı!</h2>
+                    <p class="text-muted mb-4">
+                        Faturanız başarıyla ödenmiştir.
+                    </p>
+                    <div class="alert alert-info">
+                        <strong>Fatura No:</strong> {{ invoice.invoice_number }}<br>
+                        <strong>Tutar:</strong> ₺{{ invoice.total_amount|floatformat:2 }}
+                    </div>
+                    <p class="small text-muted">
+                        Ödeme işleminiz tamamlandı. Fatura detaylarını görmek için giriş yapabilirsiniz.
+                    </p>
+                    <a href="{% url 'core:invoice_detail' invoice.id %}" class="btn btn-primary mt-3">
+                        <i class="fas fa-file-invoice me-2"></i>Fatura Detayları
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

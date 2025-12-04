@@ -76,25 +76,64 @@
                     <!-- Test Kartları Bilgisi -->
                     <div class="mt-4">
                         <div class="card bg-light">
-                            <div class="card-header">
+                            <div class="card-header bg-info text-white">
                                 <h6 class="mb-0">
                                     <i class="fas fa-credit-card me-2"></i>
-                                    Test Kartları
+                                    İyzico Test Kartları (Sandbox)
                                 </h6>
                             </div>
                             <div class="card-body">
-                                <p class="small mb-2"><strong>Başarılı Ödeme:</strong></p>
-                                <ul class="small mb-3">
-                                    <li>Kart No: <code>5528 7900 0000 0000</code></li>
-                                    <li>Son Kullanma: <code>12/30</code></li>
-                                    <li>CVV: <code>123</code></li>
-                                </ul>
-                                <p class="small mb-2"><strong>Başarısız Ödeme:</strong></p>
-                                <ul class="small mb-0">
-                                    <li>Kart No: <code>5528 7900 0000 0001</code></li>
-                                    <li>Son Kullanma: <code>12/30</code></li>
-                                    <li>CVV: <code>123</code></li>
-                                </ul>
+                                <div class="alert alert-info small mb-3">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <strong>Önemli:</strong> Son kullanma tarihi bugünden sonraki bir tarih olmalıdır (örn: 12/30, 01/26). CVV için herhangi bir 3 haneli sayı kullanabilirsiniz.
+                                </div>
+                                
+                                <p class="small mb-2"><strong class="text-success">✅ Başarılı Ödeme Kartları:</strong></p>
+                                <div class="row mb-3">
+                                    <div class="col-md-6 mb-2">
+                                        <div class="border rounded p-2 bg-white">
+                                            <small><strong>Visa Credit (Denizbank)</strong></small><br>
+                                            <code>4603 4500 0000 0000</code><br>
+                                            <small class="text-muted">SKT: 12/30 | CVV: 123</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <div class="border rounded p-2 bg-white">
+                                            <small><strong>Visa Debit (Denizbank)</strong></small><br>
+                                            <code>4766 6200 0000 0001</code><br>
+                                            <small class="text-muted">SKT: 12/30 | CVV: 123</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <div class="border rounded p-2 bg-white">
+                                            <small><strong>MasterCard Credit (Akbank)</strong></small><br>
+                                            <code>5526 0800 0000 0006</code><br>
+                                            <small class="text-muted">SKT: 12/30 | CVV: 123</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <div class="border rounded p-2 bg-white">
+                                            <small><strong>MasterCard Debit (Akbank)</strong></small><br>
+                                            <code>5890 0400 0000 0016</code><br>
+                                            <small class="text-muted">SKT: 12/30 | CVV: 123</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <hr>
+                                
+                                <p class="small mb-2"><strong class="text-danger">❌ Başarısız Ödeme (Test):</strong></p>
+                                <div class="border rounded p-2 bg-white">
+                                    <small>Herhangi bir geçersiz kart numarası kullanarak başarısız ödeme testi yapabilirsiniz.</small>
+                                </div>
+                                
+                                <div class="mt-3">
+                                    <small class="text-muted">
+                                        <i class="fas fa-external-link-alt me-1"></i>
+                                        Daha fazla bilgi için: 
+                                        <a href="https://dev.iyzipay.com/tr" target="_blank">İyzico Developer Portal</a>
+                                    </small>
+                                </div>
                             </div>
                         </div>
                     </div>

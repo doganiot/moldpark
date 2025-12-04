@@ -17,7 +17,12 @@ import ssl
 
 ssl._create_default_https_context = ssl._create_unverified_context
 
-load_dotenv()
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+# .env dosyasını yükle (BASE_DIR'den sonra)
+env_path = BASE_DIR / '.env'
+load_dotenv(dotenv_path=env_path)
 
 
 def get_env_list(var_name: str, default=None):
@@ -28,9 +33,6 @@ def get_env_list(var_name: str, default=None):
     if value:
         return [item.strip() for item in value.split(',') if item.strip()]
     return default or []
-
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # Quick-start development settings - unsuitable for production
@@ -355,5 +357,15 @@ IYZICO_SECRET_KEY = os.getenv('IYZICO_SECRET_KEY', 'sandbox-xxx')
 IYZICO_BASE_URL = os.getenv('IYZICO_BASE_URL', 'https://sandbox-api.iyzipay.com')
 IYZICO_TEST_MODE = os.getenv('IYZICO_TEST_MODE', 'True').lower() == 'true'
 
+
+# Sadece production ortamında Sentry aktif et
+if os.getenv('ENVIRONMENT') == 'production':
+    import sentry_sdk
+    from sentry_sdk.integrations.django import DjangoIntegration
+    sentry_sdk.init(
+        dsn=os.getenv('SENTRY_DSN'),
+        integrations=[DjangoIntegration()],
+        environment='production'
+    )
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')

@@ -1885,8 +1885,9 @@ def my_usage(request):
     
     if subscription:
         if subscription.plan:
-            # Aylık limit
-            usage_limits['monthly_limit'] = subscription.plan.monthly_model_limit or 0
+            # Aylık limit (maksimum 105 ile sınırlı)
+            plan_limit = subscription.plan.monthly_model_limit or 0
+            usage_limits['monthly_limit'] = min(105, plan_limit) if plan_limit > 0 else 105
             usage_limits['used_this_month'] = subscription.models_used_this_month
             usage_limits['remaining'] = max(0, usage_limits['monthly_limit'] - usage_limits['used_this_month'])
             

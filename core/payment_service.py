@@ -78,10 +78,10 @@ class IyzicoPaymentService:
                     'name': user.first_name or 'İsim',
                     'surname': user.last_name or 'Soyisim',
                     'gsmNumber': '5555555555',
-                    'email': user.email,
+                    'email': user.email or f'user{user.id}@moldpark.com',
                     'identityNumber': '11111111111',  # Test için
-                    'lastLoginDate': str(timezone.now().date()),
-                    'registrationDate': str(user.date_joined.date()),
+                    'lastLoginDate': timezone.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    'registrationDate': user.date_joined.strftime('%Y-%m-%d %H:%M:%S'),
                     'registrationAddress': 'Test Adres',
                     'ip': request.META.get('REMOTE_ADDR', '127.0.0.1'),
                     'city': 'Istanbul',
@@ -89,14 +89,14 @@ class IyzicoPaymentService:
                     'zipCode': '34000'
                 },
                 'billingAddress': {
-                    'contactName': f"{user.first_name} {user.last_name}",
+                    'contactName': f"{user.first_name or 'İsim'} {user.last_name or 'Soyisim'}".strip() or 'MoldPark Kullanıcı',
                     'city': 'Istanbul',
                     'country': 'Turkey',
                     'address': 'Test Adres',
                     'zipCode': '34000'
                 },
                 'shippingAddress': {
-                    'contactName': f"{user.first_name} {user.last_name}",
+                    'contactName': f"{user.first_name or 'İsim'} {user.last_name or 'Soyisim'}".strip() or 'MoldPark Kullanıcı',
                     'city': 'Istanbul',
                     'country': 'Turkey',
                     'address': 'Test Adres',
@@ -151,7 +151,8 @@ class IyzicoPaymentService:
                     'success': True,
                     'checkout_form_content': response_dict.get('checkoutFormContent', ''),
                     'payment_page_url': response_dict.get('paymentPageUrl', ''),
-                    'conversation_id': payment_request['conversationId'],
+                    'conversation_id': payment_request['conversationId'],  # Oluşturulan conversationId'yi döndür
+                    'payment_id': response_dict.get('paymentId', ''),  # İyzico'dan dönen paymentId (varsa)
                 }
             else:
                 error_message = response_dict.get('errorMessage', 'Ödeme formu oluşturulamadı')
@@ -168,30 +169,62 @@ class IyzicoPaymentService:
                 'error_message': f'Ödeme işlemi sırasında hata oluştu: {str(e)}'
             }
     
-    def verify_payment(self, token, invoice):
+    def verify_payment(self, token=None, invoice=None, payment_id=None, conversation_id=None):
         """
         İyzico ödeme doğrulama
         
         Args:
-            token: İyzico payment token
-            invoice: Invoice model instance
+            token: İyzico payment token (opsiyonel)
+            invoice: Invoice model instance (opsiyonel)
+            payment_id: İyzico payment ID (opsiyonel)
+            conversation_id: İyzico conversation ID (opsiyonel)
             
         Returns:
             dict: Ödeme doğrulama sonucu
+            
+        Not: paymentId veya conversationId'den en az biri gönderilmelidir.
         """
         try:
             payment_request = {
                 'locale': 'tr',
-                'conversationId': f"INV-{invoice.id}",
-                'token': token
             }
             
+            # Token varsa onu kullan, yoksa paymentId/conversationId kullan
+            if token:
+                payment_request['token'] = token
+                logger.info(f"İyzico payment retrieve - token kullanılıyor: {token[:20]}...")
+            elif payment_id:
+                payment_request['paymentId'] = payment_id
+                logger.info(f"İyzico payment retrieve - paymentId kullanılıyor: {payment_id}")
+            elif conversation_id:
+                payment_request['conversationId'] = conversation_id
+                logger.info(f"İyzico payment retrieve - conversationId kullanılıyor: {conversation_id}")
+            elif invoice:
+                # Invoice'dan conversationId oluştur
+                payment_request['conversationId'] = f"INV-{invoice.id}"
+                logger.info(f"İyzico payment retrieve - invoice'dan conversationId oluşturuldu: {payment_request['conversationId']}")
+            else:
+                logger.error("İyzico payment retrieve - token, paymentId veya conversationId bulunamadı")
+                return {
+                    'success': False,
+                    'error_message': 'token, paymentId veya conversationId gönderilmelidir'
+                }
+            
+            # Token zaten yukarıda eklendi, tekrar ekleme
+            
+            # Debug: Gönderilen request'i logla
+            logger.info(f"İyzico payment retrieve request: {payment_request}")
+            logger.info(f"İyzico payment retrieve options: {self.options}")
+
             payment = Payment()
             payment_result = payment.retrieve(payment_request, self.options)
             
             # Response'u parse et
             response_dict = json.loads(payment_result.read().decode('utf-8'))
-            
+
+            # Debug: Response'u logla
+            logger.info(f"İyzico payment retrieve response: {response_dict}")
+
             if response_dict.get('status') == 'success':
                 return {
                     'success': True,
