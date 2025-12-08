@@ -142,7 +142,7 @@
                 </div>
             </div>
             {% else %}
-            <!-- Kargo Gönderisi Oluştur -->
+            <!-- Kargo Gönderisi Oluştur (fatura beklemeden) -->
             <div class="card border-0 shadow-sm mb-4 border-warning" style="border-width: 2px !important;">
                 <div class="card-header bg-warning text-dark">
                     <h5 class="mb-0">
@@ -151,17 +151,10 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    {% if mold.status == 'completed' %}
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle me-2"></i>
-                        Kalıp üretimi tamamlandı! Şimdi kargo gönderisi oluşturarak etiket üretebilirsiniz.
+                        Fatura gerekmiyor. Kalıp tamamlanır tamamlanmaz kargo gönderisi oluşturup etiket üretebilirsiniz.
                     </div>
-                    {% else %}
-                    <div class="alert alert-warning">
-                        <i class="fas fa-clock me-2"></i>
-                        Kalıp üretimi henüz tamamlanmamış. Üretim tamamlandıktan sonra kargo gönderisi oluşturabilirsiniz.
-                    </div>
-                    {% endif %}
 
                     <div class="d-grid gap-2">
                         {% if mold.status == 'completed' %}

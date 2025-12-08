@@ -1954,7 +1954,15 @@ class CargoShipment(models.Model):
     ]
 
     # İlişkiler
-    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name='cargo_shipments', verbose_name='Fatura')
+    # Fatura zorunlu değil; sipariş oluşturma anında etiket kesilebilsin diye opsiyonel
+    invoice = models.ForeignKey(
+        Invoice,
+        on_delete=models.CASCADE,
+        related_name='cargo_shipments',
+        verbose_name='Fatura',
+        null=True,
+        blank=True
+    )
     cargo_company = models.ForeignKey(CargoCompany, on_delete=models.CASCADE, related_name='shipments', verbose_name='Kargo Firması')
 
     # Gönderi Bilgileri
