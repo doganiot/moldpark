@@ -66,19 +66,38 @@ def create_cargo_shipment_from_mold(request, mold_id):
 
     mold = get_object_or_404(EarMold, pk=mold_id)
 
-    # İzin kontrolü - üretici mi kontrol et
-    if not hasattr(request.user, 'producer'):
-        messages.error(request, 'Bu işlem için üretici yetkisine sahip olmalısınız.')
-        return redirect('mold:mold_detail', mold_id)
+    # İzin kontrolü: superuser || ilgili üretici || ilgili merkez
+    has_access = False
+    producer_order = None
 
-    # Mold'un bu üreticiye ait olduğunu kontrol et
-    producer_order = mold.producer_orders.filter(
-        producer=request.user.producer,
-        status__in=['received', 'processing', 'completed']
-    ).first()
+    # Üretici erişimi
+    if hasattr(request.user, 'producer'):
+        producer_order = mold.producer_orders.filter(
+            producer=request.user.producer,
+            status__in=['received', 'processing', 'completed']
+        ).first()
+        if producer_order:
+            has_access = True
 
-    if not producer_order:
-        messages.error(request, 'Bu kalıp size atanmamış.')
+    # Merkez erişimi
+    if hasattr(request.user, 'center') and mold.center == request.user.center:
+        # Merkez kullanıcısı için aktif order'ı al (üretici fark etmeksizin)
+        if not producer_order:
+            producer_order = mold.producer_orders.filter(
+                status__in=['received', 'processing', 'completed']
+            ).first()
+        has_access = True
+
+    # Admin erişimi
+    if request.user.is_superuser:
+        if not producer_order:
+            producer_order = mold.producer_orders.filter(
+                status__in=['received', 'processing', 'completed']
+            ).first()
+        has_access = True
+
+    if not has_access:
+        messages.error(request, 'Bu işlem için yetkiniz yok (üretici veya ilgili merkez olmalısınız).')
         return redirect('mold:mold_detail', mold_id)
 
     # Fatura olsa da olmasa da kargo oluştur (invoice opsiyonel)
@@ -102,13 +121,22 @@ def create_cargo_shipment_from_mold(request, mold_id):
             estimated_delivery_days=3
         )
 
+    # Gönderen bilgisi: üretici varsa üretici, yoksa merkez
+    sender_name = producer_order.producer.company_name if producer_order else mold.center.name
+    sender_address = (
+        getattr(producer_order.producer, 'address', '') if producer_order else getattr(mold.center, 'address', '')
+    ) or ''
+    sender_phone = (
+        getattr(producer_order.producer, 'phone', '') if producer_order else getattr(mold.center, 'phone', '')
+    ) or ''
+
     # Gönderi oluştur
     shipment = CargoShipment.objects.create(
         invoice=getattr(producer_order, "invoice", None),
         cargo_company=default_company,
-        sender_name=producer_order.producer.company_name,
-        sender_address=getattr(producer_order.producer, 'address', '') or '',
-        sender_phone=getattr(producer_order.producer, 'phone', '') or '',
+        sender_name=sender_name,
+        sender_address=sender_address,
+        sender_phone=sender_phone,
         recipient_name=mold.center.name,
         recipient_address=getattr(mold.center, 'address', '') or '',
         recipient_phone=getattr(mold.center, 'phone', '') or '',
