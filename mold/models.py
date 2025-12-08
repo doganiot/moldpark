@@ -5,6 +5,8 @@ from django.core.exceptions import ValidationError
 from .validators import validate_file_size
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 def validate_scan_file_size(value):
     filesize = value.size
@@ -778,3 +780,74 @@ class MoldEvaluation(models.Model):
             return 'warning'
         else:
             return 'danger'
+
+
+# ========================================
+# SIGNALS - Otomatik İşlemler
+# ========================================
+
+@receiver(post_save, sender=EarMold)
+def create_cargo_shipment_on_mold_completion(sender, instance, created, **kwargs):
+    """
+    Fiziksel kalıp tamamlandığında otomatik kargo gönderisi oluştur
+    """
+    # Sadece fiziksel kalıplar için
+    if not instance.is_physical_shipment:
+        return
+
+    # Sadece status 'completed' olduğunda
+    if instance.status != 'completed':
+        return
+
+    # Eğer zaten kargo gönderisi varsa tekrar oluşturma
+    from core.models import CargoShipment
+    existing_shipment = CargoShipment.objects.filter(
+        invoice__producer_orders__modeled_mold=instance
+    ).first()
+
+    if existing_shipment:
+        return
+
+    # Aktif sipariş bul
+    active_order = instance.producer_orders.filter(
+        status__in=['received', 'processing', 'completed']
+    ).first()
+
+    if not active_order or not active_order.invoice:
+        return
+
+    try:
+        # Kargo gönderisi oluştur
+        cargo_shipment = CargoShipment.objects.create(
+            invoice=active_order.invoice,
+            sender_name=active_order.producer.company_name,
+            sender_address=active_order.producer.address or '',
+            sender_phone=active_order.producer.phone or '',
+            recipient_name=instance.center.name,
+            recipient_address=instance.center.address or '',
+            recipient_phone=instance.center.phone or '',
+            package_description=f"Kalıp: {instance.patient_name} {instance.patient_surname} - {instance.get_mold_type_display()}",
+            weight=0.5,  # Varsayılan ağırlık
+            estimated_delivery=timezone.now() + timezone.timedelta(days=3),
+            notes=f"Oto. oluşturulan gönderi - Kalıp ID: {instance.id}"
+        )
+
+        # Mold'a kargo bilgilerini ekle
+        instance.carrier_company = 'aras'  # Varsayılan kargo firması
+        instance.shipment_status = 'not_shipped'
+        instance.save(update_fields=['carrier_company', 'shipment_status'])
+
+        # Log oluştur
+        from .models import MoldLog
+        MoldLog.objects.create(
+            mold=instance,
+            action='cargo_shipment_created',
+            details=f"Kalıp tamamlandığında otomatik kargo gönderisi oluşturuldu: {cargo_shipment.id}",
+            user=None  # Sistem tarafından
+        )
+
+    except Exception as e:
+        # Hata durumunda log tut ama exception raise etme
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Otomatik kargo gönderisi oluşturma hatası (Mold ID: {instance.id}): {e}")

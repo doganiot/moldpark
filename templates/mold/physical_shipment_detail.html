@@ -81,6 +81,12 @@
                     </h5>
                 </div>
                 <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Otomatik Kargo Gönderisi Oluşturuldu!</strong><br>
+                        Kalıp üretimi tamamlandığında sistem otomatik olarak kargo gönderisi oluşturmuştur.
+                    </div>
+
                     {% if cargo_shipment.label_generated %}
                         <div class="alert alert-success">
                             <i class="fas fa-check-circle me-2"></i>
@@ -135,53 +141,32 @@
                     </div>
                 </div>
             </div>
-            {% elif producer %}
-            <!-- Kargo Gönderisi Oluştur -->
-            <div class="card border-0 shadow-sm mb-4 border-warning" style="border-width: 2px !important;">
-                <div class="card-header bg-warning text-dark">
+            {% else %}
+            <!-- Kargo Gönderisi Bekleniyor -->
+            <div class="card border-0 shadow-sm mb-4 border-info" style="border-width: 2px !important;">
+                <div class="card-header bg-info text-white">
                     <h5 class="mb-0">
-                        <i class="fas fa-plus me-2"></i>
-                        📦 KARGO GÖNDERİSİ OLUŞTUR
+                        <i class="fas fa-clock me-2"></i>
+                        ⏳ KARGO GÖNDERİSİ BEKLENİYOR
                     </h5>
                 </div>
                 <div class="card-body">
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle me-2"></i>
-                        Kalıp üretimini tamamladınız. Şimdi kargo gönderisi oluşturarak etiket üretebilirsiniz.
+                        Kalıp üretimi henüz tamamlanmamış. Üretim tamamlandığında sistem otomatik olarak kargo gönderisi oluşturacak ve etiket üretimi aktif olacaktır.
                     </div>
 
                     <div class="d-grid gap-2">
-                        <a href="{% url 'core:create_cargo_shipment_from_mold' mold.pk %}" class="btn btn-success">
-                            <i class="fas fa-shipping-fast me-2"></i>Kargo Gönderisi Oluştur
-                        </a>
+                        <button class="btn btn-outline-info" disabled>
+                            <i class="fas fa-cog fa-spin me-2"></i>Otomatik Sistem Bekleniyor...
+                        </button>
                     </div>
 
                     <hr class="my-3">
 
                     <div class="small text-muted">
-                        <strong>Not:</strong> Kargo gönderisi oluşturduktan sonra otomatik etiket üretimi aktif olacaktır.
+                        <strong>Not:</strong> Fiziksel kalıp üretimi tamamlandığında sistem otomatik olarak kargo gönderisi oluşturur ve etiket üretimi aktif olur.
                     </div>
-                </div>
-            </div>
-            {% else %}
-            <!-- Debug Bilgisi -->
-            <div class="card border-0 shadow-sm mb-4 border-danger" style="border-width: 2px !important;">
-                <div class="card-header bg-danger text-white">
-                    <h5 class="mb-0">
-                        <i class="fas fa-bug me-2"></i>
-                        🚨 DEBUG BİLGİSİ
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="alert alert-warning">
-                        <strong>Üretici Bilgisi:</strong> {% if producer %}Bulundu{% else %}Bulunamadı{% endif %}<br>
-                        <strong>Aktif Sipariş:</strong> {% if active_order %}Var{% else %}Yok{% endif %}<br>
-                        <strong>Kargo Gönderisi:</strong> {% if cargo_shipment %}Var{% else %}Yok{% endif %}<br>
-                        <strong>Fatura:</strong> {% if active_order and active_order.invoice %}Var{% else %}Yok{% endif %}
-                    </div>
-                    <p class="text-muted small">
-                        Eğer burada "Yok" görüyorsanız, kalıp için henüz fatura kesilmemiş veya üretici atanmamış demektir.
-                    </p>
                 </div>
             </div>
             {% endif %}

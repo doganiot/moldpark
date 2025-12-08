@@ -477,12 +477,31 @@ def physical_shipment_detail(request, pk):
         active_orders = mold.producer_orders.filter(status__in=['received', 'processing']).first()
         producer = active_orders.producer if active_orders else None
 
-        # Kargo gönderisi bilgisi (varsa)
+        # Kargo gönderisi bilgisi (oto. oluşturulmuş olmalı)
         cargo_shipment = None
         if active_orders and active_orders.invoice:
             cargo_shipment = CargoShipment.objects.filter(
                 invoice=active_orders.invoice
             ).first()
+
+            # Eğer yoksa ve mold tamamlanmışsa, manuel oluştur (fallback)
+            if not cargo_shipment and mold.status == 'completed' and mold.is_physical_shipment:
+                try:
+                    cargo_shipment = CargoShipment.objects.create(
+                        invoice=active_orders.invoice,
+                        sender_name=producer.company_name if producer else 'MoldPark Sistem',
+                        sender_address=producer.address if producer else '',
+                        sender_phone=producer.phone if producer else '',
+                        recipient_name=mold.center.name,
+                        recipient_address=mold.center.address or '',
+                        recipient_phone=mold.center.phone or '',
+                        package_description=f"Kalıp: {mold.patient_name} {mold.patient_surname} - {mold.get_mold_type_display()}",
+                        weight=0.5,
+                        estimated_delivery=timezone.now() + timezone.timedelta(days=3),
+                        notes=f"Manuel oluşturulan gönderi - Kalıp ID: {mold.id}"
+                    )
+                except Exception as e:
+                    logger.error(f"Manuel kargo gönderisi oluşturma hatası: {e}")
 
         return render(request, 'mold/physical_shipment_detail.html', {
             'mold': mold,
