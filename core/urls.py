@@ -125,6 +125,7 @@ urlpatterns = [
     # Kargo Sistemi
     path('cargo/', cargo_views.cargo_dashboard, name='cargo_dashboard'),
     path('cargo/create/<int:invoice_id>/', cargo_views.create_cargo_shipment, name='create_cargo_shipment'),
+    path('cargo/create/mold/<int:mold_id>/', cargo_views.create_cargo_shipment_from_mold, name='create_cargo_shipment_from_mold'),
     path('cargo/shipment/<int:shipment_id>/', cargo_views.cargo_shipment_detail, name='cargo_shipment_detail'),
     path('cargo/shipment/<int:shipment_id>/update-status/', cargo_views.update_shipment_status, name='update_shipment_status'),
     path('cargo/shipment/<int:shipment_id>/track/', cargo_views.track_shipment_api, name='track_shipment_api'),

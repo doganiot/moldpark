@@ -10,6 +10,7 @@ from django.db.models import Q
 from decimal import Decimal
 from .models import EarMold, Revision, QualityCheck, ModeledMold, RevisionRequest, MoldEvaluation
 from .forms import EarMoldForm, RevisionForm, QualityCheckForm, PhysicalShipmentForm, TrackingUpdateForm, RevisionRequestForm, MoldEvaluationForm
+from core.models import CargoShipment
 from center.decorators import center_required
 from producer.models import Producer, ProducerOrder, ProducerNetwork
 from django.utils import timezone
@@ -475,11 +476,19 @@ def physical_shipment_detail(request, pk):
         # Üretici bilgisi
         active_orders = mold.producer_orders.filter(status__in=['received', 'processing']).first()
         producer = active_orders.producer if active_orders else None
-        
+
+        # Kargo gönderisi bilgisi (varsa)
+        cargo_shipment = None
+        if active_orders and active_orders.invoice:
+            cargo_shipment = CargoShipment.objects.filter(
+                invoice=active_orders.invoice
+            ).first()
+
         return render(request, 'mold/physical_shipment_detail.html', {
             'mold': mold,
             'producer': producer,
-            'active_order': active_orders
+            'active_order': active_orders,
+            'cargo_shipment': cargo_shipment
         })
         
     except PermissionDenied:

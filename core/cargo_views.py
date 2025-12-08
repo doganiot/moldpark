@@ -58,6 +58,44 @@ def cargo_dashboard(request):
 
 
 @login_required
+def create_cargo_shipment_from_mold(request, mold_id):
+    """Mold ID'den kargo gönderisi oluştur"""
+
+    # Mold modelini import et
+    from mold.models import EarMold
+
+    mold = get_object_or_404(EarMold, pk=mold_id)
+
+    # İzin kontrolü - üretici mi kontrol et
+    if not hasattr(request.user, 'producer'):
+        messages.error(request, 'Bu işlem için üretici yetkisine sahip olmalısınız.')
+        return redirect('mold:mold_detail', mold_id)
+
+    # Mold'un bu üreticiye ait olduğunu kontrol et
+    producer_order = mold.producer_orders.filter(
+        producer=request.user.producer,
+        status__in=['received', 'processing', 'completed']
+    ).first()
+
+    if not producer_order:
+        messages.error(request, 'Bu kalıp size atanmamış.')
+        return redirect('mold:mold_detail', mold_id)
+
+    if not producer_order.invoice:
+        messages.error(request, 'Bu sipariş için henüz fatura oluşturulmamış.')
+        return redirect('mold:mold_detail', mold_id)
+
+    # Zaten gönderi var mı kontrol et
+    existing_shipment = CargoShipment.objects.filter(invoice=producer_order.invoice).first()
+    if existing_shipment:
+        messages.info(request, 'Bu sipariş için zaten kargo gönderisi oluşturulmuş.')
+        return redirect('core:cargo_shipment_detail', shipment_id=existing_shipment.id)
+
+    # Normal kargo oluşturma sayfasına yönlendir ama invoice_id ile
+    return redirect('core:create_cargo_shipment', invoice_id=producer_order.invoice.id)
+
+
+@login_required
 def create_cargo_shipment(request, invoice_id):
     """Yeni kargo gönderisi oluştur"""
 

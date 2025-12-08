@@ -71,6 +71,100 @@
 
         <!-- Kalıp ve Kargo Bilgileri -->
         <div class="col-md-6">
+            <!-- KARGO ETİKETİ ÜRETİMİ -->
+            {% if cargo_shipment %}
+            <div class="card border-0 shadow-sm mb-4 border-primary" style="border-width: 2px !important;">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-tag me-2"></i>
+                        🚚 KARGO ETİKETİ ÜRETİMİ
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if cargo_shipment.label_generated %}
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle me-2"></i>
+                            Etiket oluşturulmuş ({{ cargo_shipment.label_print_count }} kez yazdırılmış)
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            {% if cargo_shipment.label_file %}
+                                <a href="{{ cargo_shipment.label_file.url }}"
+                                   target="_blank"
+                                   class="btn btn-outline-primary">
+                                    <i class="fas fa-eye me-2"></i>Etiketi Görüntüle
+                                </a>
+                            {% endif %}
+
+                            <button class="btn btn-success"
+                                    onclick="printLabel({{ cargo_shipment.id }})">
+                                <i class="fas fa-print me-2"></i>Yazdır
+                            </button>
+
+                            <button class="btn btn-outline-secondary"
+                                    onclick="regenerateLabel({{ cargo_shipment.id }})">
+                                <i class="fas fa-sync me-2"></i>Yeniden Oluştur
+                            </button>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Henüz etiket oluşturulmamış
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-primary"
+                                    onclick="generateLabel({{ cargo_shipment.id }}, 'pdf')">
+                                <i class="fas fa-file-pdf me-2"></i>PDF Etiket Oluştur
+                            </button>
+
+                            <button class="btn btn-outline-primary"
+                                    onclick="generateLabel({{ cargo_shipment.id }}, 'thermal')">
+                                <i class="fas fa-receipt me-2"></i>Termal Etiket Oluştur
+                            </button>
+                        </div>
+                    {% endif %}
+
+                    <hr class="my-3">
+
+                    <div class="small text-muted">
+                        <strong>Etiket Türü:</strong> {{ cargo_shipment.get_label_type_display|default:"Henüz oluşturulmadı" }}<br>
+                        {% if cargo_shipment.label_generated_at %}
+                            <strong>Oluşturulma:</strong> {{ cargo_shipment.label_generated_at|date:"d.m.Y H:i" }}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% elif producer %}
+            <!-- Kargo Gönderisi Oluştur -->
+            <div class="card border-0 shadow-sm mb-4 border-warning" style="border-width: 2px !important;">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="fas fa-plus me-2"></i>
+                        📦 KARGO GÖNDERİSİ OLUŞTUR
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Kalıp üretimini tamamladınız. Şimdi kargo gönderisi oluşturarak etiket üretebilirsiniz.
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'core:create_cargo_shipment_from_mold' mold.pk %}" class="btn btn-success">
+                            <i class="fas fa-shipping-fast me-2"></i>Kargo Gönderisi Oluştur
+                        </a>
+                    </div>
+
+                    <hr class="my-3">
+
+                    <div class="small text-muted">
+                        <strong>Not:</strong> Kargo gönderisi oluşturduktan sonra otomatik etiket üretimi aktif olacaktır.
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white border-0">
                     <h5 class="mb-0">
@@ -210,4 +304,122 @@
     </div>
     {% endif %}
 </div>
+
+<script>
+// Etiket işlemleri
+function generateLabel(shipmentId, labelType) {
+    if (!confirm('Etiket oluşturmak istediğinizden emin misiniz?')) {
+        return;
+    }
+
+    const button = event.target.closest('button');
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Oluşturuluyor...';
+    button.disabled = true;
+
+    fetch(`/cargo/shipment/${shipmentId}/generate-label/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': getCsrfToken()
+        },
+        body: `label_type=${labelType}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Etiket başarıyla oluşturuldu!');
+            location.reload();
+        } else {
+            alert('Hata: ' + (data.message || 'Etiket oluşturulamadı'));
+            button.innerHTML = originalText;
+            button.disabled = false;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Bir hata oluştu');
+        button.innerHTML = originalText;
+        button.disabled = false;
+    });
+}
+
+function regenerateLabel(shipmentId) {
+    if (!confirm('Etiketi yeniden oluşturmak istediğinizden emin misiniz?')) {
+        return;
+    }
+
+    const button = event.target.closest('button');
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Yeniden Oluşturuluyor...';
+    button.disabled = true;
+
+    fetch(`/cargo/shipment/${shipmentId}/generate-label/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': getCsrfToken()
+        },
+        body: 'label_type=pdf'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Etiket başarıyla yeniden oluşturuldu!');
+            location.reload();
+        } else {
+            alert('Hata: ' + (data.message || 'Etiket yeniden oluşturulamadı'));
+            button.innerHTML = originalText;
+            button.disabled = false;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Bir hata oluştu');
+        button.innerHTML = originalText;
+        button.disabled = false;
+    });
+}
+
+function printLabel(shipmentId) {
+    const button = event.target.closest('button');
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Yazdırılıyor...';
+    button.disabled = true;
+
+    fetch(`/cargo/shipment/${shipmentId}/print-label/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCsrfToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Etiket dosyasını yeni sekmede aç
+            if (data.file_url) {
+                window.open(data.file_url, '_blank');
+            }
+            alert('Etiket yazdırma için hazır!');
+            button.innerHTML = originalText;
+            button.disabled = false;
+        } else {
+            alert('Hata: ' + (data.message || 'Yazdırma işlemi başarısız'));
+            button.innerHTML = originalText;
+            button.disabled = false;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Bir hata oluştu');
+        button.innerHTML = originalText;
+        button.disabled = false;
+    });
+}
+
+function getCsrfToken() {
+    const token = document.querySelector('[name=csrfmiddlewaretoken]');
+    return token ? token.value : '';
+}
+</script>
 {% endblock %} 
