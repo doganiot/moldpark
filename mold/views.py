@@ -479,7 +479,7 @@ def physical_shipment_detail(request, pk):
 
         # Kargo gönderisi bilgisi (oto. oluşturulmuş olmalı)
         cargo_shipment = None
-        if active_orders and active_orders.invoice:
+        if active_orders and getattr(active_orders, "invoice", None):
             cargo_shipment = CargoShipment.objects.filter(
                 invoice=active_orders.invoice
             ).first()
@@ -493,8 +493,8 @@ def physical_shipment_detail(request, pk):
                         sender_address=producer.address if producer else '',
                         sender_phone=producer.phone if producer else '',
                         recipient_name=mold.center.name,
-                        recipient_address=mold.center.address or '',
-                        recipient_phone=mold.center.phone or '',
+                        recipient_address=getattr(mold.center, 'address', '') or '',
+                        recipient_phone=getattr(mold.center, 'phone', '') or '',
                         package_description=f"Kalıp: {mold.patient_name} {mold.patient_surname} - {mold.get_mold_type_display()}",
                         weight=0.5,
                         estimated_delivery=timezone.now() + timezone.timedelta(days=3),
@@ -502,6 +502,13 @@ def physical_shipment_detail(request, pk):
                     )
                 except Exception as e:
                     logger.error(f"Manuel kargo gönderisi oluşturma hatası: {e}")
+                    cargo_shipment = None
+        else:
+            # Aktif sipariş yoksa veya fatura henüz kesilmediyse kullanıcıya bilgi ver
+            if not active_orders:
+                messages.warning(request, "Bu kalıp için henüz üretici siparişi bulunamadı.")
+            elif not getattr(active_orders, "invoice", None):
+                messages.warning(request, "Bu sipariş için henüz fatura oluşturulmamış. Kargo gönderisi için fatura gerekir.")
 
         return render(request, 'mold/physical_shipment_detail.html', {
             'mold': mold,
