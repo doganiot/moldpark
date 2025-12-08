@@ -257,13 +257,18 @@ def cargo_shipment_detail(request, shipment_id):
         id=shipment_id
     )
 
-    # İzin kontrolü
+    # İzin kontrolü (invoice opsiyonel)
     if not request.user.is_superuser:
         can_access = False
-        if hasattr(request.user, 'center') and shipment.invoice.issued_by_center == request.user.center:
-            can_access = True
-        elif shipment.invoice.user == request.user:
-            can_access = True
+        if shipment.invoice:
+            if hasattr(request.user, 'center') and shipment.invoice.issued_by_center == request.user.center:
+                can_access = True
+            elif shipment.invoice.user == request.user:
+                can_access = True
+        else:
+            # Invoice yoksa merkez veya üretici kullanıcılarına izin ver
+            if hasattr(request.user, 'center') or hasattr(request.user, 'producer'):
+                can_access = True
 
         if not can_access:
             messages.error(request, 'Bu kargo gönderisini görüntüleme yetkiniz yok.')
