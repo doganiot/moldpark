@@ -83,8 +83,8 @@
                 <div class="card-body">
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle me-2"></i>
-                        <strong>Otomatik Kargo Gönderisi Oluşturuldu!</strong><br>
-                        Kalıp üretimi tamamlandığında sistem otomatik olarak kargo gönderisi oluşturmuştur.
+                        <strong>Kargo Gönderisi Hazır!</strong><br>
+                        Kalıp için kargo gönderisi başarıyla oluşturulmuştur.
                     </div>
 
                     {% if cargo_shipment.label_generated %}
@@ -142,30 +142,44 @@
                 </div>
             </div>
             {% else %}
-            <!-- Kargo Gönderisi Bekleniyor -->
-            <div class="card border-0 shadow-sm mb-4 border-info" style="border-width: 2px !important;">
-                <div class="card-header bg-info text-white">
+            <!-- Kargo Gönderisi Oluştur -->
+            <div class="card border-0 shadow-sm mb-4 border-warning" style="border-width: 2px !important;">
+                <div class="card-header bg-warning text-dark">
                     <h5 class="mb-0">
-                        <i class="fas fa-clock me-2"></i>
-                        ⏳ KARGO GÖNDERİSİ BEKLENİYOR
+                        <i class="fas fa-plus me-2"></i>
+                        📦 KARGO GÖNDERİSİ OLUŞTUR
                     </h5>
                 </div>
                 <div class="card-body">
+                    {% if mold.status == 'completed' %}
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle me-2"></i>
-                        Kalıp üretimi henüz tamamlanmamış. Üretim tamamlandığında sistem otomatik olarak kargo gönderisi oluşturacak ve etiket üretimi aktif olacaktır.
+                        Kalıp üretimi tamamlandı! Şimdi kargo gönderisi oluşturarak etiket üretebilirsiniz.
                     </div>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-clock me-2"></i>
+                        Kalıp üretimi henüz tamamlanmamış. Üretim tamamlandıktan sonra kargo gönderisi oluşturabilirsiniz.
+                    </div>
+                    {% endif %}
 
                     <div class="d-grid gap-2">
-                        <button class="btn btn-outline-info" disabled>
-                            <i class="fas fa-cog fa-spin me-2"></i>Otomatik Sistem Bekleniyor...
+                        {% if mold.status == 'completed' %}
+                        <a href="{% url 'core:create_cargo_shipment_from_mold' mold.pk %}" class="btn btn-success">
+                            <i class="fas fa-shipping-fast me-2"></i>Kargo Gönderisi Oluştur
+                        </a>
+                        {% else %}
+                        <button class="btn btn-outline-secondary" disabled>
+                            <i class="fas fa-clock me-2"></i>Kalıp Üretimi Bekleniyor...
                         </button>
+                        {% endif %}
                     </div>
 
                     <hr class="my-3">
 
                     <div class="small text-muted">
-                        <strong>Not:</strong> Fiziksel kalıp üretimi tamamlandığında sistem otomatik olarak kargo gönderisi oluşturur ve etiket üretimi aktif olur.
+                        <strong>Kalıp Durumu:</strong> {{ mold.get_status_display }}<br>
+                        <strong>Not:</strong> Kargo gönderisi oluşturduktan sonra etiket üretimi aktif olacaktır.
                     </div>
                 </div>
             </div>
