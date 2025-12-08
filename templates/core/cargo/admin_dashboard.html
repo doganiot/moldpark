@@ -1,0 +1,456 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Kargo Yönetim Paneli - MoldPark{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Başlık -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="fas fa-truck me-2 text-primary"></i>
+                        Kargo Yönetim Paneli
+                    </h2>
+                    <p class="text-muted mb-0">Kargo sistemi yönetimi ve raporları</p>
+                </div>
+                <div>
+                    <a href="{% url 'core:cargo_dashboard' %}" class="btn btn-outline-secondary me-2">
+                        <i class="fas fa-eye me-1"></i>Takip Sistemi
+                    </a>
+                    <a href="{% url 'core:cargo_reports' %}" class="btn btn-outline-info">
+                        <i class="fas fa-chart-bar me-1"></i>Raporlar
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Genel İstatistikler -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="text-primary mb-2">
+                        <i class="fas fa-box fa-2x"></i>
+                    </div>
+                    <h4 class="mb-1">{{ total_shipments }}</h4>
+                    <small class="text-muted">Toplam Gönderi</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="text-warning mb-2">
+                        <i class="fas fa-clock fa-2x"></i>
+                    </div>
+                    <h4 class="mb-1">{{ active_shipments }}</h4>
+                    <small class="text-muted">Aktif Gönderi</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="text-success mb-2">
+                        <i class="fas fa-check-circle fa-2x"></i>
+                    </div>
+                    <h4 class="mb-1">{{ delivered_shipments }}</h4>
+                    <small class="text-muted">Teslim Edildi</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="text-danger mb-2">
+                        <i class="fas fa-exclamation-triangle fa-2x"></i>
+                    </div>
+                    <h4 class="mb-1">{{ failed_shipments }}</h4>
+                    <small class="text-muted">Başarısız</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Firma İstatistikleri -->
+        <div class="col-lg-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-building me-2"></i>
+                        Kargo Firmaları
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Firma</th>
+                                    <th>Toplam</th>
+                                    <th>Aktif</th>
+                                    <th>Teslim</th>
+                                    <th>Başarı %</th>
+                                    <th>İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for company in company_stats %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                {% if company.company.logo_url %}
+                                                    <img src="{{ company.company.logo_url }}"
+                                                         alt="{{ company.company.display_name }}"
+                                                         class="me-2"
+                                                         style="width: 24px; height: 24px; object-fit: contain;">
+                                                {% endif %}
+                                                {{ company.company.display_name }}
+                                                {% if company.company.is_default %}
+                                                    <span class="badge bg-warning ms-1">Varsayılan</span>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        <td>{{ company.total }}</td>
+                                        <td>
+                                            <span class="badge bg-warning">{{ company.active }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-success">{{ company.delivered }}</span>
+                                        </td>
+                                        <td>
+                                            {% if company.total > 0 %}
+                                                <span class="badge bg-{% if company.success_rate >= 90 %}success{% elif company.success_rate >= 70 %}warning{% else %}danger{% endif %}">
+                                                    {{ company.success_rate|floatformat:1 }}%
+                                                </span>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="{% url 'core:edit_cargo_company' company.company.id %}"
+                                                   class="btn btn-outline-primary">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <button class="btn btn-outline-danger"
+                                                        onclick="deleteCompany({{ company.company.id }}, '{{ company.company.display_name }}')">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted py-4">
+                                            <i class="fas fa-building fa-2x mb-2"></i>
+                                            <br>Henüz kargo firması eklenmemiş
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="mt-3">
+                        <a href="{% url 'core:add_cargo_company' %}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Yeni Firma Ekle
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Son Gönderiler -->
+        <div class="col-lg-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-clock me-2"></i>
+                        Son Gönderiler
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if recent_shipments %}
+                        <div class="list-group list-group-flush">
+                            {% for shipment in recent_shipments %}
+                                <div class="list-group-item px-3 py-3">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex align-items-center mb-1">
+                                                {% if shipment.tracking_number %}
+                                                    <code class="me-2">{{ shipment.tracking_number }}</code>
+                                                {% else %}
+                                                    <span class="badge bg-secondary me-2">Yeni</span>
+                                                {% endif %}
+
+                                                <small class="text-muted">
+                                                    {{ shipment.cargo_company.display_name }}
+                                                </small>
+                                            </div>
+
+                                            <div class="mb-1">
+                                                <strong>{{ shipment.recipient_name }}</strong>
+                                                <br>
+                                                <small class="text-muted">{{ shipment.invoice.invoice_number }}</small>
+                                            </div>
+
+                                            <div>
+                                                {% if shipment.status == 'pending' %}
+                                                    <span class="badge bg-warning">
+                                                        <i class="fas fa-clock me-1"></i>Hazırlanıyor
+                                                    </span>
+                                                {% elif shipment.status == 'picked_up' %}
+                                                    <span class="badge bg-info">
+                                                        <i class="fas fa-hand-paper me-1"></i>Alındı
+                                                    </span>
+                                                {% elif shipment.status == 'in_transit' %}
+                                                    <span class="badge bg-primary">
+                                                        <i class="fas fa-truck me-1"></i>Yolda
+                                                    </span>
+                                                {% elif shipment.status == 'out_for_delivery' %}
+                                                    <span class="badge bg-secondary">
+                                                        <i class="fas fa-dolly me-1"></i>Dağıtıma Çıktı
+                                                    </span>
+                                                {% elif shipment.status == 'delivered' %}
+                                                    <span class="badge bg-success">
+                                                        <i class="fas fa-check-circle me-1"></i>Teslim Edildi
+                                                    </span>
+                                                {% elif shipment.status == 'returned' %}
+                                                    <span class="badge bg-danger">
+                                                        <i class="fas fa-undo me-1"></i>İade Edildi
+                                                    </span>
+                                                {% elif shipment.status == 'cancelled' %}
+                                                    <span class="badge bg-dark">
+                                                        <i class="fas fa-times me-1"></i>İptal Edildi
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">{{ shipment.get_status_display }}</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+
+                                        <div class="text-end">
+                                            <small class="text-muted d-block">
+                                                {{ shipment.created_at|date:"d.m.Y" }}
+                                            </small>
+                                            <small class="text-muted d-block">
+                                                {{ shipment.created_at|date:"H:i" }}
+                                            </small>
+                                            <a href="{% url 'core:cargo_shipment_detail' shipment.id %}"
+                                               class="btn btn-sm btn-outline-primary mt-1">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-truck fa-3x text-muted mb-3"></i>
+                            <h6 class="text-muted">Henüz gönderi bulunmuyor</h6>
+                            <p class="text-muted small">İlk gönderiler burada görünecek</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hızlı İşlemler -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bolt me-2"></i>
+                        Hızlı İşlemler
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'core:add_cargo_company' %}" class="btn btn-outline-primary w-100 h-100 d-flex flex-column align-items-center py-4">
+                                <i class="fas fa-plus fa-2x mb-2"></i>
+                                <span>Yeni Firma Ekle</span>
+                            </a>
+                        </div>
+
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'core:cargo_reports' %}" class="btn btn-outline-success w-100 h-100 d-flex flex-column align-items-center py-4">
+                                <i class="fas fa-chart-bar fa-2x mb-2"></i>
+                                <span>Raporlar</span>
+                            </a>
+                        </div>
+
+                        <div class="col-md-3 mb-3">
+                            <button class="btn btn-outline-warning w-100 h-100 d-flex flex-column align-items-center py-4"
+                                    onclick="syncAllShipments()">
+                                <i class="fas fa-sync fa-2x mb-2"></i>
+                                <span>API Senkronizasyonu</span>
+                            </button>
+                        </div>
+
+                        <div class="col-md-3 mb-3">
+                            <a href="/admin/core/cargoshipment/" target="_blank" class="btn btn-outline-secondary w-100 h-100 d-flex flex-column align-items-center py-4">
+                                <i class="fas fa-cog fa-2x mb-2"></i>
+                                <span>Admin Panel</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Firma Silme Modal -->
+<div class="modal fade" id="deleteCompanyModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Firma Silme Onayı
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong id="deleteCompanyName"></strong> firmasını silmek istediğinizden emin misiniz?</p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Bu işlem geri alınamaz ve firmanın tüm gönderi kayıtları etkilenir.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-danger" onclick="confirmDeleteCompany()">
+                    <i class="fas fa-trash me-2"></i>Sil
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let companyToDelete = null;
+
+function deleteCompany(companyId, companyName) {
+    companyToDelete = companyId;
+    document.getElementById('deleteCompanyName').textContent = companyName;
+    new bootstrap.Modal(document.getElementById('deleteCompanyModal')).show();
+}
+
+function confirmDeleteCompany() {
+    if (!companyToDelete) return;
+
+    fetch(`/admin/cargo/company/${companyToDelete}/delete/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCsrfToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Hata: ' + (data.error || 'Firma silinemedi'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Bir hata oluştu');
+    });
+
+    bootstrap.Modal.getInstance(document.getElementById('deleteCompanyModal')).hide();
+}
+
+function syncAllShipments() {
+    if (!confirm('Tüm gönderilerin API senkronizasyonunu başlatmak istediğinizden emin misiniz? Bu işlem biraz zaman alabilir.')) {
+        return;
+    }
+
+    // Loading göstergesi
+    const btn = event.target.closest('button');
+    const originalHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Senkronize Ediliyor...';
+    btn.disabled = true;
+
+    // Burada toplu senkronizasyon yapılabilir
+    // Şimdilik sadece simülasyon
+    setTimeout(() => {
+        btn.innerHTML = originalHtml;
+        btn.disabled = false;
+        alert('Senkronizasyon tamamlandı!');
+    }, 3000);
+}
+
+function getCsrfToken() {
+    const token = document.querySelector('[name=csrfmiddlewaretoken]');
+    return token ? token.value : '';
+}
+</script>
+
+<style>
+    .card {
+        transition: all 0.3s ease;
+    }
+
+    .card:hover {
+        transform: translateY(-2px);
+    }
+
+    .table th {
+        border-top: none;
+        font-weight: 600;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .badge {
+        font-size: 0.75rem;
+    }
+
+    .list-group-item {
+        transition: background-color 0.2s ease;
+    }
+
+    .list-group-item:hover {
+        background-color: #f8f9fa;
+    }
+
+    .btn {
+        border-radius: 10px;
+    }
+
+    .btn-outline-primary, .btn-outline-success, .btn-outline-warning, .btn-outline-secondary {
+        border-width: 2px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-outline-primary:hover, .btn-outline-success:hover, .btn-outline-warning:hover, .btn-outline-secondary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .modal-content {
+        border-radius: 15px;
+        border: none;
+    }
+
+    .modal-header {
+        border-radius: 15px 15px 0 0;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,455 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Gönderi Detayı - {{ shipment.tracking_number|default:"Yeni Gönderi" }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <!-- Gönderi Başlığı -->
+        <div class="col-12 mb-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="fas fa-truck me-2 text-primary"></i>
+                        Gönderi Detayı
+                    </h2>
+                    {% if shipment.tracking_number %}
+                        <p class="text-muted mb-0">Takip Numarası: <code>{{ shipment.tracking_number }}</code></p>
+                    {% else %}
+                        <p class="text-muted mb-0">Henüz takip numarası atanmadı</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <a href="{% url 'core:cargo_dashboard' %}" class="btn btn-outline-secondary me-2">
+                        <i class="fas fa-arrow-left me-1"></i>Geri Dön
+                    </a>
+                    {% if shipment.tracking_url %}
+                        <a href="{{ shipment.tracking_url }}" target="_blank" class="btn btn-primary">
+                            <i class="fas fa-external-link-alt me-1"></i>Kargo Firmasında Takip Et
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Gönderi Bilgileri -->
+        <div class="col-lg-8 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Gönderi Bilgileri
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-primary mb-3">Fatura Bilgileri</h6>
+                            <p class="mb-2">
+                                <strong>Fatura No:</strong>
+                                <a href="{% url 'core:invoice_detail' shipment.invoice.id %}">{{ shipment.invoice.invoice_number }}</a>
+                            </p>
+                            <p class="mb-2">
+                                <strong>Tutar:</strong> ₺{{ shipment.invoice.total_amount|floatformat:2 }}
+                            </p>
+                            <p class="mb-2">
+                                <strong>Durum:</strong>
+                                <span class="badge bg-{{ shipment.invoice.status|yesno:'success,warning,danger' }}">
+                                    {{ shipment.invoice.get_status_display }}
+                                </span>
+                            </p>
+                        </div>
+
+                        <div class="col-md-6">
+                            <h6 class="text-primary mb-3">Kargo Bilgileri</h6>
+                            <p class="mb-2">
+                                <strong>Kargo Firması:</strong> {{ shipment.cargo_company.display_name }}
+                            </p>
+                            <p class="mb-2">
+                                <strong>Durum:</strong>
+                                {% if shipment.status == 'pending' %}
+                                    <span class="badge bg-warning">
+                                        <i class="fas fa-clock me-1"></i>Hazırlanıyor
+                                    </span>
+                                {% elif shipment.status == 'picked_up' %}
+                                    <span class="badge bg-info">
+                                        <i class="fas fa-hand-paper me-1"></i>Alındı
+                                    </span>
+                                {% elif shipment.status == 'in_transit' %}
+                                    <span class="badge bg-primary">
+                                        <i class="fas fa-truck me-1"></i>Yolda
+                                    </span>
+                                {% elif shipment.status == 'out_for_delivery' %}
+                                    <span class="badge bg-secondary">
+                                        <i class="fas fa-dolly me-1"></i>Dağıtıma Çıktı
+                                    </span>
+                                {% elif shipment.status == 'delivered' %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check-circle me-1"></i>Teslim Edildi
+                                    </span>
+                                {% elif shipment.status == 'returned' %}
+                                    <span class="badge bg-danger">
+                                        <i class="fas fa-undo me-1"></i>İade Edildi
+                                    </span>
+                                {% elif shipment.status == 'cancelled' %}
+                                    <span class="badge bg-dark">
+                                        <i class="fas fa-times me-1"></i>İptal Edildi
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ shipment.get_status_display }}</span>
+                                {% endif %}
+                            </p>
+                            <p class="mb-2">
+                                <strong>Ağırlık:</strong> {{ shipment.weight_kg }} kg
+                            </p>
+                            <p class="mb-2">
+                                <strong>Paket:</strong> {{ shipment.package_count }} adet
+                            </p>
+                            {% if shipment.shipping_cost %}
+                                <p class="mb-2">
+                                    <strong>Kargo Ücreti:</strong> ₺{{ shipment.shipping_cost|floatformat:2 }}
+                                </p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Gönderen ve Alıcı Bilgileri -->
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <h6 class="text-primary mb-3">
+                                <i class="fas fa-user me-2"></i>Gönderen
+                            </h6>
+                            <div class="border rounded p-3 bg-light">
+                                <p class="mb-1"><strong>{{ shipment.sender_name }}</strong></p>
+                                <p class="mb-1 small">{{ shipment.sender_address }}</p>
+                                <p class="mb-0 small text-muted">
+                                    <i class="fas fa-phone me-1"></i>{{ shipment.sender_phone }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <h6 class="text-primary mb-3">
+                                <i class="fas fa-map-marker-alt me-2"></i>Alıcı
+                            </h6>
+                            <div class="border rounded p-3 bg-light">
+                                <p class="mb-1"><strong>{{ shipment.recipient_name }}</strong></p>
+                                <p class="mb-1 small">{{ shipment.recipient_address }}</p>
+                                <p class="mb-0 small text-muted">
+                                    <i class="fas fa-phone me-1"></i>{{ shipment.recipient_phone }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if shipment.description %}
+                        <div class="mt-4">
+                            <h6 class="text-primary mb-2">
+                                <i class="fas fa-sticky-note me-2"></i>İçerik Açıklaması
+                            </h6>
+                            <div class="alert alert-light">
+                                {{ shipment.description }}
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    {% if shipment.notes %}
+                        <div class="mt-4">
+                            <h6 class="text-primary mb-2">
+                                <i class="fas fa-comment me-2"></i>Notlar
+                            </h6>
+                            <div class="alert alert-info">
+                                {{ shipment.notes }}
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Takip Geçmişi -->
+        <div class="col-lg-4 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history me-2"></i>
+                        Takip Geçmişi
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if tracking_history %}
+                        <div class="timeline">
+                            {% for track in tracking_history %}
+                                <div class="timeline-item">
+                                    <div class="timeline-marker
+                                        {% if track.status == 'pending' %}bg-warning
+                                        {% elif track.status == 'picked_up' %}bg-info
+                                        {% elif track.status == 'in_transit' %}bg-primary
+                                        {% elif track.status == 'out_for_delivery' %}bg-secondary
+                                        {% elif track.status == 'delivered' %}bg-success
+                                        {% elif track.status == 'returned' %}bg-danger
+                                        {% elif track.status == 'cancelled' %}bg-dark
+                                        {% else %}bg-secondary{% endif %}">
+                                        <i class="fas fa-{% if track.status == 'delivered' %}check-circle
+                                                  {% elif track.status == 'returned' %}undo
+                                                  {% elif track.status == 'cancelled' %}times
+                                                  {% elif track.status == 'in_transit' %}truck
+                                                  {% else %}clock{% endif %} text-white"></i>
+                                    </div>
+                                    <div class="timeline-content">
+                                        <h6 class="timeline-title">{{ track.get_status_display }}</h6>
+                                        <p class="timeline-text">{{ track.description }}</p>
+                                        {% if track.location %}
+                                            <small class="text-muted">
+                                                <i class="fas fa-map-marker-alt me-1"></i>{{ track.location }}
+                                            </small>
+                                        {% endif %}
+                                        <small class="text-muted d-block">
+                                            {{ track.timestamp|date:"d.m.Y H:i" }}
+                                        </small>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-clock fa-2x text-muted mb-3"></i>
+                            <p class="text-muted">Henüz takip bilgisi bulunmuyor</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Hızlı İşlemler -->
+            {% if user.is_staff %}
+                <div class="card border-0 shadow-sm mt-3">
+                    <div class="card-header bg-warning text-dark">
+                        <h6 class="mb-0">
+                            <i class="fas fa-cogs me-2"></i>
+                            Admin İşlemleri
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-outline-primary btn-sm w-100 mb-2"
+                                onclick="updateStatus('{{ shipment.id }}', 'picked_up')">
+                            <i class="fas fa-hand-paper me-1"></i>Alındı Olarak İşaretle
+                        </button>
+                        <button class="btn btn-outline-info btn-sm w-100 mb-2"
+                                onclick="updateStatus('{{ shipment.id }}', 'in_transit')">
+                            <i class="fas fa-truck me-1"></i>Yolda Olarak İşaretle
+                        </button>
+                        <button class="btn btn-outline-success btn-sm w-100"
+                                onclick="updateStatus('{{ shipment.id }}', 'delivered')">
+                            <i class="fas fa-check-circle me-1"></i>Teslim Edildi Olarak İşaretle
+                        </button>
+
+                        <hr class="my-3">
+
+                        <button class="btn btn-outline-secondary btn-sm w-100"
+                                onclick="trackShipment('{{ shipment.id }}')">
+                            <i class="fas fa-sync me-1"></i>API'den Takip Bilgisi Al
+                        </button>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Zaman Çizelgesi -->
+    {% if shipment.created_at %}
+        <div class="row">
+            <div class="col-12">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">
+                            <i class="fas fa-calendar-alt me-2"></i>
+                            Zaman Çizelgesi
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-md-3">
+                                <div class="timeline-step">
+                                    <div class="timeline-icon bg-primary">
+                                        <i class="fas fa-plus text-white"></i>
+                                    </div>
+                                    <h6>Oluşturuldu</h6>
+                                    <small class="text-muted">{{ shipment.created_at|date:"d.m.Y H:i" }}</small>
+                                </div>
+                            </div>
+
+                            {% if shipment.shipped_at %}
+                                <div class="col-md-3">
+                                    <div class="timeline-step">
+                                        <div class="timeline-icon bg-info">
+                                            <i class="fas fa-hand-paper text-white"></i>
+                                        </div>
+                                        <h6>Gönderildi</h6>
+                                        <small class="text-muted">{{ shipment.shipped_at|date:"d.m.Y H:i" }}</small>
+                                    </div>
+                                </div>
+                            {% endif %}
+
+                            {% if shipment.delivered_at %}
+                                <div class="col-md-3">
+                                    <div class="timeline-step">
+                                        <div class="timeline-icon bg-success">
+                                            <i class="fas fa-check-circle text-white"></i>
+                                        </div>
+                                        <h6>Teslim Edildi</h6>
+                                        <small class="text-muted">{{ shipment.delivered_at|date:"d.m.Y H:i" }}</small>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+function updateStatus(shipmentId, status) {
+    if (!confirm('Gönderi durumunu güncellemek istediğinizden emin misiniz?')) {
+        return;
+    }
+
+    fetch(`/cargo/shipment/${shipmentId}/update-status/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': getCsrfToken()
+        },
+        body: `status=${status}&description=Admin tarafından güncellendi`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Hata: ' + (data.error || 'Bilinmeyen hata'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Bir hata oluştu');
+    });
+}
+
+function trackShipment(shipmentId) {
+    fetch(`/cargo/shipment/${shipmentId}/track/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCsrfToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Hata: ' + (data.error || 'Takip bilgisi alınamadı'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Bir hata oluştu');
+    });
+}
+
+function getCsrfToken() {
+    const token = document.querySelector('[name=csrfmiddlewaretoken]');
+    return token ? token.value : '';
+}
+</script>
+
+<style>
+    .timeline {
+        position: relative;
+        padding-left: 30px;
+    }
+
+    .timeline::before {
+        content: '';
+        position: absolute;
+        left: 15px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #e9ecef;
+    }
+
+    .timeline-item {
+        position: relative;
+        margin-bottom: 30px;
+    }
+
+    .timeline-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .timeline-marker {
+        position: absolute;
+        left: -22px;
+        top: 0;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 3px solid #fff;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .timeline-content {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        border-left: 4px solid #007bff;
+    }
+
+    .timeline-title {
+        margin: 0 0 5px 0;
+        font-size: 1rem;
+        font-weight: 600;
+    }
+
+    .timeline-text {
+        margin: 0 0 8px 0;
+        color: #666;
+        font-size: 0.9rem;
+    }
+
+    .timeline-step {
+        padding: 20px;
+    }
+
+    .timeline-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 15px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .card {
+        transition: all 0.3s ease;
+    }
+
+    .card:hover {
+        transform: translateY(-2px);
+    }
+
+    .badge {
+        font-size: 0.75rem;
+    }
+</style>
+{% endblock %}

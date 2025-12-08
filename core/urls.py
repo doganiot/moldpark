@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views, views_financial, payment_views
+from . import views, views_financial, payment_views, cargo_views
 from .api import SystemStatusAPI, production_pipeline_api, alerts_api, health_check_api
 from . import api
 from django.shortcuts import redirect
@@ -121,4 +121,19 @@ urlpatterns = [
     path('payment/iyzico/callback/<int:invoice_id>/', payment_views.iyzico_payment_callback, name='iyzico_payment_callback'),
     path('payment/methods/', payment_views.payment_methods_list, name='payment_methods_list'),
     path('payment/bank-details/', payment_views.bank_transfer_details, name='bank_transfer_details'),
+
+    # Kargo Sistemi
+    path('cargo/', cargo_views.cargo_dashboard, name='cargo_dashboard'),
+    path('cargo/create/<int:invoice_id>/', cargo_views.create_cargo_shipment, name='create_cargo_shipment'),
+    path('cargo/shipment/<int:shipment_id>/', cargo_views.cargo_shipment_detail, name='cargo_shipment_detail'),
+    path('cargo/shipment/<int:shipment_id>/update-status/', cargo_views.update_shipment_status, name='update_shipment_status'),
+    path('cargo/shipment/<int:shipment_id>/track/', cargo_views.track_shipment_api, name='track_shipment_api'),
+    path('cargo/companies/', cargo_views.cargo_companies_list, name='cargo_companies_list'),
+
+    # Admin Kargo Yönetimi
+    path('admin/cargo/', cargo_views.cargo_admin_dashboard, name='cargo_admin_dashboard'),
+    path('admin/cargo/company/add/', cargo_views.manage_cargo_company, name='add_cargo_company'),
+    path('admin/cargo/company/<int:company_id>/edit/', cargo_views.manage_cargo_company, name='edit_cargo_company'),
+    path('admin/cargo/company/<int:company_id>/delete/', cargo_views.delete_cargo_company, name='delete_cargo_company'),
+    path('admin/cargo/reports/', cargo_views.cargo_reports, name='cargo_reports'),
 ] 

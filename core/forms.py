@@ -555,3 +555,250 @@ class BankTransferPaymentForm(forms.ModelForm):
     class Meta:
         model = Payment
         fields = ['bank_confirmation_number', 'payment_date', 'receipt_file', 'notes']
+
+
+# ========================================
+# KARGO FORMLARI
+# ========================================
+
+from .models import CargoCompany, CargoShipment
+
+class CargoShipmentForm(forms.ModelForm):
+    """Kargo Gönderisi Oluşturma Formu"""
+
+    cargo_company = forms.ModelChoiceField(
+        label='Kargo Firması',
+        queryset=CargoCompany.objects.filter(is_active=True),
+        widget=forms.Select(attrs={
+            'class': 'form-select',
+            'id': 'cargo_company_select'
+        }),
+        help_text='Gönderinizi teslim edecek kargo firması'
+    )
+
+    sender_name = forms.CharField(
+        label='Gönderen Adı',
+        max_length=100,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Gönderen kişi/kurum adı'
+        })
+    )
+
+    sender_address = forms.CharField(
+        label='Gönderen Adresi',
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 3,
+            'placeholder': 'Gönderen tam adresi'
+        })
+    )
+
+    sender_phone = forms.CharField(
+        label='Gönderen Telefon',
+        max_length=20,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': '+90 5XX XXX XX XX'
+        })
+    )
+
+    recipient_name = forms.CharField(
+        label='Alıcı Adı',
+        max_length=100,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Alıcı kişi/kurum adı'
+        })
+    )
+
+    recipient_address = forms.CharField(
+        label='Alıcı Adresi',
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 3,
+            'placeholder': 'Alıcı tam adresi'
+        })
+    )
+
+    recipient_phone = forms.CharField(
+        label='Alıcı Telefon',
+        max_length=20,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': '+90 5XX XXX XX XX'
+        })
+    )
+
+    weight_kg = forms.DecimalField(
+        label='Ağırlık (KG)',
+        max_digits=6,
+        decimal_places=2,
+        min_value=0.1,
+        initial=0.5,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'step': '0.1',
+            'id': 'weight_input'
+        }),
+        help_text='Gönderinin toplam ağırlığı'
+    )
+
+    package_count = forms.IntegerField(
+        label='Paket Adedi',
+        min_value=1,
+        initial=1,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'min': '1'
+        })
+    )
+
+    description = forms.CharField(
+        label='İçerik Açıklaması',
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 2,
+            'placeholder': 'Gönderi içeriği hakkında açıklama (örn: tıbbi malzemeler)'
+        }),
+        required=False
+    )
+
+    class Meta:
+        model = CargoShipment
+        fields = [
+            'cargo_company', 'sender_name', 'sender_address', 'sender_phone',
+            'recipient_name', 'recipient_address', 'recipient_phone',
+            'weight_kg', 'package_count', 'description'
+        ]
+
+    def clean_weight_kg(self):
+        weight = self.cleaned_data.get('weight_kg')
+        if weight and weight > 30:  # Max 30kg varsayalım
+            raise forms.ValidationError('Ağırlık 30 kg\'dan fazla olamaz.')
+        return weight
+
+    def clean_package_count(self):
+        count = self.cleaned_data.get('package_count')
+        if count and count > 10:  # Max 10 paket
+            raise forms.ValidationError('Paket adedi 10\'dan fazla olamaz.')
+        return count
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Kargo firmalarının aktif olanlarını getir
+        from .models import CargoCompany
+        self.fields['cargo_company'].queryset = CargoCompany.objects.filter(is_active=True)
+
+
+class CargoCompanyForm(forms.ModelForm):
+    """Kargo Firması Yönetimi Formu"""
+
+    name = forms.ChoiceField(
+        label='Firma Tipi',
+        choices=CargoCompany.CARGO_COMPANY_CHOICES,
+        widget=forms.Select(attrs={
+            'class': 'form-select'
+        })
+    )
+
+    display_name = forms.CharField(
+        label='Görünen Ad',
+        max_length=100,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Örn: Aras Kargo'
+        })
+    )
+
+    logo_url = forms.URLField(
+        label='Logo URL',
+        required=False,
+        widget=forms.URLInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'https://...'
+        })
+    )
+
+    website = forms.URLField(
+        label='Web Sitesi',
+        required=False,
+        widget=forms.URLInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'https://www.firma.com'
+        })
+    )
+
+    api_key = forms.CharField(
+        label='API Anahtarı',
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'API anahtarını giriniz'
+        })
+    )
+
+    api_secret = forms.CharField(
+        label='API Gizli Anahtar',
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'API gizli anahtarını giriniz'
+        })
+    )
+
+    api_base_url = forms.URLField(
+        label='API Base URL',
+        required=False,
+        widget=forms.URLInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'https://api.firma.com'
+        })
+    )
+
+    base_price = forms.DecimalField(
+        label='Temel Ücret (₺)',
+        max_digits=10,
+        decimal_places=2,
+        min_value=0,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'step': '0.01'
+        })
+    )
+
+    kg_price = forms.DecimalField(
+        label='KG Başına Ücret (₺)',
+        max_digits=10,
+        decimal_places=2,
+        min_value=0,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'step': '0.01'
+        })
+    )
+
+    estimated_delivery_days = forms.IntegerField(
+        label='Tahmini Teslimat Süresi (Gün)',
+        min_value=1,
+        max_value=30,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'min': '1',
+            'max': '30'
+        })
+    )
+
+    class Meta:
+        model = CargoCompany
+        fields = [
+            'name', 'display_name', 'logo_url', 'website',
+            'api_enabled', 'api_key', 'api_secret', 'api_base_url',
+            'base_price', 'kg_price', 'estimated_delivery_days',
+            'is_active', 'is_default'
+        ]
+        widgets = {
+            'api_enabled': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'is_default': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }

@@ -1,0 +1,317 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Kargo Firmaları - MoldPark{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <!-- Başlık -->
+        <div class="col-12 mb-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="fas fa-building me-2 text-primary"></i>
+                        Kargo Firmaları
+                    </h2>
+                    <p class="text-muted mb-0">Türkiye'nin önde gelen kargo firmaları</p>
+                </div>
+                <div>
+                    <a href="{% url 'core:cargo_dashboard' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>Kargo Takip
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firma Kartları -->
+    <div class="row">
+        {% for company in companies %}
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card h-100 border-0 shadow-sm company-card">
+                    <div class="card-header bg-gradient-primary text-white text-center py-3">
+                        {% if company.logo_url %}
+                            <img src="{{ company.logo_url }}"
+                                 alt="{{ company.display_name }}"
+                                 class="company-logo mb-2"
+                                 onerror="this.style.display='none'">
+                        {% endif %}
+                        <h5 class="mb-1">{{ company.display_name }}</h5>
+                        {% if company.is_default %}
+                            <span class="badge bg-warning text-dark">
+                                <i class="fas fa-star me-1"></i>Önerilen
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    <div class="card-body">
+                        <div class="row text-center mb-3">
+                            <div class="col-4">
+                                <div class="stat-item">
+                                    <div class="stat-value">{{ company.base_price|floatformat:0 }}</div>
+                                    <div class="stat-label">₺</div>
+                                    <small class="text-muted">Temel Ücret</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="stat-item">
+                                    <div class="stat-value">{{ company.kg_price|floatformat:1 }}</div>
+                                    <div class="stat-label">₺</div>
+                                    <small class="text-muted">KG</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="stat-item">
+                                    <div class="stat-value">{{ company.estimated_delivery_days }}</div>
+                                    <div class="stat-label">
+                                        <i class="fas fa-clock"></i>
+                                    </div>
+                                    <small class="text-muted">Gün</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        {% if company.api_enabled %}
+                            <div class="alert alert-success py-2 mb-3">
+                                <small class="mb-0">
+                                    <i class="fas fa-check-circle me-1"></i>
+                                    API Entegrasyonu Aktif
+                                </small>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-warning py-2 mb-3">
+                                <small class="mb-0">
+                                    <i class="fas fa-clock me-1"></i>
+                                    API Entegrasyonu Yakında
+                                </small>
+                            </div>
+                        {% endif %}
+
+                        <div class="company-features">
+                            <div class="feature-item">
+                                <i class="fas fa-shipping-fast text-primary"></i>
+                                <span>Hızlı Teslimat</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="fas fa-shield-alt text-success"></i>
+                                <span>Güvenli Taşıma</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="fas fa-search text-info"></i>
+                                <span>Online Takip</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-footer bg-light">
+                        <div class="row">
+                            <div class="col-6">
+                                {% if company.website %}
+                                    <a href="{{ company.website }}"
+                                       target="_blank"
+                                       class="btn btn-outline-primary btn-sm w-100">
+                                        <i class="fas fa-globe me-1"></i>Web
+                                    </a>
+                                {% endif %}
+                            </div>
+                            <div class="col-6">
+                                <button class="btn btn-primary btn-sm w-100"
+                                        onclick="showCompanyModal('{{ company.name }}', '{{ company.display_name }}', '{{ company.base_price }}', '{{ company.kg_price }}', '{{ company.estimated_delivery_days }}')">
+                                    <i class="fas fa-calculator me-1"></i>Hesapla
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="col-12">
+                <div class="text-center py-5">
+                    <div class="mb-3">
+                        <i class="fas fa-truck fa-3x text-muted"></i>
+                    </div>
+                    <h5 class="text-muted">Kargo firması bulunamadı</h5>
+                    <p class="text-muted">Şu anda aktif kargo firması bulunmuyor.</p>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- Firma Bilgileri Modal -->
+    <div class="modal fade" id="companyModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="companyModalTitle">Kargo Hesaplama</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 id="modalCompanyName"></h6>
+                            <div class="mb-3">
+                                <label class="form-label">Paket Ağırlığı (KG)</label>
+                                <input type="number" class="form-control" id="weightInput" value="0.5" min="0.1" step="0.1">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="pricing-card">
+                                <h6 class="text-primary">Ücret Hesaplama</h6>
+                                <div class="mb-2">
+                                    <small>Temel Ücret:</small>
+                                    <div class="fw-bold" id="basePrice">0 ₺</div>
+                                </div>
+                                <div class="mb-2">
+                                    <small>Kilo Ücreti:</small>
+                                    <div class="fw-bold" id="kgPrice">0 ₺</div>
+                                </div>
+                                <hr>
+                                <div class="d-flex justify-content-between">
+                                    <strong>Toplam:</strong>
+                                    <strong class="text-primary" id="totalPrice">0 ₺</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info mt-3">
+                        <small>
+                            <i class="fas fa-info-circle me-1"></i>
+                            Tahmini teslimat süresi: <strong id="deliveryTime">1</strong> iş günü
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">
+                        <i class="fas fa-check me-1"></i>Anladım
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentCompany = null;
+
+function showCompanyModal(name, displayName, basePrice, kgPrice, deliveryDays) {
+    currentCompany = {
+        name: name,
+        displayName: displayName,
+        basePrice: parseFloat(basePrice),
+        kgPrice: parseFloat(kgPrice),
+        deliveryDays: parseInt(deliveryDays)
+    };
+
+    document.getElementById('companyModalTitle').textContent = displayName + ' - Ücret Hesaplama';
+    document.getElementById('modalCompanyName').textContent = displayName;
+    document.getElementById('deliveryTime').textContent = deliveryDays;
+
+    calculatePrice();
+    new bootstrap.Modal(document.getElementById('companyModal')).show();
+}
+
+function calculatePrice() {
+    if (!currentCompany) return;
+
+    const weightInput = document.getElementById('weightInput');
+    const weight = parseFloat(weightInput.value) || 0;
+
+    const basePrice = currentCompany.basePrice;
+    const kgPrice = weight * currentCompany.kgPrice;
+    const total = basePrice + kgPrice;
+
+    document.getElementById('basePrice').textContent = basePrice.toFixed(2) + ' ₺';
+    document.getElementById('kgPrice').textContent = kgPrice.toFixed(2) + ' ₺';
+    document.getElementById('totalPrice').textContent = total.toFixed(2) + ' ₺';
+}
+
+// Ağırlık değiştiğinde yeniden hesapla
+document.getElementById('weightInput').addEventListener('input', calculatePrice);
+
+// Modal açıldığında hesapla
+document.getElementById('companyModal').addEventListener('shown.bs.modal', calculatePrice);
+</script>
+
+<style>
+    .company-card {
+        transition: all 0.3s ease;
+        border-radius: 15px;
+        overflow: hidden;
+    }
+
+    .company-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    }
+
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .company-logo {
+        max-width: 80px;
+        max-height: 40px;
+        object-fit: contain;
+    }
+
+    .stat-item {
+        padding: 10px;
+        border-radius: 8px;
+        background: #f8f9fa;
+        margin-bottom: 10px;
+    }
+
+    .stat-value {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: #007bff;
+    }
+
+    .stat-label {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+
+    .company-features {
+        margin-bottom: 20px;
+    }
+
+    .feature-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 8px;
+        font-size: 0.9rem;
+    }
+
+    .feature-item i {
+        margin-right: 8px;
+        width: 16px;
+    }
+
+    .pricing-card {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+    }
+
+    .modal-content {
+        border-radius: 15px;
+        border: none;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+
+    .modal-header {
+        border-radius: 15px 15px 0 0;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .btn-close {
+        filter: invert(1);
+    }
+</style>
+{% endblock %}

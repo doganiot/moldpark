@@ -1,9 +1,10 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from .models import (
-    ContactMessage, Message, PricingPlan, UserSubscription, PaymentHistory, 
+    ContactMessage, Message, PricingPlan, UserSubscription, PaymentHistory,
     SimpleNotification, SubscriptionRequest, PricingConfiguration,
-    BankTransferConfiguration, PaymentMethod, Payment
+    BankTransferConfiguration, PaymentMethod, Payment,
+    CargoCompany, CargoShipment, CargoTracking, CargoIntegration
 )
 
 @admin.register(ContactMessage)
@@ -403,3 +404,157 @@ class PaymentAdmin(admin.ModelAdmin):
             count += 1
         self.message_user(request, f'{count} ödeme tamamlandı.')
     complete_payments.short_description = "Ödemeleri tamamla"
+
+
+# ========================================
+# KARGO SİSTEMİ ADMIN
+# ========================================
+
+@admin.register(CargoCompany)
+class CargoCompanyAdmin(admin.ModelAdmin):
+    list_display = ('display_name', 'name', 'is_active', 'is_default', 'base_price', 'kg_price', 'estimated_delivery_days')
+    list_filter = ('is_active', 'is_default', 'name')
+    search_fields = ('display_name', 'name')
+    readonly_fields = ('created_at', 'updated_at')
+
+    fieldsets = (
+        ('Temel Bilgiler', {
+            'fields': ('name', 'display_name', 'logo_url', 'website', 'is_active', 'is_default')
+        }),
+        ('Ücretlendirme', {
+            'fields': ('base_price', 'kg_price', 'estimated_delivery_days')
+        }),
+        ('API Entegrasyonu', {
+            'fields': ('api_enabled', 'api_key', 'api_secret', 'api_base_url'),
+            'classes': ('collapse',)
+        }),
+        ('Zaman Bilgileri', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    actions = ['activate_companies', 'deactivate_companies', 'set_as_default']
+
+    def activate_companies(self, request, queryset):
+        queryset.update(is_active=True)
+        self.message_user(request, f'{queryset.count()} kargo firması aktifleştirildi.')
+    activate_companies.short_description = "Firmaları aktifleştir"
+
+    def deactivate_companies(self, request, queryset):
+        queryset.update(is_active=False)
+        self.message_user(request, f'{queryset.count()} kargo firması devre dışı bırakıldı.')
+    deactivate_companies.short_description = "Firmaları devre dışı bırak"
+
+    def set_as_default(self, request, queryset):
+        # Önce tümünü varsayılan dışı yap
+        CargoCompany.objects.filter(is_default=True).update(is_default=False)
+        # Seçilenleri varsayılan yap
+        queryset.update(is_default=True)
+        self.message_user(request, f'{queryset.count()} kargo firması varsayılan olarak ayarlandı.')
+    set_as_default.short_description = "Varsayılan olarak ayarla"
+
+
+@admin.register(CargoShipment)
+class CargoShipmentAdmin(admin.ModelAdmin):
+    list_display = ('tracking_number', 'cargo_company', 'invoice', 'status', 'weight_kg', 'shipping_cost', 'created_at')
+    list_filter = ('status', 'cargo_company', 'created_at', 'shipped_at', 'delivered_at')
+    search_fields = ('tracking_number', 'invoice__invoice_number', 'recipient_name', 'sender_name')
+    readonly_fields = ('created_at', 'shipped_at', 'delivered_at')
+    date_hierarchy = 'created_at'
+
+    fieldsets = (
+        ('Gönderi Bilgileri', {
+            'fields': ('invoice', 'cargo_company', 'tracking_number', 'status', 'status_description')
+        }),
+        ('Gönderen Bilgileri', {
+            'fields': ('sender_name', 'sender_address', 'sender_phone'),
+            'classes': ('collapse',)
+        }),
+        ('Alıcı Bilgileri', {
+            'fields': ('recipient_name', 'recipient_address', 'recipient_phone'),
+            'classes': ('collapse',)
+        }),
+        ('Paket Bilgileri', {
+            'fields': ('weight_kg', 'package_count', 'description', 'declared_value')
+        }),
+        ('Maliyet ve Tarihler', {
+            'fields': ('shipping_cost', 'created_at', 'shipped_at', 'delivered_at', 'estimated_delivery'),
+            'classes': ('collapse',)
+        }),
+        ('Ek Bilgiler', {
+            'fields': ('notes', 'api_response'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    actions = ['update_status_picked_up', 'update_status_in_transit', 'update_status_delivered']
+
+    def update_status_picked_up(self, request, queryset):
+        updated = 0
+        for shipment in queryset.filter(status='pending'):
+            shipment.update_status('picked_up', 'Gönderi kargo firması tarafından alındı')
+            updated += 1
+        self.message_user(request, f'{updated} gönderi "Alındı" durumuna güncellendi.')
+    update_status_picked_up.short_description = "Gönderileri alındı olarak işaretle"
+
+    def update_status_in_transit(self, request, queryset):
+        updated = 0
+        for shipment in queryset.filter(status='picked_up'):
+            shipment.update_status('in_transit', 'Gönderi dağıtım merkezine ulaştı')
+            updated += 1
+        self.message_user(request, f'{updated} gönderi "Yolda" durumuna güncellendi.')
+    update_status_in_transit.short_description = "Gönderileri yolda olarak işaretle"
+
+    def update_status_delivered(self, request, queryset):
+        updated = 0
+        for shipment in queryset.filter(status__in=['in_transit', 'out_for_delivery']):
+            shipment.update_status('delivered', 'Gönderi başarıyla teslim edildi')
+            updated += 1
+        self.message_user(request, f'{updated} gönderi "Teslim Edildi" durumuna güncellendi.')
+    update_status_delivered.short_description = "Gönderileri teslim edildi olarak işaretle"
+
+
+@admin.register(CargoTracking)
+class CargoTrackingAdmin(admin.ModelAdmin):
+    list_display = ('shipment', 'status', 'description', 'location', 'timestamp')
+    list_filter = ('status', 'timestamp')
+    search_fields = ('shipment__tracking_number', 'description', 'location')
+    readonly_fields = ('timestamp', 'raw_data')
+    date_hierarchy = 'timestamp'
+
+    fieldsets = (
+        ('Temel Bilgiler', {
+            'fields': ('shipment', 'status', 'description', 'location', 'timestamp')
+        }),
+        ('API Verileri', {
+            'fields': ('raw_data',),
+            'classes': ('collapse',)
+        }),
+    )
+
+
+@admin.register(CargoIntegration)
+class CargoIntegrationAdmin(admin.ModelAdmin):
+    list_display = ('cargo_company', 'integration_type', 'test_mode', 'last_sync', 'total_shipments', 'success_rate')
+    list_filter = ('integration_type', 'test_mode')
+    search_fields = ('cargo_company__display_name',)
+    readonly_fields = ('last_sync', 'total_shipments', 'success_rate', 'created_at', 'updated_at')
+
+    fieldsets = (
+        ('Firma Bilgileri', {
+            'fields': ('cargo_company', 'integration_type', 'test_mode')
+        }),
+        ('Webhook Ayarları', {
+            'fields': ('webhook_url', 'webhook_secret'),
+            'classes': ('collapse',)
+        }),
+        ('API Ayarları', {
+            'fields': ('auth_type', 'api_key', 'api_secret'),
+            'classes': ('collapse',)
+        }),
+        ('İstatistikler', {
+            'fields': ('last_sync', 'total_shipments', 'success_rate', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )

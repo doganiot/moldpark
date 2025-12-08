@@ -1868,3 +1868,234 @@ def notify_payment_update(sender, instance, created, **kwargs):
             message=f'₺{instance.amount} tutarındaki ödemeniz onaylanmıştır.',
             notification_type='success'
         )
+
+
+# ========================================
+# KARGO SİSTEMİ MODÜLLERİ
+# ========================================
+
+class CargoCompany(models.Model):
+    """Türkiye Kargo Firmaları"""
+
+    CARGO_COMPANY_CHOICES = [
+        ('aras', 'Aras Kargo'),
+        ('mng', 'MNG Kargo'),
+        ('yurtici', 'Yurtiçi Kargo'),
+        ('ptt', 'PTT Kargo'),
+        ('surat', 'Sürat Kargo'),
+        ('ups', 'UPS'),
+        ('dhl', 'DHL'),
+        ('other', 'Diğer'),
+    ]
+
+    name = models.CharField('Firma Adı', max_length=100, choices=CARGO_COMPANY_CHOICES)
+    display_name = models.CharField('Görünen Ad', max_length=100)
+    logo_url = models.URLField('Logo URL', blank=True)
+    website = models.URLField('Web Sitesi', blank=True)
+
+    # API Entegrasyonu
+    api_enabled = models.BooleanField('API Aktif', default=False)
+    api_key = models.CharField('API Anahtarı', max_length=255, blank=True)
+    api_secret = models.CharField('API Gizli Anahtar', max_length=255, blank=True)
+    api_base_url = models.URLField('API Base URL', blank=True)
+
+    # Ücretlendirme
+    base_price = models.DecimalField('Temel Ücret', max_digits=10, decimal_places=2, default=0)
+    kg_price = models.DecimalField('KG Başına Ücret', max_digits=10, decimal_places=2, default=0)
+    estimated_delivery_days = models.IntegerField('Tahmini Teslimat Süresi (Gün)', default=1)
+
+    # Durum
+    is_active = models.BooleanField('Aktif', default=True)
+    is_default = models.BooleanField('Varsayılan', default=False)
+
+    created_at = models.DateTimeField('Oluşturulma', auto_now_add=True)
+    updated_at = models.DateTimeField('Güncellenme', auto_now=True)
+
+    class Meta:
+        verbose_name = 'Kargo Firması'
+        verbose_name_plural = 'Kargo Firmaları'
+        ordering = ['display_name']
+
+    def __str__(self):
+        return self.display_name
+
+    def get_tracking_url(self, tracking_number):
+        """Takip numarası için takip URL'i oluştur"""
+        tracking_urls = {
+            'aras': f'https://www.araskargo.com.tr/tr/online-sorgulama?code={tracking_number}',
+            'mng': f'https://www.mngkargo.com.tr/GonderiTakip/{tracking_number}',
+            'yurtici': f'https://www.yurticikargo.com/tr/online-servisler/gonderi-sorgula?code={tracking_number}',
+            'ptt': f'https://gonderitakip.ptt.gov.tr/Track',
+            'surat': f'https://suratkargo.com.tr/KargoTakip.aspx?kod={tracking_number}',
+            'ups': f'https://www.ups.com/track?loc=tr_TR&tracknum={tracking_number}',
+            'dhl': f'https://www.dhl.com/tr-en/home/tracking.html?tracking-id={tracking_number}',
+        }
+        return tracking_urls.get(self.name, '#')
+
+
+class CargoShipment(models.Model):
+    """Kargo Gönderileri"""
+
+    STATUS_CHOICES = [
+        ('pending', 'Hazırlanıyor'),
+        ('picked_up', 'Alındı'),
+        ('in_transit', 'Yolda'),
+        ('out_for_delivery', 'Dağıtıma Çıktı'),
+        ('delivered', 'Teslim Edildi'),
+        ('returned', 'İade Edildi'),
+        ('cancelled', 'İptal Edildi'),
+        ('failed', 'Teslim Edilemedi'),
+    ]
+
+    # İlişkiler
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name='cargo_shipments', verbose_name='Fatura')
+    cargo_company = models.ForeignKey(CargoCompany, on_delete=models.CASCADE, related_name='shipments', verbose_name='Kargo Firması')
+
+    # Gönderi Bilgileri
+    tracking_number = models.CharField('Takip Numarası', max_length=50, unique=True, blank=True)
+    sender_name = models.CharField('Gönderen Adı', max_length=100)
+    sender_address = models.TextField('Gönderen Adresi')
+    sender_phone = models.CharField('Gönderen Telefon', max_length=20)
+
+    recipient_name = models.CharField('Alıcı Adı', max_length=100)
+    recipient_address = models.TextField('Alıcı Adresi')
+    recipient_phone = models.CharField('Alıcı Telefon', max_length=20)
+
+    # Paket Bilgileri
+    weight_kg = models.DecimalField('Ağırlık (KG)', max_digits=6, decimal_places=2, default=0.5)
+    package_count = models.IntegerField('Paket Adedi', default=1)
+    description = models.TextField('İçerik Açıklaması', blank=True)
+
+    # Maliyet
+    shipping_cost = models.DecimalField('Kargo Ücreti', max_digits=10, decimal_places=2, default=0)
+    declared_value = models.DecimalField('Beyan Değeri', max_digits=10, decimal_places=2, default=0)
+
+    # Durum
+    status = models.CharField('Durum', max_length=20, choices=STATUS_CHOICES, default='pending')
+    status_description = models.TextField('Durum Açıklaması', blank=True)
+
+    # Tarihler
+    created_at = models.DateTimeField('Oluşturulma', auto_now_add=True)
+    shipped_at = models.DateTimeField('Gönderilme Tarihi', null=True, blank=True)
+    delivered_at = models.DateTimeField('Teslim Tarihi', null=True, blank=True)
+    estimated_delivery = models.DateTimeField('Tahmini Teslimat', null=True, blank=True)
+
+    # Ek Bilgiler
+    notes = models.TextField('Notlar', blank=True)
+    api_response = models.JSONField('API Yanıt', blank=True, null=True)
+
+    class Meta:
+        verbose_name = 'Kargo Gönderisi'
+        verbose_name_plural = 'Kargo Gönderileri'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.tracking_number or "Yeni Gönderi"} - {self.cargo_company.display_name}'
+
+    def update_status(self, new_status, description='', api_response=None):
+        """Gönderi durumunu güncelle"""
+        self.status = new_status
+        self.status_description = description
+        if api_response:
+            self.api_response = api_response
+
+        # Tarih güncellemeleri
+        if new_status == 'picked_up' and not self.shipped_at:
+            self.shipped_at = timezone.now()
+        elif new_status == 'delivered' and not self.delivered_at:
+            self.delivered_at = timezone.now()
+
+        self.save()
+
+    def get_tracking_url(self):
+        """Takip URL'i döndür"""
+        if self.tracking_number:
+            return self.cargo_company.get_tracking_url(self.tracking_number)
+        return None
+
+    def calculate_cost(self):
+        """Kargo maliyetini hesapla"""
+        if not self.cargo_company:
+            return 0
+
+        company = self.cargo_company
+        cost = company.base_price + (self.weight_kg * company.kg_price)
+        return cost
+
+    def can_update_status(self, new_status):
+        """Durum geçişi geçerli mi kontrol et"""
+        status_flow = {
+            'pending': ['picked_up', 'cancelled'],
+            'picked_up': ['in_transit', 'cancelled'],
+            'in_transit': ['out_for_delivery', 'returned', 'failed'],
+            'out_for_delivery': ['delivered', 'returned', 'failed'],
+            'delivered': [],
+            'returned': [],
+            'cancelled': [],
+            'failed': ['returned'],
+        }
+        return new_status in status_flow.get(self.status, [])
+
+
+class CargoTracking(models.Model):
+    """Kargo Takip Geçmişi"""
+
+    shipment = models.ForeignKey(CargoShipment, on_delete=models.CASCADE, related_name='tracking_history', verbose_name='Gönderi')
+    status = models.CharField('Durum', max_length=20, choices=CargoShipment.STATUS_CHOICES)
+    description = models.TextField('Açıklama')
+    location = models.CharField('Konum', max_length=100, blank=True)
+    timestamp = models.DateTimeField('Tarih', default=timezone.now)
+
+    # API'den gelen veriler
+    raw_data = models.JSONField('Ham Veri', blank=True, null=True)
+
+    class Meta:
+        verbose_name = 'Kargo Takip'
+        verbose_name_plural = 'Kargo Takip Geçmişi'
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        return f'{self.shipment} - {self.get_status_display()} - {self.timestamp}'
+
+
+class CargoIntegration(models.Model):
+    """Kargo Firması API Entegrasyonları"""
+
+    cargo_company = models.OneToOneField(CargoCompany, on_delete=models.CASCADE, related_name='integration', verbose_name='Kargo Firması')
+    integration_type = models.CharField('Entegrasyon Türü', max_length=50, choices=[
+        ('api', 'API'),
+        ('webhook', 'Webhook'),
+        ('manual', 'Manuel'),
+    ], default='api')
+
+    # Webhook ayarları
+    webhook_url = models.URLField('Webhook URL', blank=True)
+    webhook_secret = models.CharField('Webhook Gizli Anahtar', max_length=255, blank=True)
+
+    # API ayarları
+    auth_type = models.CharField('Kimlik Doğrulama Türü', max_length=20, choices=[
+        ('bearer', 'Bearer Token'),
+        ('basic', 'Basic Auth'),
+        ('api_key', 'API Key'),
+        ('oauth2', 'OAuth2'),
+    ], default='api_key')
+
+    # Test ayarları
+    test_mode = models.BooleanField('Test Modu', default=True)
+    test_api_key = models.CharField('Test API Anahtarı', max_length=255, blank=True)
+    test_api_secret = models.CharField('Test API Gizli Anahtar', max_length=255, blank=True)
+
+    # İstatistikler
+    last_sync = models.DateTimeField('Son Senkronizasyon', null=True, blank=True)
+    total_shipments = models.IntegerField('Toplam Gönderi', default=0)
+    success_rate = models.DecimalField('Başarı Oranı (%)', max_digits=5, decimal_places=2, default=0)
+
+    created_at = models.DateTimeField('Oluşturulma', auto_now_add=True)
+    updated_at = models.DateTimeField('Güncellenme', auto_now=True)
+
+    class Meta:
+        verbose_name = 'Kargo Entegrasyonu'
+        verbose_name_plural = 'Kargo Entegrasyonları'
+
+    def __str__(self):
+        return f'{self.cargo_company.display_name} - {self.get_integration_type_display()}'
