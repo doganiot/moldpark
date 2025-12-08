@@ -81,18 +81,45 @@ def create_cargo_shipment_from_mold(request, mold_id):
         messages.error(request, 'Bu kalıp size atanmamış.')
         return redirect('mold:mold_detail', mold_id)
 
-    if not producer_order.invoice:
-        messages.error(request, 'Bu sipariş için henüz fatura oluşturulmamış.')
-        return redirect('mold:mold_detail', mold_id)
-
-    # Zaten gönderi var mı kontrol et
-    existing_shipment = CargoShipment.objects.filter(invoice=producer_order.invoice).first()
+    # Fatura olsa da olmasa da kargo oluştur (invoice opsiyonel)
+    existing_shipment = CargoShipment.objects.filter(
+        invoice=getattr(producer_order, "invoice", None)
+    ).first()
     if existing_shipment:
         messages.info(request, 'Bu sipariş için zaten kargo gönderisi oluşturulmuş.')
         return redirect('core:cargo_shipment_detail', shipment_id=existing_shipment.id)
 
-    # Normal kargo oluşturma sayfasına yönlendir ama invoice_id ile
-    return redirect('core:create_cargo_shipment', invoice_id=producer_order.invoice.id)
+    # Varsayılan kargo firmasını seç
+    from core.models import CargoCompany
+    default_company = CargoCompany.objects.first()
+    if not default_company:
+        default_company = CargoCompany.objects.create(
+            name='Aras',
+            display_name='Aras Kargo',
+            tracking_url='https://kargotakip.araskargo.com.tr',
+            base_price=0,
+            price_per_kg=0,
+            estimated_delivery_days=3
+        )
+
+    # Gönderi oluştur
+    shipment = CargoShipment.objects.create(
+        invoice=getattr(producer_order, "invoice", None),
+        cargo_company=default_company,
+        sender_name=producer_order.producer.company_name,
+        sender_address=getattr(producer_order.producer, 'address', '') or '',
+        sender_phone=getattr(producer_order.producer, 'phone', '') or '',
+        recipient_name=mold.center.name,
+        recipient_address=getattr(mold.center, 'address', '') or '',
+        recipient_phone=getattr(mold.center, 'phone', '') or '',
+        package_description=f"Kalıp: {mold.patient_name} {mold.patient_surname} - {mold.get_mold_type_display()}",
+        weight_kg=0.5,
+        package_count=1,
+        estimated_delivery=timezone.now() + timezone.timedelta(days=3),
+    )
+
+    messages.success(request, 'Kargo gönderisi oluşturuldu, etiket üretimi aktif.')
+    return redirect('core:cargo_shipment_detail', shipment_id=shipment.id)
 
 
 @login_required
@@ -234,13 +261,18 @@ def generate_cargo_label(request, shipment_id):
     try:
         shipment = get_object_or_404(CargoShipment, id=shipment_id)
 
-        # İzin kontrolü
+        # İzin kontrolü (invoice opsiyonel)
         if not request.user.is_superuser:
             can_access = False
-            if hasattr(request.user, 'center') and shipment.invoice.issued_by_center == request.user.center:
-                can_access = True
-            elif shipment.invoice.user == request.user:
-                can_access = True
+            if shipment.invoice:
+                if hasattr(request.user, 'center') and shipment.invoice.issued_by_center == request.user.center:
+                    can_access = True
+                elif shipment.invoice.user == request.user:
+                    can_access = True
+            else:
+                # Invoice yoksa: merkez veya üretici kullanıcıları için izin ver
+                if hasattr(request.user, 'center') or hasattr(request.user, 'producer'):
+                    can_access = True
 
             if not can_access:
                 return JsonResponse({'success': False, 'error': 'Yetkisiz işlem'})
@@ -271,13 +303,17 @@ def print_cargo_label(request, shipment_id):
     try:
         shipment = get_object_or_404(CargoShipment, id=shipment_id)
 
-        # İzin kontrolü
+        # İzin kontrolü (invoice opsiyonel)
         if not request.user.is_superuser:
             can_access = False
-            if hasattr(request.user, 'center') and shipment.invoice.issued_by_center == request.user.center:
-                can_access = True
-            elif shipment.invoice.user == request.user:
-                can_access = True
+            if shipment.invoice:
+                if hasattr(request.user, 'center') and shipment.invoice.issued_by_center == request.user.center:
+                    can_access = True
+                elif shipment.invoice.user == request.user:
+                    can_access = True
+            else:
+                if hasattr(request.user, 'center') or hasattr(request.user, 'producer'):
+                    can_access = True
 
             if not can_access:
                 return JsonResponse({'success': False, 'error': 'Yetkisiz işlem'})
