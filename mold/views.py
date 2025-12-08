@@ -477,38 +477,49 @@ def physical_shipment_detail(request, pk):
         active_orders = mold.producer_orders.filter(status__in=['received', 'processing']).first()
         producer = active_orders.producer if active_orders else None
 
-        # Kargo gönderisi bilgisi (oto. oluşturulmuş olmalı)
+        # Kargo gönderisi bilgisi (invoice opsiyonel; etiket için hemen oluşturulabilir)
         cargo_shipment = None
-        if active_orders and getattr(active_orders, "invoice", None):
+        try:
+            from core.models import CargoCompany
+
+            # Mevcut gönderi var mı?
             cargo_shipment = CargoShipment.objects.filter(
-                invoice=active_orders.invoice
+                invoice=getattr(active_orders, "invoice", None),
+                recipient_name=mold.center.name,
+                description__icontains=f"Kalıp ID: {mold.id}"
             ).first()
 
-            # Eğer yoksa ve mold tamamlanmışsa, manuel oluştur (fallback)
-            if not cargo_shipment and mold.status == 'completed' and mold.is_physical_shipment:
-                try:
-                    cargo_shipment = CargoShipment.objects.create(
-                        invoice=active_orders.invoice,
-                        sender_name=producer.company_name if producer else 'MoldPark Sistem',
-                        sender_address=producer.address if producer else '',
-                        sender_phone=producer.phone if producer else '',
-                        recipient_name=mold.center.name,
-                        recipient_address=getattr(mold.center, 'address', '') or '',
-                        recipient_phone=getattr(mold.center, 'phone', '') or '',
-                        package_description=f"Kalıp: {mold.patient_name} {mold.patient_surname} - {mold.get_mold_type_display()}",
-                        weight=0.5,
-                        estimated_delivery=timezone.now() + timezone.timedelta(days=3),
-                        notes=f"Manuel oluşturulan gönderi - Kalıp ID: {mold.id}"
+            # Yoksa hemen oluştur (fatura ve status şartı olmadan)
+            if not cargo_shipment:
+                default_company = CargoCompany.objects.first()
+                if not default_company:
+                    default_company = CargoCompany.objects.create(
+                        name='Aras',
+                        display_name='Aras Kargo',
+                        tracking_url='https://kargotakip.araskargo.com.tr',
+                        base_price=0,
+                        price_per_kg=0,
+                        estimated_delivery_days=3
                     )
-                except Exception as e:
-                    logger.error(f"Manuel kargo gönderisi oluşturma hatası: {e}")
-                    cargo_shipment = None
-        else:
-            # Aktif sipariş yoksa veya fatura henüz kesilmediyse kullanıcıya bilgi ver
-            if not active_orders:
-                messages.warning(request, "Bu kalıp için henüz üretici siparişi bulunamadı.")
-            elif not getattr(active_orders, "invoice", None):
-                messages.warning(request, "Bu sipariş için henüz fatura oluşturulmamış. Kargo gönderisi için fatura gerekir.")
+
+                cargo_shipment = CargoShipment.objects.create(
+                    invoice=getattr(active_orders, "invoice", None),
+                    cargo_company=default_company,
+                    sender_name=producer.company_name if producer else 'MoldPark Sistem',
+                    sender_address=getattr(producer, 'address', '') or '',
+                    sender_phone=getattr(producer, 'phone', '') or '',
+                    recipient_name=mold.center.name,
+                    recipient_address=getattr(mold.center, 'address', '') or '',
+                    recipient_phone=getattr(mold.center, 'phone', '') or '',
+                    package_description=f"Kalıp: {mold.patient_name} {mold.patient_surname} - {mold.get_mold_type_display()}",
+                    description=f"Manuel oluşturulan gönderi - Kalıp ID: {mold.id}",
+                    weight_kg=0.5,
+                    package_count=1,
+                    estimated_delivery=timezone.now() + timezone.timedelta(days=3),
+                )
+        except Exception as e:
+            logger.error(f"Kargo gönderisi oluşturma hatası (hemen etiket için): {e}")
+            cargo_shipment = None
 
         return render(request, 'mold/physical_shipment_detail.html', {
             'mold': mold,

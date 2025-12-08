@@ -142,7 +142,7 @@
                 </div>
             </div>
             {% else %}
-            <!-- Kargo Gönderisi Oluştur (fatura beklemeden) -->
+            <!-- Kargo Gönderisi Oluştur (hemen etiket için) -->
             <div class="card border-0 shadow-sm mb-4 border-warning" style="border-width: 2px !important;">
                 <div class="card-header bg-warning text-dark">
                     <h5 class="mb-0">
@@ -153,26 +153,20 @@
                 <div class="card-body">
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle me-2"></i>
-                        Fatura gerekmiyor. Kalıp tamamlanır tamamlanmaz kargo gönderisi oluşturup etiket üretebilirsiniz.
+                        Fatura beklenmez. Kalıp oluşturulduğu anda kargo ve etiket için hazırız.
                     </div>
 
                     <div class="d-grid gap-2">
-                        {% if mold.status == 'completed' %}
                         <a href="{% url 'core:create_cargo_shipment_from_mold' mold.pk %}" class="btn btn-success">
                             <i class="fas fa-shipping-fast me-2"></i>Kargo Gönderisi Oluştur
                         </a>
-                        {% else %}
-                        <button class="btn btn-outline-secondary" disabled>
-                            <i class="fas fa-clock me-2"></i>Kalıp Üretimi Bekleniyor...
-                        </button>
-                        {% endif %}
                     </div>
 
                     <hr class="my-3">
 
                     <div class="small text-muted">
                         <strong>Kalıp Durumu:</strong> {{ mold.get_status_display }}<br>
-                        <strong>Not:</strong> Kargo gönderisi oluşturduktan sonra etiket üretimi aktif olacaktır.
+                        <strong>Not:</strong> Kargo gönderisi oluşturduktan hemen sonra etiket üretimi aktiftir.
                     </div>
                 </div>
             </div>
