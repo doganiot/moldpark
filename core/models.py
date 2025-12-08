@@ -1947,6 +1947,12 @@ class CargoShipment(models.Model):
         ('failed', 'Teslim Edilemedi'),
     ]
 
+    LABEL_TYPES = [
+        ('thermal', 'Termal Etiket'),
+        ('laser', 'Lazer Etiket'),
+        ('pdf', 'PDF Etiket'),
+    ]
+
     # İlişkiler
     invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name='cargo_shipments', verbose_name='Fatura')
     cargo_company = models.ForeignKey(CargoCompany, on_delete=models.CASCADE, related_name='shipments', verbose_name='Kargo Firması')
@@ -1979,6 +1985,13 @@ class CargoShipment(models.Model):
     shipped_at = models.DateTimeField('Gönderilme Tarihi', null=True, blank=True)
     delivered_at = models.DateTimeField('Teslim Tarihi', null=True, blank=True)
     estimated_delivery = models.DateTimeField('Tahmini Teslimat', null=True, blank=True)
+
+    # Etiket Bilgileri
+    label_type = models.CharField('Etiket Türü', max_length=20, choices=LABEL_TYPES, default='pdf')
+    label_generated = models.BooleanField('Etiket Oluşturuldu', default=False)
+    label_generated_at = models.DateTimeField('Etiket Oluşturulma Tarihi', null=True, blank=True)
+    label_print_count = models.IntegerField('Etiket Baskı Sayısı', default=0)
+    label_file = models.FileField('Etiket Dosyası', upload_to='cargo_labels/', blank=True, null=True)
 
     # Ek Bilgiler
     notes = models.TextField('Notlar', blank=True)
@@ -2099,3 +2112,69 @@ class CargoIntegration(models.Model):
 
     def __str__(self):
         return f'{self.cargo_company.display_name} - {self.get_integration_type_display()}'
+
+
+class CargoLabel(models.Model):
+    """Kargo Etiketi Şablonları"""
+
+    LABEL_SIZES = [
+        ('10x10', '10x10 cm'),
+        ('10x15', '10x15 cm'),
+        ('10x20', '10x20 cm'),
+        ('15x10', '15x10 cm'),
+        ('15x15', '15x15 cm'),
+        ('a4', 'A4'),
+        ('thermal_small', 'Termal Küçük (4x6 cm)'),
+        ('thermal_large', 'Termal Büyük (8x12 cm)'),
+    ]
+
+    name = models.CharField('Şablon Adı', max_length=100)
+    description = models.TextField('Açıklama', blank=True)
+
+    # Şablon Ayarları
+    width_mm = models.IntegerField('Genişlik (mm)')
+    height_mm = models.IntegerField('Yükseklik (mm)')
+    size_preset = models.CharField('Boyut Ön Ayarı', max_length=20, choices=LABEL_SIZES, default='10x15')
+
+    # İçerik Ayarları
+    include_logo = models.BooleanField('Logo Dahil Et', default=True)
+    include_qr = models.BooleanField('QR Kod Dahil Et', default=True)
+    include_barcode = models.BooleanField('Barkod Dahil Et', default=True)
+
+    # Firma Bilgileri
+    sender_info = models.BooleanField('Gönderen Bilgileri', default=True)
+    recipient_info = models.BooleanField('Alıcı Bilgileri', default=True)
+    package_info = models.BooleanField('Paket Bilgileri', default=True)
+    tracking_info = models.BooleanField('Takip Bilgileri', default=True)
+
+    # Tasarım
+    background_color = models.CharField('Arka Plan Rengi', max_length=7, default='#FFFFFF')
+    text_color = models.CharField('Metin Rengi', max_length=7, default='#000000')
+    border_color = models.CharField('Çerçeve Rengi', max_length=7, default='#CCCCCC')
+
+    # Font Ayarları
+    font_size_small = models.IntegerField('Küçük Font Boyutu', default=8)
+    font_size_medium = models.IntegerField('Orta Font Boyutu', default=12)
+    font_size_large = models.IntegerField('Büyük Font Boyutu', default=16)
+
+    is_default = models.BooleanField('Varsayılan Şablon', default=False)
+    is_active = models.BooleanField('Aktif', default=True)
+
+    created_at = models.DateTimeField('Oluşturulma', auto_now_add=True)
+    updated_at = models.DateTimeField('Güncellenme', auto_now=True)
+
+    class Meta:
+        verbose_name = 'Kargo Etiketi Şablonu'
+        verbose_name_plural = 'Kargo Etiketi Şablonları'
+        ordering = ['-is_default', 'name']
+
+    def __str__(self):
+        return f'{self.name} ({self.get_size_preset_display()})'
+
+    def get_dimensions_px(self, dpi=300):
+        """Milimetreyi piksele çevir"""
+        mm_to_px = dpi / 25.4  # 1 inch = 25.4 mm
+        return {
+            'width': int(self.width_mm * mm_to_px),
+            'height': int(self.height_mm * mm_to_px)
+        }

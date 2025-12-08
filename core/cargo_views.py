@@ -13,8 +13,9 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from django.core.paginator import Paginator
 
-from .models import Invoice, CargoCompany, CargoShipment, CargoTracking
+from .models import Invoice, CargoCompany, CargoShipment, CargoTracking, CargoLabel
 from .cargo_service import CargoManager
+from .cargo_label_service import CargoLabelManager
 from .forms import CargoShipmentForm, CargoCompanyForm
 
 logger = logging.getLogger(__name__)
@@ -185,6 +186,88 @@ def cargo_shipment_detail(request, shipment_id):
     }
 
     return render(request, 'core/cargo/shipment_detail.html', context)
+
+
+@login_required
+@require_http_methods(["POST"])
+def generate_cargo_label(request, shipment_id):
+    """Kargo etiketi oluştur (AJAX)"""
+
+    try:
+        shipment = get_object_or_404(CargoShipment, id=shipment_id)
+
+        # İzin kontrolü
+        if not request.user.is_superuser:
+            can_access = False
+            if hasattr(request.user, 'center') and shipment.invoice.issued_by_center == request.user.center:
+                can_access = True
+            elif shipment.invoice.user == request.user:
+                can_access = True
+
+            if not can_access:
+                return JsonResponse({'success': False, 'error': 'Yetkisiz işlem'})
+
+        label_type = request.POST.get('label_type', 'pdf')
+        template_id = request.POST.get('template_id')
+
+        # Şablon seçimi
+        template = None
+        if template_id:
+            template = get_object_or_404(CargoLabel, id=template_id, is_active=True)
+
+        # Etiket oluştur
+        result = CargoLabelManager.generate_label(shipment, label_type, template)
+
+        return JsonResponse(result)
+
+    except Exception as e:
+        logger.error(f"Kargo etiketi oluşturma hatası: {str(e)}")
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required
+@require_http_methods(["POST"])
+def print_cargo_label(request, shipment_id):
+    """Kargo etiketini yazdır"""
+
+    try:
+        shipment = get_object_or_404(CargoShipment, id=shipment_id)
+
+        # İzin kontrolü
+        if not request.user.is_superuser:
+            can_access = False
+            if hasattr(request.user, 'center') and shipment.invoice.issued_by_center == request.user.center:
+                can_access = True
+            elif shipment.invoice.user == request.user:
+                can_access = True
+
+            if not can_access:
+                return JsonResponse({'success': False, 'error': 'Yetkisiz işlem'})
+
+        result = CargoLabelManager.print_label(shipment)
+
+        return JsonResponse(result)
+
+    except Exception as e:
+        logger.error(f"Kargo etiketi yazdırma hatası: {str(e)}")
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required
+def cargo_labels_list(request):
+    """Kargo etiket şablonları listesi"""
+
+    if not request.user.is_staff:
+        messages.error(request, 'Bu sayfaya erişim yetkiniz yok.')
+        return redirect('core:home')
+
+    templates = CargoLabelManager.get_available_templates()
+
+    context = {
+        'templates': templates
+    }
+
+    return render(request, 'core/cargo/labels_list.html', context)
 
 
 @login_required

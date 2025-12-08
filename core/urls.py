@@ -128,7 +128,10 @@ urlpatterns = [
     path('cargo/shipment/<int:shipment_id>/', cargo_views.cargo_shipment_detail, name='cargo_shipment_detail'),
     path('cargo/shipment/<int:shipment_id>/update-status/', cargo_views.update_shipment_status, name='update_shipment_status'),
     path('cargo/shipment/<int:shipment_id>/track/', cargo_views.track_shipment_api, name='track_shipment_api'),
+    path('cargo/shipment/<int:shipment_id>/generate-label/', cargo_views.generate_cargo_label, name='generate_cargo_label'),
+    path('cargo/shipment/<int:shipment_id>/print-label/', cargo_views.print_cargo_label, name='print_cargo_label'),
     path('cargo/companies/', cargo_views.cargo_companies_list, name='cargo_companies_list'),
+    path('cargo/labels/', cargo_views.cargo_labels_list, name='cargo_labels_list'),
 
     # Admin Kargo Yönetimi
     path('admin/cargo/', cargo_views.cargo_admin_dashboard, name='cargo_admin_dashboard'),

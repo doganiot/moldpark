@@ -4,7 +4,7 @@ from .models import (
     ContactMessage, Message, PricingPlan, UserSubscription, PaymentHistory,
     SimpleNotification, SubscriptionRequest, PricingConfiguration,
     BankTransferConfiguration, PaymentMethod, Payment,
-    CargoCompany, CargoShipment, CargoTracking, CargoIntegration
+    CargoCompany, CargoShipment, CargoTracking, CargoIntegration, CargoLabel
 )
 
 @admin.register(ContactMessage)
@@ -558,3 +558,50 @@ class CargoIntegrationAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+
+
+@admin.register(CargoLabel)
+class CargoLabelAdmin(admin.ModelAdmin):
+    list_display = ('name', 'size_preset', 'is_default', 'is_active', 'created_at')
+    list_filter = ('is_active', 'is_default', 'size_preset')
+    search_fields = ('name', 'description')
+    readonly_fields = ('created_at', 'updated_at')
+
+    fieldsets = (
+        ('Temel Bilgiler', {
+            'fields': ('name', 'description', 'is_default', 'is_active')
+        }),
+        ('Boyut ve Tasarım', {
+            'fields': ('width_mm', 'height_mm', 'size_preset', 'background_color', 'text_color', 'border_color')
+        }),
+        ('İçerik Ayarları', {
+            'fields': ('include_logo', 'include_qr', 'include_barcode', 'sender_info', 'recipient_info', 'package_info', 'tracking_info')
+        }),
+        ('Font Ayarları', {
+            'fields': ('font_size_small', 'font_size_medium', 'font_size_large')
+        }),
+        ('Zaman Bilgileri', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    actions = ['set_as_default', 'activate_labels', 'deactivate_labels']
+
+    def set_as_default(self, request, queryset):
+        # Önce tümünü varsayılan dışı yap
+        CargoLabel.objects.filter(is_default=True).update(is_default=False)
+        # Seçilenleri varsayılan yap
+        queryset.update(is_default=True)
+        self.message_user(request, f'{queryset.count()} etiket şablonu varsayılan olarak ayarlandı.')
+    set_as_default.short_description = "Varsayılan olarak ayarla"
+
+    def activate_labels(self, request, queryset):
+        queryset.update(is_active=True)
+        self.message_user(request, f'{queryset.count()} etiket şablonu aktifleştirildi.')
+    activate_labels.short_description = "Şablonları aktifleştir"
+
+    def deactivate_labels(self, request, queryset):
+        queryset.update(is_active=False)
+        self.message_user(request, f'{queryset.count()} etiket şablonu devre dışı bırakıldı.')
+    deactivate_labels.short_description = "Şablonları devre dışı bırak"

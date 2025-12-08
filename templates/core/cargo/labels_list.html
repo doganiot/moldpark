@@ -1,0 +1,237 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Kargo Etiket Şablonları - MoldPark{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Başlık -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="fas fa-tags me-2 text-primary"></i>
+                        Kargo Etiket Şablonları
+                    </h2>
+                    <p class="text-muted mb-0">Etiket şablonlarını yönetin ve özelleştirin</p>
+                </div>
+                <div>
+                    <a href="{% url 'core:cargo_dashboard' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>Kargo Takip
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Şablon Kartları -->
+    <div class="row">
+        {% for template in templates %}
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card h-100 border-0 shadow-sm template-card {% if template.is_default %}border-primary{% endif %}">
+                    {% if template.is_default %}
+                        <div class="card-header bg-primary text-white text-center">
+                            <i class="fas fa-star me-1"></i>Varsayılan Şablon
+                        </div>
+                    {% endif %}
+
+                    <div class="card-body">
+                        <h5 class="card-title">{{ template.name }}</h5>
+                        <p class="card-text text-muted small">{{ template.description|truncatechars:100 }}</p>
+
+                        <div class="row text-center mb-3">
+                            <div class="col-6">
+                                <div class="template-spec">
+                                    <div class="spec-value">{{ template.width_mm }}x{{ template.height_mm }}</div>
+                                    <div class="spec-label">mm</div>
+                                    <small class="text-muted">Boyut</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="template-spec">
+                                    <div class="spec-value">{{ template.get_size_preset_display }}</div>
+                                    <div class="spec-label">
+                                        <i class="fas fa-file"></i>
+                                    </div>
+                                    <small class="text-muted">Ön ayar</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Özellikler -->
+                        <div class="template-features">
+                            {% if template.include_logo %}
+                                <span class="badge bg-light text-dark me-1">
+                                    <i class="fas fa-image me-1"></i>Logo
+                                </span>
+                            {% endif %}
+                            {% if template.include_qr %}
+                                <span class="badge bg-light text-dark me-1">
+                                    <i class="fas fa-qrcode me-1"></i>QR Kod
+                                </span>
+                            {% endif %}
+                            {% if template.include_barcode %}
+                                <span class="badge bg-light text-dark me-1">
+                                    <i class="fas fa-barcode me-1"></i>Barkod
+                                </span>
+                            {% endif %}
+                        </div>
+
+                        <div class="template-content mt-3">
+                            <small class="text-muted">
+                                {% if template.sender_info %}<i class="fas fa-user me-1"></i>Gönderen {% endif %}
+                                {% if template.recipient_info %}<i class="fas fa-map-marker-alt me-1"></i>Alıcı {% endif %}
+                                {% if template.package_info %}<i class="fas fa-box me-1"></i>Paket {% endif %}
+                                {% if template.tracking_info %}<i class="fas fa-search me-1"></i>Takip{% endif %}
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="card-footer bg-light">
+                        <div class="row">
+                            <div class="col-6">
+                                <span class="badge {% if template.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                                    {% if template.is_active %}Aktif{% else %}Pasif{% endif %}
+                                </span>
+                            </div>
+                            <div class="col-6 text-end">
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+                                            data-bs-toggle="dropdown">
+                                        <i class="fas fa-cog"></i>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" href="#">
+                                            <i class="fas fa-eye me-2"></i>Önizleme
+                                        </a></li>
+                                        <li><a class="dropdown-item" href="#">
+                                            <i class="fas fa-edit me-2"></i>Düzenle
+                                        </a></li>
+                                        {% if not template.is_default %}
+                                            <li><a class="dropdown-item" href="#">
+                                                <i class="fas fa-star me-2"></i>Varsayılan Yap
+                                            </a></li>
+                                        {% endif %}
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item text-danger" href="#">
+                                            <i class="fas fa-trash me-2"></i>Sil
+                                        </a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="col-12">
+                <div class="text-center py-5">
+                    <div class="mb-3">
+                        <i class="fas fa-tags fa-3x text-muted"></i>
+                    </div>
+                    <h5 class="text-muted">Henüz etiket şablonu bulunmuyor</h5>
+                    <p class="text-muted">İlk etiket şablonunu oluşturmak için yönetim panelini kullanın.</p>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- Yeni Şablon Oluştur -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center py-4">
+                    <i class="fas fa-plus-circle fa-2x text-primary mb-3"></i>
+                    <h5>Yeni Etiket Şablonu Oluştur</h5>
+                    <p class="text-muted">Kişiselleştirilmiş etiket şablonları oluşturun</p>
+                    <a href="#" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Yeni Şablon
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .template-card {
+        transition: all 0.3s ease;
+        border-radius: 15px;
+    }
+
+    .template-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    }
+
+    .template-card.border-primary {
+        border-width: 2px !important;
+    }
+
+    .template-spec {
+        padding: 10px;
+        border-radius: 8px;
+        background: #f8f9fa;
+        margin-bottom: 10px;
+    }
+
+    .spec-value {
+        font-size: 1.1rem;
+        font-weight: bold;
+        color: #007bff;
+    }
+
+    .spec-label {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+
+    .template-features {
+        margin-bottom: 15px;
+    }
+
+    .badge {
+        font-size: 0.75rem;
+    }
+
+    .dropdown-menu {
+        border-radius: 8px;
+        border: none;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    .card {
+        border-radius: 15px;
+    }
+</style>
+
+<script>
+// Şablon işlemleri için JavaScript fonksiyonları
+function previewTemplate(templateId) {
+    // Şablon önizleme modal'ı aç
+    console.log('Preview template:', templateId);
+}
+
+function editTemplate(templateId) {
+    // Şablon düzenleme sayfasına yönlendir
+    console.log('Edit template:', templateId);
+}
+
+function setDefaultTemplate(templateId) {
+    if (!confirm('Bu şablonu varsayılan yapmak istediğinizden emin misiniz?')) {
+        return;
+    }
+    // Varsayılan şablon ayarlama
+    console.log('Set default template:', templateId);
+}
+
+function deleteTemplate(templateId, templateName) {
+    if (!confirm(`"${templateName}" şablonunu silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`)) {
+        return;
+    }
+    // Şablon silme
+    console.log('Delete template:', templateId);
+}
+</script>
+{% endblock %}
