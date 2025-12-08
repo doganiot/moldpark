@@ -301,6 +301,20 @@
                 margin: 0.5rem 0;
             }
         }
+
+        /* Kargo durumu alert'ini kalıcı hale getir */
+        .permanent-alert {
+            animation: none !important;
+            opacity: 1 !important;
+            display: block !important;
+            visibility: visible !important;
+            transition: none !important;
+        }
+
+        /* Otomatik gizlenme animasyonlarını engelle */
+        .permanent-alert.fade {
+            opacity: 1 !important;
+        }
     </style>
     
     {% block extra_css %}{% endblock %}
