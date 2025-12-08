@@ -140,7 +140,7 @@ def create_cargo_shipment_from_mold(request, mold_id):
         recipient_name=mold.center.name,
         recipient_address=getattr(mold.center, 'address', '') or '',
         recipient_phone=getattr(mold.center, 'phone', '') or '',
-        package_description=f"Kalıp: {mold.patient_name} {mold.patient_surname} - {mold.get_mold_type_display()}",
+        description=f"Kalıp: {mold.patient_name} {mold.patient_surname} - {mold.get_mold_type_display()}",
         weight_kg=0.5,
         package_count=1,
         estimated_delivery=timezone.now() + timezone.timedelta(days=3),
