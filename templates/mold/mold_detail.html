@@ -121,7 +121,7 @@
                                     </div>
                                     <div>
                                         <a href="{% url 'mold:physical_shipment_detail' mold.pk %}" class="btn btn-sm btn-outline-primary">
-                                            <i class="fas fa-eye me-1"></i>Kargo Detayları
+                                            <i class="fas fa-shipping-fast me-1"></i>Fiziksel Gönderim
                                         </a>
                                         <a href="{% url 'mold:update_tracking' mold.pk %}" class="btn btn-sm btn-primary">
                                             <i class="fas fa-edit me-1"></i>Takip Güncelle
@@ -324,8 +324,9 @@
                                 <div class="text-center py-4">
                                     <i class="fas fa-shipping-fast fa-3x text-info mb-2"></i>
                                     <p class="text-muted">Bu kalıp fiziksel olarak gönderilecek.</p>
-                                    <a href="{% url 'mold:physical_shipment_detail' mold.pk %}" class="btn btn-sm btn-outline-info">
-                                        <i class="fas fa-map-marker-alt me-1"></i>Kargo Adresi
+                                    <a href="{% url 'mold:physical_shipment_detail' mold.pk %}" class="btn btn-lg btn-outline-primary">
+                                        <i class="fas fa-shipping-fast me-2"></i>
+                                        🚚 FİZİKSEL GÖNDERİM DETAYLARI
                                     </a>
                                 </div>
                             {% elif mold.scan_file %}
