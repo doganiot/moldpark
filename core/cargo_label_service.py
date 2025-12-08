@@ -250,7 +250,7 @@ class CargoLabelGenerator:
         if len(recipient_address) > 30:
             lines = [recipient_address[i:i+30] for i in range(0, len(recipient_address), 30)]
             for line in lines[:2]:  # Maksimum 2 satır
-            c.drawString(x + 5*mm, y, line)
+                c.drawString(x + 5*mm, y, line)
                 y -= 3*mm
         else:
             c.drawString(x + 5*mm, y, recipient_address)
