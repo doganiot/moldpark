@@ -105,6 +105,20 @@ def create_cargo_shipment_from_mold(request, mold_id):
         invoice=getattr(producer_order, "invoice", None)
     ).first()
     if existing_shipment:
+        # Eski kayıtları düzelt: gönderen üretici, alıcı merkez ise ters çevir
+        if producer_order and existing_shipment.sender_name == producer_order.producer.company_name:
+            existing_shipment.sender_name = mold.center.name
+            existing_shipment.sender_address = getattr(mold.center, 'address', '') or ''
+            existing_shipment.sender_phone = getattr(mold.center, 'phone', '') or ''
+            existing_shipment.recipient_name = producer_order.producer.company_name
+            existing_shipment.recipient_address = getattr(producer_order.producer, 'address', '') or ''
+            existing_shipment.recipient_phone = getattr(producer_order.producer, 'phone', '') or ''
+            existing_shipment.description = existing_shipment.description or f"Kalıp: {mold.patient_name} {mold.patient_surname} - {mold.get_mold_type_display()}"
+            existing_shipment.save(update_fields=[
+                'sender_name', 'sender_address', 'sender_phone',
+                'recipient_name', 'recipient_address', 'recipient_phone',
+                'description'
+            ])
         messages.info(request, 'Bu sipariş için zaten kargo gönderisi oluşturulmuş.')
         return redirect('core:cargo_shipment_detail', shipment_id=existing_shipment.id)
 
