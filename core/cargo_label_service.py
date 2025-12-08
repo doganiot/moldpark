@@ -20,6 +20,8 @@ from reportlab.platypus import Paragraph, Table, TableStyle
 from reportlab.lib import colors
 from reportlab.graphics.barcode import code128, qr
 from reportlab.graphics import renderPDF
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from PIL import Image
 import base64
 
@@ -34,6 +36,10 @@ class CargoLabelGenerator:
         self.template = label_template or self.get_default_template()
         self.width_mm = self.template.width_mm
         self.height_mm = self.template.height_mm
+        self.font_family = "Helvetica"
+
+        # Türkçe karakter desteği için font kaydı (DejaVuSans varsa)
+        self.register_fonts()
 
         # Sayfa boyutunu hesapla (A4 için)
         self.page_width = 210 * mm  # A4 width
@@ -42,6 +48,17 @@ class CargoLabelGenerator:
         # Etiket boyutunu hesapla
         self.label_width = self.width_mm * mm
         self.label_height = self.height_mm * mm
+
+    def register_fonts(self):
+        """Türkçe karakter desteği için DejaVuSans fontunu yükle, yoksa Helvetica kullan"""
+        try:
+            font_path = os.path.join(settings.BASE_DIR, 'static', 'fonts', 'DejaVuSans.ttf')
+            if os.path.exists(font_path):
+                pdfmetrics.registerFont(TTFont('DejaVuSans', font_path))
+                self.font_family = 'DejaVuSans'
+        except Exception:
+            # Font bulunamazsa Helvetica ile devam edilir
+            self.font_family = "Helvetica"
 
     def get_default_template(self):
         """Varsayılan etiket şablonunu getir"""
@@ -190,11 +207,14 @@ class CargoLabelGenerator:
 
     def draw_sender_info(self, c, x, y):
         """Gönderen bilgilerini çiz"""
-        c.setFont("Helvetica", self.template.font_size_small)
+        font_reg = self.font_family
+        font_bold = f"{self.font_family}-Bold" if self.font_family != "Helvetica" else "Helvetica-Bold"
+
+        c.setFont(font_reg, self.template.font_size_small)
         c.drawString(x + 5*mm, y, "GÖNDEREN:")
         y -= 4*mm
 
-        c.setFont("Helvetica-Bold", self.template.font_size_small)
+        c.setFont(font_bold, self.template.font_size_small)
         c.drawString(x + 5*mm, y, self.shipment.sender_name)
         y -= 3*mm
 
@@ -214,11 +234,14 @@ class CargoLabelGenerator:
 
     def draw_recipient_info(self, c, x, y):
         """Alıcı bilgilerini çiz"""
-        c.setFont("Helvetica", self.template.font_size_small)
+        font_reg = self.font_family
+        font_bold = f"{self.font_family}-Bold" if self.font_family != "Helvetica" else "Helvetica-Bold"
+
+        c.setFont(font_reg, self.template.font_size_small)
         c.drawString(x + 5*mm, y, "ALICI:")
         y -= 4*mm
 
-        c.setFont("Helvetica-Bold", self.template.font_size_small)
+        c.setFont(font_bold, self.template.font_size_small)
         c.drawString(x + 5*mm, y, self.shipment.recipient_name)
         y -= 3*mm
 
@@ -227,7 +250,7 @@ class CargoLabelGenerator:
         if len(recipient_address) > 30:
             lines = [recipient_address[i:i+30] for i in range(0, len(recipient_address), 30)]
             for line in lines[:2]:  # Maksimum 2 satır
-                c.drawString(x + 5*mm, y, line)
+            c.drawString(x + 5*mm, y, line)
                 y -= 3*mm
         else:
             c.drawString(x + 5*mm, y, recipient_address)
@@ -238,14 +261,15 @@ class CargoLabelGenerator:
 
     def draw_package_info(self, c, x, y):
         """Paket bilgilerini çiz"""
-        c.setFont("Helvetica", self.template.font_size_small)
+        font_reg = self.font_family
+        c.setFont(font_reg, self.template.font_size_small)
         c.drawString(x + 5*mm, y, f"Ağırlık: {self.shipment.weight_kg} kg")
         y -= 3*mm
         c.drawString(x + 5*mm, y, f"Paket: {self.shipment.package_count} adet")
         y -= 3*mm
 
         if self.shipment.description:
-            c.drawString(x + 5*mm, y, f"İçerik: {self.shipment.description[:20]}...")
+            c.drawString(x + 5*mm, y, f"İçerik: {self.shipment.description[:40]}")
 
         return y - 8*mm
 

@@ -121,14 +121,15 @@ def create_cargo_shipment_from_mold(request, mold_id):
             estimated_delivery_days=3
         )
 
-    # Gönderen bilgisi: üretici varsa üretici, yoksa merkez
-    sender_name = producer_order.producer.company_name if producer_order else mold.center.name
-    sender_address = (
-        getattr(producer_order.producer, 'address', '') if producer_order else getattr(mold.center, 'address', '')
-    ) or ''
-    sender_phone = (
-        getattr(producer_order.producer, 'phone', '') if producer_order else getattr(mold.center, 'phone', '')
-    ) or ''
+    # Gönderen: İşitme merkezi
+    sender_name = mold.center.name
+    sender_address = getattr(mold.center, 'address', '') or ''
+    sender_phone = getattr(mold.center, 'phone', '') or ''
+
+    # Alıcı: Üretici merkez
+    recipient_name = producer_order.producer.company_name if producer_order else ''
+    recipient_address = getattr(producer_order.producer, 'address', '') if producer_order else ''
+    recipient_phone = getattr(producer_order.producer, 'phone', '') if producer_order else ''
 
     # Gönderi oluştur
     shipment = CargoShipment.objects.create(
@@ -137,9 +138,9 @@ def create_cargo_shipment_from_mold(request, mold_id):
         sender_name=sender_name,
         sender_address=sender_address,
         sender_phone=sender_phone,
-        recipient_name=mold.center.name,
-        recipient_address=getattr(mold.center, 'address', '') or '',
-        recipient_phone=getattr(mold.center, 'phone', '') or '',
+        recipient_name=recipient_name,
+        recipient_address=recipient_address or '',
+        recipient_phone=recipient_phone or '',
         description=f"Kalıp: {mold.patient_name} {mold.patient_surname} - {mold.get_mold_type_display()}",
         weight_kg=0.5,
         package_count=1,
