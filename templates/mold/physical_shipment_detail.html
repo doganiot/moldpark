@@ -163,6 +163,27 @@
                     </div>
                 </div>
             </div>
+            {% else %}
+            <!-- Debug Bilgisi -->
+            <div class="card border-0 shadow-sm mb-4 border-danger" style="border-width: 2px !important;">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bug me-2"></i>
+                        🚨 DEBUG BİLGİSİ
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <strong>Üretici Bilgisi:</strong> {% if producer %}Bulundu{% else %}Bulunamadı{% endif %}<br>
+                        <strong>Aktif Sipariş:</strong> {% if active_order %}Var{% else %}Yok{% endif %}<br>
+                        <strong>Kargo Gönderisi:</strong> {% if cargo_shipment %}Var{% else %}Yok{% endif %}<br>
+                        <strong>Fatura:</strong> {% if active_order and active_order.invoice %}Var{% else %}Yok{% endif %}
+                    </div>
+                    <p class="text-muted small">
+                        Eğer burada "Yok" görüyorsanız, kalıp için henüz fatura kesilmemiş veya üretici atanmamış demektir.
+                    </p>
+                </div>
+            </div>
             {% endif %}
 
             <div class="card border-0 shadow-sm">
@@ -312,7 +333,7 @@ function generateLabel(shipmentId, labelType) {
         return;
     }
 
-    const button = event.target.closest('button');
+    const button = event ? event.target.closest('button') : null;
     const originalText = button.innerHTML;
     button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Oluşturuluyor...';
     button.disabled = true;
@@ -349,7 +370,7 @@ function regenerateLabel(shipmentId) {
         return;
     }
 
-    const button = event.target.closest('button');
+    const button = event ? event.target.closest('button') : null;
     const originalText = button.innerHTML;
     button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Yeniden Oluşturuluyor...';
     button.disabled = true;
@@ -382,7 +403,7 @@ function regenerateLabel(shipmentId) {
 }
 
 function printLabel(shipmentId) {
-    const button = event.target.closest('button');
+    const button = event ? event.target.closest('button') : null;
     const originalText = button.innerHTML;
     button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Yazdırılıyor...';
     button.disabled = true;
