@@ -97,7 +97,7 @@ class MoldParkApp {
     }
 
     setupAutoHideAlerts() {
-        const alerts = document.querySelectorAll('.alert:not(.alert-permanent)');
+        const alerts = document.querySelectorAll('.alert:not(.alert-permanent):not(.permanent-alert)');
         alerts.forEach(alert => {
             setTimeout(() => {
                 alert.style.opacity = '0';
