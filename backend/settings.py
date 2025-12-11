@@ -86,7 +86,7 @@ INSTALLED_APPS = [
     # Local apps
     'core',
     'center',
-    'mold',
+    'mold.apps.MoldConfig',  # Signal'lar için AppConfig kullan
     'accounts.apps.AccountsConfig',
     'producer',
 ]

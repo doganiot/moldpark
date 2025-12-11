@@ -46,9 +46,29 @@
                             <input type="date" name="estimated_delivery" class="form-control">
                         </div>
 
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="create_cargo_shipment" id="create_cargo_shipment" value="1" checked>
+                                <label class="form-check-label" for="create_cargo_shipment">
+                                    <i class="fas fa-tag me-1"></i>Kargo Etiketi Oluştur
+                                </label>
+                            </div>
+                            <small class="form-text text-muted">Kargo gönderisi oluşturulacak ve etiket basabileceksiniz.</small>
+                        </div>
+
+                        {% if existing_shipment %}
+                        <div class="alert alert-warning">
+                            <h6><i class="fas fa-exclamation-triangle me-2"></i>Mevcut Kargo Gönderisi</h6>
+                            <p class="mb-2">Bu kalıp için zaten bir kargo gönderisi mevcut:</p>
+                            <a href="{% url 'producer:cargo_shipment_detail' existing_shipment.id %}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-eye me-1"></i>Kargo Gönderisi Detayı
+                            </a>
+                        </div>
+                        {% endif %}
+
                         <div class="alert alert-info">
                             <h6><i class="fas fa-info-circle me-2"></i>İşlem Açıklaması</h6>
-                            <p class="mb-0">Bu işlem kalıbın merkeze gönderildiğini belirtir. Kargo bilgileri kaydedilir ve merkez bilgilendirilir.</p>
+                            <p class="mb-0">Bu işlem kalıbın merkeze gönderildiğini belirtir. Kargo bilgileri kaydedilir ve merkez bilgilendirilir. Kargo etiketi oluşturulursa, etiket sayfasına yönlendirileceksiniz.</p>
                         </div>
 
                         <div class="text-center">

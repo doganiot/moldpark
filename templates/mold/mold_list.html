@@ -25,15 +25,27 @@
                     <form method="get" class="row g-3">
                         <div class="col-md-3">
                             <label class="form-label">Hasta Adı</label>
-                            {{ filter.form.patient_name }}
+                            <input type="text" name="patient_name" class="form-control"
+                                   placeholder="Hasta adı / soyadı"
+                                   value="{{ filter_values.patient_name|default_if_none:'' }}">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Kalıp Tipi</label>
-                            {{ filter.form.mold_type }}
+                            <select name="mold_type" class="form-select">
+                                <option value="">Tümü</option>
+                                {% for value, label in mold_type_choices %}
+                                    <option value="{{ value }}" {% if value == filter_values.mold_type %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Durum</label>
-                            {{ filter.form.status }}
+                            <select name="status" class="form-select">
+                                <option value="">Tümü</option>
+                                {% for value, label in status_choices %}
+                                    <option value="{{ value }}" {% if value == filter_values.status %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">&nbsp;</label>
@@ -55,19 +67,18 @@
             <div class="card border-0 shadow-sm">
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover mb-0">
+                        <table class="table table-hover table-sm align-middle mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th>Önizleme</th>
-                                    <th>ID</th>
-                                    <th>Hasta</th>
-                                    <th>Gönderim Türü</th>
-                                    <th>Kalıp Tipi</th>
-                                    <th>Vent Çapı</th>
-                                    <th>Durum</th>
-                                    <th>Oluşturulma</th>
-                                    <th>Güncelleme</th>
-                                    <th>İşlemler</th>
+                                    <th class="text-nowrap">Önizleme</th>
+                                    <th class="text-nowrap">ID</th>
+                                    <th class="text-nowrap">Hasta</th>
+                                    <th class="text-nowrap">Gönderim</th>
+                                    <th class="text-nowrap">Kalıp Tipi</th>
+                                    <th class="text-nowrap">Vent</th>
+                                    <th class="text-nowrap">Durum</th>
+                                    <th class="text-nowrap">Oluşturulma</th>
+                                    <th class="text-nowrap">İşlemler</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -130,7 +141,7 @@
                                         </div>
                                     </td>
                                     <td>{{ mold.id }}</td>
-                                    <td>
+                                    <td class="patient-cell text-truncate">
                                         <a href="{% url 'mold:mold_detail' mold.id %}" class="text-decoration-none">
                                             {{ mold.patient_name }}
                                         </a>
@@ -154,7 +165,6 @@
                                         </span>
                                     </td>
                                     <td>{{ mold.created_at|naturaltime }}</td>
-                                    <td>{{ mold.updated_at|naturaltime }}</td>
                                     <td>
                                         <div class="btn-group">
                                             <a href="{% url 'mold:mold_detail' mold.id %}" 
@@ -178,7 +188,7 @@
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="10" class="text-center py-4">
+                                    <td colspan="9" class="text-center py-4">
                                         <div class="d-flex flex-column align-items-center">
                                             <i class="fas fa-cube text-muted mb-3" style="font-size: 48px;"></i>
                                             <p class="text-muted mb-0">Henüz kalıp yok.</p>
@@ -289,6 +299,15 @@
 .thumbnail-preview:hover + .thumbnail-overlay,
 .thumbnail-overlay:hover {
     opacity: 1;
+}
+
+.table td,
+.table th {
+    font-size: 0.9rem;
+}
+
+.patient-cell {
+    max-width: 180px;
 }
 
 .bg-gradient-primary {

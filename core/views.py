@@ -518,9 +518,16 @@ def message_list(request):
             Q(message_type__in=['center_to_admin', 'producer_to_admin'])
         ).select_related('sender', 'recipient')
     else:
-        # Merkez ve üreticiler sadece kendilerine gelen mesajları görebilir
+        # Merkez ve üreticiler kendilerine gelen mesajları ve ilgili broadcast mesajları görebilir
+        broadcast_filters = Q(is_broadcast=True, message_type='admin_to_all')
+        
+        if hasattr(user, 'center'):
+            broadcast_filters |= Q(is_broadcast=True, broadcast_to_centers=True, message_type='admin_to_center')
+        if hasattr(user, 'producer'):
+            broadcast_filters |= Q(is_broadcast=True, broadcast_to_producers=True, message_type='admin_to_producer')
+        
         received_messages = Message.objects.filter(
-            Q(recipient=user)
+            Q(recipient=user) | broadcast_filters
         ).select_related('sender', 'recipient').distinct()
     
     # Gönderilen mesajlar
@@ -557,32 +564,22 @@ def message_list(request):
         # Direkt mesajları okundu olarak işaretle
         unread_direct_messages = received_messages.filter(
             recipient=user,
-            is_read=False
+            is_read=False,
+            is_broadcast=False
         )
         for msg in unread_direct_messages:
             msg.mark_as_read()
         
-        # Broadcast mesajları okundu olarak işaretle (MessageRecipient tablosu yoksa skip)
-        try:
-            unread_broadcast_recipients = MessageRecipient.objects.filter(
-                recipient=user,
-                is_read=False,
-                message__in=received_messages
-            )
-            for recipient in unread_broadcast_recipients:
-                recipient.mark_as_read()
-        except Exception:
-            pass
+        # Broadcast mesajları okundu olarak işaretle (is_read flag'i kullanılıyor)
+        # Broadcast mesajlar için her kullanıcı için ayrı kayıt tutulmuyor,
+        # bu yüzden sadece direkt mesajları işaretliyoruz
     
     # Her mesaj için kullanıcının okuma durumunu hesapla
     for message in messages_page:
         if message.is_broadcast:
-            # Broadcast mesajlar için MessageRecipient kontrolü
-            try:
-                user_recipient = message.recipients.filter(recipient=user).first()
-                message.user_is_read = user_recipient.is_read if user_recipient else False
-            except Exception:
-                message.user_is_read = False
+            # Broadcast mesajlar için kullanıcı alıcı ise okundu sayılır
+            # (Broadcast mesajlar için ayrı okuma durumu tutulmuyor)
+            message.user_is_read = True  # Broadcast mesajlar her zaman okundu sayılır
         elif message.recipient == user:
             # Kullanıcı alıcı ise
             message.user_is_read = message.is_read
@@ -591,14 +588,16 @@ def message_list(request):
             message.user_is_read = True
     
     # İstatistikler - silinmiş kullanıcıları da dahil et
+    unread_messages = received_messages.filter(
+        Q(is_read=False, recipient=user, is_broadcast=False)
+    ).distinct()
+    
     stats = {
         'total_received': received_messages.count(),
-        'unread_received': received_messages.filter(
-            Q(is_read=False, recipient=user)
-        ).distinct().count(),
+        'unread_received': unread_messages.count(),
         'total_sent': sent_messages.count(),
         'urgent_messages': received_messages.filter(
-            Q(priority='urgent', is_read=False, recipient=user)
+            Q(priority='urgent', is_read=False, recipient=user, is_broadcast=False)
         ).distinct().count(),
     }
     
@@ -625,8 +624,14 @@ def message_detail(request, pk):
         can_view = True
     elif message.recipient == user or message.sender == user:
         can_view = True
-    elif message.is_broadcast and message.recipients.filter(recipient=user).exists():
-        can_view = True
+    elif message.is_broadcast:
+        # Broadcast mesajlar için kullanıcı tipine göre kontrol
+        if message.broadcast_to_centers and hasattr(user, 'center'):
+            can_view = True
+        elif message.broadcast_to_producers and hasattr(user, 'producer'):
+            can_view = True
+        elif message.message_type == 'admin_to_all' and not user.is_superuser:
+            can_view = True
     
     if not can_view:
         messages.error(request, 'Bu mesajı görüntüleme yetkiniz yok.')
@@ -635,10 +640,7 @@ def message_detail(request, pk):
     # Mesajı okundu olarak işaretle
     if message.recipient == user and not message.is_read:
         message.mark_as_read()
-    elif message.is_broadcast:
-        recipient_obj = message.recipients.filter(recipient=user).first()
-        if recipient_obj and not recipient_obj.is_read:
-            recipient_obj.mark_as_read()
+    # Broadcast mesajlar için ayrı okuma durumu tutulmuyor
     
     # Cevap formu
     reply_form = None
@@ -674,11 +676,20 @@ def message_detail(request, pk):
     # Toplu mesaj istatistikleri
     broadcast_stats = None
     if message.is_broadcast:
-        recipients = message.recipients.all()
+        # Broadcast mesajlar için alıcı sayısını hesapla
+        from django.contrib.auth.models import User
+        total_recipients = 0
+        if message.broadcast_to_centers:
+            total_recipients += User.objects.filter(center__isnull=False).count()
+        if message.broadcast_to_producers:
+            total_recipients += User.objects.filter(producer__isnull=False).count()
+        if message.message_type == 'admin_to_all':
+            total_recipients = User.objects.filter(is_superuser=False).count()
+        
         broadcast_stats = {
-            'total_recipients': recipients.count(),
-            'read_count': recipients.filter(is_read=True).count(),
-            'unread_count': recipients.filter(is_read=False).count(),
+            'total_recipients': total_recipients,
+            'read_count': 0,  # Broadcast mesajlar için ayrı okuma durumu tutulmuyor
+            'unread_count': total_recipients,
         }
     
     context = {
@@ -715,48 +726,56 @@ def message_create(request):
                 if recipient_type == 'single_center':
                     recipients.add(specific_recipient)
                     message.message_type = 'admin_to_center'
+                    message.recipient = specific_recipient  # Tek alıcı için recipient set et
+                    message.is_broadcast = False
                 elif recipient_type == 'single_producer':
                     recipients.add(specific_recipient)
                     message.message_type = 'admin_to_producer'
+                    message.recipient = specific_recipient  # Tek alıcı için recipient set et
+                    message.is_broadcast = False
                 elif recipient_type == 'all_centers':
                     recipients.update(User.objects.filter(center__isnull=False))
                     message.message_type = 'admin_to_center'
+                    message.is_broadcast = True
+                    message.broadcast_to_centers = True
                 elif recipient_type == 'all_producers':
                     recipients.update(User.objects.filter(producer__isnull=False))
                     message.message_type = 'admin_to_producer'
+                    message.is_broadcast = True
+                    message.broadcast_to_producers = True
                 elif recipient_type == 'all_users':
                     recipients.update(User.objects.filter(is_superuser=False))
                     message.message_type = 'admin_to_all'
+                    message.is_broadcast = True
+                    message.broadcast_to_centers = True
+                    message.broadcast_to_producers = True
                 
                 message.save()
                 
-                # Her alıcı için MessageRecipient oluştur (MessageRecipient tablosu yoksa skip)
-                try:
-                    for recipient in recipients:
-                        MessageRecipient.objects.get_or_create(
-                            message=message,
-                            recipient=recipient
-                        )
-                except Exception:
-                    pass
-                
                 # Bildirim gönder
                 for recipient in recipients:
-                    notify.send(
-                        sender=request.user,
-                        recipient=recipient,
-                        verb='yeni mesaj gönderdi',
-                        description=message.subject,
-                        target=message
-                    )
+                    try:
+                        notify.send(
+                            sender=request.user,
+                            recipient=recipient,
+                            verb='yeni mesaj gönderdi',
+                            description=message.subject,
+                            target=message
+                        )
+                    except Exception as e:
+                        logger.error(f"Notification send error: {e}")
+                    
                     # Basit bildirim (Zil ikonu)
-                    from core.utils import send_message_notification
-                    send_message_notification(
-                        recipient,
-                        'Yeni Mesaj',
-                        f'Admin tarafından yeni bir mesaj aldınız: {message.subject}',
-                        related_url=f'/messages/{message.id}/'
-                    )
+                    try:
+                        from core.utils import send_message_notification
+                        send_message_notification(
+                            recipient,
+                            'Yeni Mesaj',
+                            f'Admin tarafından yeni bir mesaj aldınız: {message.subject}',
+                            related_url=f'/messages/{message.id}/'
+                        )
+                    except Exception as e:
+                        logger.error(f"Message notification error: {e}")
                 
                 messages.success(request, 'Mesaj başarıyla gönderildi.')
                 return redirect('core:message_list')
@@ -768,34 +787,37 @@ def message_create(request):
                 elif hasattr(request.user, 'producer'):
                     message.message_type = 'producer_to_admin'
                 
-                message.save()
-                
-                # Admin'e MessageRecipient oluştur (MessageRecipient tablosu yoksa skip)
+                # Admin'e mesaj gönder
                 admin = User.objects.filter(is_superuser=True).first()
                 if admin:
+                    message.recipient = admin  # Admin'i recipient olarak set et
+                    message.is_broadcast = False
+                
+                message.save()
+                
+                # Admin'e bildirim gönder
+                if admin:
                     try:
-                        MessageRecipient.objects.get_or_create(
-                            message=message,
-                            recipient=admin
+                        notify.send(
+                            sender=request.user,
+                            recipient=admin,
+                            verb='yeni mesaj gönderdi',
+                            description=message.subject,
+                            target=message
                         )
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.error(f"Notification send error: {e}")
                     
-                    # Admin'e bildirim gönder
-                    notify.send(
-                        sender=request.user,
-                        recipient=admin,
-                        verb='yeni mesaj gönderdi',
-                        description=message.subject,
-                        target=message
-                    )
-                    from core.utils import send_message_notification
-                    send_message_notification(
-                        admin,
-                        'Yeni Mesaj',
-                        f'Yeni bir kullanıcı mesajı aldınız: {message.subject}',
-                        related_url=f'/messages/{message.id}/'
-                    )
+                    try:
+                        from core.utils import send_message_notification
+                        send_message_notification(
+                            admin,
+                            'Yeni Mesaj',
+                            f'Yeni bir kullanıcı mesajı aldınız: {message.subject}',
+                            related_url=f'/messages/{message.id}/'
+                        )
+                    except Exception as e:
+                        logger.error(f"Message notification error: {e}")
                 
                 messages.success(request, 'Mesajınız başarıyla gönderildi.')
                 return redirect('core:message_list')
@@ -867,23 +889,17 @@ def privacy_policy(request):
     return render(request, 'core/privacy.html')
 
 def pricing(request):
-    """Fiyatlandırma sayfası - Paket sistemi (Herkes erişebilir)"""
-    # Aktif paketleri göster (standard, package ve single tipindeki planlar)
-    packages = PricingPlan.objects.filter(
+    """Fiyatlandırma sayfası - Standart abonelik sistemi (Herkes erişebilir)"""
+    # Aktif standart abonelik planlarını göster
+    plans = PricingPlan.objects.filter(
         is_active=True, 
-        plan_type__in=['standard', 'package', 'single']
-    ).order_by('order')
-    
-    # Tek kalıp seçeneği
-    single_plan = PricingPlan.objects.filter(
-        is_active=True, 
-        plan_type='single'
-    ).first()
+        plan_type='standard'
+    ).order_by('monthly_fee_try')
     
     context = {
-        'plans': packages,
-        'single_plan': single_plan,
-        'packages': packages.exclude(plan_type='single'),  # single hariç tüm paketler (standard ve package)
+        'plans': plans,
+        'packages': [],  # Eski paket sistemi kaldırıldı
+        'single_plan': None,  # Tek kalıp seçeneği kaldırıldı
     }
     
     # Giriş yapmış kullanıcı için ek bilgiler
@@ -1839,6 +1855,16 @@ def admin_financial_dashboard(request):
 
         top_producers = sorted(top_producers, key=lambda x: x['moldpark_revenue'], reverse=True)[:10]
 
+        # === BEKLEYEN ÖDEMELER (HAVALE/EFT) ===
+        from core.models import Payment
+        pending_payments = Payment.objects.filter(
+            status='pending'
+        ).select_related('invoice', 'user', 'payment_method').order_by('-created_at')[:10]
+        
+        pending_payments_total = Payment.objects.filter(
+            status='pending'
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+
         context = {
             # Genel İstatistikler
             'total_centers': total_centers,
@@ -1851,6 +1877,11 @@ def admin_financial_dashboard(request):
             'pending_center_invoices': pending_center_invoices,
             'pending_producer_payments': pending_producer_payments,
             'total_pending_amount': pending_center_invoices + pending_producer_payments,
+            
+            # Bekleyen Ödemeler
+            'pending_payments': pending_payments,
+            'pending_payments_total': pending_payments_total,
+            'pending_payments_count': pending_payments.count(),
 
             # Trendler
             'revenue_trend': revenue_trend,
@@ -1915,6 +1946,71 @@ def admin_invoice_management(request):
         logger.error(f"Admin Invoice Management Error: {e}")
         messages.error(request, 'Fatura yönetimi sayfası yüklenirken hata oluştu.')
         return redirect('core:admin_financial_dashboard')
+
+
+@staff_member_required
+def admin_approve_payment(request, payment_id):
+    """Admin tarafından ödeme onaylama"""
+    from django.http import JsonResponse
+    from core.models import Payment
+    
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Geçersiz istek'}, status=405)
+    
+    try:
+        payment = get_object_or_404(Payment, id=payment_id)
+        
+        if payment.status != 'pending':
+            return JsonResponse({
+                'success': False,
+                'error': 'Bu ödeme zaten işlenmiş'
+            })
+        
+        # Ödemeyi onayla (confirm_payment metodu havale ödemeleri için faturayı da güncelleyecek)
+        payment.confirm_payment()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'₺{payment.amount} tutarındaki ödeme onaylandı ve fatura ödendi olarak işaretlendi.'
+        })
+    except Exception as e:
+        logger.error(f"Payment approval error: {e}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@staff_member_required
+def admin_pending_payments(request):
+    """Admin bekleyen ödemeler listesi"""
+    from django.core.paginator import Paginator
+    from core.models import Payment
+    from django.db.models import Sum
+    from decimal import Decimal
+    
+    pending_payments = Payment.objects.filter(
+        status='pending'
+    ).select_related('invoice', 'user', 'payment_method').order_by('-created_at')
+    
+    # Toplam istatistikleri hesapla (sayfalama öncesi)
+    pending_payments_count = pending_payments.count()
+    pending_payments_total = pending_payments.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    pending_payments_avg = (pending_payments_total / pending_payments_count) if pending_payments_count > 0 else Decimal('0.00')
+    
+    # Sayfalama
+    paginator = Paginator(pending_payments, 25)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'page_obj': page_obj,
+        'pending_payments_count': pending_payments_count,
+        'pending_payments_total': pending_payments_total,
+        'pending_payments_avg': pending_payments_avg,
+    }
+    
+    return render(request, 'core/admin_pending_payments.html', context)
 
 
 @staff_member_required

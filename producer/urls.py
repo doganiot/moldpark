@@ -30,6 +30,11 @@ urlpatterns = [
     path('molds/<int:pk>/complete-production/', views.complete_physical_production, name='complete_physical_production'),
     path('molds/<int:pk>/ship-to-center/', views.ship_to_center, name='ship_to_center'),
     path('molds/<int:pk>/mark-delivered/', views.mark_delivered, name='mark_delivered'),
+    
+    # Kargo Etiketi Yönetimi
+    path('cargo/shipment/<int:shipment_id>/', views.producer_cargo_shipment_detail, name='cargo_shipment_detail'),
+    path('cargo/shipment/<int:shipment_id>/generate-label/', views.producer_generate_cargo_label, name='generate_cargo_label'),
+    path('cargo/shipment/<int:shipment_id>/print-label/', views.producer_print_cargo_label, name='print_cargo_label'),
 
     # Ağ Yönetimi
     path('network/', views.network_list, name='network_list'),

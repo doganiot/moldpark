@@ -4,6 +4,7 @@ PDF, Termal ve Lazer etiketler için kapsamlı destek
 """
 import os
 import io
+import logging
 import qrcode
 import barcode
 from barcode.writer import ImageWriter
@@ -27,6 +28,8 @@ import base64
 
 from .models import CargoShipment, CargoLabel
 
+logger = logging.getLogger(__name__)
+
 
 class CargoLabelGenerator:
     """Kargo Etiketi Üreteci"""
@@ -48,17 +51,136 @@ class CargoLabelGenerator:
         # Etiket boyutunu hesapla
         self.label_width = self.width_mm * mm
         self.label_height = self.height_mm * mm
+    
+    def _get_font_name(self, style='regular'):
+        """Font adını stil ile al"""
+        if style == 'bold':
+            if self.font_family == "Helvetica":
+                return "Helvetica-Bold"
+            elif self.font_family in ["Arial", "Tahoma", "DejaVuSans"]:
+                # Kayıtlı bold font varsa kullan
+                bold_name = f"{self.font_family}-Bold"
+                # Font'un kayıtlı olup olmadığını kontrol et
+                try:
+                    from reportlab.pdfbase import pdfmetrics
+                    if bold_name in pdfmetrics.getRegisteredFontNames():
+                        return bold_name
+                except:
+                    pass
+                # Bold font yoksa regular font kullan
+                return self.font_family
+            else:
+                return f"{self.font_family}-Bold"
+        else:
+            return self.font_family
+    
+    def _draw_text_safe(self, c, text, x, y, font_name, font_size):
+        """Türkçe karakter desteği ile güvenli metin çizimi"""
+        # Font'u ayarla
+        c.setFont(font_name, font_size)
+        
+        # Text'i string'e çevir (eğer değilse)
+        if not isinstance(text, str):
+            try:
+                text = str(text)
+            except:
+                text = ""
+        
+        try:
+            # drawString ile çiz (font yüklüyse Türkçe karakterler çalışır)
+            c.drawString(x, y, text)
+        except Exception as e:
+            # Eğer hata olursa, text'i güvenli hale getir
+            try:
+                # Türkçe karakterleri koruyarak encode et
+                text_encoded = text.encode('utf-8', errors='ignore').decode('utf-8', errors='ignore')
+                c.drawString(x, y, text_encoded)
+            except Exception as e2:
+                # Son çare: Problematik karakterleri değiştir
+                try:
+                    replacements = {
+                        'ş': 's', 'Ş': 'S',
+                        'ı': 'i', 'İ': 'I', 
+                        'ğ': 'g', 'Ğ': 'G',
+                        'ü': 'u', 'Ü': 'U',
+                        'ö': 'o', 'Ö': 'O',
+                        'ç': 'c', 'Ç': 'C'
+                    }
+                    text_safe = text
+                    for tr_char, ascii_char in replacements.items():
+                        text_safe = text_safe.replace(tr_char, ascii_char)
+                    c.drawString(x, y, text_safe)
+                except:
+                    # En son çare: Hata mesajı
+                    try:
+                        c.drawString(x, y, "Encoding error")
+                    except:
+                        pass
 
     def register_fonts(self):
-        """Türkçe karakter desteği için DejaVuSans fontunu yükle, yoksa Helvetica kullan"""
-        try:
-            font_path = os.path.join(settings.BASE_DIR, 'static', 'fonts', 'DejaVuSans.ttf')
-            if os.path.exists(font_path):
-                pdfmetrics.registerFont(TTFont('DejaVuSans', font_path))
-                self.font_family = 'DejaVuSans'
-        except Exception:
-            # Font bulunamazsa Helvetica ile devam edilir
+        """Türkçe karakter desteği için font yükle"""
+        import platform
+        
+        # Font yolları (öncelik sırasına göre)
+        font_configs = [
+            # DejaVuSans (en iyi Unicode desteği)
+            {
+                'name': 'DejaVuSans',
+                'paths': [
+                    os.path.join(settings.BASE_DIR, 'static', 'fonts', 'DejaVuSans.ttf'),
+                    '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+                ],
+                'bold_paths': [
+                    os.path.join(settings.BASE_DIR, 'static', 'fonts', 'DejaVuSans-Bold.ttf'),
+                    '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+                ]
+            },
+            # Windows Arial (Türkçe karakterleri destekler)
+            {
+                'name': 'Arial',
+                'paths': ['C:/Windows/Fonts/arial.ttf'],
+                'bold_paths': ['C:/Windows/Fonts/arialbd.ttf']
+            },
+            # Windows Tahoma (Türkçe karakterleri destekler)
+            {
+                'name': 'Tahoma',
+                'paths': ['C:/Windows/Fonts/tahoma.ttf'],
+                'bold_paths': ['C:/Windows/Fonts/tahomabd.ttf']
+            },
+        ]
+        
+        font_registered = False
+        for font_config in font_configs:
+            font_name = font_config['name']
+            for font_path in font_config['paths']:
+                try:
+                    if os.path.exists(font_path):
+                        # Regular font'u kaydet
+                        pdfmetrics.registerFont(TTFont(font_name, font_path))
+                        
+                        # Bold font'u da kaydet (varsa)
+                        for bold_path in font_config['bold_paths']:
+                            if os.path.exists(bold_path):
+                                try:
+                                    pdfmetrics.registerFont(TTFont(f'{font_name}-Bold', bold_path))
+                                except:
+                                    pass
+                        
+                        self.font_family = font_name
+                        font_registered = True
+                        logger.info(f"Font yüklendi: {font_name} ({font_path})")
+                        break
+                except Exception as e:
+                    logger.error(f"Font yükleme hatası ({font_path}): {e}")
+                    continue
+            
+            if font_registered:
+                break
+        
+        # Hiçbir font bulunamazsa Helvetica kullan (Türkçe karakterler görünmeyebilir)
+        if not font_registered:
             self.font_family = "Helvetica"
+            logger.warning("Türkçe karakter desteği için font bulunamadı. Helvetica kullanılıyor (Türkçe karakterler görünmeyebilir).")
 
     def get_default_template(self):
         """Varsayılan etiket şablonunu getir"""
@@ -164,20 +286,20 @@ class CargoLabelGenerator:
 
     def draw_company_info(self, c, x, y):
         """Kargo firması bilgilerini çiz"""
-        c.setFont("Helvetica-Bold", self.template.font_size_large)
+        font_bold = self._get_font_name('bold')
         c.setFillColor(HexColor(self.template.text_color))
-
         company_name = self.shipment.cargo_company.display_name
-        c.drawString(x + 5*mm, y, company_name)
-
+        self._draw_text_safe(c, company_name, x + 5*mm, y, font_bold, self.template.font_size_large)
         return y - 8*mm
 
     def draw_tracking_info(self, c, x, y):
         """Takip bilgilerini çiz"""
         # Takip numarası
-        c.setFont("Helvetica-Bold", self.template.font_size_medium)
+        font_bold = self._get_font_name('bold')
+        c.setFont(font_bold, self.template.font_size_medium)
         tracking_text = f"Takip No: {self.shipment.tracking_number or 'Oluşturuluyor'}"
-        c.drawString(x + 5*mm, y, tracking_text)
+        self._draw_text_safe(c, tracking_text, x + 5*mm, y, font_bold, self.template.font_size_medium)
+        y = y - 4*mm
 
         # Barkod (eğer şablon destekliyorsa)
         if self.template.include_barcode and self.shipment.tracking_number:
@@ -207,69 +329,134 @@ class CargoLabelGenerator:
 
     def draw_sender_info(self, c, x, y):
         """Gönderen bilgilerini çiz"""
-        font_reg = self.font_family
-        font_bold = f"{self.font_family}-Bold" if self.font_family != "Helvetica" else "Helvetica-Bold"
+        font_reg = self._get_font_name('regular')
+        font_bold = self._get_font_name('bold')
+
+        # Gönderen bilgilerini güncel modelden al (işitme merkezi veya üretici ise)
+        sender_name = self.shipment.sender_name
+        sender_address = self.shipment.sender_address
+        sender_phone = self.shipment.sender_phone
+        
+        # Eğer gönderen bir işitme merkezi ise, güncel bilgilerini al
+        try:
+            from center.models import Center
+            center = Center.objects.filter(name__iexact=sender_name.strip()).first()
+            if not center:
+                center = Center.objects.filter(name__icontains=sender_name.strip()).first()
+            if center:
+                # Güncel adres ve telefon bilgilerini kullan
+                sender_address = center.address if center.address else sender_address
+                sender_phone = center.phone if center.phone else sender_phone
+                sender_name = center.name  # Adı da güncel olsun
+        except:
+            pass
+        
+        # Eğer gönderen bir üretici merkezi ise, güncel bilgilerini al
+        try:
+            from producer.models import Producer
+            producer = Producer.objects.filter(company_name__iexact=sender_name.strip()).first()
+            if not producer:
+                producer = Producer.objects.filter(company_name__icontains=sender_name.strip()).first()
+            if producer:
+                # Güncel adres ve telefon bilgilerini kullan
+                sender_address = producer.address if producer.address else sender_address
+                sender_phone = producer.phone if producer.phone else sender_phone
+                sender_name = producer.company_name  # Adı da güncel olsun
+        except:
+            pass
 
         c.setFont(font_reg, self.template.font_size_small)
-        c.drawString(x + 5*mm, y, "GÖNDEREN:")
+        self._draw_text_safe(c, "GÖNDEREN:", x + 5*mm, y, font_reg, self.template.font_size_small)
         y -= 4*mm
 
         c.setFont(font_bold, self.template.font_size_small)
-        c.drawString(x + 5*mm, y, self.shipment.sender_name)
+        self._draw_text_safe(c, sender_name, x + 5*mm, y, font_bold, self.template.font_size_small)
         y -= 3*mm
 
         # Adresi bölerek yaz
-        sender_address = self.shipment.sender_address
         if len(sender_address) > 30:
             lines = [sender_address[i:i+30] for i in range(0, len(sender_address), 30)]
             for line in lines[:2]:  # Maksimum 2 satır
-                c.drawString(x + 5*mm, y, line)
+                self._draw_text_safe(c, line, x + 5*mm, y, font_reg, self.template.font_size_small)
                 y -= 3*mm
         else:
-            c.drawString(x + 5*mm, y, sender_address)
+            self._draw_text_safe(c, sender_address, x + 5*mm, y, font_reg, self.template.font_size_small)
             y -= 3*mm
 
-        c.drawString(x + 5*mm, y, self.shipment.sender_phone)
+        self._draw_text_safe(c, sender_phone, x + 5*mm, y, font_reg, self.template.font_size_small)
         return y - 8*mm
 
     def draw_recipient_info(self, c, x, y):
         """Alıcı bilgilerini çiz"""
-        font_reg = self.font_family
-        font_bold = f"{self.font_family}-Bold" if self.font_family != "Helvetica" else "Helvetica-Bold"
+        font_reg = self._get_font_name('regular')
+        font_bold = self._get_font_name('bold')
+
+        # Alıcı bilgilerini güncel modelden al (işitme merkezi veya üretici ise)
+        recipient_name = self.shipment.recipient_name
+        recipient_address = self.shipment.recipient_address
+        recipient_phone = self.shipment.recipient_phone
+        
+        # Eğer alıcı bir işitme merkezi ise, güncel bilgilerini al
+        try:
+            from center.models import Center
+            center = Center.objects.filter(name__iexact=recipient_name.strip()).first()
+            if not center:
+                center = Center.objects.filter(name__icontains=recipient_name.strip()).first()
+            if center:
+                # Güncel adres ve telefon bilgilerini kullan
+                recipient_address = center.address if center.address else recipient_address
+                recipient_phone = center.phone if center.phone else recipient_phone
+                recipient_name = center.name  # Adı da güncel olsun
+        except:
+            pass
+        
+        # Eğer alıcı bir üretici merkezi ise, güncel bilgilerini al
+        try:
+            from producer.models import Producer
+            producer = Producer.objects.filter(company_name__iexact=recipient_name.strip()).first()
+            if not producer:
+                producer = Producer.objects.filter(company_name__icontains=recipient_name.strip()).first()
+            if producer:
+                # Güncel adres ve telefon bilgilerini kullan
+                recipient_address = producer.address if producer.address else recipient_address
+                recipient_phone = producer.phone if producer.phone else recipient_phone
+                recipient_name = producer.company_name  # Adı da güncel olsun
+        except:
+            pass
 
         c.setFont(font_reg, self.template.font_size_small)
-        c.drawString(x + 5*mm, y, "ALICI:")
+        self._draw_text_safe(c, "ALICI:", x + 5*mm, y, font_reg, self.template.font_size_small)
         y -= 4*mm
 
         c.setFont(font_bold, self.template.font_size_small)
-        c.drawString(x + 5*mm, y, self.shipment.recipient_name)
+        self._draw_text_safe(c, recipient_name, x + 5*mm, y, font_bold, self.template.font_size_small)
         y -= 3*mm
 
         # Adresi bölerek yaz
-        recipient_address = self.shipment.recipient_address
         if len(recipient_address) > 30:
             lines = [recipient_address[i:i+30] for i in range(0, len(recipient_address), 30)]
             for line in lines[:2]:  # Maksimum 2 satır
-                c.drawString(x + 5*mm, y, line)
+                self._draw_text_safe(c, line, x + 5*mm, y, font_reg, self.template.font_size_small)
                 y -= 3*mm
         else:
-            c.drawString(x + 5*mm, y, recipient_address)
+            self._draw_text_safe(c, recipient_address, x + 5*mm, y, font_reg, self.template.font_size_small)
             y -= 3*mm
 
-        c.drawString(x + 5*mm, y, self.shipment.recipient_phone)
+        self._draw_text_safe(c, recipient_phone, x + 5*mm, y, font_reg, self.template.font_size_small)
         return y - 8*mm
 
     def draw_package_info(self, c, x, y):
         """Paket bilgilerini çiz"""
-        font_reg = self.font_family
+        font_reg = self._get_font_name('regular')
         c.setFont(font_reg, self.template.font_size_small)
-        c.drawString(x + 5*mm, y, f"Ağırlık: {self.shipment.weight_kg} kg")
+        self._draw_text_safe(c, f"Ağırlık: {self.shipment.weight_kg} kg", x + 5*mm, y, font_reg, self.template.font_size_small)
         y -= 3*mm
-        c.drawString(x + 5*mm, y, f"Paket: {self.shipment.package_count} adet")
+        self._draw_text_safe(c, f"Paket: {self.shipment.package_count} adet", x + 5*mm, y, font_reg, self.template.font_size_small)
         y -= 3*mm
 
         if self.shipment.description:
-            c.drawString(x + 5*mm, y, f"İçerik: {self.shipment.description[:40]}")
+            desc_text = f"İçerik: {self.shipment.description[:40]}"
+            self._draw_text_safe(c, desc_text, x + 5*mm, y, font_reg, self.template.font_size_small)
 
         return y - 8*mm
 
@@ -285,11 +472,36 @@ class CargoLabelGenerator:
     def generate_qr_code(self):
         """QR kod oluştur"""
         try:
+            # Alıcı bilgilerini güncel modelden al (işitme merkezi veya üretici ise)
+            recipient_name = self.shipment.recipient_name
+            
+            # Eğer alıcı bir işitme merkezi ise, güncel adını al
+            try:
+                from center.models import Center
+                center = Center.objects.filter(name__iexact=recipient_name.strip()).first()
+                if not center:
+                    center = Center.objects.filter(name__icontains=recipient_name.strip()).first()
+                if center:
+                    recipient_name = center.name
+            except:
+                pass
+            
+            # Eğer alıcı bir üretici merkezi ise, güncel adını al
+            try:
+                from producer.models import Producer
+                producer = Producer.objects.filter(company_name__iexact=recipient_name.strip()).first()
+                if not producer:
+                    producer = Producer.objects.filter(company_name__icontains=recipient_name.strip()).first()
+                if producer:
+                    recipient_name = producer.company_name
+            except:
+                pass
+            
             # QR kod verisi
             qr_data = f"""
 Gönderi Takip: {self.shipment.tracking_number}
 Firma: {self.shipment.cargo_company.display_name}
-Alıcı: {self.shipment.recipient_name}
+Alıcı: {recipient_name}
 Tarih: {self.shipment.created_at.strftime('%d.%m.%Y')}
 """.strip()
 
@@ -304,20 +516,86 @@ Tarih: {self.shipment.created_at.strftime('%d.%m.%Y')}
         # Termal etiketler için daha basit format
         buffer = io.BytesIO()
 
+        # Alıcı bilgilerini güncel modelden al (işitme merkezi veya üretici ise)
+        recipient_name = self.shipment.recipient_name
+        recipient_address = self.shipment.recipient_address
+        recipient_phone = self.shipment.recipient_phone
+        
+        # Eğer alıcı bir işitme merkezi ise, güncel bilgilerini al
+        try:
+            from center.models import Center
+            center = Center.objects.filter(name__iexact=recipient_name.strip()).first()
+            if not center:
+                center = Center.objects.filter(name__icontains=recipient_name.strip()).first()
+            if center:
+                # Güncel adres ve telefon bilgilerini kullan
+                recipient_address = center.address if center.address else recipient_address
+                recipient_phone = center.phone if center.phone else recipient_phone
+                recipient_name = center.name  # Adı da güncel olsun
+        except:
+            pass
+        
+        # Eğer alıcı bir üretici merkezi ise, güncel bilgilerini al
+        try:
+            from producer.models import Producer
+            producer = Producer.objects.filter(company_name__iexact=recipient_name.strip()).first()
+            if not producer:
+                producer = Producer.objects.filter(company_name__icontains=recipient_name.strip()).first()
+            if producer:
+                # Güncel adres ve telefon bilgilerini kullan
+                recipient_address = producer.address if producer.address else recipient_address
+                recipient_phone = producer.phone if producer.phone else recipient_phone
+                recipient_name = producer.company_name  # Adı da güncel olsun
+        except:
+            pass
+
+        # Gönderen bilgilerini güncel modelden al (işitme merkezi veya üretici ise)
+        sender_name = self.shipment.sender_name
+        sender_address = self.shipment.sender_address
+        sender_phone = self.shipment.sender_phone
+        
+        # Eğer gönderen bir işitme merkezi ise, güncel bilgilerini al
+        try:
+            from center.models import Center
+            center = Center.objects.filter(name__iexact=sender_name.strip()).first()
+            if not center:
+                center = Center.objects.filter(name__icontains=sender_name.strip()).first()
+            if center:
+                # Güncel adres ve telefon bilgilerini kullan
+                sender_address = center.address if center.address else sender_address
+                sender_phone = center.phone if center.phone else sender_phone
+                sender_name = center.name  # Adı da güncel olsun
+        except:
+            pass
+        
+        # Eğer gönderen bir üretici merkezi ise, güncel bilgilerini al
+        try:
+            from producer.models import Producer
+            producer = Producer.objects.filter(company_name__iexact=sender_name.strip()).first()
+            if not producer:
+                producer = Producer.objects.filter(company_name__icontains=sender_name.strip()).first()
+            if producer:
+                # Güncel adres ve telefon bilgilerini kullan
+                sender_address = producer.address if producer.address else sender_address
+                sender_phone = producer.phone if producer.phone else sender_phone
+                sender_name = producer.company_name  # Adı da güncel olsun
+        except:
+            pass
+
         # Basit text tabanlı termal etiket
         content = f"""
 {self.shipment.cargo_company.display_name}
 Takip No: {self.shipment.tracking_number}
 
 GÖNDEREN:
-{self.shipment.sender_name}
-{self.shipment.sender_address}
-{self.shipment.sender_phone}
+{sender_name}
+{sender_address}
+{sender_phone}
 
 ALICI:
-{self.shipment.recipient_name}
-{self.shipment.recipient_address}
-{self.shipment.recipient_phone}
+{recipient_name}
+{recipient_address}
+{recipient_phone}
 
 Ağırlık: {self.shipment.weight_kg}kg
 Tarih: {self.shipment.created_at.strftime('%d.%m.%Y %H:%M')}

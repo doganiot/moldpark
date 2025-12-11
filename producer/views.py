@@ -21,6 +21,7 @@ from django.db.models import Q, Count
 from django.utils import timezone
 
 from django.http import JsonResponse, HttpResponse, Http404
+from django.views.decorators.http import require_http_methods
 
 from notifications.signals import notify
 
@@ -566,34 +567,29 @@ def producer_dashboard(request):
 
 
 
+@login_required
 @producer_required
-
 def producer_profile(request):
-
     """Üretici Profil Sayfası"""
-
+    
     producer = request.user.producer
-
     
-
     if request.method == 'POST':
-
         form = ProducerProfileForm(request.POST, request.FILES, instance=producer)
-
+        
         if form.is_valid():
-
             form.save()
-
             messages.success(request, 'Profiliniz başarıyla güncellendi.')
-
             return redirect('producer:profile')
-
+        else:
+            # Form hatalarını göster
+            messages.error(request, 'Lütfen formu doğru şekilde doldurun.')
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f'{field}: {error}')
     else:
-
         form = ProducerProfileForm(instance=producer)
-
     
-
     return render(request, 'producer/profile.html', {'form': form, 'producer': producer})
 
 
@@ -1980,10 +1976,23 @@ def mold_detail(request, pk):
         'status_choices': ProducerOrder.STATUS_CHOICES,
 
         'stage_choices': ProducerProductionLog.STAGE_CHOICES,
+        
+        # Kargo gönderisi bilgisi (eğer varsa)
+        'cargo_shipment': None,
 
     }
-
     
+    # Kargo gönderisi var mı kontrol et
+    if ear_mold.tracking_number:
+        try:
+            from core.models import CargoShipment
+            cargo_shipment = CargoShipment.objects.filter(
+                tracking_number=ear_mold.tracking_number
+            ).first()
+            if cargo_shipment:
+                context['cargo_shipment'] = cargo_shipment
+        except:
+            pass
 
     return render(request, 'producer/mold_detail.html', context)
 
@@ -4734,6 +4743,7 @@ def ship_to_center(request, pk):
             carrier = request.POST.get('carrier')
             tracking_number = request.POST.get('tracking_number')
             estimated_delivery = request.POST.get('estimated_delivery')
+            create_cargo_shipment = request.POST.get('create_cargo_shipment') == '1' or request.POST.get('create_cargo_shipment') == 'on'
 
             # Durumu güncelle
             old_status = mold.status
@@ -4745,6 +4755,77 @@ def ship_to_center(request, pk):
             mold.shipment_date = timezone.now()
             mold.shipment_status = 'shipped'
             mold.save()
+
+            # Kargo gönderisi oluştur (eğer istenirse)
+            cargo_shipment = None
+            if create_cargo_shipment:
+                try:
+                    from core.models import CargoCompany, CargoShipment
+                    from django.utils import timezone as tz
+                    
+                    # Kargo firmasını bul veya oluştur
+                    cargo_company = CargoCompany.objects.filter(name__icontains=carrier).first()
+                    if not cargo_company:
+                        cargo_company = CargoCompany.objects.first()
+                    if not cargo_company:
+                        cargo_company = CargoCompany.objects.create(
+                            name=carrier or 'Aras',
+                            display_name=carrier or 'Aras Kargo',
+                            tracking_url='https://kargotakip.araskargo.com.tr',
+                            base_price=0,
+                            price_per_kg=0,
+                            estimated_delivery_days=3
+                        )
+                    
+                    # Gönderen: Üretici merkez
+                    sender_name = request.user.producer.company_name
+                    sender_address = request.user.producer.address or ''
+                    sender_phone = request.user.producer.phone or ''
+                    
+                    # Alıcı: İşitme merkezi
+                    recipient_name = mold.center.name
+                    recipient_address = mold.center.address or ''
+                    recipient_phone = mold.center.phone or ''
+                    
+                    # Estimated delivery tarihini parse et
+                    estimated_delivery_date = None
+                    if estimated_delivery:
+                        try:
+                            from datetime import datetime
+                            estimated_delivery_date = datetime.strptime(estimated_delivery, '%Y-%m-%d')
+                            estimated_delivery_date = tz.make_aware(estimated_delivery_date)
+                        except:
+                            estimated_delivery_date = tz.now() + tz.timedelta(days=3)
+                    else:
+                        estimated_delivery_date = tz.now() + tz.timedelta(days=3)
+                    
+                    # Kargo gönderisi oluştur
+                    cargo_shipment = CargoShipment.objects.create(
+                        invoice=getattr(order, "invoice", None),
+                        cargo_company=cargo_company,
+                        tracking_number=tracking_number or '',
+                        sender_name=sender_name,
+                        sender_address=sender_address,
+                        sender_phone=sender_phone,
+                        recipient_name=recipient_name,
+                        recipient_address=recipient_address,
+                        recipient_phone=recipient_phone,
+                        description=f"Kalıp: {mold.patient_name} {mold.patient_surname} - {mold.get_mold_type_display()}",
+                        weight_kg=0.5,
+                        package_count=1,
+                        status='pending',
+                        estimated_delivery=estimated_delivery_date,
+                    )
+                    
+                    # Mold'un tracking_number'ını güncelle (eğer yoksa)
+                    if not mold.tracking_number and tracking_number:
+                        mold.tracking_number = tracking_number
+                        mold.save(update_fields=['tracking_number'])
+                    
+                    messages.success(request, 'Kargo gönderisi oluşturuldu. Etiket oluşturabilirsiniz.')
+                except Exception as e:
+                    logger.error(f"Kargo gönderisi oluşturma hatası: {e}")
+                    messages.warning(request, f'Kargo gönderisi oluşturulamadı: {str(e)}')
 
             # Log ekle
             ProducerProductionLog.objects.create(
@@ -4768,12 +4849,31 @@ def ship_to_center(request, pk):
 
             messages.success(request,
                 f'✅ {mold.patient_name} {mold.patient_surname} hastasının kalıbı {carrier} ile kargoya verildi.')
+            
+            # Eğer kargo gönderisi oluşturulduysa, etiket sayfasına yönlendir
+            if cargo_shipment:
+                return redirect('producer:cargo_shipment_detail', shipment_id=cargo_shipment.id)
+            
             return redirect('producer:mold_detail', pk=pk)
+
+        # Mevcut kargo gönderisi var mı kontrol et
+        from core.models import CargoShipment
+        existing_shipment = None
+        if mold.tracking_number:
+            existing_shipment = CargoShipment.objects.filter(
+                tracking_number=mold.tracking_number
+            ).first()
+        
+        # Kargo firmalarını al
+        from core.models import CargoCompany
+        cargo_companies = CargoCompany.objects.filter(is_active=True)
 
         context = {
             'mold': mold,
             'order': order,
             'carrier_choices': EarMold.CARRIER_CHOICES,
+            'existing_shipment': existing_shipment,
+            'cargo_companies': cargo_companies,
         }
 
         return render(request, 'producer/ship_to_center.html', context)
@@ -4854,6 +4954,137 @@ def mark_delivered(request, pk):
         logger.error(f"Mark delivered error: {e}")
         messages.error(request, 'Teslim işlemi sırasında hata oluştu.')
         return redirect('producer:mold_detail', pk=pk)
+
+
+@login_required
+@producer_required
+def producer_cargo_shipment_detail(request, shipment_id):
+    """Üretici için kargo gönderisi detay sayfası"""
+    from core.models import CargoShipment, CargoCompany
+    from core.cargo_label_service import CargoLabelManager
+    
+    shipment = get_object_or_404(CargoShipment, id=shipment_id)
+    
+    # İzin kontrolü: Sadece ilgili üretici erişebilir
+    if not request.user.is_superuser:
+        # Gönderen üretici kontrolü
+        if shipment.sender_name != request.user.producer.company_name:
+            messages.error(request, 'Bu kargo gönderisini görüntüleme yetkiniz yok.')
+            return redirect('producer:dashboard')
+    
+    # Takip geçmişini al
+    tracking_history = shipment.tracking_history.select_related().order_by('-timestamp')
+    
+    # Güncel alıcı ve gönderen bilgilerini al
+    recipient_name = shipment.recipient_name
+    recipient_address = shipment.recipient_address
+    recipient_phone = shipment.recipient_phone
+    
+    sender_name = shipment.sender_name
+    sender_address = shipment.sender_address
+    sender_phone = shipment.sender_phone
+    
+    # Eğer alıcı bir işitme merkezi ise, güncel bilgilerini al
+    try:
+        from center.models import Center
+        center = Center.objects.filter(name__iexact=recipient_name.strip()).first()
+        if not center:
+            center = Center.objects.filter(name__icontains=recipient_name.strip()).first()
+        if center:
+            recipient_address = center.address if center.address else recipient_address
+            recipient_phone = center.phone if center.phone else recipient_phone
+            recipient_name = center.name
+    except Exception as e:
+        logger.error(f"Center bilgisi alınırken hata: {e}")
+    
+    # Eğer gönderen bir üretici merkezi ise, güncel bilgilerini al
+    try:
+        producer = Producer.objects.filter(company_name__iexact=sender_name.strip()).first()
+        if not producer:
+            producer = Producer.objects.filter(company_name__icontains=sender_name.strip()).first()
+        if producer:
+            sender_address = producer.address if producer.address else sender_address
+            sender_phone = producer.phone if producer.phone else sender_phone
+            sender_name = producer.company_name
+    except Exception as e:
+        logger.error(f"Producer bilgisi alınırken hata: {e}")
+    
+    # Kullanılabilir etiket şablonları
+    available_templates = CargoLabelManager.get_available_templates()
+    
+    context = {
+        'shipment': shipment,
+        'tracking_history': tracking_history,
+        'tracking_url': shipment.get_tracking_url(),
+        'recipient_name': recipient_name,
+        'recipient_address': recipient_address,
+        'recipient_phone': recipient_phone,
+        'sender_name': sender_name,
+        'sender_address': sender_address,
+        'sender_phone': sender_phone,
+        'available_templates': available_templates,
+    }
+    
+    return render(request, 'producer/cargo_shipment_detail.html', context)
+
+
+@login_required
+@producer_required
+@require_http_methods(["POST"])
+def producer_generate_cargo_label(request, shipment_id):
+    """Üretici için kargo etiketi oluştur (AJAX)"""
+    from core.models import CargoShipment, CargoLabel
+    from core.cargo_label_service import CargoLabelManager
+    
+    try:
+        shipment = get_object_or_404(CargoShipment, id=shipment_id)
+        
+        # İzin kontrolü
+        if not request.user.is_superuser:
+            if shipment.sender_name != request.user.producer.company_name:
+                return JsonResponse({'success': False, 'error': 'Yetkisiz işlem'})
+        
+        label_type = request.POST.get('label_type', 'pdf')
+        template_id = request.POST.get('template_id')
+        
+        # Şablon seçimi
+        template = None
+        if template_id:
+            template = get_object_or_404(CargoLabel, id=template_id, is_active=True)
+        
+        # Etiket oluştur
+        result = CargoLabelManager.generate_label(shipment, label_type, template)
+        
+        return JsonResponse(result)
+    
+    except Exception as e:
+        logger.error(f"Kargo etiketi oluşturma hatası: {str(e)}")
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required
+@producer_required
+@require_http_methods(["POST"])
+def producer_print_cargo_label(request, shipment_id):
+    """Üretici için kargo etiketini yazdır"""
+    from core.models import CargoShipment
+    from core.cargo_label_service import CargoLabelManager
+    
+    try:
+        shipment = get_object_or_404(CargoShipment, id=shipment_id)
+        
+        # İzin kontrolü
+        if not request.user.is_superuser:
+            if shipment.sender_name != request.user.producer.company_name:
+                return JsonResponse({'success': False, 'error': 'Yetkisiz işlem'})
+        
+        result = CargoLabelManager.print_label(shipment)
+        
+        return JsonResponse(result)
+    
+    except Exception as e:
+        logger.error(f"Kargo etiketi yazdırma hatası: {str(e)}")
+        return JsonResponse({'success': False, 'error': str(e)})
 
 
 

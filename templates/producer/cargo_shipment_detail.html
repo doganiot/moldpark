@@ -1,0 +1,316 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Kargo Gönderisi Detayı - {{ shipment.tracking_number|default:"Yeni Gönderi" }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <!-- Gönderi Başlığı -->
+        <div class="col-12 mb-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="fas fa-truck me-2 text-primary"></i>
+                        Kargo Gönderisi Detayı
+                    </h2>
+                    {% if shipment.tracking_number %}
+                        <p class="text-muted mb-0">Takip Numarası: <code>{{ shipment.tracking_number }}</code></p>
+                    {% else %}
+                        <p class="text-muted mb-0">Henüz takip numarası atanmadı</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <a href="{% url 'producer:dashboard' %}" class="btn btn-outline-secondary me-2">
+                        <i class="fas fa-arrow-left me-1"></i>Geri Dön
+                    </a>
+                    {% if shipment.tracking_url %}
+                        <a href="{{ shipment.tracking_url }}" target="_blank" class="btn btn-primary">
+                            <i class="fas fa-external-link-alt me-1"></i>Kargo Firmasında Takip Et
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Gönderi Bilgileri -->
+        <div class="col-lg-8 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Gönderi Bilgileri
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-primary mb-3">Kargo Bilgileri</h6>
+                            <p class="mb-2">
+                                <strong>Kargo Firması:</strong> {{ shipment.cargo_company.display_name }}
+                            </p>
+                            <p class="mb-2">
+                                <strong>Durum:</strong>
+                                {% if shipment.status == 'pending' %}
+                                    <span class="badge bg-warning">
+                                        <i class="fas fa-clock me-1"></i>Hazırlanıyor
+                                    </span>
+                                {% elif shipment.status == 'picked_up' %}
+                                    <span class="badge bg-info">
+                                        <i class="fas fa-hand-paper me-1"></i>Alındı
+                                    </span>
+                                {% elif shipment.status == 'in_transit' %}
+                                    <span class="badge bg-primary">
+                                        <i class="fas fa-truck me-1"></i>Yolda
+                                    </span>
+                                {% elif shipment.status == 'out_for_delivery' %}
+                                    <span class="badge bg-secondary">
+                                        <i class="fas fa-dolly me-1"></i>Dağıtıma Çıktı
+                                    </span>
+                                {% elif shipment.status == 'delivered' %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check-circle me-1"></i>Teslim Edildi
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ shipment.get_status_display }}</span>
+                                {% endif %}
+                            </p>
+                            <p class="mb-2">
+                                <strong>Ağırlık:</strong> {{ shipment.weight_kg }} kg
+                            </p>
+                            <p class="mb-2">
+                                <strong>Paket:</strong> {{ shipment.package_count }} adet
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Gönderen ve Alıcı Bilgileri -->
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <h6 class="text-primary mb-3">
+                                <i class="fas fa-user me-2"></i>Gönderen (Siz)
+                            </h6>
+                            <div class="border rounded p-3 bg-light">
+                                <p class="mb-1"><strong>{{ sender_name }}</strong></p>
+                                <p class="mb-1 small">{{ sender_address }}</p>
+                                <p class="mb-0 small text-muted">
+                                    <i class="fas fa-phone me-1"></i>{{ sender_phone }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <h6 class="text-primary mb-3">
+                                <i class="fas fa-map-marker-alt me-2"></i>Alıcı (İşitme Merkezi)
+                            </h6>
+                            <div class="border rounded p-3 bg-light">
+                                <p class="mb-1"><strong>{{ recipient_name }}</strong></p>
+                                <p class="mb-1 small">{{ recipient_address }}</p>
+                                <p class="mb-0 small text-muted">
+                                    <i class="fas fa-phone me-1"></i>{{ recipient_phone }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if shipment.description %}
+                        <div class="mt-4">
+                            <h6 class="text-primary mb-2">
+                                <i class="fas fa-sticky-note me-2"></i>İçerik Açıklaması
+                            </h6>
+                            <div class="alert alert-light">
+                                {{ shipment.description }}
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Etiket İşlemleri -->
+        <div class="col-lg-4 mb-4">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-tag me-2"></i>
+                        Kargo Etiketi
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if shipment.label_generated %}
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle me-2"></i>
+                            Etiket oluşturulmuş ({{ shipment.label_print_count }} kez yazdırılmış)
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            {% if shipment.label_file %}
+                                <a href="{{ shipment.label_file.url }}"
+                                   target="_blank"
+                                   class="btn btn-outline-primary">
+                                    <i class="fas fa-eye me-2"></i>Etiketi Görüntüle
+                                </a>
+                            {% endif %}
+
+                            <button class="btn btn-success"
+                                    onclick="printLabel({{ shipment.id }})">
+                                <i class="fas fa-print me-2"></i>Yazdır
+                            </button>
+
+                            <button class="btn btn-outline-secondary"
+                                    onclick="regenerateLabel({{ shipment.id }})">
+                                <i class="fas fa-sync me-2"></i>Yeniden Oluştur
+                            </button>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Henüz etiket oluşturulmamış
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-primary"
+                                    onclick="generateLabel({{ shipment.id }}, 'pdf')">
+                                <i class="fas fa-file-pdf me-2"></i>PDF Etiket Oluştur
+                            </button>
+
+                            <button class="btn btn-outline-primary"
+                                    onclick="generateLabel({{ shipment.id }}, 'thermal')">
+                                <i class="fas fa-receipt me-2"></i>Termal Etiket Oluştur
+                            </button>
+                        </div>
+                    {% endif %}
+
+                    <hr class="my-3">
+
+                    <div class="small text-muted">
+                        <strong>Etiket Türü:</strong> {{ shipment.get_label_type_display|default:"Henüz oluşturulmadı" }}<br>
+                        {% if shipment.label_generated_at %}
+                            <strong>Oluşturulma:</strong> {{ shipment.label_generated_at|date:"d.m.Y H:i" }}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function generateLabel(shipmentId, labelType) {
+    if (!confirm('Etiket oluşturmak istediğinizden emin misiniz?')) {
+        return;
+    }
+
+    const button = event.target.closest('button');
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Oluşturuluyor...';
+    button.disabled = true;
+
+    fetch(`/producer/cargo/shipment/${shipmentId}/generate-label/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': getCsrfToken()
+        },
+        body: `label_type=${labelType}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Etiket başarıyla oluşturuldu!');
+            location.reload();
+        } else {
+            alert('Hata: ' + (data.message || 'Etiket oluşturulamadı'));
+            button.innerHTML = originalText;
+            button.disabled = false;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Bir hata oluştu');
+        button.innerHTML = originalText;
+        button.disabled = false;
+    });
+}
+
+function regenerateLabel(shipmentId) {
+    if (!confirm('Etiketi yeniden oluşturmak istediğinizden emin misiniz?')) {
+        return;
+    }
+
+    const button = event.target.closest('button');
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Yeniden Oluşturuluyor...';
+    button.disabled = true;
+
+    fetch(`/producer/cargo/shipment/${shipmentId}/generate-label/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': getCsrfToken()
+        },
+        body: 'label_type=pdf'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Etiket başarıyla yeniden oluşturuldu!');
+            location.reload();
+        } else {
+            alert('Hata: ' + (data.message || 'Etiket yeniden oluşturulamadı'));
+            button.innerHTML = originalText;
+            button.disabled = false;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Bir hata oluştu');
+        button.innerHTML = originalText;
+        button.disabled = false;
+    });
+}
+
+function printLabel(shipmentId) {
+    const button = event.target.closest('button');
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Yazdırılıyor...';
+    button.disabled = true;
+
+    fetch(`/producer/cargo/shipment/${shipmentId}/print-label/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCsrfToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Etiket dosyasını yeni sekmede aç
+            if (data.file_url) {
+                window.open(data.file_url, '_blank');
+            }
+            alert('Etiket yazdırma için hazır!');
+            button.innerHTML = originalText;
+            button.disabled = false;
+        } else {
+            alert('Hata: ' + (data.message || 'Yazdırma işlemi başarısız'));
+            button.innerHTML = originalText;
+            button.disabled = false;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Bir hata oluştu');
+        button.innerHTML = originalText;
+        button.disabled = false;
+    });
+}
+
+function getCsrfToken() {
+    const token = document.querySelector('[name=csrfmiddlewaretoken]');
+    return token ? token.value : '';
+}
+</script>
+{% endblock %}

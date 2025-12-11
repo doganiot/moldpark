@@ -86,6 +86,8 @@ urlpatterns = [
 
     # Yeni Admin Finans Dashboard
     path('admin/financial/', views.admin_financial_dashboard, name='admin_financial_dashboard'),
+    path('admin/financial/pending-payments/', views.admin_pending_payments, name='admin_pending_payments'),
+    path('admin/financial/payments/<int:payment_id>/approve/', views.admin_approve_payment, name='admin_approve_payment'),
     path('admin/invoices/', views.admin_invoice_management, name='admin_invoice_management'),
     path('admin/invoices/<int:invoice_id>/', views.admin_invoice_detail, name='admin_invoice_detail'),
     path('admin/generate-invoices/', views.admin_generate_invoices, name='admin_generate_invoices'),

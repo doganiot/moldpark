@@ -1843,19 +1843,62 @@ class Payment(models.Model):
         return f'{self.user.get_full_name()} - {self.amount} ₺ - {self.get_status_display()}'
     
     def confirm_payment(self):
-        """Ödemeyi onaylı duruma getir"""
+        """Ödemeyi onaylı duruma getir ve faturayı ödendi yap"""
         self.status = 'confirmed'
         self.confirmed_at = timezone.now()
         self.save()
+        
+        # Havale/EFT ödemeleri için direkt faturayı ödendi yap
+        if self.payment_method and self.payment_method.method_type == 'bank_transfer':
+            if self.invoice.status != 'paid':
+                self.invoice.mark_as_paid(
+                    payment_method='Havale/EFT',
+                    transaction_id=self.bank_confirmation_number or self.transaction_id or self.invoice.invoice_number
+                )
+                # Payment durumunu da completed yap
+                self.status = 'completed'
+                self.save()
+                
+                # Kullanıcıya bildirim gönder
+                from core.models import SimpleNotification
+                SimpleNotification.objects.create(
+                    user=self.user,
+                    title='✅ Ödemeniz Onaylandı',
+                    message=f'₺{self.amount} tutarındaki havale ödemeniz onaylandı ve fatura ödendi olarak işaretlendi.',
+                    notification_type='success',
+                    related_url=f'/financial/invoices/{self.invoice.id}/'
+                )
     
     def complete_payment(self):
-        """Ödemeyi tamamlandı duruma getir"""
+        """Ödemeyi tamamlandı duruma getir ve faturayı ödendi yap"""
         self.status = 'completed'
+        
+        # Faturayı ödendi yap (eğer henüz ödenmemişse)
+        if self.invoice.status != 'paid':
+            payment_method_name = 'Kredi Kartı'
+            if self.payment_method:
+                if self.payment_method.method_type == 'bank_transfer':
+                    payment_method_name = 'Havale/EFT'
+                else:
+                    payment_method_name = self.payment_method.get_method_type_display()
+            
         self.invoice.mark_as_paid(
-            payment_method=self.payment_method.get_method_type_display(),
-            transaction_id=self.transaction_id or self.bank_confirmation_number
+                payment_method=payment_method_name,
+                transaction_id=self.transaction_id or self.bank_confirmation_number or self.invoice.invoice_number
         )
+        
         self.save()
+        
+        # Kullanıcıya bildirim gönder (eğer confirmed'den complete'e geçiyorsa)
+        if not hasattr(self, '_notification_sent'):
+            from core.models import SimpleNotification
+            SimpleNotification.objects.create(
+                user=self.user,
+                title='✅ Ödemeniz Tamamlandı',
+                message=f'₺{self.amount} tutarındaki ödemeniz tamamlandı ve fatura ödendi olarak işaretlendi.',
+                notification_type='success',
+                related_url=f'/financial/invoices/{self.invoice.id}/'
+            )
 
 
 @receiver(post_save, sender=Payment)

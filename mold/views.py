@@ -35,6 +35,21 @@ def mold_list(request):
     try:
         center = request.user.center
         molds = center.molds.all().order_by('-created_at')
+
+        # Basit filtreleme
+        patient_name = request.GET.get('patient_name', '').strip()
+        mold_type = request.GET.get('mold_type', '').strip()
+        status = request.GET.get('status', '').strip()
+
+        if patient_name:
+            molds = molds.filter(
+                Q(patient_name__icontains=patient_name) |
+                Q(patient_surname__icontains=patient_name)
+            )
+        if mold_type:
+            molds = molds.filter(mold_type=mold_type)
+        if status:
+            molds = molds.filter(status=status)
         
         # İstatistikler
         stats = {
@@ -47,7 +62,14 @@ def mold_list(request):
         
         return render(request, 'mold/mold_list.html', {
             'molds': molds,
-            'stats': stats
+            'stats': stats,
+            'filter_values': {
+                'patient_name': patient_name,
+                'mold_type': mold_type,
+                'status': status,
+            },
+            'mold_type_choices': EarMold.MOLD_TYPE_CHOICES,
+            'status_choices': EarMold.STATUS_CHOICES,
         })
     except Exception as e:
         logger.error(f"Mold list error: {e}")

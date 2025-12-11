@@ -685,6 +685,38 @@ def admin_financial_control_panel(request):
     total_gross_revenue = Decimal('0.00')  # Fiziksel + Dijital hizmetler toplamı (aylık ücret hariç)
 
     for center in all_centers:
+        # Bu dönemde normal fatura (PKG- prefix'i olmayan) kesilmiş mi kontrol et
+        # start_date ve end_date datetime objesi, issue_date ise date objesi
+        start_date_only = start_date.date() if hasattr(start_date, 'date') else start_date
+        end_date_only = end_date.date() if hasattr(end_date, 'date') else end_date
+        
+        regular_invoices_in_period = Invoice.objects.filter(
+            issued_by_center=center,
+            invoice_type='center_admin_invoice',
+            issue_date__gte=start_date_only,
+            issue_date__lte=end_date_only
+        ).exclude(invoice_number__startswith='PKG-').order_by('-issue_date')
+        
+        # En son fatura tarihini bul (eğer fatura varsa)
+        latest_invoice = regular_invoices_in_period.first() if regular_invoices_in_period.exists() else None
+        latest_invoice_date = latest_invoice.issue_date if latest_invoice else None
+        
+        # Fatura kesilmişse, fatura tarihinden SONRA oluşturulan hizmetleri göstermek için
+        # start_date'i fatura tarihinden sonraya taşı
+        effective_start_date = start_date
+        has_existing_invoice = latest_invoice is not None
+        
+        if has_existing_invoice and latest_invoice_date:
+            # Fatura tarihinden bir gün sonrasından başla
+            from datetime import time as dt_time
+            if isinstance(latest_invoice_date, datetime):
+                effective_start_date = latest_invoice_date + timedelta(days=1)
+            else:
+                # date objesi ise datetime'a çevir
+                effective_start_date = timezone.make_aware(
+                    datetime.combine(latest_invoice_date + timedelta(days=1), dt_time.min)
+                )
+        
         # Paket faturalarını kontrol et (PKG- prefix'li faturalar)
         # Tarih filtresini kaldırdık çünkü paket faturaları her zaman gösterilmeli
         package_invoices = Invoice.objects.filter(
@@ -746,12 +778,13 @@ def admin_financial_control_panel(request):
         # SADECE fatura KESİLMİŞ ise paket faturası değer kabul et. Fatura kesılmadıysa fiziksel kalıpları hesapla
         has_package_invoice = package_invoices_in_period.exists()  # Seçili tarihte kesılen paket faturası varsa
         if not has_package_invoice:
-            # Bu merkezden gönderilen fiziksel kalıplar
+            # Bu merkezden gönderilen fiziksel kalıplar (effective_start_date kullan - fatura tarihinden sonrası)
             physical_molds = EarMold.objects.filter(
                 center=center,
                 is_physical_shipment=True,
-                created_at__gte=start_date,
-                created_at__lte=end_date
+                created_at__gte=effective_start_date,
+                created_at__lte=end_date,
+                status__in=['completed', 'delivered', 'shipped_to_center']
             )
             
             # 3D modelleme hizmeti: is_physical_shipment=False olanlar VEYA ModeledMold kaydı olanlar
@@ -759,8 +792,9 @@ def admin_financial_control_panel(request):
             from mold.models import ModeledMold
             digital_only_molds = EarMold.objects.filter(
                 center=center,
-                created_at__gte=start_date,
-                created_at__lte=end_date
+                created_at__gte=effective_start_date,
+                created_at__lte=end_date,
+                status__in=['completed', 'delivered']
             ).filter(
                 Q(is_physical_shipment=False) | Q(modeled_files__isnull=False)
             ).distinct()
@@ -909,15 +943,27 @@ def admin_financial_control_panel(request):
             vat_amount = Decimal('0.00')
             moldpark_fee = Decimal('0.00')
             net_to_producer = Decimal('0.00')
+            amount_after_monthly_fee = Decimal('0.00')
         
-        # Toplamlara ekle - Paket faturası varsa veya tek tek kalıp varsa ekle
+        # Tüm merkezleri göster (hizmet olsun ya da olmasın, fatura kesilmiş olsun ya da olmasın)
+        # Eğer fatura kesilmiş ama yeni hizmet yoksa, sadece gösterim için sıfır değerler
+        if has_existing_invoice and physical_count == 0 and digital_count == 0 and not has_package_invoice:
+            gross_amount_with_vat = Decimal('0.00')
+            gross_amount_without_vat = Decimal('0.00')
+            vat_amount = Decimal('0.00')
+            moldpark_fee = Decimal('0.00')
+            net_to_producer = Decimal('0.00')
+            amount_after_monthly_fee = Decimal('0.00')
+        
+        # Toplamlara ekle - sadece hizmet varsa veya paket faturası varsa
         if gross_amount_with_vat > 0 or has_package_invoice:
             if gross_amount_with_vat > 0:
                 total_collections_from_centers += gross_amount_with_vat
                 # MoldPark komisyonu için toplam brüt gelir (sadece fiziksel + dijital hizmetler, aylık ücret hariç)
                 total_gross_revenue += amount_after_monthly_fee
-            
-            centers_with_physical_molds.append({
+        
+        # Her zaman merkezi listeye ekle
+        centers_with_physical_molds.append({
                 'center': center,
                 'physical_count': physical_count,
                 'digital_count': digital_count,
@@ -931,6 +977,10 @@ def admin_financial_control_panel(request):
                 'digital_after_pro_count': digital_after_pro_count,
                 'digital_before_pro_amount': digital_before_pro_amount,
                 'digital_after_pro_amount': digital_after_pro_amount,
+                'has_existing_invoice': has_existing_invoice,
+                'latest_invoice': latest_invoice,
+                'latest_invoice_number': latest_invoice.invoice_number if latest_invoice else None,
+                'latest_invoice_date': latest_invoice_date,
                 'has_pro_subscription': pro_subscription_start is not None,
                 'package_amount': package_amount if has_package_invoice else Decimal('0.00'),
                 'package_info': package_info,
@@ -1256,33 +1306,55 @@ def create_single_center_invoice(request, center_id):
             invoice_type='center_admin_invoice',
             issue_date__gte=start_date.date(),
             issue_date__lte=end_date.date()
-        ).first()
+        ).exclude(invoice_number__startswith='PKG-').order_by('-issue_date').first()
         
+        # Eğer fatura varsa, fatura tarihinden SONRA oluşturulan hizmetler var mı kontrol et
+        effective_start_date = start_date
         if existing_invoice:
-            return JsonResponse({
-                'success': False,
-                'error': f'Bu merkez için bu dönemde zaten fatura kesilmiş: {existing_invoice.invoice_number}'
-            })
+            # Fatura tarihinden sonraki hizmetler için fatura kes
+            invoice_date = existing_invoice.issue_date
+            from datetime import time as dt_time
+            if isinstance(invoice_date, datetime):
+                effective_start_date = invoice_date + timedelta(days=1)
+            else:
+                # date objesi ise datetime'a çevir
+                effective_start_date = timezone.make_aware(
+                    datetime.combine(invoice_date + timedelta(days=1), dt_time.min)
+                )
         
-        # Bu merkezden gönderilen fiziksel kalıplar
+        # Fatura tarihinden SONRA oluşturulan hizmetleri al
         physical_molds = EarMold.objects.filter(
             center=center,
             is_physical_shipment=True,
-            created_at__gte=start_date,
-            created_at__lte=end_date
+            created_at__gte=effective_start_date,
+            created_at__lte=end_date,
+            status__in=['completed', 'delivered', 'shipped_to_center']
         )
         
         # 3D modelleme hizmeti: is_physical_shipment=False olanlar VEYA ModeledMold kaydı olanlar
         digital_only_molds = EarMold.objects.filter(
             center=center,
-            created_at__gte=start_date,
-            created_at__lte=end_date
+            created_at__gte=effective_start_date,
+            created_at__lte=end_date,
+            status__in=['completed', 'delivered']
         ).filter(
             Q(is_physical_shipment=False) | Q(modeled_files__isnull=False)
         ).distinct()
         
         physical_count = physical_molds.count()
         digital_count = digital_only_molds.count()
+        
+        # Fatura kesildikten sonra yeni hizmet yoksa hata dön
+        if existing_invoice and physical_count == 0 and digital_count == 0:
+            return JsonResponse({
+                'success': False,
+                'error': f'Bu merkez için {existing_invoice.invoice_number} numaralı fatura kesilmiş (tarih: {existing_invoice.issue_date}). Fatura tarihinden sonra yeni hizmet bulunmamaktadır.'
+            })
+        elif not existing_invoice and physical_count == 0 and digital_count == 0:
+            return JsonResponse({
+                'success': False,
+                'error': 'Bu dönemde bu merkezden gönderilen fiziksel kalıp veya 3D modelleme hizmeti bulunmamaktadır.'
+            })
         
         # Dinamik fiyat hesaplamaları - Her kalıp için o tarihteki abonelik planına göre fiyatlandırma
         # Standart aboneyken yapılan harcamalar Standart fiyatlar, Pro'ya geçtikten sonra Pro fiyatlar

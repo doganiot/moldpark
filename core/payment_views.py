@@ -219,10 +219,10 @@ def invoice_payment_bank_transfer(request, invoice_id):
             for admin in admin_users:
                 SimpleNotification.objects.create(
                     user=admin,
-                    title='Havale Odeme Talep Edildi',
-                    message=f'{request.user.get_full_name()} tarafından ₺{invoice.total_amount} tutarında havale ödemesi yapılmıştır.',
+                    title='💰 Havale Ödeme Talep Edildi',
+                    message=f'{request.user.get_full_name()} tarafından {invoice.invoice_number} numaralı fatura için ₺{invoice.total_amount} tutarında havale ödemesi yapılmıştır. Ödemeyi onaylamak için tıklayın.',
                     notification_type='warning',
-                    related_url=f'/admin/'
+                    related_url=f'/admin/financial/pending-payments/'
                 )
             
             messages.success(

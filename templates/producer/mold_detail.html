@@ -1271,10 +1271,23 @@ function showSuccess(message) {
                         {% if ear_mold.status == 'shipped_to_center' %}
                         <div class="col-md-6 mb-3">
                             <a href="{% url 'producer:mark_delivered' ear_mold.id %}"
-                               class="btn btn-success btn-lg w-100">
+                               class="btn btn-success btn-lg w-100 mb-2">
                                 <i class="fas fa-check-double me-2"></i>
                                 Teslim Edildi
                             </a>
+                            {% if cargo_shipment %}
+                                <a href="{% url 'producer:cargo_shipment_detail' cargo_shipment.id %}" 
+                                   class="btn btn-info btn-lg w-100">
+                                    <i class="fas fa-tag me-2"></i>
+                                    Kargo Etiketi
+                                </a>
+                            {% elif ear_mold.tracking_number %}
+                                <a href="{% url 'producer:ship_to_center' ear_mold.id %}" 
+                                   class="btn btn-outline-info btn-lg w-100">
+                                    <i class="fas fa-tag me-2"></i>
+                                    Kargo Etiketi Oluştur
+                                </a>
+                            {% endif %}
                         </div>
                         {% endif %}
                     </div>

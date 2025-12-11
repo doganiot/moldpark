@@ -384,29 +384,22 @@
                             
                             <div class="row">
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label">İletişim Kişisi *</label>
-                                    {{ form.contact_person }}
-                                    {% if form.contact_person.errors %}
-                                        <div class="text-danger">{{ form.contact_person.errors.0 }}</div>
-                                    {% endif %}
-                                </div>
-                                <div class="col-md-6 mb-3">
                                     <label class="form-label">Telefon *</label>
                                     {{ form.phone }}
                                     {% if form.phone.errors %}
                                         <div class="text-danger">{{ form.phone.errors.0 }}</div>
                                     {% endif %}
                                 </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">İletişim E-posta</label>
+                                    {{ form.contact_email }}
+                                    {% if form.contact_email.errors %}
+                                        <div class="text-danger">{{ form.contact_email.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
                             </div>
                             
                             <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">E-posta *</label>
-                                    {{ form.email }}
-                                    {% if form.email.errors %}
-                                        <div class="text-danger">{{ form.email.errors.0 }}</div>
-                                    {% endif %}
-                                </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Website</label>
                                     {{ form.website }}
@@ -444,6 +437,35 @@
                                 {% if form.description.errors %}
                                     <div class="text-danger">{{ form.description.errors.0 }}</div>
                                 {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Logo and Settings -->
+                        <div class="mb-4">
+                            <h5><i class="fas fa-image text-primary me-2"></i>Logo ve Ayarlar</h5>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Logo</label>
+                                    {% if producer.logo %}
+                                        <div class="mb-2">
+                                            <img src="{{ producer.logo.url }}" alt="Mevcut Logo" class="img-thumbnail" style="max-width: 200px; max-height: 200px;">
+                                        </div>
+                                    {% endif %}
+                                    {{ form.logo }}
+                                    {% if form.logo.errors %}
+                                        <div class="text-danger">{{ form.logo.errors.0 }}</div>
+                                    {% endif %}
+                                    <small class="form-text text-muted">Yeni logo yüklemek için dosya seçin</small>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Bildirim Tercihleri</label>
+                                    {{ form.notification_preferences }}
+                                    {% if form.notification_preferences.errors %}
+                                        <div class="text-danger">{{ form.notification_preferences.errors.0 }}</div>
+                                    {% endif %}
+                                    <small class="form-text text-muted">Virgülle ayrılmış bildirim türleri</small>
+                                </div>
                             </div>
                         </div>
                         

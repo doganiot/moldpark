@@ -1,4 +1,5 @@
 from django import forms
+from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Row, Column, Submit, Div, Field
@@ -108,41 +109,75 @@ class ProducerProfileForm(forms.ModelForm):
             'logo', 'notification_preferences'
         ]
         widgets = {
-            'description': forms.Textarea(attrs={'rows': 3}),
-            'address': forms.Textarea(attrs={'rows': 2}),
+            'company_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'brand_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+            'producer_type': forms.Select(attrs={'class': 'form-select'}),
+            'address': forms.Textarea(attrs={'rows': 2, 'class': 'form-control'}),
+            'phone': forms.TextInput(attrs={'class': 'form-control'}),
+            'contact_email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'website': forms.URLInput(attrs={'class': 'form-control'}),
+            'tax_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'trade_registry': forms.TextInput(attrs={'class': 'form-control'}),
+            'established_year': forms.NumberInput(attrs={'class': 'form-control'}),
+            'logo': forms.FileInput(attrs={'class': 'form-control'}),
+            'notification_preferences': forms.TextInput(attrs={'class': 'form-control'}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        self.helper.layout = Layout(
-            Row(
-                Column('company_name', css_class='form-group col-md-8 mb-0'),
-                Column('producer_type', css_class='form-group col-md-4 mb-0'),
-                css_class='form-row'
-            ),
-            Row(
-                Column('brand_name', css_class='form-group col-md-6 mb-0'),
-                Column('website', css_class='form-group col-md-6 mb-0'),
-                css_class='form-row'
-            ),
-            'description',
-            Row(
-                Column('phone', css_class='form-group col-md-4 mb-0'),
-                Column('contact_email', css_class='form-group col-md-8 mb-0'),
-                css_class='form-row'
-            ),
-            'address',
-            Row(
-                Column('tax_number', css_class='form-group col-md-4 mb-0'),
-                Column('trade_registry', css_class='form-group col-md-4 mb-0'),
-                Column('established_year', css_class='form-group col-md-4 mb-0'),
-                css_class='form-row'
-            ),
-            'logo',
-            'notification_preferences',
-            Submit('submit', 'Profili Güncelle', css_class='btn btn-primary')
-        )
+        # Crispy forms helper (opsiyonel - template manuel render kullanıyor)
+        try:
+            self.helper = FormHelper()
+            self.helper.layout = Layout(
+                Row(
+                    Column('company_name', css_class='form-group col-md-8 mb-0'),
+                    Column('producer_type', css_class='form-group col-md-4 mb-0'),
+                    css_class='form-row'
+                ),
+                Row(
+                    Column('brand_name', css_class='form-group col-md-6 mb-0'),
+                    Column('website', css_class='form-group col-md-6 mb-0'),
+                    css_class='form-row'
+                ),
+                'description',
+                Row(
+                    Column('phone', css_class='form-group col-md-4 mb-0'),
+                    Column('contact_email', css_class='form-group col-md-8 mb-0'),
+                    css_class='form-row'
+                ),
+                'address',
+                Row(
+                    Column('tax_number', css_class='form-group col-md-4 mb-0'),
+                    Column('trade_registry', css_class='form-group col-md-4 mb-0'),
+                    Column('established_year', css_class='form-group col-md-4 mb-0'),
+                    css_class='form-row'
+                ),
+                'logo',
+                'notification_preferences',
+                Submit('submit', 'Profili Güncelle', css_class='btn btn-primary')
+            )
+        except:
+            pass  # Crispy forms yoksa devam et
+    
+    def clean_tax_number(self):
+        """Vergi numarası validasyonu"""
+        tax_number = self.cleaned_data.get('tax_number')
+        if tax_number:
+            # Mevcut instance'ı al (güncelleme durumunda)
+            instance = self.instance
+            if instance and instance.pk:
+                # Aynı vergi numarasına sahip başka bir üretici var mı kontrol et
+                from .models import Producer
+                existing = Producer.objects.filter(tax_number=tax_number).exclude(pk=instance.pk).first()
+                if existing:
+                    raise ValidationError('Bu vergi numarası başka bir üretici tarafından kullanılıyor.')
+            else:
+                # Yeni kayıt durumunda
+                from .models import Producer
+                if Producer.objects.filter(tax_number=tax_number).exists():
+                    raise ValidationError('Bu vergi numarası zaten kayıtlı.')
+        return tax_number
 
 
 class ProducerOrderForm(forms.ModelForm):

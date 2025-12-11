@@ -292,10 +292,93 @@ def cargo_shipment_detail(request, shipment_id):
     # Takip geçmişini al
     tracking_history = shipment.tracking_history.select_related().order_by('-timestamp')
 
+    # Güncel alıcı ve gönderen bilgilerini al (işitme merkezi veya üretici ise)
+    recipient_name = shipment.recipient_name
+    recipient_address = shipment.recipient_address
+    recipient_phone = shipment.recipient_phone
+    
+    sender_name = shipment.sender_name
+    sender_address = shipment.sender_address
+    sender_phone = shipment.sender_phone
+    
+    # Eğer alıcı bir işitme merkezi ise, güncel bilgilerini al
+    try:
+        from center.models import Center
+        # Önce tam eşleşme ara (case-insensitive)
+        center = Center.objects.filter(name__iexact=recipient_name.strip()).first()
+        if not center:
+            # Tam eşleşme bulunamazsa, içerik araması yap
+            center = Center.objects.filter(name__icontains=recipient_name.strip()).first()
+        if center:
+            # Güncel bilgileri kullan
+            recipient_address = center.address if center.address else recipient_address
+            recipient_phone = center.phone if center.phone else recipient_phone
+            recipient_name = center.name  # Adı da güncel olsun
+            logger.info(f"Alıcı için güncel Center bilgileri bulundu: {center.name}")
+    except Exception as e:
+        logger.error(f"Center bilgisi alınırken hata: {e}")
+    
+    # Eğer alıcı bir üretici merkezi ise, güncel bilgilerini al
+    try:
+        from producer.models import Producer
+        # Önce tam eşleşme ara (case-insensitive)
+        producer = Producer.objects.filter(company_name__iexact=recipient_name.strip()).first()
+        if not producer:
+            # Tam eşleşme bulunamazsa, içerik araması yap
+            producer = Producer.objects.filter(company_name__icontains=recipient_name.strip()).first()
+        if producer:
+            # Güncel bilgileri kullan
+            recipient_address = producer.address if producer.address else recipient_address
+            recipient_phone = producer.phone if producer.phone else recipient_phone
+            recipient_name = producer.company_name  # Adı da güncel olsun
+            logger.info(f"Alıcı için güncel Producer bilgileri bulundu: {producer.company_name}")
+    except Exception as e:
+        logger.error(f"Producer bilgisi alınırken hata: {e}")
+    
+    # Eğer gönderen bir işitme merkezi ise, güncel bilgilerini al
+    try:
+        from center.models import Center
+        # Önce tam eşleşme ara (case-insensitive)
+        center = Center.objects.filter(name__iexact=sender_name.strip()).first()
+        if not center:
+            # Tam eşleşme bulunamazsa, içerik araması yap
+            center = Center.objects.filter(name__icontains=sender_name.strip()).first()
+        if center:
+            # Güncel bilgileri kullan
+            sender_address = center.address if center.address else sender_address
+            sender_phone = center.phone if center.phone else sender_phone
+            sender_name = center.name  # Adı da güncel olsun
+            logger.info(f"Gönderen için güncel Center bilgileri bulundu: {center.name}")
+    except Exception as e:
+        logger.error(f"Center bilgisi alınırken hata: {e}")
+    
+    # Eğer gönderen bir üretici merkezi ise, güncel bilgilerini al
+    try:
+        from producer.models import Producer
+        # Önce tam eşleşme ara (case-insensitive)
+        producer = Producer.objects.filter(company_name__iexact=sender_name.strip()).first()
+        if not producer:
+            # Tam eşleşme bulunamazsa, içerik araması yap
+            producer = Producer.objects.filter(company_name__icontains=sender_name.strip()).first()
+        if producer:
+            # Güncel bilgileri kullan
+            sender_address = producer.address if producer.address else sender_address
+            sender_phone = producer.phone if producer.phone else sender_phone
+            sender_name = producer.company_name  # Adı da güncel olsun
+            logger.info(f"Gönderen için güncel Producer bilgileri bulundu: {producer.company_name}")
+    except Exception as e:
+        logger.error(f"Producer bilgisi alınırken hata: {e}")
+
     context = {
         'shipment': shipment,
         'tracking_history': tracking_history,
-        'tracking_url': shipment.get_tracking_url()
+        'tracking_url': shipment.get_tracking_url(),
+        'recipient_name': recipient_name,
+        'recipient_address': recipient_address,
+        'recipient_phone': recipient_phone,
+        'sender_name': sender_name,
+        'sender_address': sender_address,
+        'sender_phone': sender_phone,
     }
 
     return render(request, 'core/cargo/shipment_detail.html', context)
