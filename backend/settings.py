@@ -51,6 +51,8 @@ if DEBUG:
         'http://127.0.0.1:8000',
         'http://localhost:8002',
         'http://127.0.0.1:8002',
+        'https://www.moldpark.com',
+        'https://moldpark.com',
     ]
 else:
     ALLOWED_HOSTS = get_env_list(
