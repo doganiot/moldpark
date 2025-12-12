@@ -57,7 +57,17 @@ else:
         'ALLOWED_HOSTS',
         ['moldpark.com', 'www.moldpark.com', '72.62.0.8', '127.0.0.1', 'localhost'],
     )
-    default_csrf = [f"https://{host}" for host in ALLOWED_HOSTS if host not in {'*', ''}]
+    # CSRF_TRUSTED_ORIGINS - hem www hem de www olmayan versiyonları ekle
+    default_csrf = [
+        'https://moldpark.com',
+        'https://www.moldpark.com',
+    ]
+    # ALLOWED_HOSTS'den de ekle (IP adresleri için)
+    for host in ALLOWED_HOSTS:
+        if host not in {'*', ''} and not host.startswith('127.0.0.1') and not host.startswith('localhost'):
+            if not host.startswith('http'):
+                default_csrf.append(f"https://{host}")
+    
     CSRF_TRUSTED_ORIGINS = get_env_list('CSRF_TRUSTED_ORIGINS', default_csrf)
 
 
