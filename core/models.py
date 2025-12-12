@@ -857,19 +857,26 @@ class Invoice(models.Model):
     def __str__(self):
         return f'{self.invoice_number} - {self.user.get_full_name()} - ₺{self.total_amount}'
     
-    def calculate_center_invoice(self, subscription, period_start=None, period_end=None):
+    def calculate_center_invoice(self, subscription, period_start=None, period_end=None, include_monthly_fee=True):
         """İşitme merkezi faturası hesapla
 
         Args:
             subscription: Kullanıcı aboneliği
             period_start: Dönem başlangıcı (None ise aylık hesaplama)
             period_end: Dönem sonu (None ise aylık hesaplama)
+            include_monthly_fee: Aylık ücreti dahil et (varsayılan: True)
+                              False ise, bu ay için zaten aylık ücret alınmış demektir
         """
         from decimal import Decimal
         from django.db.models import Q
 
         self.invoice_type = 'center_monthly'
-        self.monthly_fee = subscription.plan.monthly_fee_try
+        
+        # Aylık ücret - eğer bu ay için zaten aylık ücret alınmışsa (center_admin_invoice'da), ekleme
+        if include_monthly_fee:
+            self.monthly_fee = subscription.plan.monthly_fee_try
+        else:
+            self.monthly_fee = Decimal('0.00')
 
         # Dönem belirleme
         if not period_start or not period_end:
@@ -903,6 +910,8 @@ class Invoice(models.Model):
         # KK komisyonu (varsa)
         if self.invoice_type == 'center_pay_per_use':
             self.credit_card_fee = self.subtotal * Decimal('0.026')  # %2.6
+        else:
+            self.credit_card_fee = Decimal('0.00')
 
         # Toplam
         self.total_amount = self.subtotal + self.credit_card_fee

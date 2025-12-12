@@ -1,8 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
-from .models import Center
-from .forms import CenterProfileForm, CenterLimitForm
+from .models import Center, Recipient, DeliveryNote, DeliveryNoteItem
+from .forms import CenterProfileForm, CenterLimitForm, RecipientForm, DeliveryNoteForm
 from .decorators import center_required, admin_required
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.forms import PasswordChangeForm
@@ -17,7 +17,9 @@ from producer.models import ProducerNetwork, Producer
 from django.http import JsonResponse, Http404
 from django.utils import timezone
 from django.core.paginator import Paginator
+from django.http import JsonResponse
 from core.models import Invoice
+import os
 
 # Create your views here.
 
@@ -229,7 +231,7 @@ def dashboard(request):
         has_active_subscription = True
         used_molds = subscription.models_used_this_month
         monthly_limit = subscription.plan.monthly_model_limit or 999999
-        remaining_limit = max(0, monthly_limit - used_molds)
+        remaining_limit = min(200, max(0, monthly_limit - used_molds))  # Maksimum 200 ile sınırla
         
         if monthly_limit > 0:
             usage_percentage = min(100, int((used_molds / monthly_limit) * 100))
@@ -922,12 +924,26 @@ def approve_delivery(request, mold_id):
     return render(request, 'center/approve_delivery.html', context)
 
 @login_required
+@center_required
 def change_avatar(request):
+    """Profil fotoğrafı değiştir"""
     center = request.user.center
+    
     if request.method == 'POST' and 'avatar' in request.FILES:
-        center.avatar = request.FILES['avatar']
-        center.save()
-        messages.success(request, 'Profil fotoğrafınız güncellendi.')
+        try:
+            # Eski avatar'ı sil (yeni avatar yüklenmeden önce)
+            if center.avatar:
+                old_avatar_path = center.avatar.path
+                if os.path.exists(old_avatar_path):
+                    os.remove(old_avatar_path)
+            
+            # Yeni avatar'ı kaydet
+            center.avatar = request.FILES['avatar']
+            center.save()
+            messages.success(request, 'Profil fotoğrafınız başarıyla güncellendi.')
+        except Exception as e:
+            messages.error(request, f'Fotoğraf yüklenirken bir hata oluştu: {str(e)}')
+    
     return redirect('center:profile')
 
 @login_required
@@ -2187,3 +2203,418 @@ def my_usage(request):
     }
     
     return render(request, 'center/my_usage.html', context)
+
+
+# ==================== SEVK İRSALİYESİ İŞLEMLERİ ====================
+
+@login_required
+@center_required
+def delivery_note_create(request):
+    """Sevk İrsaliyesi oluştur"""
+    center = request.user.center
+    
+    if request.method == 'POST':
+        form = DeliveryNoteForm(request.POST)
+        
+        if form.is_valid():
+            delivery_note = form.save(commit=False)
+            delivery_note.center = center
+            
+            # Alıcı bilgilerini ayarla
+            recipient_id = request.POST.get('recipient_id')
+            if recipient_id:
+                try:
+                    recipient = Recipient.objects.get(id=recipient_id, center=center)
+                    delivery_note.recipient = recipient
+                    delivery_note.recipient_company_name = recipient.company_name
+                    delivery_note.recipient_address = recipient.address
+                    delivery_note.recipient_city = recipient.city
+                    delivery_note.recipient_phone = recipient.phone
+                except Recipient.DoesNotExist:
+                    pass
+            
+            delivery_note.is_draft = False
+            if not delivery_note.issue_date:
+                from datetime import date
+                delivery_note.issue_date = date.today()
+            delivery_note.save()
+            
+            # Kalemleri kaydet
+            item_count = int(request.POST.get('items-TOTAL_FORMS', 0))
+            for i in range(item_count):
+                cinsi = request.POST.get(f'items-{i}-cinsi')
+                if cinsi:
+                    item = DeliveryNoteItem.objects.create(
+                        delivery_note=delivery_note,
+                        cinsi=cinsi,
+                        miktar=Decimal(request.POST.get(f'items-{i}-miktar', 1)),
+                        birim_fiyat=Decimal(request.POST.get(f'items-{i}-birim_fiyat', 0)),
+                        tutari=Decimal(request.POST.get(f'items-{i}-tutari', 0)),
+                        order=int(request.POST.get(f'items-{i}-order', i))
+                    )
+            
+            messages.success(request, f'Sevk İrsaliyesi başarıyla oluşturuldu. İrsaliye No: {delivery_note.note_number}')
+            return redirect('center:delivery_note_detail', pk=delivery_note.id)
+        else:
+            messages.error(request, 'Lütfen formu doğru şekilde doldurun.')
+    else:
+        # Varsayılan tarih bugün
+        from datetime import date
+        form = DeliveryNoteForm(initial={'issue_date': date.today()})
+    
+    # Kayıtlı alıcılar
+    recipients = Recipient.objects.filter(center=center, is_active=True).order_by('company_name')
+    
+    context = {
+        'form': form,
+        'recipients': recipients,
+        'center': center,
+    }
+    
+    return render(request, 'center/delivery_note_create.html', context)
+
+
+@login_required
+@center_required
+def delivery_note_list(request):
+    """Sevk İrsaliyeleri listesi"""
+    center = request.user.center
+    delivery_notes = DeliveryNote.objects.filter(center=center).order_by('-issue_date', '-created_at')
+    
+    # Sayfalama
+    paginator = Paginator(delivery_notes, 20)
+    page = request.GET.get('page')
+    notes = paginator.get_page(page)
+    
+    context = {
+        'delivery_notes': notes,
+        'center': center,
+    }
+    
+    return render(request, 'center/delivery_note_list.html', context)
+
+
+@login_required
+@center_required
+def delivery_note_detail(request, pk):
+    """Sevk İrsaliyesi detayı"""
+    center = request.user.center
+    delivery_note = get_object_or_404(DeliveryNote, id=pk, center=center)
+    
+    context = {
+        'delivery_note': delivery_note,
+        'center': center,
+    }
+    
+    return render(request, 'center/delivery_note_detail.html', context)
+
+
+@login_required
+@center_required
+def delivery_note_pdf(request, pk):
+    """Sevk İrsaliyesi PDF indir - ReportLab ile (Türkçe karakter desteği)"""
+    from django.http import HttpResponse
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+    from reportlab.lib import colors
+    from reportlab.lib.units import cm
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    import io
+    import os
+    from core.pdf_utils import safe_paragraph_text, TURKISH_FONT, TURKISH_FONT_BOLD
+    
+    center = request.user.center
+    delivery_note = get_object_or_404(DeliveryNote, id=pk, center=center)
+    
+    # PDF buffer oluştur
+    buffer = io.BytesIO()
+    
+    # PDF document oluştur
+    doc = SimpleDocTemplate(buffer, pagesize=A4, 
+                            rightMargin=1.2*cm, leftMargin=1.2*cm,
+                            topMargin=1*cm, bottomMargin=1*cm)
+    
+    styles = getSampleStyleSheet()
+    
+    # Özel stiller - Türkçe karakter desteği ile
+    # ReportLab Paragraph Unicode karakterleri destekler, font yüklüyse çalışır
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontName=TURKISH_FONT_BOLD,
+        fontSize=20,
+        textColor=colors.white,
+        alignment=2,  # Right alignment
+        spaceAfter=0
+    )
+    
+    normal_style = ParagraphStyle(
+        'CustomNormal',
+        parent=styles['Normal'],
+        fontName=TURKISH_FONT,
+        fontSize=8,
+        spaceAfter=2,
+        leading=10
+    )
+    
+    bold_style = ParagraphStyle(
+        'CustomBold',
+        parent=styles['Normal'],
+        fontName=TURKISH_FONT_BOLD,
+        fontSize=9,
+        spaceAfter=2,
+        leading=11
+    )
+    
+    small_style = ParagraphStyle(
+        'CustomSmall',
+        parent=styles['Normal'],
+        fontName=TURKISH_FONT,
+        fontSize=7,
+        spaceAfter=1,
+        leading=9
+    )
+    
+    # Font yükleme durumunu kontrol et ve uyarı ver
+    from core.pdf_utils import FONT_LOADED
+    if not FONT_LOADED:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning("PDF oluşturuluyor ancak Türkçe karakter desteği için font yüklü değil. Windows sistem fontlarını kontrol edin.")
+    
+    # Content listesi
+    content = []
+    
+    # Türkçe ay isimleri
+    month_names = [
+        'OCAK', 'ŞUBAT', 'MART', 'NİSAN', 'MAYIS', 'HAZİRAN',
+        'TEMMUZ', 'AĞUSTOS', 'EYLÜL', 'EKİM', 'KASIM', 'ARALIK'
+    ]
+    
+    # Tarih formatı: MAYIS 15, 2023
+    formatted_date = f"{month_names[delivery_note.issue_date.month - 1]} {delivery_note.issue_date.day}, {delivery_note.issue_date.year}"
+    
+    # Header - Mavi arka plan (merkez fotoğrafı ile)
+    # Merkez fotoğrafını kontrol et
+    header_left_content = None
+    if center.avatar and os.path.exists(center.avatar.path):
+        try:
+            # Merkez fotoğrafını ekle (küçük boyutta, yuvarlak değil kare)
+            header_left_content = Image(center.avatar.path, width=1.5*cm, height=1.5*cm)
+        except Exception as e:
+            # Fotoğraf yüklenemezse emoji kullan
+            header_left_content = Paragraph('<font color="white" size="20">👂</font>', normal_style)
+    else:
+        # Fotoğraf yoksa emoji kullan
+        header_left_content = Paragraph('<font color="white" size="20">👂</font>', normal_style)
+    
+    header_data = [
+        [header_left_content,
+         Paragraph(safe_paragraph_text('SEVK İRSALİYESİ'), title_style)]
+    ]
+    header_table = Table(header_data, colWidths=[2*cm, 16*cm])
+    header_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#4a90e2')),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('ALIGN', (0, 0), (0, 0), 'CENTER'),
+        ('LEFTPADDING', (0, 0), (0, 0), 15),
+        ('RIGHTPADDING', (1, 0), (1, 0), 15),
+        ('TOPPADDING', (0, 0), (-1, -1), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+    ]))
+    content.append(header_table)
+    content.append(Spacer(1, 8))
+    
+    # Gönderici ve Tarih (merkez fotoğrafı ile)
+    center_name_text = safe_paragraph_text(center.name)
+    center_address_text = safe_paragraph_text(center.address)
+    center_email_text = center.user.email if center.user.email else ""
+    
+    # Merkez fotoğrafını gönderici bilgileri yanına ekle
+    sender_left_content = None
+    if center.avatar and os.path.exists(center.avatar.path):
+        try:
+            # Merkez fotoğrafını ekle (daha büyük boyutta)
+            sender_left_content = Image(center.avatar.path, width=2.5*cm, height=2.5*cm)
+        except Exception:
+            sender_left_content = Paragraph('', normal_style)
+    else:
+        sender_left_content = Paragraph('', normal_style)
+    
+    sender_date_data = [
+        [
+            sender_left_content,
+            Paragraph(f'<b>{center_name_text}</b><br/>{center_address_text}<br/>e-posta: {center_email_text}', normal_style),
+            Paragraph(f'TARİH: {formatted_date}', bold_style)
+        ]
+    ]
+    sender_date_table = Table(sender_date_data, colWidths=[3*cm, 9*cm, 6*cm])
+    sender_date_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('ALIGN', (0, 0), (0, 0), 'CENTER'),
+        ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
+        ('LEFTPADDING', (0, 0), (0, 0), 0),
+        ('RIGHTPADDING', (0, 0), (0, 0), 10),
+    ]))
+    content.append(sender_date_table)
+    content.append(Spacer(1, 8))
+    
+    # Alıcı Bilgileri
+    recipient_company_text = safe_paragraph_text(delivery_note.recipient_company_name)
+    recipient_address_text = safe_paragraph_text(delivery_note.recipient_address)
+    recipient_city_text = safe_paragraph_text(delivery_note.recipient_city) if delivery_note.recipient_city else ""
+    recipient_phone_text = delivery_note.recipient_phone if delivery_note.recipient_phone else ""
+    
+    recipient_text = f'<b>SAYIN:</b><br/>'
+    recipient_text += f'<b>{recipient_company_text}</b><br/>'
+    recipient_text += f'{recipient_address_text}<br/>'
+    if recipient_city_text:
+        recipient_text += f'{recipient_city_text}<br/>'
+    if recipient_phone_text:
+        recipient_text += f'TEL: {recipient_phone_text}'
+    
+    recipient_data = [[Paragraph(recipient_text, normal_style)]]
+    recipient_table = Table(recipient_data, colWidths=[18*cm])
+    recipient_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f8f9fa')),
+        ('LEFTPADDING', (0, 0), (-1, -1), 8),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+        ('TOPPADDING', (0, 0), (-1, -1), 8),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('BORDER', (0, 0), (-1, -1), 0, colors.HexColor('#4a90e2'), 3, None, None, None, 0, 0, 0),
+    ]))
+    content.append(recipient_table)
+    content.append(Spacer(1, 8))
+    
+    # Tablo verisi - Türkçe karakter desteği için Paragraph kullan
+    table_data = [
+        [
+            Paragraph(safe_paragraph_text('SIRA'), bold_style),
+            Paragraph(safe_paragraph_text('CİNSİ'), bold_style),
+            Paragraph(safe_paragraph_text('MİKTAR'), bold_style),
+            Paragraph(safe_paragraph_text('BİRİM FİYAT'), bold_style),
+            Paragraph(safe_paragraph_text('TUTARI'), bold_style)
+        ]
+    ]
+    
+    items = delivery_note.note_items.all().order_by('order')
+    for item in items:
+        cinsi_text = safe_paragraph_text(item.cinsi)
+        table_data.append([
+            Paragraph(str(item.order + 1), normal_style),
+            Paragraph(cinsi_text, normal_style),
+            Paragraph(f'{item.miktar} adet', normal_style),
+            Paragraph(f'{item.birim_fiyat:.2f} TL' if item.birim_fiyat and item.birim_fiyat > 0 else '0', normal_style),
+            Paragraph(f'{item.tutari:.2f} TL' if item.tutari and item.tutari > 0 else '-', normal_style)
+        ])
+    
+    # Tablo oluştur
+    table = Table(table_data, colWidths=[1.2*cm, 8*cm, 2.5*cm, 3*cm, 3*cm])
+    
+    # Tablo stili - Türkçe karakter desteği ile
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#6c757d')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), TURKISH_FONT_BOLD),
+        ('FONTSIZE', (0, 0), (-1, 0), 8),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 5),
+        ('TOPPADDING', (0, 0), (-1, 0), 5),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('ALIGN', (2, 1), (-1, -1), 'RIGHT'),
+        ('ALIGN', (1, 1), (1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 4),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+        ('TOPPADDING', (0, 1), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 1), (-1, -1), 4),
+    ]))
+    
+    content.append(table)
+    content.append(Spacer(1, 10))
+    
+    # Footer
+    footer_text = safe_paragraph_text('MoldPark - Kulak Kalıbı Üretim Yönetim Sistemi | www.moldpark.com')
+    content.append(Paragraph(footer_text, small_style))
+    
+    # PDF oluştur
+    doc.build(content)
+    
+    # HTTP Response oluştur
+    response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="irsaliye_{delivery_note.note_number}.pdf"'
+    
+    return response
+
+
+@login_required
+@center_required
+def recipient_create(request):
+    """Yeni alıcı ekle"""
+    center = request.user.center
+    
+    # AJAX istekleri için sadece POST kabul et
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    
+    if request.method == 'POST':
+        form = RecipientForm(request.POST)
+        if form.is_valid():
+            recipient = form.save(commit=False)
+            recipient.center = center
+            recipient.save()
+            
+            if is_ajax:
+                return JsonResponse({
+                    'success': True,
+                    'recipient': {
+                        'id': recipient.id,
+                        'company_name': recipient.company_name,
+                        'address': recipient.address,
+                        'city': recipient.city,
+                        'phone': recipient.phone,
+                    }
+                })
+            
+            messages.success(request, 'Alıcı başarıyla eklendi.')
+            return redirect('center:delivery_note_create')
+        else:
+            if is_ajax:
+                # Form hatalarını JSON formatına çevir
+                errors_dict = {}
+                for field, errors in form.errors.items():
+                    errors_dict[field] = [str(error) for error in errors]
+                return JsonResponse({'success': False, 'errors': errors_dict}, status=400)
+            
+            messages.error(request, 'Lütfen formu doğru şekilde doldurun.')
+    else:
+        # GET isteği AJAX ise JSON döndür
+        if is_ajax:
+            return JsonResponse({'success': False, 'error': 'Sadece POST istekleri kabul edilir.'}, status=405)
+        
+        form = RecipientForm()
+    
+    # Normal GET isteği için template render et
+    context = {
+        'form': form,
+        'center': center,
+    }
+    
+    return render(request, 'center/recipient_create.html', context)
+
+
+@login_required
+@center_required
+def recipient_list(request):
+    """Alıcı listesi"""
+    center = request.user.center
+    recipients = Recipient.objects.filter(center=center).order_by('company_name')
+    
+    context = {
+        'recipients': recipients,
+        'center': center,
+    }
+    
+    return render(request, 'center/recipient_list.html', context)

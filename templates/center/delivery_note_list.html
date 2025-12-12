@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Sevk İrsaliyeleri" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">
+                        <i class="fas fa-file-invoice me-2"></i>
+                        {% trans "Sevk İrsaliyeleri" %}
+                    </h4>
+                    <a href="{% url 'center:delivery_note_create' %}" class="btn btn-light btn-sm">
+                        <i class="fas fa-plus me-1"></i>{% trans "Yeni İrsaliye" %}
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if delivery_notes %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>{% trans "İrsaliye No" %}</th>
+                                    <th>{% trans "Alıcı" %}</th>
+                                    <th>{% trans "Tarih" %}</th>
+                                    <th>{% trans "Durum" %}</th>
+                                    <th>{% trans "İşlemler" %}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for note in delivery_notes %}
+                                <tr>
+                                    <td><strong>{{ note.note_number }}</strong></td>
+                                    <td>{{ note.recipient_company_name }}</td>
+                                    <td>{{ note.issue_date|date:"d.m.Y" }}</td>
+                                    <td>
+                                        {% if note.is_draft %}
+                                        <span class="badge bg-warning">{% trans "Taslak" %}</span>
+                                        {% else %}
+                                        <span class="badge bg-success">{% trans "Tamamlandı" %}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'center:delivery_note_detail' pk=note.id %}" class="btn btn-sm btn-info">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{% url 'center:delivery_note_pdf' pk=note.id %}" class="btn btn-sm btn-danger">
+                                            <i class="fas fa-file-pdf"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Sayfalama -->
+                    {% if delivery_notes.has_other_pages %}
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center">
+                            {% if delivery_notes.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ delivery_notes.previous_page_number }}">{% trans "Önceki" %}</a>
+                            </li>
+                            {% endif %}
+                            
+                            {% for num in delivery_notes.paginator.page_range %}
+                            {% if delivery_notes.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                            {% else %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                            </li>
+                            {% endif %}
+                            {% endfor %}
+                            
+                            {% if delivery_notes.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ delivery_notes.next_page_number }}">{% trans "Sonraki" %}</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                    {% else %}
+                    <div class="alert alert-info text-center">
+                        <i class="fas fa-info-circle me-2"></i>
+                        {% trans "Henüz irsaliye oluşturulmamış." %}
+                        <a href="{% url 'center:delivery_note_create' %}" class="alert-link">{% trans "İlk irsaliyenizi oluşturun" %}</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

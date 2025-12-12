@@ -126,11 +126,25 @@ def create_invoice_on_mold_completion(sender, instance, created, **kwargs):
             status='active'
         ).first()
         
-        # Aylık ücret
-        if subscription and subscription.plan and subscription.plan.plan_type in ['package', 'standard']:
-            monthly_fee = subscription.plan.monthly_fee_try
+        # Bu ay için zaten aylık fatura (center veya center_monthly) oluşturulmuş mu kontrol et
+        # Eğer oluşturulmuşsa, aylık ücreti tekrar ekleme
+        monthly_invoice_exists = Invoice.objects.filter(
+            user=instance.center.user,
+            invoice_type__in=['center', 'center_monthly'],
+            issue_date__year=now.year,
+            issue_date__month=now.month
+        ).exists()
+        
+        # Aylık ücret - sadece aylık fatura yoksa ekle
+        if monthly_invoice_exists:
+            # Bu ay için zaten aylık fatura oluşturulmuş, aylık ücreti ekleme
+            monthly_fee = Decimal('0.00')
         else:
-            monthly_fee = pricing.monthly_system_fee
+            # Aylık fatura yoksa, aylık ücreti ekle
+            if subscription and subscription.plan and subscription.plan.plan_type in ['package', 'standard']:
+                monthly_fee = subscription.plan.monthly_fee_try
+            else:
+                monthly_fee = pricing.monthly_system_fee
         
         # Fiziksel ve dijital tutarları hesapla
         from core.views_financial import get_mold_price_at_date

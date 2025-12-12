@@ -108,6 +108,16 @@ class Command(BaseCommand):
                 ))
                 continue
             
+            # Bu ay için center_admin_invoice tipinde fatura var mı ve aylık ücret içeriyor mu kontrol et
+            # Eğer varsa, aylık ücreti tekrar ekleme
+            admin_invoice_with_monthly_fee = Invoice.objects.filter(
+                user=user,
+                invoice_type='center_admin_invoice',
+                issue_date__year=target_year,
+                issue_date__month=target_month,
+                monthly_fee__gt=0
+            ).exists()
+            
             # Aylık kullanım verilerini al
             molds = EarMold.objects.filter(
                 center=center,
@@ -132,11 +142,12 @@ class Command(BaseCommand):
                     status='issued'
                 )
                 
-                # Hesaplama
+                # Hesaplama - eğer bu ay için center_admin_invoice'da aylık ücret alınmışsa, tekrar ekleme
                 total = invoice.calculate_center_invoice(
                     subscription=subscription,
-                    mold_count=physical_count,
-                    modeling_count=digital_count
+                    period_start=month_start,
+                    period_end=month_end,
+                    include_monthly_fee=not admin_invoice_with_monthly_fee
                 )
                 
                 center_count += 1
@@ -150,7 +161,11 @@ class Command(BaseCommand):
             else:
                 # Dry run - sadece hesapla
                 plan = subscription.plan
-                monthly_fee = plan.monthly_fee_try
+                # Eğer bu ay için center_admin_invoice'da aylık ücret alınmışsa, tekrar ekleme
+                if admin_invoice_with_monthly_fee:
+                    monthly_fee = Decimal('0.00')
+                else:
+                    monthly_fee = plan.monthly_fee_try
                 physical_cost = plan.per_mold_price_try * physical_count
                 digital_cost = plan.modeling_service_fee_try * digital_count
                 subtotal = monthly_fee + physical_cost + digital_cost

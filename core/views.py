@@ -1865,6 +1865,93 @@ def admin_financial_dashboard(request):
             status='pending'
         ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
 
+        # === İŞİTME MERKEZLERİ KULLANIM İSTATİSTİKLERİ ===
+        from django.db.models import Q
+        from center.models import Center
+        
+        # Tarih aralıkları
+        last_30_days_start = timezone.now() - timedelta(days=30)
+        last_30_days_start_date = last_30_days_start.date() if hasattr(last_30_days_start, 'date') else date.today() - timedelta(days=30)
+        
+        # Tüm aktif merkezler
+        active_centers = Center.objects.filter(is_active=True)
+        total_active_centers = active_centers.count()
+        
+        # Bu ay aktif olan merkezler (bu ay içinde hizmet alanlar)
+        centers_active_this_month = EarMold.objects.filter(
+            created_at__gte=current_month_start,
+            center__is_active=True
+        ).values('center').distinct().count()
+        
+        # Son 30 gün içinde aktif olan merkezler
+        centers_active_last_30_days = EarMold.objects.filter(
+            created_at__gte=last_30_days_start_date,
+            center__is_active=True
+        ).values('center').distinct().count()
+        
+        # Fiziksel kalıp istatistikleri
+        physical_molds_total = EarMold.objects.filter(
+            is_physical_shipment=True,
+            center__is_active=True
+        ).count()
+        
+        physical_molds_this_month = EarMold.objects.filter(
+            is_physical_shipment=True,
+            created_at__gte=current_month_start,
+            center__is_active=True
+        ).count()
+        
+        physical_molds_last_30_days = EarMold.objects.filter(
+            is_physical_shipment=True,
+            created_at__gte=last_30_days_start_date,
+            center__is_active=True
+        ).count()
+        
+        # Dijital modelleme istatistikleri
+        digital_molds_total = EarMold.objects.filter(
+            Q(is_physical_shipment=False) | Q(modeled_files__isnull=False),
+            center__is_active=True
+        ).distinct().count()
+        
+        digital_molds_this_month = EarMold.objects.filter(
+            Q(is_physical_shipment=False) | Q(modeled_files__isnull=False),
+            created_at__gte=current_month_start,
+            center__is_active=True
+        ).distinct().count()
+        
+        digital_molds_last_30_days = EarMold.objects.filter(
+            Q(is_physical_shipment=False) | Q(modeled_files__isnull=False),
+            created_at__gte=last_30_days_start_date,
+            center__is_active=True
+        ).distinct().count()
+        
+        # Bekleyen faturalar (merkez bazında)
+        pending_invoices_by_centers = Invoice.objects.filter(
+            invoice_type__startswith='center',
+            status__in=['issued', 'sent']
+        ).values('user__center').distinct().count()
+        
+        # Toplam kullanım hesaplamaları
+        total_molds_all = physical_molds_total + digital_molds_total
+        total_molds_this_month = physical_molds_this_month + digital_molds_this_month
+        total_molds_last_30_days = physical_molds_last_30_days + digital_molds_last_30_days
+        
+        center_usage_stats = {
+            'total_active_centers': total_active_centers,
+            'centers_active_this_month': centers_active_this_month,
+            'centers_active_last_30_days': centers_active_last_30_days,
+            'physical_molds_total': physical_molds_total,
+            'physical_molds_this_month': physical_molds_this_month,
+            'physical_molds_last_30_days': physical_molds_last_30_days,
+            'digital_molds_total': digital_molds_total,
+            'digital_molds_this_month': digital_molds_this_month,
+            'digital_molds_last_30_days': digital_molds_last_30_days,
+            'total_molds_all': total_molds_all,
+            'total_molds_this_month': total_molds_this_month,
+            'total_molds_last_30_days': total_molds_last_30_days,
+            'pending_invoices_by_centers': pending_invoices_by_centers,
+        }
+
         context = {
             # Genel İstatistikler
             'total_centers': total_centers,
@@ -1889,6 +1976,9 @@ def admin_financial_dashboard(request):
             # Top Listeler
             'top_centers': top_centers,
             'top_producers': top_producers,
+            
+            # İşitme Merkezleri Kullanım İstatistikleri
+            'center_usage_stats': center_usage_stats,
         }
 
         return render(request, 'core/admin_financial_dashboard.html', context)

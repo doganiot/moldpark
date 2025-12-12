@@ -1,0 +1,333 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Sevk İrsaliyesi Oluştur" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-file-invoice me-2"></i>
+                        {% trans "Sevk İrsaliyesi Oluştur" %}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="deliveryNoteForm">
+                        {% csrf_token %}
+                        
+                        <!-- Alıcı Seçimi -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label">{% trans "Kayıtlı Alıcı Seç" %}</label>
+                                <select class="form-select" id="recipientSelect" onchange="loadRecipient()">
+                                    <option value="">{% trans "Yeni Alıcı" %}</option>
+                                    {% for recipient in recipients %}
+                                    <option value="{{ recipient.id }}" 
+                                            data-name="{{ recipient.company_name }}"
+                                            data-address="{{ recipient.address }}"
+                                            data-city="{{ recipient.city }}"
+                                            data-phone="{{ recipient.phone }}">
+                                        {{ recipient.company_name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addRecipientModal">
+                                    <i class="fas fa-plus me-1"></i>{% trans "Yeni Alıcı Ekle" %}
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Alıcı Bilgileri -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.recipient_company_name.id_for_label }}" class="form-label">{% trans "Alıcı Firma Adı" %} *</label>
+                                {{ form.recipient_company_name }}
+                                {{ form.recipient_company_name.errors }}
+                            </div>
+                            <div class="col-md-3">
+                                <label for="{{ form.recipient_city.id_for_label }}" class="form-label">{% trans "Şehir" %}</label>
+                                {{ form.recipient_city }}
+                                {{ form.recipient_city.errors }}
+                            </div>
+                            <div class="col-md-3">
+                                <label for="{{ form.recipient_phone.id_for_label }}" class="form-label">{% trans "Telefon" %}</label>
+                                {{ form.recipient_phone }}
+                                {{ form.recipient_phone.errors }}
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <label for="{{ form.recipient_address.id_for_label }}" class="form-label">{% trans "Adres" %} *</label>
+                                {{ form.recipient_address }}
+                                {{ form.recipient_address.errors }}
+                            </div>
+                        </div>
+
+                        <!-- Tarih ve Notlar -->
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="{{ form.issue_date.id_for_label }}" class="form-label">{% trans "Tarih" %} *</label>
+                                {{ form.issue_date }}
+                                {{ form.issue_date.errors }}
+                            </div>
+                            <div class="col-md-8">
+                                <label for="{{ form.notes.id_for_label }}" class="form-label">{% trans "Notlar" %}</label>
+                                {{ form.notes }}
+                                {{ form.notes.errors }}
+                            </div>
+                        </div>
+
+                        <input type="hidden" name="recipient_id" id="recipient_id" value="">
+
+                        <!-- İrsaliye Kalemleri -->
+                        <div class="card mb-3">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">{% trans "İrsaliye Kalemleri" %}</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="itemsContainer">
+                                    <div class="item-row mb-2">
+                                        <div class="row g-2">
+                                            <div class="col-md-5">
+                                                <input type="text" name="items-0-cinsi" class="form-control" placeholder="{% trans 'Cinsi' %}" required>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <input type="number" name="items-0-miktar" class="form-control" placeholder="{% trans 'Miktar' %}" step="0.01" min="0" value="1" required>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <input type="number" name="items-0-birim_fiyat" class="form-control birim-fiyat" placeholder="{% trans 'Birim Fiyat' %}" step="0.01" min="0" value="0">
+                                            </div>
+                                            <div class="col-md-2">
+                                                <input type="number" name="items-0-tutari" class="form-control tutari" placeholder="{% trans 'Tutarı' %}" step="0.01" min="0" value="0" readonly>
+                                            </div>
+                                            <div class="col-md-1">
+                                                <button type="button" class="btn btn-danger btn-sm remove-item" style="display: none;">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <input type="hidden" name="items-0-order" value="0">
+                                    </div>
+                                </div>
+                                <input type="hidden" name="items-TOTAL_FORMS" id="id_items-TOTAL_FORMS" value="1">
+                                <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="addItemBtn">
+                                    <i class="fas fa-plus me-1"></i>{% trans "Kalem Ekle" %}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'center:dashboard' %}" class="btn btn-secondary">
+                                <i class="fas fa-times me-1"></i>{% trans "İptal" %}
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>{% trans "Kaydet" %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Yeni Alıcı Ekle Modal -->
+<div class="modal fade" id="addRecipientModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{% trans "Yeni Alıcı Ekle" %}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="recipientForm" method="post" action="{% url 'center:recipient_create' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">{% trans "Firma Adı" %} *</label>
+                        <input type="text" name="company_name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{% trans "Adres" %} *</label>
+                        <textarea name="address" class="form-control" rows="3" required></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">{% trans "Şehir" %}</label>
+                            <input type="text" name="city" class="form-control">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">{% trans "Telefon" %}</label>
+                            <input type="text" name="phone" class="form-control">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">{% trans "E-posta" %}</label>
+                            <input type="email" name="email" class="form-control">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">{% trans "Vergi No" %}</label>
+                            <input type="text" name="tax_number" class="form-control">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "İptal" %}</button>
+                    <button type="submit" class="btn btn-primary">{% trans "Kaydet" %}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+let itemCount = 1;
+
+// Alıcı seçildiğinde bilgileri yükle
+function loadRecipient() {
+    const select = document.getElementById('recipientSelect');
+    const option = select.options[select.selectedIndex];
+    
+    if (option.value) {
+        document.getElementById('id_recipient_company_name').value = option.dataset.name;
+        document.getElementById('id_recipient_address').value = option.dataset.address;
+        document.getElementById('id_recipient_city').value = option.dataset.city || '';
+        document.getElementById('id_recipient_phone').value = option.dataset.phone || '';
+        document.getElementById('recipient_id').value = option.value;
+    } else {
+        document.getElementById('recipient_id').value = '';
+    }
+}
+
+// Kalem ekle
+document.getElementById('addItemBtn').addEventListener('click', function() {
+    const container = document.getElementById('itemsContainer');
+    const newRow = document.createElement('div');
+    newRow.className = 'item-row mb-2';
+    newRow.innerHTML = `
+        <div class="row g-2">
+            <div class="col-md-5">
+                <input type="text" name="items-${itemCount}-cinsi" class="form-control" placeholder="{% trans 'Cinsi' %}" required>
+            </div>
+            <div class="col-md-2">
+                <input type="number" name="items-${itemCount}-miktar" class="form-control" placeholder="{% trans 'Miktar' %}" step="0.01" min="0" value="1" required>
+            </div>
+            <div class="col-md-2">
+                <input type="number" name="items-${itemCount}-birim_fiyat" class="form-control birim-fiyat" placeholder="{% trans 'Birim Fiyat' %}" step="0.01" min="0" value="0">
+            </div>
+            <div class="col-md-2">
+                <input type="number" name="items-${itemCount}-tutari" class="form-control tutari" placeholder="{% trans 'Tutarı' %}" step="0.01" min="0" value="0" readonly>
+            </div>
+            <div class="col-md-1">
+                <button type="button" class="btn btn-danger btn-sm remove-item">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+        <input type="hidden" name="items-${itemCount}-order" value="${itemCount}">
+    `;
+    container.appendChild(newRow);
+    document.getElementById('id_items-TOTAL_FORMS').value = itemCount + 1;
+    itemCount++;
+    
+    // İlk satırdaki sil butonunu göster
+    if (itemCount > 1) {
+        document.querySelectorAll('.remove-item')[0].style.display = 'block';
+    }
+    
+    // Tutar hesaplama event listener'larını ekle
+    attachCalculationListeners(newRow);
+});
+
+// Kalem sil
+document.addEventListener('click', function(e) {
+    if (e.target.closest('.remove-item')) {
+        const row = e.target.closest('.item-row');
+        row.remove();
+        updateItemCounts();
+    }
+});
+
+// Tutar hesaplama
+function attachCalculationListeners(row) {
+    const miktarInput = row.querySelector('input[name*="-miktar"]');
+    const birimFiyatInput = row.querySelector('.birim-fiyat');
+    const tutariInput = row.querySelector('.tutari');
+    
+    function calculateTotal() {
+        const miktar = parseFloat(miktarInput.value) || 0;
+        const birimFiyat = parseFloat(birimFiyatInput.value) || 0;
+        tutariInput.value = (miktar * birimFiyat).toFixed(2);
+    }
+    
+    miktarInput.addEventListener('input', calculateTotal);
+    birimFiyatInput.addEventListener('input', calculateTotal);
+}
+
+// Mevcut satırlar için event listener ekle
+document.querySelectorAll('.item-row').forEach(row => {
+    attachCalculationListeners(row);
+});
+
+// Alıcı formu AJAX ile gönder
+document.getElementById('recipientForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    
+    fetch(this.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => {
+        // Content-Type kontrolü yap
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            return response.json();
+        } else {
+            // JSON değilse HTML dönmüş demektir (hata sayfası veya redirect)
+            return response.text().then(text => {
+                throw new Error('JSON yanıt beklenirken HTML döndü. Muhtemelen bir hata oluştu.');
+            });
+        }
+    })
+    .then(data => {
+        if (data.success) {
+            // Select'e yeni alıcıyı ekle
+            const select = document.getElementById('recipientSelect');
+            const option = document.createElement('option');
+            option.value = data.recipient.id;
+            option.textContent = data.recipient.company_name;
+            option.dataset.name = data.recipient.company_name;
+            option.dataset.address = data.recipient.address;
+            option.dataset.city = data.recipient.city || '';
+            option.dataset.phone = data.recipient.phone || '';
+            select.appendChild(option);
+            select.value = data.recipient.id;
+            loadRecipient();
+            
+            // Modal'ı kapat
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addRecipientModal'));
+            modal.hide();
+            
+            // Formu temizle
+            this.reset();
+        } else {
+            alert('Hata: ' + JSON.stringify(data.errors || data));
+        }
+    })
+    .catch(error => {
+        console.error('AJAX hatası:', error);
+        alert('Alıcı eklenirken bir hata oluştu. Lütfen sayfayı yenileyip tekrar deneyin.');
+    });
+});
+</script>
+{% endblock %}

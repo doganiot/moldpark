@@ -2354,15 +2354,11 @@ def send_invoice_email(request, invoice_id):
         
         html_string = render_to_string('core/financial/invoice_pdf_template.html', context)
         
-        # PDF oluştur (Türkçe karakter desteği ile)
-        from core.pdf_utils import link_callback
-        result = io.BytesIO()
-        pdf = pisa.pisaDocument(
-            src=io.BytesIO(html_string.encode("utf-8")),
-            dest=result,
-            encoding='utf-8',
-            link_callback=link_callback
-        )
+        # PDF oluştur (Türkçe karakter desteği ile) - ReportLab kullan
+        # xhtml2pdf Türkçe karakterleri doğru işlemiyor, bu yüzden ReportLab kullanıyoruz
+        from core.pdf_utils import generate_invoice_pdf
+        pdf_response = generate_invoice_pdf(invoice, center)
+        pdf_content = pdf_response.content
         
         if pdf.err:
             return JsonResponse({

@@ -56,4 +56,14 @@ urlpatterns = [
     
     # API endpoints
     path('api/producers/', views.get_producers_api, name='get_producers_api'),
+    
+    # Sevk İrsaliyesi
+    path('delivery-note/create/', views.delivery_note_create, name='delivery_note_create'),
+    path('delivery-note/list/', views.delivery_note_list, name='delivery_note_list'),
+    path('delivery-note/<int:pk>/', views.delivery_note_detail, name='delivery_note_detail'),
+    path('delivery-note/<int:pk>/pdf/', views.delivery_note_pdf, name='delivery_note_pdf'),
+    
+    # Alıcı Yönetimi
+    path('recipient/create/', views.recipient_create, name='recipient_create'),
+    path('recipient/list/', views.recipient_list, name='recipient_list'),
 ] 
